@@ -2640,6 +2640,60 @@ struct test_qaddr_del {
 	uint8_t chip_id;
 };
 
+#ifdef IPA_OFFLOAD
+/**
+ * struct dp_ipa_resources - Resources needed for IPA
+ *
+ * @tx_ring: Tx data ring info
+ * @tx_num_alloc_buffer: Number of Tx buffer
+ * @tx_comp_ring: Tx comp ring info
+ * @rx_rdy_ring: Rx dst ring info
+ * @rx_refill_ring: Rx refill ring info
+ * @tx_comp_doorbell_paddr: Physical doorbell address for Tx compl ring
+ * @tx_comp_doorbell_vaddr: Virtual doorbell address for Tx compl ring
+ * @rx_ready_doorbell_paddr: Physical doorbell address for Rx dst ring
+ * @is_db_ddr_mapped: Doorbell is DDR mapped
+ * @tx_alt_ring: Tx Alt data ring info
+ * @tx_alt_ring_num_alloc_buffer: Number of Tx buffer Alt ring
+ * @tx_alt_comp_ring: Tx Alr comp ring info
+ * @tx_alt_comp_doorbell_paddr: Physical doorbell address for Tx Alt compl ring
+ * @tx_alt_comp_doorbell_vaddr: Virtual doorbell address for Tx Alt compl ring
+ * @rx_alt_rdy_ring: Rx Alt dst ring info
+ * @rx_alt_refill_ring: Rx Alt refill ring info
+ * @rx_alt_ready_doorbell_paddr: Physical doorbell address for Rx Alt dst ring
+ */
+struct dp_ipa_resources {
+	qdf_shared_mem_t tx_ring;
+	uint32_t tx_num_alloc_buffer;
+
+	qdf_shared_mem_t tx_comp_ring;
+	qdf_shared_mem_t rx_rdy_ring;
+	qdf_shared_mem_t rx_refill_ring;
+
+	/* IPA UC doorbell registers paddr */
+	qdf_dma_addr_t tx_comp_doorbell_paddr;
+	uint32_t *tx_comp_doorbell_vaddr;
+	qdf_dma_addr_t rx_ready_doorbell_paddr;
+
+	bool is_db_ddr_mapped;
+
+#ifdef IPA_WDI3_TX_TWO_PIPES
+	qdf_shared_mem_t tx_alt_ring;
+	uint32_t tx_alt_ring_num_alloc_buffer;
+	qdf_shared_mem_t tx_alt_comp_ring;
+
+	/* IPA UC doorbell registers paddr */
+	qdf_dma_addr_t tx_alt_comp_doorbell_paddr;
+	uint32_t *tx_alt_comp_doorbell_vaddr;
+#endif
+#ifdef IPA_WDI3_VLAN_SUPPORT
+	qdf_shared_mem_t rx_alt_rdy_ring;
+	qdf_shared_mem_t rx_alt_refill_ring;
+	qdf_dma_addr_t rx_alt_ready_doorbell_paddr;
+#endif
+};
+#endif
+
 /* SOC level structure for data path */
 struct dp_soc {
 	/**
@@ -2979,6 +3033,17 @@ struct dp_soc {
 	qdf_spinlock_t ipa_rx_buf_map_lock;
 	bool ipa_rx_buf_map_lock_initialized;
 	uint8_t ipa_reo_ctx_lock_required[MAX_REO_DEST_RINGS];
+
+	struct dp_ipa_resources ipa_resource;
+	ipa_uc_op_cb_type ipa_uc_op_cb;
+	void *usr_ctxt;
+#endif /* IPA_OFFLOAD */
+
+	/* Second ring used to replenish rx buffers */
+	struct dp_srng rx_refill_buf_ring2;
+#ifdef IPA_WDI3_VLAN_SUPPORT
+	/* Third ring used to replenish rx buffers */
+	struct dp_srng rx_refill_buf_ring3;
 #endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
@@ -3197,59 +3262,6 @@ struct dp_soc {
 	uint64_t shared_qaddr_del_idx;
 	uint64_t write_paddr_list_idx;
 };
-
-#ifdef IPA_OFFLOAD
-/**
- * struct dp_ipa_resources - Resources needed for IPA
- * @tx_ring:
- * @tx_num_alloc_buffer:
- * @tx_comp_ring:
- * @rx_rdy_ring:
- * @rx_refill_ring:
- * @tx_comp_doorbell_paddr: IPA UC doorbell registers paddr
- * @tx_comp_doorbell_vaddr:
- * @rx_ready_doorbell_paddr:
- * @is_db_ddr_mapped:
- * @tx_alt_ring:
- * @tx_alt_ring_num_alloc_buffer:
- * @tx_alt_comp_ring:
- * @tx_alt_comp_doorbell_paddr: IPA UC doorbell registers paddr
- * @tx_alt_comp_doorbell_vaddr:
- * @rx_alt_rdy_ring:
- * @rx_alt_refill_ring:
- * @rx_alt_ready_doorbell_paddr:
- */
-struct dp_ipa_resources {
-	qdf_shared_mem_t tx_ring;
-	uint32_t tx_num_alloc_buffer;
-
-	qdf_shared_mem_t tx_comp_ring;
-	qdf_shared_mem_t rx_rdy_ring;
-	qdf_shared_mem_t rx_refill_ring;
-
-	/* IPA UC doorbell registers paddr */
-	qdf_dma_addr_t tx_comp_doorbell_paddr;
-	uint32_t *tx_comp_doorbell_vaddr;
-	qdf_dma_addr_t rx_ready_doorbell_paddr;
-
-	bool is_db_ddr_mapped;
-
-#ifdef IPA_WDI3_TX_TWO_PIPES
-	qdf_shared_mem_t tx_alt_ring;
-	uint32_t tx_alt_ring_num_alloc_buffer;
-	qdf_shared_mem_t tx_alt_comp_ring;
-
-	/* IPA UC doorbell registers paddr */
-	qdf_dma_addr_t tx_alt_comp_doorbell_paddr;
-	uint32_t *tx_alt_comp_doorbell_vaddr;
-#endif
-#ifdef IPA_WDI3_VLAN_SUPPORT
-	qdf_shared_mem_t rx_alt_rdy_ring;
-	qdf_shared_mem_t rx_alt_refill_ring;
-	qdf_dma_addr_t rx_alt_ready_doorbell_paddr;
-#endif
-};
-#endif
 
 #define MAX_RX_MAC_RINGS 2
 /* Same as NAC_MAX_CLENT */
@@ -3567,13 +3579,6 @@ struct dp_pdev {
 	/* Flag to indicate fast RX */
 	bool rx_fast_flag;
 
-	/* Second ring used to replenish rx buffers */
-	struct dp_srng rx_refill_buf_ring2;
-#ifdef IPA_WDI3_VLAN_SUPPORT
-	/* Third ring used to replenish rx buffers */
-	struct dp_srng rx_refill_buf_ring3;
-#endif
-
 #ifdef FEATURE_DIRECT_LINK
 	/* Fourth ring used to replenish rx buffers */
 	struct dp_srng rx_refill_buf_ring4;
@@ -3665,12 +3670,6 @@ struct dp_pdev {
 	qdf_atomic_t mc_num_vap_attached;
 
 	qdf_atomic_t stats_cmd_complete;
-
-#ifdef IPA_OFFLOAD
-	ipa_uc_op_cb_type ipa_uc_op_cb;
-	void *usr_ctxt;
-	struct dp_ipa_resources ipa_resource;
-#endif
 
 	/* TBD */
 
