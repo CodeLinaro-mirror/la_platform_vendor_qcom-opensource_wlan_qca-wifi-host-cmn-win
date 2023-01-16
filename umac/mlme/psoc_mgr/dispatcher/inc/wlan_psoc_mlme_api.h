@@ -108,4 +108,23 @@ wlan_psoc_mlme_get_11be_capab(struct wlan_objmgr_psoc *psoc, bool *val);
  */
 QDF_STATUS
 wlan_psoc_mlme_set_11be_capab(struct wlan_objmgr_psoc *psoc, bool val);
+
+#if defined(IPA_OFFLOAD) && defined(QCA_IPA_LL_TX_FLOW_CONTROL)
+/**
+ * wlan_psoc_mlme_ipa_evt_wq_attach() - Create WQ to handle IPA event
+ * @psoc: psoc handle
+ *
+ * return: QDF_STATUS
+ */
+QDF_STATUS
+wlan_psoc_mlme_ipa_evt_wq_attach(struct wlan_objmgr_psoc *psoc);
+
+/**
+ * wlan_psoc_mlme_ipa_evt_wq_detach() - Detach WQ which handle IPA event
+ * @psoc: psoc handle
+ *
+ * return: void
+ */
+void wlan_psoc_mlme_ipa_evt_wq_detach(struct wlan_objmgr_psoc *psoc);
+#endif
 #endif
