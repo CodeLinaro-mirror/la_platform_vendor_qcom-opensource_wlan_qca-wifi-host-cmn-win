@@ -1205,6 +1205,9 @@ struct wmi_host_tid_to_link_map_resp {
  * @emlsr_support: indicate if eMLSR supported
  * @emlmr_support: indicate if eMLMR supported
  * @msd_cap_support: indicate if MSD supported
+ * @nstr_bitmap_present: indicate if NSTR bitmap is present
+ * @nstr_bitmap_size: Indicates size of NSTR bitmap,
+ *                    as per the 802.11be specification
  * @unused: spare bits
  * @mld_mac: MLD mac address
  * @logical_link_index: Unique index for links of the mlo. Starts with Zero
@@ -1217,6 +1220,12 @@ struct wmi_host_tid_to_link_map_resp {
  * @medium_sync_duration: medium sync duration in us
  * @medium_sync_ofdm_ed_thresh: medium sync ofdm threshold in us
  * @medium_sync_max_txop_num: Max number of TXOPs
+<<<<<<< HEAD   (ec7d74 Merge "qcacmn: Add EPCS action frame parsing support")
+=======
+ * @max_num_simultaneous_links: Max number of simultaneous links as per
+ *                              MLD Capability for ML peer
+ * @nstr_indication_bitmap: NSTR indication bitmap
+>>>>>>> CHANGE (df9658 qcacmn: Add nstrinfo in ml_partner_info and parse)
  */
 struct peer_assoc_mlo_params {
 	uint32_t mlo_enabled:1,
@@ -1228,7 +1237,9 @@ struct peer_assoc_mlo_params {
 		 emlsr_support:1,
 		 emlmr_support:1,
 		 msd_cap_support:1,
-		 unused:23;
+		 nstr_bitmap_present:1,
+		 nstr_bitmap_size:1,
+		 unused:21;
 	uint8_t mld_mac[QDF_MAC_ADDR_SIZE];
 	uint32_t logical_link_index;
 	uint32_t ml_peer_id;
@@ -1240,6 +1251,11 @@ struct peer_assoc_mlo_params {
 	uint16_t medium_sync_duration;
 	uint16_t medium_sync_ofdm_ed_thresh;
 	uint16_t medium_sync_max_txop_num;
+<<<<<<< HEAD   (ec7d74 Merge "qcacmn: Add EPCS action frame parsing support")
+=======
+	uint16_t max_num_simultaneous_links;
+	uint32_t nstr_indication_bitmap;
+>>>>>>> CHANGE (df9658 qcacmn: Add nstrinfo in ml_partner_info and parse)
 };
 
 /**
