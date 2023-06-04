@@ -257,7 +257,6 @@ static void wlan_ipa_send_pkt_to_tl(
 		qdf_ipa_rx_data_t *ipa_tx_desc)
 {
 	struct wlan_ipa_priv *ipa_ctx = iface_context->ipa_ctx;
-	struct wlan_objmgr_pdev *pdev;
 	struct wlan_objmgr_psoc *psoc;
 	qdf_device_t osdev;
 	qdf_nbuf_t skb;
@@ -267,8 +266,8 @@ static void wlan_ipa_send_pkt_to_tl(
 
 	if (!ipa_ctx)
 		return;
-	pdev = ipa_ctx->pdev;
-	psoc = wlan_pdev_get_psoc(pdev);
+
+	psoc = ipa_ctx->psoc;
 	osdev = wlan_psoc_get_qdf_dev(psoc);
 
 	qdf_spin_lock_bh(&iface_context->interface_lock);
@@ -608,7 +607,7 @@ wlan_ipa_wdi_setup(struct wlan_ipa_priv *ipa_ctx,
 			     &ipa_ctx->sys_pipe[i].ipa_sys_params,
 			     sizeof(qdf_ipa_sys_connect_params_t));
 
-	qdf_status = cdp_ipa_setup(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id,
+	qdf_status = cdp_ipa_setup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 				   wlan_ipa_i2w_cb, wlan_ipa_w2i_cb,
 				   wlan_ipa_wdi_meter_notifier_cb,
 				   ipa_ctx->config->desc_size,
@@ -687,7 +686,7 @@ static void wlan_ipa_update_wds_params(struct wlan_ipa_priv *ipa_ctx,
 }
 
 /**
- * wlan_ipa_msg_wds_update() - IPA message WDS update
+ * wlan_ipa_msg_wds_update() - IPA update WDS message
  * @ipa_wds: IPA WDS status
  * @msg: Meta data message for IPA
  *
@@ -986,7 +985,7 @@ static inline int wlan_ipa_wdi_is_smmu_enabled(struct wlan_ipa_priv *ipa_ctx,
 static inline QDF_STATUS wlan_ipa_wdi_setup(struct wlan_ipa_priv *ipa_ctx,
 					    qdf_device_t osdev)
 {
-	return cdp_ipa_setup(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id,
+	return cdp_ipa_setup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 			     wlan_ipa_i2w_cb, wlan_ipa_w2i_cb,
 			     wlan_ipa_wdi_meter_notifier_cb,
 			     ipa_ctx->config->desc_size,
@@ -1125,7 +1124,7 @@ wlan_ipa_rx_intrabss_fwd(struct wlan_ipa_priv *ipa_ctx,
 /**
  * wlan_ipa_send_sta_eapol_to_nw() - Send Rx EAPOL pkt for STA to Kernel
  * @skb: network buffer
- * @pdev: pdev obj
+ * @ipa_ctx: IPA_CTX object
  *
  * Called when a EAPOL packet is received via IPA Exception path
  * before wlan_ipa_setup_iface is done for STA.
@@ -1133,19 +1132,25 @@ wlan_ipa_rx_intrabss_fwd(struct wlan_ipa_priv *ipa_ctx,
  * Return: 0 on success, err_code for failure.
  */
 static int wlan_ipa_send_sta_eapol_to_nw(qdf_nbuf_t skb,
-					 struct wlan_objmgr_pdev *pdev)
+					 struct wlan_ipa_priv *ipa_ctx)
 {
-	struct wlan_ipa_priv *ipa_ctx;
 	struct ethhdr *eh;
 	struct wlan_objmgr_vdev *vdev = NULL;
+	struct wlan_objmgr_psoc *psoc = ipa_ctx->psoc;
+	uint8_t pdev_id;
 
-	ipa_ctx = ipa_pdev_get_priv_obj(pdev);
 	if (!ipa_ctx)
 		return -EINVAL;
 
 	eh = (struct ethhdr *)qdf_nbuf_data(skb);
-	vdev = wlan_objmgr_get_vdev_by_macaddr_from_pdev(
-				pdev, eh->h_dest, WLAN_IPA_ID);
+
+	for (pdev_id = 0; pdev_id < psoc->soc_objmgr.wlan_pdev_count; ++pdev_id) {
+		vdev = wlan_objmgr_get_vdev_by_macaddr_from_psoc(
+					psoc, pdev_id, eh->h_dest, WLAN_IPA_ID);
+		if (vdev)
+			break;
+	}
+
 	if (!vdev) {
 		ipa_err_rl("Invalid vdev");
 		return -EINVAL;
@@ -1410,7 +1415,7 @@ static void __wlan_ipa_w2i_cb(void *priv, qdf_ipa_dp_evt_type_t evt,
 			if (qdf_nbuf_is_ipv4_eapol_pkt(skb)) {
 				ipa_err_rl("EAPOL pkt. Sending to NW!");
 				if (!wlan_ipa_send_sta_eapol_to_nw(
-						skb, ipa_ctx->pdev))
+						skb, ipa_ctx))
 					break;
 			}
 			ipa_err_rl("Pkt Dropped!");
@@ -1722,8 +1727,7 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		wlan_ipa_reset_pending_tx_timer(ipa_ctx);
 
 	if (qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
-		result = cdp_ipa_enable_pipes(ipa_ctx->dp_soc,
-					      ipa_ctx->dp_pdev_id,
+		result = cdp_ipa_enable_pipes(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      ipa_ctx->hdl);
 		if (result) {
 			ipa_err("Enable IPA WDI PIPE failed: ret=%d", result);
@@ -1741,7 +1745,7 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 			ipa_info("opt_dp: enable pipes. Do not enable autonomy");
 		} else {
 			cdp_ipa_enable_autonomy(ipa_ctx->dp_soc,
-						ipa_ctx->dp_pdev_id);
+						IPA_DEF_PDEV_ID);
 			qdf_atomic_set(&ipa_ctx->autonomy_disabled, 0);
 		}
 	}
@@ -1779,8 +1783,7 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 
 
 	if (!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
-		cdp_ipa_disable_autonomy(ipa_ctx->dp_soc,
-					 ipa_ctx->dp_pdev_id);
+		cdp_ipa_disable_autonomy(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		qdf_atomic_set(&ipa_ctx->autonomy_disabled, 1);
 	}
 
@@ -1789,7 +1792,7 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 			wlan_ipa_set_pending_tx_timer(ipa_ctx);
 		} else {
 			qdf_status = cdp_ipa_disable_pipes(ipa_ctx->dp_soc,
-							   ipa_ctx->dp_pdev_id,
+							   IPA_DEF_PDEV_ID,
 							   ipa_ctx->hdl);
 			if (QDF_IS_STATUS_ERROR(qdf_status)) {
 				ipa_err("Disable IPA WDI PIPE failed: ret=%u",
@@ -1907,7 +1910,7 @@ static int wlan_ipa_get_ifaceid(struct wlan_ipa_priv *ipa_ctx,
 /**
  * wlan_ipa_cleanup_iface() - Cleanup IPA on a given interface
  * @iface_context: interface-specific IPA context
- * @mac_addr: MAC address
+ * @mac_addr: Mac address
  *
  * Return: None
  */
@@ -2047,10 +2050,17 @@ static void wlan_ipa_nbuf_cb(qdf_nbuf_t skb)
 
 #ifdef IPA_WDI3_TX_TWO_PIPES
 #define WLAN_IPA_SESSION_ID_SHIFT 1
+#ifdef QCA_IPA_LL_TX_FLOW_CONTROL
+static uint8_t wlan_ipa_set_session_id(uint8_t session_id, bool is_2g_iface)
+{
+	return session_id;
+}
+#else
 static uint8_t wlan_ipa_set_session_id(uint8_t session_id, bool is_2g_iface)
 {
 	return (session_id << WLAN_IPA_SESSION_ID_SHIFT) | is_2g_iface;
 }
+#endif
 #else
 static uint8_t wlan_ipa_set_session_id(uint8_t session_id, bool is_2g_iface)
 {
@@ -2394,7 +2404,7 @@ void wlan_ipa_uc_handle_last_discon(struct wlan_ipa_priv *ipa_ctx,
 	ipa_ctx->resource_unloading = true;
 	qdf_event_reset(&ipa_ctx->ipa_resource_comp);
 	ipa_info("Disable FW RX PIPE");
-	cdp_ipa_set_active(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id, false, false);
+	cdp_ipa_set_active(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID, false, false);
 
 	ipa_debug("exit: IPA WDI Pipes deactivated");
 }
@@ -2466,7 +2476,7 @@ static void wlan_ipa_intrabss_enable_disable(struct wlan_ipa_priv *ipa_ctx,
 	intrabss_req.enable = intra_bss_fwd;
 
 	if (QDF_STATUS_SUCCESS !=
-	    ipa_send_intrabss_enable_disable(ipa_ctx->pdev, &intrabss_req)) {
+	    ipa_send_intrabss_enable_disable(ipa_ctx->psoc, &intrabss_req)) {
 		ipa_err("intrabss offload vdev_id=%d, enable=%d failure",
 			session_id, intra_bss_fwd);
 	}
@@ -2516,7 +2526,7 @@ static void wlan_ipa_uc_offload_enable_disable(struct wlan_ipa_priv *ipa_ctx,
 	req.enable = enable;
 
 	if (QDF_STATUS_SUCCESS !=
-	    ipa_send_uc_offload_enable_disable(ipa_ctx->pdev, &req)) {
+	    ipa_send_uc_offload_enable_disable(ipa_ctx->psoc, &req)) {
 		ipa_err("Fail to enable IPA offload");
 		ipa_err("offload type=%d, vdev_id=%d, enable=%d",
 			offload_type, session_id, enable);
@@ -2776,7 +2786,7 @@ wlan_ipa_set_peer_id(struct wlan_ipa_priv *ipa_ctx,
  * @mac_addr: MAC address associated with the event
  * @is_2g_iface: @net_dev is 2G or not for QDF_IPA_STA_CONNECT and
  *		 QDF_IPA_AP_CONNECT
- * @ipa_obj: IPA object
+ * @ipa_obj: IPA_CTX object
  *
  * This function is meant to be called from within wlan_ipa_ctx.c
  *
@@ -2796,7 +2806,6 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 	int i;
 	QDF_STATUS status;
 	uint8_t sta_session_id = WLAN_IPA_MAX_SESSION;
-	struct wlan_objmgr_pdev *pdev;
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_objmgr_vdev *vdev;
 	bool ipa_wds = false;
@@ -2814,8 +2823,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		return QDF_STATUS_SUCCESS;
 	}
 
-	pdev = ipa_ctx->pdev;
-	psoc = wlan_pdev_get_psoc(pdev);
+	psoc = ipa_ctx->psoc;
 	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, session_id,
 						    WLAN_IPA_ID);
 	QDF_BUG(session_id < WLAN_IPA_MAX_SESSION);
@@ -3487,7 +3495,7 @@ static uint8_t wlan_ipa_device_mode_switch(uint8_t device_mode)
  * @ipa_event_type: event enum of type wlan_ipa_wlan_event
  * @mac_addr: MAC address associated with the event
  * @is_2g_iface: @net_dev is 2g interface or not
- * @ipa_obj: IPA object
+ * @ipa_obj: IPA_CTX object
  *
  * Return: QDF_STATUS
  */
@@ -3535,8 +3543,7 @@ wlan_ipa_uc_proc_pending_event(struct wlan_ipa_priv *ipa_ctx, bool is_loading)
 	qdf_list_remove_front(&ipa_ctx->pending_event,
 			(qdf_list_node_t **)&pending_event);
 	while (pending_event) {
-		struct wlan_objmgr_pdev *pdev = ipa_ctx->pdev;
-		struct wlan_objmgr_psoc *psoc = wlan_pdev_get_psoc(pdev);
+		struct wlan_objmgr_psoc *psoc = ipa_ctx->psoc;
 		struct wlan_objmgr_vdev *vdev =
 				wlan_objmgr_get_vdev_by_id_from_psoc(psoc,
 					pending_event->session_id,
@@ -3742,7 +3749,7 @@ static inline uint8_t wlan_ipa_get_rx_ipa_client(struct wlan_ipa_priv *ipa_ctx)
 
 /**
  * wlan_ipa_uc_send_wdi_control_msg() - Set WDI control message
- * @ipa_ctx: IPA context
+ * @ipa_ctx: IPA_CTX object
  * @ctrl: WDI control value
  *
  * Send WLAN_WDI_ENABLE for ctrl = true and WLAN_WDI_DISABLE otherwise.
@@ -4296,8 +4303,7 @@ void wlan_ipa_set_mcc_mode(struct wlan_ipa_priv *ipa_ctx, bool mcc_mode)
  */
 static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 {
-	struct wlan_objmgr_pdev *pdev = ipa_ctx->pdev;
-	struct wlan_objmgr_psoc *psoc = wlan_pdev_get_psoc(pdev);
+	struct wlan_objmgr_psoc *psoc = ipa_ctx->psoc;
 	qdf_device_t qdf_dev = wlan_psoc_get_qdf_dev(psoc);
 	QDF_STATUS status;
 
@@ -4332,8 +4338,7 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 		goto connect_pipe_fail;
 	}
 	/* Setup the Tx buffer SMMU mappings */
-	status = cdp_ipa_tx_buf_smmu_mapping(ipa_ctx->dp_soc,
-					     ipa_ctx->dp_pdev_id,
+	status = cdp_ipa_tx_buf_smmu_mapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					     __func__, __LINE__);
 	if (status) {
 		ipa_err("Failure to map Tx buffers for IPA(status=%d)",
@@ -4341,7 +4346,8 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 		goto smmu_map_fail;
 	}
 	ipa_info("TX buffers mapped to IPA");
-	cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id);
+
+	cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 	wlan_ipa_init_metering(ipa_ctx);
 	wlan_ipa_add_rem_flt_cb_event(ipa_ctx);
 	if (QDF_IS_STATUS_ERROR(wlan_ipa_init_perf_level(ipa_ctx)))
@@ -4376,7 +4382,8 @@ connect_pipe_fail:
 /**
  * wlan_ipa_uc_op_cb() - IPA uC operation callback
  * @op_msg: operation message received from firmware
- * @ipa_ctx: IPA context
+ * @ipa_ctx: user context registered with TL (we register the IPA Global
+ *	context)
  *
  * Return: None
  */
@@ -4427,7 +4434,7 @@ static void wlan_ipa_uc_op_cb(struct op_msg_type *op_msg,
 		if (msg->op_code == WLAN_IPA_UC_OPCODE_RX_SUSPEND) {
 			wlan_ipa_uc_disable_pipes(ipa_ctx, true);
 			ipa_info("Disable FW TX PIPE");
-			cdp_ipa_set_active(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id,
+			cdp_ipa_set_active(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					   false, true);
 		}
 
@@ -4583,7 +4590,7 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 		ipa_ctx->disable_intrabss_fwd[i] = false;
 	}
 
-	if (cdp_ipa_get_resource(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id)) {
+	if (cdp_ipa_get_resource(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID)) {
 		ipa_err("IPA UC resource alloc fail");
 		status = QDF_STATUS_E_FAILURE;
 		goto fail_return;
@@ -4616,7 +4623,7 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 
 		/* Setup the Tx buffer SMMU mappings */
 		status = cdp_ipa_tx_buf_smmu_mapping(ipa_ctx->dp_soc,
-						     ipa_ctx->dp_pdev_id,
+						     IPA_DEF_PDEV_ID,
 						     __func__, __LINE__);
 		if (status) {
 			ipa_err("Failure to map Tx buffers for IPA(status=%d)",
@@ -4624,15 +4631,15 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 			return status;
 		}
 		ipa_info("TX buffers mapped to IPA");
-		cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc,
-					   ipa_ctx->dp_pdev_id);
+
+		cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		wlan_ipa_init_metering(ipa_ctx);
 		wlan_ipa_add_rem_flt_cb_event(ipa_ctx);
 		if (wlan_ipa_init_perf_level(ipa_ctx) != QDF_STATUS_SUCCESS)
 			ipa_err("Failed to init perf level");
 	}
 
-	cdp_ipa_register_op_cb(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id,
+	cdp_ipa_register_op_cb(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 			       wlan_ipa_uc_op_event_handler, (void *)ipa_ctx);
 fail_return:
 	ipa_debug("exit: status=%d", status);
@@ -4666,7 +4673,7 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 
 	wlan_ipa_uc_disable_pipes(ipa_ctx, true);
 
-	cdp_ipa_deregister_op_cb(ipa_ctx->dp_soc, ipa_ctx->dp_pdev_id);
+	cdp_ipa_deregister_op_cb(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 	qdf_atomic_set(&ipa_ctx->deinit_in_prog, 1);
 
 	for (i = 0; i < WLAN_IPA_UC_OPCODE_MAX; i++) {
@@ -4674,16 +4681,12 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 		qdf_mem_free(ipa_ctx->uc_op_work[i].msg);
 		ipa_ctx->uc_op_work[i].msg = NULL;
 	}
-
-	cdp_ipa_iounmap_doorbell_vaddr(ipa_ctx->dp_soc,
-				       ipa_ctx->dp_pdev_id);
+	cdp_ipa_iounmap_doorbell_vaddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 
 	if (true == ipa_ctx->uc_loaded) {
-		cdp_ipa_tx_buf_smmu_unmapping(ipa_ctx->dp_soc,
-					      ipa_ctx->dp_pdev_id,
+		cdp_ipa_tx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      __func__, __LINE__);
-		status = cdp_ipa_cleanup(ipa_ctx->dp_soc,
-					 ipa_ctx->dp_pdev_id,
+		status = cdp_ipa_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					 ipa_ctx->tx_pipe_handle,
 					 ipa_ctx->rx_pipe_handle, ipa_ctx->hdl);
 		if (status)
@@ -4704,7 +4707,7 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
  * @net_dev: Interface net device
  * @type: event type
  * @mac_addr: pointer to mac address
- * @ipa_priv: IPA private context
+ * @ipa_priv: IPA_CTX object
  *
  * Send event to IPA driver
  *

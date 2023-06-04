@@ -25,6 +25,8 @@
 #include "wlan_ipa_priv.h"
 #include "wlan_ipa_public_struct.h"
 
+#define IPA_DEF_PDEV_ID 0
+
 /**
  * wlan_ipa_is_enabled() - Is IPA enabled?
  * @ipa_cfg: IPA config
