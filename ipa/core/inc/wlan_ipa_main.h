@@ -174,6 +174,13 @@ bool ipa_config_is_uc_enabled(void);
 bool ipa_config_is_vlan_enabled(void);
 
 /**
+ * ipa_config_is_split_support() - Is IPA Split config enabled?
+ *
+ * Return: true if SOC has support of split radio
+ */
+bool ipa_config_is_split_support(void);
+
+/**
  * ipa_obj_setup() - IPA obj initialization and setup
  * @ipa_ctx: IPA obj context
  *

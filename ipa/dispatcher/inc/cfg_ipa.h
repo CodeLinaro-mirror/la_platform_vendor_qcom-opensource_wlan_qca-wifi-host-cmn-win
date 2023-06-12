@@ -237,6 +237,25 @@
 		CFG_INI_BOOL("gIPAVlanEnable", \
 		false, "Ctrl to enable vlan support with IPA Offload")
 
+/*
+ * <ini>
+ * gIPASplitVer - IPA Split version
+ * @Default: false
+ *
+ * This ini specifies to get Split version
+ *
+ * Related: N/A
+ *
+ * Supported Feature: IPA
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_DP_IPA_ENABLE_SPLIT_SUPPORT \
+		CFG_INI_BOOL("gIPASplitVer", \
+		false, "Ctrl to get Split version with IPA Offload")
+
 #define CFG_IPA \
 	CFG(CFG_DP_IPA_OFFLOAD_CONFIG) \
 	CFG(CFG_DP_IPA_DESC_SIZE) \
@@ -246,5 +265,6 @@
 	CFG(CFG_DP_IPA_ENABLE_FORCE_VOTING) \
 	CFG(CFG_DP_IPA_UC_TX_BUF_COUNT) \
 	CFG(CFG_DP_IPA_WDS_STATUS) \
-	CFG(CFG_DP_IPA_ENABLE_VLAN_SUPPORT)
+	CFG(CFG_DP_IPA_ENABLE_VLAN_SUPPORT) \
+	CFG(CFG_DP_IPA_ENABLE_SPLIT_SUPPORT)
 #endif /* _CFG_IPA_H_ */

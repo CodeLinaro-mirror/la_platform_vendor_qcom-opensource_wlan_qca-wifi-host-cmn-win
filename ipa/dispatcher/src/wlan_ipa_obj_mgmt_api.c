@@ -189,6 +189,11 @@ static void ipa_register_ready_cb(void *user_data)
 	/* Update instance_id for current pdev */
 	ipa_obj->instance_id = psoc->soc_objmgr.psoc_id;
 
+	if (ipa_config_is_split_support()) {
+		if (ipa_obj->instance_id)
+			++ipa_obj->instance_id;
+	}
+
 	qdf_dev = wlan_psoc_get_qdf_dev(psoc);
 	if (!qdf_dev) {
 		ipa_err("QDF device context is NULL");
