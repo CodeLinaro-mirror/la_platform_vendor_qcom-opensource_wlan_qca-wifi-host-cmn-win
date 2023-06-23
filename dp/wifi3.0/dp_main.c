@@ -7646,7 +7646,7 @@ static void dp_mlo_link_peer_flush(struct dp_soc *soc, struct dp_peer *peer)
 {
 	int cnt = 0;
 	struct dp_peer *link_peer = NULL;
-	struct dp_mld_link_peers link_peers_info = {NULL};
+	struct dp_mld_link_peers link_peers_info = {{ NULL} };
 
 	if (!IS_MLO_DP_MLD_PEER(peer))
 		return;
