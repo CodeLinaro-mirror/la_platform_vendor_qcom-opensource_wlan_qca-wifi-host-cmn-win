@@ -101,7 +101,8 @@ static qdf_nbuf_t wbuff_prepare_nbuf(uint8_t module_id, uint8_t pool_id,
 	struct wbuff_module *mod = &wbuff.mod[module_id];
 	struct wbuff_pool *wbuff_pool = &mod->wbuff_pool[pool_id];
 
-	buf = qdf_nbuf_alloc(NULL, len, reserve, align, false);
+	buf = qdf_nbuf_page_frag_alloc(NULL, len, reserve, align,
+				       &wbuff.pf_cache);
 	if (!buf)
 		return NULL;
 	dev_scratch = module_id;
