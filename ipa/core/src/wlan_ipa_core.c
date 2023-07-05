@@ -4420,7 +4420,7 @@ connect_pipe_fail:
  * wlan_ipa_uc_op_cb() - IPA uC operation callback
  * @op_msg: operation message received from firmware
  * @ipa_ctx: user context registered with TL (we register the IPA Global
- *	context)
+ *           context)
  *
  * Return: None
  */

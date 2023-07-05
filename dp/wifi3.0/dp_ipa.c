@@ -3022,6 +3022,22 @@ dp_ipa_set_wdi_vlan_hdr_type(qdf_ipa_wdi_hdr_info_t *hdr_info)
 { }
 #endif
 
+#if !defined(QCA_IPA_LL_TX_FLOW_CONTROL)
+static inline struct dp_vdev *
+dp_vdev_get_ref_by_session_id(struct dp_soc *soc, uint8_t session_id)
+{
+	uint8_t id = (session_id >> IPA_SESSION_ID_SHIFT);
+
+	return dp_vdev_get_ref_by_id(soc, id, DP_MOD_ID_IPA);
+}
+#else
+static inline struct dp_vdev *
+dp_vdev_get_ref_by_session_id(struct dp_soc *soc, uint8_t session_id)
+{
+	return dp_vdev_get_ref_by_id(soc, session_id, DP_MOD_ID_IPA);
+}
+#endif
+
 QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 			      uint8_t *mac_addr,
 			      qdf_ipa_client_type_t prod_client,
@@ -3072,7 +3088,7 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 	dp_ipa_setup_meta_data_mask(&in);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_HANDLE(&in) = hdl;
 
-	vdev = dp_vdev_get_ref_by_id(soc, session_id, DP_MOD_ID_IPA);
+	vdev = dp_vdev_get_ref_by_session_id(soc, session_id);
 	if (!vdev) {
 		qdf_err("dp_vdev is Null for vdev_id:%d", session_id);
 		return ret;
