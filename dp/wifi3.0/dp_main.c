@@ -958,6 +958,28 @@ dp_peer_send_wds_disconnect(struct dp_soc *soc, struct dp_peer *peer)
 #endif
 
 /**
+ * dp_peer_check_ast_offload() - check ast offload support is enable or not
+ * @soc: soc handle
+ *
+ * Return: false in case of IPA and true/false in IPQ case
+ *
+ */
+#if defined(IPA_OFFLOAD) && defined(QCA_WIFI_QCN9224)
+static inline bool dp_peer_check_ast_offload(struct dp_soc *soc)
+{
+	return false;
+}
+#else
+static inline bool dp_peer_check_ast_offload(struct dp_soc *soc)
+{
+	if (soc->ast_offload_support)
+		return true;
+
+	return false;
+}
+#endif
+
+/**
  * dp_peer_get_ast_info_by_soc_wifi3() - search the soc AST hash table
  *                                       and return ast entry information
  *                                       of first ast entry found in the
@@ -978,7 +1000,7 @@ static bool dp_peer_get_ast_info_by_soc_wifi3
 	struct dp_soc *soc = (struct dp_soc *)soc_hdl;
 	struct dp_peer *peer = NULL;
 
-	if (soc->ast_offload_support)
+	if (dp_peer_check_ast_offload(soc))
 		return false;
 
 	qdf_spin_lock_bh(&soc->ast_lock);
@@ -5163,7 +5185,7 @@ static void dp_reap_timer_deinit(struct dp_soc *soc)
 }
 #endif
 
-#ifdef QCA_HOST2FW_RXBUF_RING
+#if defined(QCA_HOST2FW_RXBUF_RING) && defined(QCA_IPA_LL_TX_FLOW_CONTROL)
 /**
  * dp_rxdma_ring_alloc() - allocate the RXDMA rings
  * @soc: data path SoC handle
@@ -5262,7 +5284,101 @@ static void dp_rxdma_ring_free(struct dp_pdev *pdev)
 			dp_srng_free(pdev->soc, &pdev->rx_mac_buf_ring[i]);
 	}
 }
+#elif defined(QCA_HOST2FW_RXBUF_RING)
+/**
+ * dp_rxdma_ring_alloc() - allocate the RXDMA rings
+ * @soc: data path SoC handle
+ * @pdev: Physical device handle
+ *
+ * Return: 0 - success, > 0 - failure
+ */
+static int dp_rxdma_ring_alloc(struct dp_soc *soc, struct dp_pdev *pdev)
+{
+	struct wlan_cfg_dp_pdev_ctxt *pdev_cfg_ctx;
+	int max_mac_rings;
+	int i;
+	int ring_size;
 
+	pdev_cfg_ctx = pdev->wlan_cfg_ctx;
+	max_mac_rings = wlan_cfg_get_num_mac_rings(pdev_cfg_ctx);
+	ring_size =  wlan_cfg_get_rx_dma_buf_ring_size(pdev_cfg_ctx);
+
+	if (pdev->pdev_id == 0) {
+		for (i = 0; i < max_mac_rings; i++) {
+			if (dp_srng_alloc(soc, &pdev->rx_mac_buf_ring[i],
+					  RXDMA_BUF, ring_size, 0)) {
+				dp_init_err("%pK: failed rx mac ring setup",
+					    soc);
+				return QDF_STATUS_E_FAILURE;
+			}
+		}
+	}
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * dp_rxdma_ring_setup() - configure the RXDMA rings
+ * @soc: data path SoC handle
+ * @pdev: Physical device handle
+ *
+ * Return: 0 - success, > 0 - failure
+ */
+static int dp_rxdma_ring_setup(struct dp_soc *soc, struct dp_pdev *pdev)
+{
+	struct wlan_cfg_dp_pdev_ctxt *pdev_cfg_ctx;
+	int max_mac_rings;
+	int i;
+
+	pdev_cfg_ctx = pdev->wlan_cfg_ctx;
+	max_mac_rings = wlan_cfg_get_num_mac_rings(pdev_cfg_ctx);
+
+	if (pdev->pdev_id == 0) {
+		for (i = 0; i < max_mac_rings; i++) {
+			if (dp_srng_init(soc, &pdev->rx_mac_buf_ring[i],
+					 RXDMA_BUF, 1, i)) {
+				dp_init_err("%pK: failed rx mac ring setup",
+					    soc);
+				return QDF_STATUS_E_FAILURE;
+			}
+		}
+	}
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * dp_rxdma_ring_cleanup() - Deinit the RXDMA rings and reap timer
+ * @soc: data path SoC handle
+ * @pdev: Physical device handle
+ *
+ * Return: void
+ */
+static void dp_rxdma_ring_cleanup(struct dp_soc *soc, struct dp_pdev *pdev)
+{
+	int i;
+
+	if (pdev->pdev_id == 0) {
+		for (i = 0; i < MAX_RX_MAC_RINGS; i++)
+			dp_srng_deinit(soc, &pdev->rx_mac_buf_ring[i],
+				       RXDMA_BUF, 1);
+	}
+	dp_reap_timer_deinit(soc);
+}
+
+/**
+ * dp_rxdma_ring_free() - Free the RXDMA rings
+ * @pdev: Physical device handle
+ *
+ * Return: void
+ */
+static void dp_rxdma_ring_free(struct dp_pdev *pdev)
+{
+	int i;
+
+	if (pdev->pdev_id == 0) {
+		for (i = 0; i < MAX_RX_MAC_RINGS; i++)
+			dp_srng_free(pdev->soc, &pdev->rx_mac_buf_ring[i]);
+	}
+}
 #else
 static int dp_rxdma_ring_alloc(struct dp_soc *soc, struct dp_pdev *pdev)
 {

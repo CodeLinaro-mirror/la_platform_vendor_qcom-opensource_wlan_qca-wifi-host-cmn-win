@@ -42,6 +42,7 @@
  * @ipa_force_voting: support force bw voting
  * @ipa_wds: WDS support for IPA
  * @ipa_vlan_support: support got vlan with IPA
+ * @ipa_split_support: support to get split soc version
  */
 struct wlan_ipa_config {
 	uint32_t ipa_config;
@@ -56,6 +57,7 @@ struct wlan_ipa_config {
 	bool ipa_force_voting;
 	bool ipa_wds;
 	bool ipa_vlan_support;
+	bool ipa_split_support;
 };
 
 /**
