@@ -278,50 +278,8 @@ dp_soc_get_num_soc_be(struct dp_soc *soc)
 	return 1;
 }
 #endif
-#if defined(IPA_OFFLOAD) && defined(WLAN_FEATURE_11BE_MLO)
-/**
- * dp_rx_mlo_igmp_handler() - Rx handler for Mcast packets
- * @soc: Handle to DP Soc structure
- * @vdev: DP vdev handle
- * @peer: DP peer handle
- * @nbuf: nbuf to be enqueued
- * @link_id: link id on which the packet is received
- *
- * Return: true when packet sent to stack, false failure
- */
-bool dp_rx_mlo_igmp_handler(struct dp_soc *soc,
-			    struct dp_vdev *vdev,
-			    struct dp_txrx_peer *peer,
-			    qdf_nbuf_t nbuf,
-			    uint8_t link_id);
 
-static inline
-QDF_STATUS dp_peer_rx_reorder_queue_setup_be(struct dp_soc *soc,
-					     struct dp_peer *peer,
-					     int tid,
-					     uint32_t ba_window_size)
-{
-	struct dp_rx_tid *rx_tid = &peer->rx_tid[tid];
-
-	if (!rx_tid->hw_qdesc_paddr)
-		return QDF_STATUS_E_INVAL;
-
-	if (soc->cdp_soc.ol_ops->peer_rx_reorder_queue_setup) {
-		if (soc->cdp_soc.ol_ops->peer_rx_reorder_queue_setup(
-		    soc->ctrl_psoc,
-		    peer->vdev->pdev->pdev_id,
-		    peer->vdev->vdev_id,
-		    peer->mac_addr.raw, rx_tid->hw_qdesc_paddr, tid, tid,
-		    1, ba_window_size)) {
-			dp_peer_err("%pK: Failed to send reo queue setup to FW - tid %d\n",
-				    soc, tid);
-			return QDF_STATUS_E_FAILURE;
-		}
-	}
-
-	return QDF_STATUS_SUCCESS;
-}
-#elif defined(WLAN_FEATURE_11BE_MLO)
+#ifdef WLAN_FEATURE_11BE_MLO
 /**
  * dp_rx_mlo_igmp_handler() - Rx handler for Mcast packets
  * @soc: Handle to DP Soc structure
