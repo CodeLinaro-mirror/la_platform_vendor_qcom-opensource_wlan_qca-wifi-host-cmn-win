@@ -2127,7 +2127,7 @@ void dp_tx_nbuf_unmap(struct dp_soc *soc,
 static inline
 void dp_tx_enh_unmap(struct dp_soc *soc, struct dp_tx_desc_s *desc)
 {
-	if (qdf_likely(!(desc->flags & DP_TX_DESC_FLAG_UNMAP_DONE))) {
+	if (qdf_likely(desc->flags)) {
 		dp_tx_nbuf_unmap(soc, desc);
 		desc->flags |= DP_TX_DESC_FLAG_UNMAP_DONE;
 	}
