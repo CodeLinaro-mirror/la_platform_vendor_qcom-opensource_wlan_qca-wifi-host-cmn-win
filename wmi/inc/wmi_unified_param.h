@@ -5960,6 +5960,8 @@ typedef enum {
 		   VDEV_PARAM_SET_DISABLED_SCHED_MODES),
 	VDEV_PARAM(vdev_param_set_sap_ps_with_twt,
 		   VDEV_PARAM_SET_SAP_PS_WITH_TWT),
+	VDEV_PARAM(vdev_param_mlo_max_recom_active_links,
+		   VDEV_PARAM_MLO_MAX_RECOM_ACTIVE_LINKS),
 	vdev_param_max,
 } wmi_conv_vdev_param_id;
 
