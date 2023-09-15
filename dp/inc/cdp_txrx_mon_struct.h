@@ -447,6 +447,7 @@ enum cdp_mon_phyrx_abort_reason_code {
  * @mpdu_drop_cnt: Total MPDU drop count
  * @end_of_ppdu_drop_cnt: Total end of ppdu drop count
  * @tlv_drop_cnt: TLV drop count
+ * @pending_desc_count: Pending desc_count during pdev deinit
  */
 struct cdp_pdev_mon_stats {
 #ifndef REMOVE_MON_DBG_STATS
@@ -506,6 +507,7 @@ struct cdp_pdev_mon_stats {
 	uint32_t mpdu_drop_cnt;
 	uint32_t end_of_ppdu_drop_cnt;
 	uint32_t tlv_drop_cnt;
+	uint32_t pending_desc_count;
 };
 
 #ifdef QCA_SUPPORT_LITE_MONITOR
