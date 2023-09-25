@@ -3648,9 +3648,17 @@ try_desc_alloc:
 		hw_qdesc_vaddr, rx_tid->hw_qdesc_paddr, hal_pn_type,
 		vdev->vdev_stats_id);
 
-	qdf_mem_map_nbytes_single(soc->osdev, hw_qdesc_vaddr,
-		QDF_DMA_BIDIRECTIONAL, rx_tid->hw_qdesc_alloc_size,
-		&(rx_tid->hw_qdesc_paddr));
+	status = qdf_mem_map_nbytes_single(soc->osdev, hw_qdesc_vaddr,
+					   QDF_DMA_BIDIRECTIONAL,
+					   rx_tid->hw_qdesc_alloc_size,
+					   &rx_tid->hw_qdesc_paddr);
+
+	if (status) {
+		dp_peer_err("%pK: DMA Mapping failure Error: %d", soc, status);
+		rx_tid->hw_qdesc_paddr = 0x0;
+		status = QDF_STATUS_E_NOMEM;
+		goto error;
+	}
 
 	if (dp_reo_desc_addr_chk(rx_tid->hw_qdesc_paddr) !=
 			QDF_STATUS_SUCCESS) {

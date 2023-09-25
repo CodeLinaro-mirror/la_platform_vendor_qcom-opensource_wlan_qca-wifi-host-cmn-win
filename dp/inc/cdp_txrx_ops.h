@@ -695,6 +695,8 @@ struct cdp_cmn_ops {
 					 uint8_t vdev_id,
 					 uint8_t *mac,
 					 ol_osif_peer_handle *osif_peer);
+	QDF_STATUS (*set_wds_ext_peer_bit)(ol_txrx_soc_handle soc,
+					   uint8_t *mac);
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 	void (*txrx_drain)(ol_txrx_soc_handle soc);
 	int (*get_free_desc_poolsize)(struct cdp_soc_t *soc);
@@ -2115,6 +2117,7 @@ struct cdp_throttle_ops {
  * @ipa_tx_buf_smmu_mapping: Create SMMU mappings for Tx
  * @ipa_tx_buf_smmu_unmapping: Release SMMU mappings for Tx
  * buffers to IPA
+ * @ipa_rx_wdsext_iface: Forward RX exception packets to wdsext interface
  * @ipa_rx_super_rule_setup: Setup cce super rules based on filter tuple
  * @ipa_ast_create: Create/Update ast entry
  * @ipa_get_wdi_version: Get WDI version
@@ -2211,6 +2214,11 @@ struct cdp_ipa_ops {
 						uint8_t pdev_id,
 						const char *func,
 						uint32_t line);
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+	bool (*ipa_rx_wdsext_iface)(struct cdp_soc_t *soc_hdl,
+				    uint8_t peer_id,
+				    qdf_nbuf_t nbuf_head);
+#endif
 #ifdef IPA_OPT_WIFI_DP
 	QDF_STATUS (*ipa_rx_super_rule_setup)(struct cdp_soc_t *soc_hdl,
 					      void *flt_params);
