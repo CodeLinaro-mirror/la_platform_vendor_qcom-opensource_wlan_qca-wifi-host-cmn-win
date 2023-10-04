@@ -42,6 +42,7 @@ static uint32_t cm_get_prefix_for_cm_id(enum wlan_cm_source source) {
 	case CM_ROAMING_FW:
 	case CM_ROAMING_NUD_FAILURE:
 	case CM_ROAMING_LINK_REMOVAL:
+	case CM_ROAMING_USER:
 		return ROAM_REQ_PREFIX;
 	default:
 		return DISCONNECT_REQ_PREFIX;
@@ -601,7 +602,7 @@ cm_handle_connect_flush(struct cnx_mgr *cm_ctx, struct cm_req *cm_req)
 	cm_notify_connect_complete(cm_ctx, resp, 0);
 
 	/* For link switch connect request, notify MLO mgr */
-	if (resp->cm_id & CM_ID_LSWITCH_BIT) {
+	if (cm_is_link_switch_connect_resp(resp)) {
 		cm_reset_active_cm_id(cm_ctx->vdev, resp->cm_id);
 		mlo_mgr_link_switch_connect_done(cm_ctx->vdev,
 						 resp->connect_status);
@@ -637,7 +638,7 @@ cm_handle_disconnect_flush(struct cnx_mgr *cm_ctx, struct cm_req *cm_req)
 	 */
 	mlme_cm_osif_disconnect_complete(cm_ctx->vdev, &resp);
 
-	if (resp.req.cm_id & CM_ID_LSWITCH_BIT) {
+	if (cm_is_link_switch_disconnect_resp(&resp)) {
 		cm_reset_active_cm_id(cm_ctx->vdev, resp.req.cm_id);
 		mlo_mgr_link_switch_disconnect_done(cm_ctx->vdev,
 						    QDF_STATUS_E_ABORTED,
@@ -1151,7 +1152,7 @@ void cm_remove_cmd(struct cnx_mgr *cm_ctx, wlan_cm_id *cm_id_to_remove)
 	if (QDF_IS_STATUS_ERROR(status))
 		return;
 
-	if (cm_id & CM_ID_LSWITCH_BIT) {
+	if (cm_is_link_switch_cmd(cm_id)) {
 		mlme_debug("Skip cmd remove for link switch connect/disconnect");
 		return;
 	}
