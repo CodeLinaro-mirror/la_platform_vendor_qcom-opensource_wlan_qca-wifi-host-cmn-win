@@ -1426,6 +1426,7 @@ struct peer_assoc_ml_partner_links {
  * @mesh_node_flag: if node is 4 addr node
  * @is_assoc_vdev: true if assoc vdev
  * @peer_dms_capable: is peer DMS capable
+ * @peer_htcap_vhtcap_updated: is peer HT/VHT cap changed/updated
  * @reserved: spare bits
  * @t2lm_params: TID-to-link mapping params
  */
@@ -1516,7 +1517,8 @@ struct peer_assoc_params {
 	bool is_assoc_vdev;
 #endif
 	uint8_t peer_dms_capable:1,
-		reserved:7;
+		peer_htcap_vhtcap_updated:1,
+		reserved:6;
 #ifdef WLAN_FEATURE_11BE
 	struct wmi_host_tid_to_link_map_params t2lm_params;
 #endif
