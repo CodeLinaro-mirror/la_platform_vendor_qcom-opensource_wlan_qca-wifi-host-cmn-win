@@ -452,6 +452,8 @@ static const uint32_t pdev_param_tlv[] = {
 		  PDEV_PARAM_ATF_VO_DEDICATED_TIME),
 	PARAM_MAP(pdev_param_atf_vi_dedicated_time,
 		  PDEV_PARAM_ATF_VI_DEDICATED_TIME),
+	PARAM_MAP(pdev_param_tid_mapping_3link_mlo,
+		  PDEV_PARAM_TID_MAPPING_3LINK_MLO),
 };
 
 /* Populate vdev_param array whose index is host param, value is target param */
