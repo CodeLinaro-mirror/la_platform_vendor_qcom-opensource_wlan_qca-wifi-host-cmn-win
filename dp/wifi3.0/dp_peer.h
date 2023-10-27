@@ -1756,12 +1756,14 @@ void dp_mld_peer_deinit_link_peers_info(struct dp_peer *mld_peer)
  * dp_mld_peer_add_link_peer() - add link peer info to mld peer
  * @mld_peer: mld dp peer pointer
  * @link_peer: link dp peer pointer
+ * @is_bridge_peer: flag to indicate if peer is bridge peer
  *
  * Return: None
  */
 static inline
 void dp_mld_peer_add_link_peer(struct dp_peer *mld_peer,
-			       struct dp_peer *link_peer)
+			       struct dp_peer *link_peer,
+			       uint8_t is_bridge_peer)
 {
 	int i;
 	struct dp_peer_link_info *link_peer_info;
@@ -1778,6 +1780,7 @@ void dp_mld_peer_add_link_peer(struct dp_peer *mld_peer,
 			link_peer_info->vdev_id = link_peer->vdev->vdev_id;
 			link_peer_info->chip_id =
 				dp_mlo_get_chip_id(link_peer->vdev->pdev->soc);
+			link_peer_info->is_bridge_peer = is_bridge_peer;
 			mld_peer->num_links++;
 			break;
 		}
