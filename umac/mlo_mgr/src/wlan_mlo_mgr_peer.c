@@ -2499,7 +2499,7 @@ wlan_mlo_peer_wsi_link_update(struct wlan_mlo_peer_context *ml_peer, bool add)
 	for (i = 0, j = 0; i < MAX_MLO_LINK_PEERS; i++) {
 		peer_entry = &ml_peer->peer_list[i];
 		if (!peer_entry->link_peer) {
-			mlo_err("link peer is null");
+			mlo_debug("link peer is null");
 			continue;
 		}
 
