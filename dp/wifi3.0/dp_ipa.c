@@ -1027,7 +1027,7 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 {
 	dp_debug("session_id %u is_tx1_used %d", session_id, is_tx1_used);
 
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_TX1_USED(in) = is_tx1_used;
 }
 #else
@@ -3004,7 +3004,7 @@ dp_ipa_set_wdi_hdr_type(qdf_ipa_wdi_hdr_info_t *hdr_info)
 
 static void dp_ipa_setup_meta_data_mask(qdf_ipa_wdi_reg_intf_in_params_t *in)
 {
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in) = WLAN_IPA_META_DATA_MASK;
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in) = WLAN_IPA_AST_META_DATA_MASK;
 }
 #endif
 
