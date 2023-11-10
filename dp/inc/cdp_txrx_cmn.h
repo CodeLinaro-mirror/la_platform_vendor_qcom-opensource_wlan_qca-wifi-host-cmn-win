@@ -172,7 +172,27 @@ typedef void (*ipa_uc_op_cb_type)(uint8_t *op_msg,
 				  void *osif_ctxt);
 
 #ifdef QCA_SUPPORT_DP_GLOBAL_CTX
-/* Global level structure for win contexts */
+/**
+ * Global level structure for win contexts
+ *
+ * @dev_base_addr_pcieX:
+ * In QCN6432, for umac recovery to work, the umac_hw_reset interrupts
+ * are needed to be reset after it is received at host. Currently,
+ * for QCN6432, below lines are being used.
+ *
+ * PCIE0_TYPE0_MSI_CTRL_INT_7_STATUS_OFF --> 0x20000884
+ * PCIE1_TYPE0_MSI_CTRL_INT_7_STATUS_OFF --> 0x18000884
+ * PCIE2_TYPE0_MSI_CTRL_INT_7_STATUS_OFF --> 0x10000884
+ *
+ * To access above addresses, the device base address of IPQ5332
+ * needs to be used for QCN6432. Hence, the global params are needed
+ * to store the dev address during Miami context and use it
+ * for QCN6432
+ *
+ * @dev_base_addr_pcie0: Device base address for PCIE0
+ * @dev_base_addr_pcie1: Device base address for PCIE1
+ * @dev_base_addr_pcie2: Device base address for PCIE2
+ */
 struct dp_global_context {
 	struct dp_rx_fst *fst_ctx;
 	struct dp_tx_desc_pool_s *tx_desc[2][4];
@@ -187,6 +207,9 @@ struct dp_global_context {
 	int spcl_tx_cookie_ctx_alloc_cnt;
 	int spcl_tx_desc_pool_alloc_cnt[2];
 	int spcl_tx_desc_pool_init_cnt[2];
+	void *dev_base_addr_pcie0;
+	void *dev_base_addr_pcie1;
+	void *dev_base_addr_pcie2;
 };
 
 /**

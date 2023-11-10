@@ -106,7 +106,8 @@
 #define WLAN_MAX_MLO_CHIPS 1
 #endif
 
-#define UMAC_RESET_IPC 451
+#define UMAC_RESET_IPC_5332 451
+#define UMAC_RESET_IPC_6432 7
 
 struct wlan_cfg_dp_pdev_ctxt;
 
