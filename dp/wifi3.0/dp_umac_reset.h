@@ -62,6 +62,10 @@ enum umac_reset_action {
 
 #define DP_UMAC_RESET_SHMEM_ALIGN 8
 #define DP_UMAC_RESET_SHMEM_MAGIC_NUM (0xDEADBEEF)
+#define PCIE0_TYPE0_MSI_CTRL 0x20000884
+#define PCIE1_TYPE0_MSI_CTRL 0x18000884
+#define PCIE2_TYPE0_MSI_CTRL 0x10000884
+#define PCIE_MEM_SIZE 4
 
 /**
  * enum umac_reset_state - States required by the UMAC reset state machine
@@ -246,10 +250,12 @@ QDF_STATUS dp_soc_umac_reset_deinit(struct cdp_soc_t *txrx_soc);
 /**
  * dp_umac_reset_interrupt_attach() - Register handlers for UMAC reset interrupt
  * @soc: DP soc object
+ * @target_type : Chip type
  *
  * Return: QDF status of operation
  */
-QDF_STATUS dp_umac_reset_interrupt_attach(struct dp_soc *soc);
+QDF_STATUS dp_umac_reset_interrupt_attach(struct dp_soc *soc,
+					  uint32_t target_type);
 
 /**
  * dp_umac_reset_interrupt_detach() - Unregister UMAC reset interrupt handlers

@@ -3190,6 +3190,15 @@ struct dp_soc {
 	/* callback function for tx latency stats */
 	cdp_tx_latency_cb tx_latency_cb;
 #endif
+
+#ifdef DP_TX_COMP_RING_DESC_SANITY_CHECK
+	struct {
+		uint32_t detected;
+		uint64_t start_time;
+	} stale_entry[MAX_TCL_DATA_RINGS];
+#endif
+	/* Placeholder for pcie slot for every radio attached */
+	uint8_t pcie_slot;
 };
 
 #ifdef IPA_OFFLOAD
