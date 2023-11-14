@@ -2121,6 +2121,8 @@ struct cdp_throttle_ops {
  * @ipa_rx_super_rule_setup: Setup cce super rules based on filter tuple
  * @ipa_ast_create: Create/Update ast entry
  * @ipa_get_wdi_version: Get WDI version
+ * @ipa_get_peer_mld_mac: Get peer mld mac address
+ * @ipa_get_primary_mld_mac: Get primary MLD mac address
  */
 struct cdp_ipa_ops {
 	QDF_STATUS (*ipa_get_resource)(struct cdp_soc_t *soc_hdl,
@@ -2237,6 +2239,10 @@ struct cdp_ipa_ops {
 #endif
 	void (*ipa_get_wdi_version)(struct cdp_soc_t *soc_hdl,
 				    uint8_t *wdi_ver);
+#if defined(WLAN_FEATURE_11BE_MLO)
+	void (*ipa_get_primary_mld_mac)(struct cdp_soc_t *soc_hdl,
+					uint8_t vdev_id, uint8_t *mld_mac);
+#endif
 };
 #endif
 

@@ -649,6 +649,26 @@ QDF_STATUS dp_ipa_update_peer_rx_stats(struct cdp_soc_t *soc, uint8_t vdev_id,
  * Return: None
  */
 void dp_ipa_get_wdi_version(struct cdp_soc_t *soc_hdl, uint8_t *wdi_ver);
+
+#if defined(WLAN_FEATURE_11BE_MLO)
+/**
+* dp_ipa_get_primary_mld_mac() - get mld mac address only if link is primary
+* @soc_hdl: data path soc handle
+* @vdev_id: vdev id
+* @mld_mac: mld mac address if link is primary
+*
+* Return: None
+*/
+void
+dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+			   uint8_t *mld_mac);
+#else
+void dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+				uint8_t *mld_mac)
+{
+	mld_mac = NULL;
+}
+#endif
 #else
 static inline int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
@@ -750,6 +770,22 @@ static inline QDF_STATUS dp_ipa_ast_create(struct cdp_soc_t *soc_hdl,
 static inline void dp_ipa_get_wdi_version(struct cdp_soc_t *soc_hdl,
 					  uint8_t *wdi_ver)
 {
+}
+void dp_ipa_get_peer_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t *mac_addr,
+			     uint8_t vdev_id, uint8_t *mld_mac, bool *link)
+{
+}
+
+void dp_ipa_get_link_peer_status(struct cdp_soc_t *soc_hdl, uint16_t peer_id,
+				 bool *link_peer)
+{
+	*link_peer = false;
+}
+
+void dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+				uint8_t *mld_mac)
+{
+	mld_mac = NULL;
 }
 #endif
 #endif /* _DP_IPA_H_ */
