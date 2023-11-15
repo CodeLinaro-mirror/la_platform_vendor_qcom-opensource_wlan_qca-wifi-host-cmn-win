@@ -716,6 +716,8 @@ static const uint32_t vdev_param_tlv[] = {
 		  VDEV_PARAM_SET_DISABLED_SCHED_MODES),
 	PARAM_MAP(vdev_param_set_sap_ps_with_twt,
 		  VDEV_PARAM_SET_SAP_PS_WITH_TWT),
+	PARAM_MAP(vdev_param_mlo_max_recom_active_links,
+		  VDEV_PARAM_MLO_MAX_RECOM_ACTIVE_LINKS),
 };
 #endif
 
