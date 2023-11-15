@@ -2262,6 +2262,14 @@ struct cdp_ipa_ops {
 						uint8_t pdev_id,
 						const char *func,
 						uint32_t line);
+	QDF_STATUS (*ipa_rx_buf_smmu_mapping)(struct cdp_soc_t *soc_hdl,
+					      uint8_t pdev_id,
+					      const char *func,
+					      uint32_t line);
+	QDF_STATUS (*ipa_rx_buf_smmu_unmapping)(struct cdp_soc_t *soc_hdl,
+						uint8_t pdev_id,
+						const char *func,
+						uint32_t line);
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	bool (*ipa_rx_wdsext_iface)(struct cdp_soc_t *soc_hdl,
 				    uint8_t peer_id,

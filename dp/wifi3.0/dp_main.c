@@ -15916,6 +15916,8 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_rx_intrabss_fwd = dp_ipa_rx_intrabss_fwd,
 	.ipa_tx_buf_smmu_mapping = dp_ipa_tx_buf_smmu_mapping,
 	.ipa_tx_buf_smmu_unmapping = dp_ipa_tx_buf_smmu_unmapping,
+	.ipa_rx_buf_smmu_mapping = dp_ipa_rx_buf_smmu_mapping,
+	.ipa_rx_buf_smmu_unmapping = dp_ipa_rx_buf_smmu_unmapping,
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	.ipa_rx_wdsext_iface = dp_ipa_rx_wdsext_iface,
 #endif

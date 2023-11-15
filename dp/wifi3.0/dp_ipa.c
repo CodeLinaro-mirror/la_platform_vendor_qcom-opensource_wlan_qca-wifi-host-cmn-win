@@ -207,8 +207,6 @@ QDF_STATUS dp_ipa_handle_rx_buf_smmu_mapping(struct dp_soc *soc,
 	if (!qdf_atomic_read(&soc->ipa_pipes_enabled)) {
 		if (!create && qdf_nbuf_is_rx_ipa_smmu_map(nbuf)) {
 			DP_STATS_INC(soc, rx.err.ipa_unmap_no_pipe, 1);
-		} else {
-			return QDF_STATUS_SUCCESS;
 		}
 	}
 
@@ -3540,8 +3538,6 @@ QDF_STATUS dp_ipa_enable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	ipa_res = &soc->ipa_resource;
 	qdf_atomic_set(&soc->ipa_pipes_enabled, 1);
 	DP_IPA_EP_SET_TX_DB_PA(soc, ipa_res);
-	dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, true,
-					       __func__, __LINE__);
 
 	result = qdf_ipa_wdi_enable_pipes(hdl);
 	if (result) {
@@ -3551,8 +3547,6 @@ QDF_STATUS dp_ipa_enable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 		ipa_res = &soc->ipa_resource;
 		qdf_atomic_set(&soc->ipa_pipes_enabled, 0);
 		DP_IPA_RESET_TX_DB_PA(soc, ipa_res);
-		dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, false,
-						       __func__, __LINE__);
 		return QDF_STATUS_E_FAILURE;
 	}
 
@@ -3592,8 +3586,6 @@ QDF_STATUS dp_ipa_disable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	}
 
 	qdf_atomic_set(&soc->ipa_pipes_enabled, 0);
-	dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, false,
-					       __func__, __LINE__);
 
 	return result ? QDF_STATUS_E_FAILURE : QDF_STATUS_SUCCESS;
 }
@@ -4041,6 +4033,40 @@ QDF_STATUS dp_ipa_tx_buf_smmu_unmapping(
 		if (dp_ipa_tx_alt_buf_smmu_mapping(soc, false, func,
 						   line))
 			return QDF_STATUS_E_FAILURE;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS dp_ipa_rx_buf_smmu_mapping(
+	struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
+	const char *func, uint32_t line)
+{
+	QDF_STATUS ret;
+
+	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+
+	if (!qdf_mem_smmu_s1_enabled(soc->osdev)) {
+		dp_debug("SMMU S1 disabled");
+		return QDF_STATUS_SUCCESS;
+	}
+	ret = dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, true, func, line);
+
+	return ret;
+}
+
+QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(
+	struct cdp_soc_t *soc_hdl, uint8_t pdev_id, const char *func,
+	uint32_t line)
+{
+	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+
+	if (!qdf_mem_smmu_s1_enabled(soc->osdev)) {
+		dp_debug("SMMU S1 disabled");
+		return QDF_STATUS_SUCCESS;
+	}
+
+	if (dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, false, func, line))
+		return QDF_STATUS_E_FAILURE;
 
 	return QDF_STATUS_SUCCESS;
 }

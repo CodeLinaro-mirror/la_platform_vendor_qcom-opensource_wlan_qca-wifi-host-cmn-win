@@ -364,10 +364,12 @@ dp_pdev_nbuf_alloc_and_map_replenish(struct dp_soc *dp_soc,
 
 	nbuf_frag_info_t->paddr =
 		qdf_nbuf_get_frag_paddr((nbuf_frag_info_t->virt_addr).nbuf, 0);
-		dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
+		ret = dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
 						  (nbuf_frag_info_t->virt_addr).nbuf),
 						  rx_desc_pool->buf_size,
 						  true, __func__, __LINE__);
+		if (ret != QDF_STATUS_SUCCESS)
+			dp_err("Error Failed to map the buffer");
 
 	ret = dp_check_paddr(dp_soc, &((nbuf_frag_info_t->virt_addr).nbuf),
 			     &nbuf_frag_info_t->paddr,
@@ -3081,7 +3083,7 @@ dp_pdev_rx_buffers_attach(struct dp_soc *dp_soc, uint32_t mac_id,
 			hal_rxdma_buff_addr_info_set(dp_soc->hal_soc ,rxdma_ring_entry, paddr,
 						     desc_list->rx_desc.cookie,
 						     rx_desc_pool->owner);
-
+/*
 			dp_ipa_handle_rx_buf_smmu_mapping(
 					dp_soc, nbuf,
 					rx_desc_pool->buf_size, true,
@@ -3092,7 +3094,7 @@ dp_pdev_rx_buffers_attach(struct dp_soc *dp_soc, uint32_t mac_id,
 								     QDF_NBUF_CB_PADDR(nbuf)),
 					  QDF_NBUF_CB_PADDR(nbuf),
 					  rx_desc_pool->buf_size);
-
+*/
 			desc_list = next;
 		}
 
