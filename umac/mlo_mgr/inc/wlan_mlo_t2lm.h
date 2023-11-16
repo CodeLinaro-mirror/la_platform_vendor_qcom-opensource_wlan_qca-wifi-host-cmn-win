@@ -717,19 +717,6 @@ QDF_STATUS wlan_process_bcn_prbrsp_t2lm_ie(struct wlan_objmgr_vdev *vdev,
  */
 QDF_STATUS wlan_send_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
 					 struct wlan_t2lm_info *t2lm);
-
-/**
- * wlan_vdev_notify_mlo_link_enable_disable() - API to notify mlo link enable
- * or disable.
- *
- * @vdev: Pointer to vdev
- * @t2lm_ctx: T2LM context
- *
- * Return None
- */
-void wlan_vdev_notify_mlo_link_enable_disable(
-		struct wlan_objmgr_vdev *vdev,
-		struct wlan_t2lm_context *t2lm_ctx);
 #else
 static inline QDF_STATUS wlan_mlo_parse_t2lm_ie(
 	struct wlan_t2lm_onging_negotiation_info *t2lm, uint8_t *ie)
@@ -845,11 +832,6 @@ static inline QDF_STATUS wlan_mlo_dev_t2lm_notify_link_update(
 {
 	return QDF_STATUS_SUCCESS;
 }
-
-static inline void wlan_vdev_notify_mlo_link_enable_disable(
-		struct wlan_objmgr_vdev *vdev,
-		struct wlan_t2lm_context *t2lm_ctx)
-{}
 
 static inline
 QDF_STATUS wlan_send_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
