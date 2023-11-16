@@ -93,7 +93,7 @@ struct epcs_frm {
 			uint8_t bytes[0];
 		} req;
 		struct {
-			uint8_t status_code[2];
+			uint8_t status_code;
 			uint8_t bytes[0];
 		} resp;
 	};
