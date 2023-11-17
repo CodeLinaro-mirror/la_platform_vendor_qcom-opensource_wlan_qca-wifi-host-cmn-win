@@ -60,6 +60,10 @@
 #define WLAN_CFG_IPA_TX_RING_SIZE 1024
 #define WLAN_CFG_IPA_TX_RING_SIZE_MAX 0x80000
 
+#define WLAN_CFG_IPA_TX_DESC_MIN 2048
+#define WLAN_CFG_IPA_TX_DESC 8192
+#define WLAN_CFG_IPA_TX_DESC_MAX 16384
+
 #define WLAN_CFG_IPA_TX_COMP_RING_SIZE_MIN 512
 #define WLAN_CFG_IPA_TX_COMP_RING_SIZE 1024
 #define WLAN_CFG_IPA_TX_COMP_RING_SIZE_MAX 0x80000
@@ -1601,6 +1605,30 @@
 #ifdef IPA_OFFLOAD
 /*
  * <ini>
+ * dp_ipa_tx_desc - Set tx desc size for IPA
+ * @Min: 2048
+ * @Max: 16384
+ * @Default: 8192
+ *
+ * This ini sets the tx desc value for IPA
+ *
+ * Related: N/A
+ *
+ * Supported Feature: IPA
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_DP_IPA_TX_DESC \
+		CFG_INI_UINT("dp_ipa_tx_desc", \
+		WLAN_CFG_IPA_TX_DESC_MIN, \
+		WLAN_CFG_IPA_TX_DESC_MAX, \
+		WLAN_CFG_IPA_TX_DESC, \
+		CFG_VALUE_OR_DEFAULT, "DP IPA TX DESC SIZE")
+
+/*
+ * <ini>
  * dp_ipa_tx_ring_size - Set tcl ring size for IPA
  * @Min: 1024
  * @Max: 8096
@@ -1709,9 +1737,12 @@
 #define CFG_DP_IPA_TX_RING_CFG \
 		CFG(CFG_DP_IPA_TX_RING_SIZE) \
 		CFG(CFG_DP_IPA_TX_COMP_RING_SIZE)
+#define CFG_DP_IPA_TX_DESC_CFG \
+		CFG(CFG_DP_IPA_TX_DESC)
 #else
 #define CFG_DP_IPA_TX_RING_CFG
 #define CFG_DP_IPA_TX_ALT_RING_CFG
+#define CFG_DP_IPA_TX_DESC
 #endif
 
 #ifdef WLAN_SUPPORT_PPEDS
@@ -2027,5 +2058,6 @@
 		CFG(CFG_DP_TXMON_SW_PEER_FILTERING) \
 		CFG_TX_PKT_INSPECT_FOR_ILP_CFG \
 		CFG(CFG_DP_POINTER_TIMER_THRESHOLD_RX) \
+		CFG_DP_IPA_TX_DESC_CFG \
 		CFG(CFG_DP_POINTER_NUM_THRESHOLD_RX)
 #endif /* _CFG_DP_H_ */
