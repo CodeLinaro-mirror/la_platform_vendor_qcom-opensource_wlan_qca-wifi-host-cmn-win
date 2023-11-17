@@ -27,7 +27,11 @@
 #include <dp_mon.h>
 #include <dp_tx_mon_2.0.h>
 
+#if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_512M)
+#define DP_MON_RING_FILL_LEVEL_DEFAULT 512
+#else
 #define DP_MON_RING_FILL_LEVEL_DEFAULT 2048
+#endif
 #define DP_MON_DATA_BUFFER_SIZE     2048
 #define DP_MON_DESC_MAGIC 0xdeadabcd
 #define DP_MON_MAX_STATUS_BUF 1200
