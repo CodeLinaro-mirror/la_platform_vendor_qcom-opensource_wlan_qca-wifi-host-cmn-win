@@ -870,9 +870,8 @@ static void dp_mlo_get_mlo_chip_id(struct cdp_soc_t *soc_hdl,
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-	struct dp_mlo_ctxt *mlo_ctxt = be_soc->ml_ctxt;
 
-	if (!be_soc->mlo_enabled || !mlo_ctxt)
+	if (!be_soc->mlo_enabled)
 		*chip_id = 0xFF;
 	else
 		*chip_id = be_soc->mlo_chip_id;
