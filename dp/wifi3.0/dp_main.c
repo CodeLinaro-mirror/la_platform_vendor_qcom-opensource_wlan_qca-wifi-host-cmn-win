@@ -14870,6 +14870,7 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	.set_wds_ext_peer_rx = dp_wds_ext_set_peer_rx,
 	.get_wds_ext_peer_osif_handle = dp_wds_ext_get_peer_osif_handle,
+	.set_wds_ext_peer_bit = dp_wds_ext_set_peer_bit,
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 
 #if defined(FEATURE_RUNTIME_PM) || defined(DP_POWER_SAVE)
@@ -15926,6 +15927,9 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_rx_intrabss_fwd = dp_ipa_rx_intrabss_fwd,
 	.ipa_tx_buf_smmu_mapping = dp_ipa_tx_buf_smmu_mapping,
 	.ipa_tx_buf_smmu_unmapping = dp_ipa_tx_buf_smmu_unmapping,
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+	.ipa_rx_wdsext_iface = dp_ipa_rx_wdsext_iface,
+#endif
 #ifdef QCA_ENHANCED_STATS_SUPPORT
 	.ipa_update_peer_rx_stats = dp_ipa_update_peer_rx_stats,
 #endif
@@ -17076,6 +17080,29 @@ QDF_STATUS dp_wds_ext_get_peer_osif_handle(
 
 	*osif_peer = txrx_peer->wds_ext.osif_peer;
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS dp_wds_ext_set_peer_bit(ol_txrx_soc_handle soc, uint8_t *mac)
+{
+	struct dp_txrx_peer *txrx_peer = NULL;
+	struct dp_peer *peer = dp_peer_find_hash_find((struct dp_soc *)soc,
+						       mac, 0, DP_VDEV_ALL,
+						       DP_MOD_ID_IPA);
+	if (!peer) {
+		dp_cdp_debug("%pK: Peer is NULL!\n", (struct dp_soc *)soc);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	txrx_peer = dp_get_txrx_peer(peer);
+	if (!txrx_peer) {
+		dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
+		return QDF_STATUS_E_INVAL;
+	}
+	qdf_atomic_test_and_set_bit(WDS_EXT_PEER_INIT_BIT,
+				    &txrx_peer->wds_ext.init);
+	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
 
 	return QDF_STATUS_SUCCESS;
 }
