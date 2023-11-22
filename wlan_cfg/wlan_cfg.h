@@ -352,6 +352,9 @@ struct wlan_srng_cfg {
  *                            during this window, configured time is in
  *                            milliseconds.
  * @fw_ast_indication_disable: Disable AST
+ * @rx_mon_wq_threshold: rx monitor work queue threshold.
+ * @rx_mon_wq_depth: rx monitor work queue depth.
+ *
  */
 struct wlan_cfg_dp_soc_ctxt {
 	int num_int_ctxts;
@@ -565,6 +568,8 @@ struct wlan_cfg_dp_soc_ctxt {
 	uint32_t umac_reset_buffer_window;
 #endif
 	bool fw_ast_indication_disable;
+	uint8_t rx_mon_wq_threshold;
+	uint8_t rx_mon_wq_depth;
 };
 
 /**
@@ -2738,4 +2743,22 @@ void wlan_cfg_set_ast_indication_disable(struct wlan_cfg_dp_soc_ctxt *cfg,
  * Return: true or false
  */
 bool wlan_cfg_get_ast_indication_disable(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_get_rx_mon_wq_threshold - Get rx mon work queue threshold
+ *
+ * @cfg: soc configuration context
+ *
+ * Return: uint8_t
+ */
+uint8_t wlan_cfg_get_rx_mon_wq_threshold(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_get_rx_mon_wq_depth - Get rx mon work queue depth
+ *
+ * @cfg: soc configuration context
+ *
+ * Return: uint8_t
+ */
+uint8_t wlan_cfg_get_rx_mon_wq_depth(struct wlan_cfg_dp_soc_ctxt *cfg);
 #endif /*__WLAN_CFG_H*/
