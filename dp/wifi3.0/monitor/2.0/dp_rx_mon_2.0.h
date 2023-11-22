@@ -49,8 +49,6 @@
 			    + (DP_RX_MON_TLV_HDR_MARKER_LEN)\
 			    + (DP_RX_MON_TLV_TOTAL_LEN))
 
-#define DP_RX_MON_WQ_THRESHOLD 128
-
 #define DP_RX_MON_MAX_RX_HEADER_LEN 128
 
 /*
