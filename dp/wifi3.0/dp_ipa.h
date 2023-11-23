@@ -451,6 +451,34 @@ QDF_STATUS dp_ipa_tx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
 					uint8_t pdev_id, const char *func,
 					uint32_t line);
 
+/**
+ * dp_ipa_rx_buf_smmu_mapping() - Create SMMU mappings for IPA
+ *				  allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+				      uint8_t pdev_id, const char *func,
+				      uint32_t line);
+
+/**
+ * dp_ipa_rx_buf_smmu_unmapping() - Release SMMU mappings for IPA
+ *				    allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+					uint8_t pdev_id, const char *func,
+					uint32_t line);
+
 #ifndef QCA_OL_DP_SRNG_LOCK_LESS_ACCESS
 static inline void
 dp_ipa_rx_buf_smmu_mapping_lock(struct dp_soc *soc)
@@ -689,6 +717,22 @@ static inline QDF_STATUS dp_ipa_tx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
 }
 
 static inline QDF_STATUS dp_ipa_tx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+						      uint8_t pdev_id,
+						      const char *func,
+						      uint32_t line)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+						    uint8_t pdev_id,
+						    const char *func,
+						    uint32_t line)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
 						      uint8_t pdev_id,
 						      const char *func,
 						      uint32_t line)
