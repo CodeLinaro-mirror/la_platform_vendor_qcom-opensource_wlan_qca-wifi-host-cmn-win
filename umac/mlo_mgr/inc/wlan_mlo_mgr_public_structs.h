@@ -45,6 +45,16 @@
 #define WLAN_UMAC_MLO_MAX_DEV 2
 #endif
 
+/* MAX MLO Assoc Links per MLD */
+#ifndef WLAN_UMAC_MLO_ASSOC_MAX_SUPPORTED_LINKS
+#define WLAN_UMAC_MLO_ASSOC_MAX_SUPPORTED_LINKS 1
+#endif
+
+/* Default Initialization value for Max Recommended Simultaneous Links */
+#ifndef WLAN_UMAC_MLO_RECOM_MAX_SIMULT_LINKS_DEFAULT
+#define WLAN_UMAC_MLO_RECOM_MAX_SIMULT_LINKS_DEFAULT 2
+#endif
+
 /* Max PEER support */
 #define MAX_MLO_PEER 512
 
@@ -396,6 +406,7 @@ struct wlan_mlo_peer_list {
  * @ap_ctx: AP related information
  * @t2lm_ctx: T2LM related information
  * @epcs_ctx: EPCS related information
+ * @mlo_max_recom_simult_links: Max Recommended Simultaneous Links
  */
 struct wlan_mlo_dev_context {
 	qdf_list_node_t node;
@@ -418,6 +429,7 @@ struct wlan_mlo_dev_context {
 	struct wlan_mlo_ap *ap_ctx;
 	struct wlan_t2lm_context t2lm_ctx;
 	struct wlan_epcs_context epcs_ctx;
+	uint8_t mlo_max_recom_simult_links;
 };
 
 /**
