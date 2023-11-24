@@ -44,6 +44,7 @@
 #ifdef QCA_IPA_LL_TX_FLOW_CONTROL
 #include <pld_common.h>
 #endif
+#include <cdp_txrx_mlo.h>
 
 /* Hard coded config parameters until dp_ops_cfg.cfg_attach implemented */
 #define CFG_IPA_UC_TX_BUF_SIZE_DEFAULT            (2048)
@@ -522,6 +523,28 @@ dp_ipa_setup_tx_smmu_params_pmac_id(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(tx_smmu, pmac_id);
 }
+
+static inline void
+dp_ipa_set_rx_chip_id(struct dp_soc *soc,
+		      qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
+{
+	uint8_t mlo_chip_id = 0xFF;
+
+	cdp_mlo_get_mlo_chip_id(soc, &mlo_chip_id);
+
+	QDF_IPA_WDI_SETUP_INFO_CHIP_ID(rx_smmu, mlo_chip_id);
+}
+
+static inline void
+dp_ipa_set_rx_smmu_chip_id(struct dp_soc *soc,
+			   qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
+{
+	uint8_t mlo_chip_id = 0xFF;
+
+	cdp_mlo_get_mlo_chip_id(soc, &mlo_chip_id);
+
+	QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(rx_smmu, mlo_chip_id);
+}
 #else
 static inline void
 dp_ipa_setup_tx_alt_params_pmac_id(struct dp_soc *soc,
@@ -544,6 +567,18 @@ dp_ipa_setup_tx_params_pmac_id(struct dp_soc *soc,
 static inline void
 dp_ipa_setup_tx_smmu_params_pmac_id(struct dp_soc *soc,
 				    qdf_ipa_wdi_pipe_setup_info_smmu_t *tx_smmu)
+{
+}
+
+static inline void
+dp_ipa_set_rx_chip_id(struct dp_soc *soc,
+		      qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
+{
+}
+
+static inline void
+dp_ipa_set_rx_smmu_chip_id(struct dp_soc *soc,
+			   qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
 {
 }
 #endif
@@ -2414,11 +2449,9 @@ static void dp_ipa_wdi_rx_params(struct dp_soc *soc,
 				 bool over_gsi)
 {
 	if (over_gsi)
-		QDF_IPA_WDI_SETUP_INFO_CLIENT(rx) =
-					IPA_CLIENT_WLAN2_PROD;
+		QDF_IPA_WDI_SETUP_INFO_CLIENT(rx) = IPA_CLIENT_WLAN2_PROD;
 	else
-		QDF_IPA_WDI_SETUP_INFO_CLIENT(rx) =
-					IPA_CLIENT_WLAN1_PROD;
+		QDF_IPA_WDI_SETUP_INFO_CLIENT(rx) = IPA_CLIENT_WLAN1_PROD;
 
 	QDF_IPA_WDI_SETUP_INFO_TRANSFER_RING_BASE_PA(rx) =
 		qdf_mem_get_dma_addr(soc->osdev,
@@ -2446,6 +2479,9 @@ static void dp_ipa_wdi_rx_params(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_PKT_OFFSET(rx) =
 		soc->rx_pkt_tlv_size + L3_HEADER_PADDING;
+
+	/* Set Chip ID, extract chip id from be_soc and pass to IPA */
+	dp_ipa_set_rx_chip_id(soc, rx);
 }
 
 static void
@@ -2549,6 +2585,9 @@ dp_ipa_wdi_rx_smmu_params(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_PKT_OFFSET(rx_smmu) =
 		soc->rx_pkt_tlv_size + L3_HEADER_PADDING;
+
+	/* Set Chip ID, extract chip id from be_soc and pass to IPA */
+	dp_ipa_set_rx_smmu_chip_id(soc, rx_smmu);
 }
 
 #ifdef IPA_WDI3_VLAN_SUPPORT
@@ -2612,6 +2651,9 @@ dp_ipa_wdi_rx_alt_pipe_smmu_params(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_PKT_OFFSET(rx_smmu) =
 		soc->rx_pkt_tlv_size + L3_HEADER_PADDING;
+
+	/* Set Chip ID, extract chip id from be_soc and pass to IPA */
+	dp_ipa_set_rx_smmu_chip_id(soc, rx_smmu);
 }
 
 /**
@@ -2674,6 +2716,9 @@ static void dp_ipa_wdi_rx_alt_pipe_params(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_PKT_OFFSET(rx) =
 		soc->rx_pkt_tlv_size + L3_HEADER_PADDING;
+
+	/* Set Chip ID, extract chip id from be_soc and pass to IPA */
+	dp_ipa_set_rx_chip_id(soc, rx);
 }
 
 /**
@@ -4324,4 +4369,44 @@ void dp_ipa_get_wdi_version(struct cdp_soc_t *soc_hdl, uint8_t *wdi_ver)
 	else
 		*wdi_ver = IPA_WDI_3;
 }
+
+#if defined(WLAN_FEATURE_11BE_MLO)
+/**
+* dp_ipa_get_primary_mld_mac() - get mld mac address only if link is primary
+* @soc_hdl: data path soc handle
+* @vdev_id: vdev id
+* @mld_mac: mld mac address if link is primary
+*
+* Return: None
+*/
+void dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+				uint8_t *mld_mac)
+{
+	struct dp_peer *peer;
+	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+	struct dp_vdev *vdev = dp_vdev_get_ref_by_id(soc, vdev_id,
+						     DP_MOD_ID_IPA);
+
+	if (!vdev) {
+		mld_mac = NULL;
+		qdf_err("Unable to get reference on vdev !");
+		return;
+	}
+
+
+	qdf_spin_lock_bh(&vdev->peer_list_lock);
+	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+		if (peer->bss_peer)
+			continue;
+		if (IS_MLO_DP_LINK_PEER(peer) && peer->primary_link)
+			mld_mac = &peer->mld_peer->mac_addr.raw[0];
+		else
+			mld_mac = NULL;
+	}
+
+	qdf_spin_unlock_bh(&vdev->peer_list_lock);
+	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
+}
+
+#endif
 #endif
