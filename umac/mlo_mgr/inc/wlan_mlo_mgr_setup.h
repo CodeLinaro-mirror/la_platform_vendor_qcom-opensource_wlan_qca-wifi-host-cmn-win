@@ -146,6 +146,21 @@ void mlo_setup_update_chip_info(struct wlan_objmgr_psoc *psoc, uint8_t chip_id,
 				uint8_t *adj_chip_id);
 
 /**
+ * mlo_set_3_link_forced_primary_umac() - API to force primary_umac
+ * 					  for select socs
+ *
+ * @ml_peer: mlo peer
+ * @link_vdevs: list of link vdevs
+ * @psoc_id: Return the PSOC-ID to force the primary umac
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS mlo_set_3_link_forced_primary_umac(
+		struct wlan_mlo_peer_context *ml_peer,
+		struct wlan_objmgr_vdev *link_vdevs[],
+		uint8_t *psoc_id);
+
+/**
  * mlo_chip_adjacent() - API to return if two chips are adjacent
  * @psoc_id_1: Psoc id 1
  * @psoc_id_2: Psoc id 2

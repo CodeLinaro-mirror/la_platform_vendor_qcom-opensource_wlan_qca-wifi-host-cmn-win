@@ -500,6 +500,7 @@ enum wlan_mlme_cfg_id;
  * @target_if_mlo_teardown_req: MLO teardown
  * @vdev_send_set_mac_addr: API to send set MAC address request to FW
  * @vdev_peer_set_param_send: API to send peer param to FW
+ * @get_psoc_target_type: API to get Target type
  */
 struct wlan_lmac_if_mlme_tx_ops {
 	uint32_t (*get_wifi_iface_id) (struct wlan_objmgr_pdev *pdev);
@@ -594,6 +595,9 @@ struct wlan_lmac_if_mlme_tx_ops {
 	QDF_STATUS (*target_if_mlo_teardown_req)(struct wlan_objmgr_pdev *pdev,
 						 uint32_t grp_id, bool reset,
 						 bool standby_active);
+	QDF_STATUS (*get_psoc_target_type)(struct wlan_objmgr_psoc *psoc,
+					  uint32_t *target_type);
+
 #endif
 #ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
 QDF_STATUS (*vdev_send_set_mac_addr)(struct qdf_mac_addr mac_addr,
