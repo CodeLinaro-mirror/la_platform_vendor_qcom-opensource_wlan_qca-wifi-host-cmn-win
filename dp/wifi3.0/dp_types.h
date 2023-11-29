@@ -167,7 +167,48 @@
 #endif
 
 #ifdef WLAN_SUPPORT_RX_FLOW_TAG
-#define DP_RX_FSE_FLOW_MATCH_SFE 0xAAAA
+
+#define DP_RX_FSE_FLOW_INVALID_VP	0xFF
+
+#define DP_RX_FSE_FLOW_MATCH_SFE	(0x0000 | DP_RX_FSE_FLOW_INVALID_VP)
+#define DP_RX_FSE_FLOW_VP_NUM_MASK	0x00FF
+#define DP_RX_FSE_FLOW_TID_MASK		0x0F00
+#define DP_RX_FSE_FLOW_EVT_REQ_MASK	0x1000
+
+#define DP_RX_FSE_FLOW_VP_NUM_SHIFT	0
+#define DP_RX_FSE_FLOW_TID_SHIFT	8
+#define DP_RX_FSE_FLOW_EVT_REQ_SHIFT	12
+
+#define DP_RX_FSE_FLOW_UPDATE(mask, meta, val, shift) \
+		(((meta) & ~(mask)) | (((val) << (shift)) & (mask)))
+
+#define DP_RX_FSE_FLOW_EXTRACT(mask, meta, shift) \
+				(((meta) & (mask)) >> (shift))
+
+#define DP_RX_FSE_FLOW_UPDATE_TID(meta, tid) \
+	DP_RX_FSE_FLOW_UPDATE(DP_RX_FSE_FLOW_TID_MASK, \
+				meta, tid, DP_RX_FSE_FLOW_TID_SHIFT)
+
+#define DP_RX_FSE_FLOW_EXTRACT_TID(meta) \
+	DP_RX_FSE_FLOW_EXTRACT(DP_RX_FSE_FLOW_TID_MASK, meta, \
+				DP_RX_FSE_FLOW_TID_SHIFT)
+
+#define DP_RX_FSE_FLOW_UPDATE_VP_NUM(meta, vp_num) \
+	DP_RX_FSE_FLOW_UPDATE(DP_RX_FSE_FLOW_VP_NUM_MASK, \
+				meta, vp_num, DP_RX_FSE_FLOW_VP_NUM_SHIFT)
+
+#define DP_RX_FSE_FLOW_EXTRACT_VP_NUM(meta) \
+	DP_RX_FSE_FLOW_EXTRACT(DP_RX_FSE_FLOW_VP_NUM_MASK, meta, \
+				DP_RX_FSE_FLOW_VP_NUM_SHIFT)
+
+#define DP_RX_FSE_FLOW_UPDATE_EVT_REQ(meta, val) \
+	DP_RX_FSE_FLOW_UPDATE(DP_RX_FSE_FLOW_EVT_REQ_MASK, \
+				meta, val, DP_RX_FSE_FLOW_EVT_REQ_SHIFT)
+
+#define DP_RX_FSE_FLOW_EXTRACT_EVT_REQ(meta) \
+	DP_RX_FSE_FLOW_EXTRACT(DP_RX_FSE_FLOW_EVT_REQ_MASK, meta, \
+				DP_RX_FSE_FLOW_EVT_REQ_SHIFT)
+
 #endif
 
 #ifdef WLAN_VENDOR_SPECIFIC_BAR_UPDATE
@@ -2469,7 +2510,7 @@ struct dp_arch_ops {
 				      enum peer_stats_type stats_type);
 	QDF_STATUS (*dp_peer_rx_reorder_queue_setup)(struct dp_soc *soc,
 						     struct dp_peer *peer,
-						     int tid,
+						     uint32_t tid_bitmap,
 						     uint32_t ba_window_size);
 	void (*dp_bank_reconfig)(struct dp_soc *soc, struct dp_vdev *vdev);
 
@@ -2572,6 +2613,7 @@ struct dp_arch_ops {
  * @rssi_dbm_conv_support: Rssi dbm conversion support param.
  * @umac_hw_reset_support: UMAC HW reset support
  * @wds_ext_ast_override_enable:
+ * @multi_rx_reorder_q_setup_support: multi rx reorder q setup at a time support
  */
 struct dp_soc_features {
 	uint8_t pn_in_reo_dest:1,
@@ -2579,6 +2621,7 @@ struct dp_soc_features {
 	bool rssi_dbm_conv_support;
 	bool umac_hw_reset_support;
 	bool wds_ext_ast_override_enable;
+	bool multi_rx_reorder_q_setup_support;
 };
 
 enum sysfs_printing_mode {
@@ -2645,15 +2688,25 @@ struct test_qaddr_del {
 
 #ifdef DP_RX_MSDU_DONE_FAIL_HISTORY
 
-#define DP_MSDU_DONE_FAIL_HIST_MAX 32
+#define DP_MSDU_DONE_FAIL_HIST_MAX 128
 
 struct dp_msdu_done_fail_entry {
 	qdf_dma_addr_t paddr;
+	uint32_t sw_cookie;
 };
 
 struct dp_msdu_done_fail_history {
 	qdf_atomic_t index;
 	struct dp_msdu_done_fail_entry entry[DP_MSDU_DONE_FAIL_HIST_MAX];
+};
+#endif
+
+#ifdef DP_RX_PEEK_MSDU_DONE_WAR
+#define DP_MSDU_DONE_FAIL_DESCS_MAX 64
+
+struct dp_rx_msdu_done_fail_desc_list {
+	qdf_atomic_t index;
+	struct dp_rx_desc *msdu_done_fail_descs[DP_MSDU_DONE_FAIL_DESCS_MAX];
 };
 #endif
 
@@ -3230,6 +3283,9 @@ struct dp_soc {
 #endif
 #ifdef DP_RX_MSDU_DONE_FAIL_HISTORY
 	struct dp_msdu_done_fail_history *msdu_done_fail_hist;
+#endif
+#ifdef DP_RX_PEEK_MSDU_DONE_WAR
+	struct dp_rx_msdu_done_fail_desc_list msdu_done_fail_desc_list;
 #endif
 };
 
@@ -5174,7 +5230,15 @@ struct dp_rx_fse {
 	/* Flag indicating whether flow is IPv4 address tuple */
 	uint8_t is_ipv4_addr_entry;
 	/* Flag indicating whether flow is valid */
-	uint8_t is_valid;
+	/* Flag indicating whether fse tid mismatch has been detected */
+	uint8_t is_valid:1,
+		mismatch:1;
+	/* Service id */
+	uint32_t svc_id;
+	/* tid */
+	uint8_t tid;
+	/* Destination Mac address */
+	union dp_align_mac_addr dest_mac;
 };
 
 struct dp_rx_fst {

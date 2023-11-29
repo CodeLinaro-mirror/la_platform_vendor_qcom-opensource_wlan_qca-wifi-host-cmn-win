@@ -138,6 +138,8 @@ struct dp_rx_desc_dbg_info {
  * @in_err_state:	Nbuf sanity failed for this descriptor.
  * @has_reuse_nbuf:	the nbuf associated with this desc is also saved in
  *			reuse_nbuf field
+ * @msdu_done_fail:	this particular rx_desc was dequeued from REO with
+ *			msdu_done bit not set in data buffer.
  */
 struct dp_rx_desc {
 	qdf_nbuf_t nbuf;
@@ -158,7 +160,8 @@ struct dp_rx_desc {
 	uint8_t	in_use:1,
 		unmapped:1,
 		in_err_state:1,
-		has_reuse_nbuf:1;
+		has_reuse_nbuf:1,
+		msdu_done_fail:1;
 };
 
 #ifndef QCA_HOST_MODE_WIFI_DISABLED
@@ -2905,10 +2908,10 @@ end:
 
 static inline QDF_STATUS
 dp_peer_rx_reorder_queue_setup(struct dp_soc *soc, struct dp_peer *peer,
-			       int tid, uint32_t ba_window_size)
+			       uint32_t tid_bitmap, uint32_t ba_window_size)
 {
 	return soc->arch_ops.dp_peer_rx_reorder_queue_setup(soc,
-							    peer, tid,
+							    peer, tid_bitmap,
 							    ba_window_size);
 }
 

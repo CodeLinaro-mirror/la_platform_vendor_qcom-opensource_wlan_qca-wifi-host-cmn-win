@@ -1609,7 +1609,10 @@ next:
 		cur_node = next_node;
 		next_node = NULL;
 	}
-
+	/* print updated candidate list */
+	mlme_debug(CM_PREFIX_FMT "updated candidate list",
+		   CM_PREFIX_REF(vdev_id, cm_req->cm_id));
+	cm_print_candidate_list(cm_req->candidate_list);
 free_list:
 	if (candidate_list)
 		wlan_scan_purge_results(candidate_list);
@@ -2193,6 +2196,9 @@ QDF_STATUS cm_try_next_candidate(struct cnx_mgr *cm_ctx,
 	cm_req = cm_get_req_by_cm_id(cm_ctx, resp->cm_id);
 	if (!cm_req)
 		return QDF_STATUS_E_FAILURE;
+
+	if (mlo_is_sta_bridge_vdev(cm_ctx->vdev))
+		goto connect_err;
 
 	status = cm_get_valid_candidate(cm_ctx, cm_req, resp,
 					&same_candidate_used);

@@ -2022,6 +2022,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 					_srcobj->tx.dropped.invalid_rr; \
 		_tgtobj->tx.failed_retry_count += \
 					_srcobj->tx.failed_retry_count; \
+		_tgtobj->tx.inval_link_id_pkt_cnt += \
+					_srcobj->tx.inval_link_id_pkt_cnt; \
 		_tgtobj->tx.retry_count += _srcobj->tx.retry_count; \
 		_tgtobj->tx.multiple_retry_count += \
 					_srcobj->tx.multiple_retry_count; \
@@ -2084,6 +2086,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 		_tgtobj->rx.to_stack_twt.bytes += \
 					_srcobj->rx.to_stack_twt.bytes; \
 		_tgtobj->rx.last_rx_ts = _srcobj->rx.last_rx_ts; \
+		_tgtobj->rx.inval_link_id_pkt_cnt += \
+					_srcobj->rx.inval_link_id_pkt_cnt; \
 		for (i = 0; i < CDP_MAX_RX_RINGS; i++) { \
 			_tgtobj->rx.rcvd_reo[i].num += \
 					 _srcobj->rx.rcvd_reo[i].num; \
@@ -2722,6 +2726,17 @@ void dp_peer_ppdu_delayed_ba_cleanup(struct dp_peer *peer);
  *
  */
 void dp_peer_rx_init(struct dp_pdev *pdev, struct dp_peer *peer);
+
+/**
+ * dp_peer_rx_init_wrapper() - Initialize receive TID state, based on peer type
+ * @pdev: Datapath pdev
+ * @peer: Datapath peer
+ * @setup_info: setup info received for setting up the peer
+ *
+ * Return: None
+ */
+void dp_peer_rx_init_wrapper(struct dp_pdev *pdev, struct dp_peer *peer,
+			     struct cdp_peer_setup_info *setup_info);
 
 /**
  * dp_peer_cleanup() - Cleanup peer information
@@ -3494,6 +3509,17 @@ void dp_print_soc_tx_stats(struct dp_soc *soc);
  * Return: void
  */
 void dp_print_global_desc_count(void);
+
+/**
+ * dp_umac_reset_is_global_context_enabled: Check if global context is in use
+ *
+ * Return: status
+ */
+static inline
+bool dp_umac_reset_is_global_context_enabled(void)
+{
+	return true;
+}
 #else
 /**
  * dp_print_global_desc_count(): Print global desc in use
@@ -3503,6 +3529,12 @@ void dp_print_global_desc_count(void);
 static inline
 void dp_print_global_desc_count(void)
 {
+}
+
+static inline
+bool dp_umac_reset_is_global_context_enabled(void)
+{
+	return false;
 }
 #endif
 
@@ -4489,6 +4521,25 @@ void dp_set_max_page_size(struct qdf_mem_multi_page_t *pages,
 #endif /* MAX_ALLOC_PAGE_SIZE */
 
 /**
+ * dp_get_next_index() - get the next entry to record an entry
+ *			 in the history.
+ * @curr_idx: Current index where the last entry is written.
+ * @max_entries: Max number of entries in the history
+ *
+ * This function assumes that the max number os entries is a power of 2.
+ *
+ * Return: The index where the next entry is to be written.
+ */
+
+static inline uint32_t dp_get_next_index(qdf_atomic_t *curr_idx,
+					 uint32_t max_entries)
+{
+	uint32_t idx = qdf_atomic_inc_return(curr_idx);
+
+	return idx & (max_entries - 1);
+}
+
+/**
  * dp_history_get_next_index() - get the next entry to record an entry
  *				 in the history.
  * @curr_idx: Current index where the last entry is written.
@@ -4501,9 +4552,7 @@ void dp_set_max_page_size(struct qdf_mem_multi_page_t *pages,
 static inline uint32_t dp_history_get_next_index(qdf_atomic_t *curr_idx,
 						 uint32_t max_entries)
 {
-	uint32_t idx = qdf_atomic_inc_return(curr_idx);
-
-	return idx & (max_entries - 1);
+	return dp_get_next_index(curr_idx, max_entries);
 }
 
 /**
@@ -5890,4 +5939,52 @@ void dp_ssr_dump_pdev_unregister(uint8_t pdev_id)
 {
 }
 #endif
+#ifdef WLAN_SUPPORT_RX_FLOW_TAG
+/**
+ * dp_rx_flow_find_entry_by_flowid() - Find DP FSE matching a given flow index
+ * @fst: Rx FST Handle
+ * @flow_id: Flow index of the requested flow
+ *
+ * Return: Pointer to the DP FSE entry
+ */
+struct dp_rx_fse *
+dp_rx_flow_find_entry_by_flowid(struct dp_rx_fst *fst, uint32_t flow_id);
+
+/**
+ * dp_rx_flow_write_entry_metadata() - Update fse metadata
+ * @pdev: DP pdev instance
+ * @fse_metadata: FSE metadata
+ * @fse: fse entry
+ *
+ * Return: Success when flow is added, no-memory or already exists on error
+ */
+QDF_STATUS
+dp_rx_flow_write_entry_metadata(struct dp_pdev *pdev, uint32_t fse_metadata,
+				struct dp_rx_fse *fse);
+
+/**
+ * dp_rx_flow_invalidate_fse_entry() - invalidate fse entry
+ * @pdev: pdev handle
+ * @fse: fse entry
+ * @rx_flow_info: Flow tuple info
+ * @delete_entry: flag to indicate if delete is needed if invalidate fails
+ *
+ * Return: Status
+ */
+QDF_STATUS
+dp_rx_flow_invalidate_fse_entry(struct dp_pdev *pdev, struct dp_rx_fse *fse,
+				struct cdp_rx_flow_info *rx_flow_info,
+				bool delete_entry);
+#endif /* #WLAN_SUPPORT_RX_FLOW_TAG */
+
+/**
+ * dp_get_peer_vdev_roaming_in_progress() - Check if peer's vdev is in roaming
+ *					    state.
+ * @peer: DP peer handle
+ *
+ * Return: true if the peer's vdev is in roaming state
+ *	   else false.
+ */
+bool dp_get_peer_vdev_roaming_in_progress(struct dp_peer *peer);
+
 #endif /* #ifndef _DP_INTERNAL_H_ */

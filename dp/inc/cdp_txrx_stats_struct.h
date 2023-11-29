@@ -835,6 +835,7 @@ enum WDI_EVENT {
 	WDI_EVENT_PEER_PRIMARY_UMAC_UPDATE,
 	WDI_EVENT_MCAST_PRIMARY_UPDATE,
 	WDI_EVENT_STA_PRIMARY_UMAC_UPDATE,
+	WDI_EVENT_FSE_UPDATE,
 	/* End of new event items */
 	WDI_EVENT_LAST
 };
@@ -3329,6 +3330,8 @@ struct cdp_peer_hmwds_ast_add_status {
  * @DP_SOC_PARAM_MULTI_PEER_GRP_CMD_SUPPORT: For sending bulk AST delete
  * @DP_SOC_PARAM_RSSI_DBM_CONV_SUPPORT: To set the rssi dbm support bit
  * @DP_SOC_PARAM_UMAC_HW_RESET_SUPPORT: Whether target supports UMAC HW reset
+ * @DP_SOC_PARAM_MULTI_RX_REORDER_SETUP_SUPPORT: Whether setting up a group of
+ *						 TIDs at a time is supported
  * @DP_SOC_PARAM_MAX:
  */
 enum cdp_soc_param_t {
@@ -3339,6 +3342,7 @@ enum cdp_soc_param_t {
 	DP_SOC_PARAM_MULTI_PEER_GRP_CMD_SUPPORT,
 	DP_SOC_PARAM_RSSI_DBM_CONV_SUPPORT,
 	DP_SOC_PARAM_UMAC_HW_RESET_SUPPORT,
+	DP_SOC_PARAM_MULTI_RX_REORDER_SETUP_SUPPORT,
 	DP_SOC_PARAM_MAX,
 };
 

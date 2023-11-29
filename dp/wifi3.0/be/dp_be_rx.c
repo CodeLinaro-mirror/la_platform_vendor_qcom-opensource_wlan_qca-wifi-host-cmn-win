@@ -41,13 +41,24 @@
 #include "dp_rx_buffer_pool.h"
 
 #ifdef WLAN_SUPPORT_RX_FLOW_TAG
+#include "hal_rx_flow.h"
+
 static inline void
-dp_rx_update_flow_info(qdf_nbuf_t nbuf, uint8_t *rx_tlv_hdr)
+dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
+		       uint8_t *rx_tlv_hdr, int32_t tid)
 {
 	uint32_t fse_metadata;
+	uint32_t vp_num;
+	bool flow_invalid;
+	bool flow_timeout;
+	uint32_t flow_index;
+	struct dp_rx_fse *fse;
+
+	hal_rx_msdu_get_flow_params_be(rx_tlv_hdr, &flow_invalid,
+				       &flow_timeout, &flow_index);
 
 	/* Set the flow idx valid flag only when there is no timeout */
-	if (hal_rx_msdu_flow_idx_timeout_be(rx_tlv_hdr))
+	if (flow_timeout)
 		return;
 
 	/*
@@ -56,15 +67,70 @@ dp_rx_update_flow_info(qdf_nbuf_t nbuf, uint8_t *rx_tlv_hdr)
 	 * go via stack instead of VP.
 	 */
 	fse_metadata = hal_rx_msdu_fse_metadata_get_be(rx_tlv_hdr);
-	if (!hal_rx_msdu_flow_idx_invalid_be(rx_tlv_hdr) && (fse_metadata == DP_RX_FSE_FLOW_MATCH_SFE))
+	vp_num = DP_RX_FSE_FLOW_EXTRACT_VP_NUM(fse_metadata);
+
+	if (!flow_invalid && vp_num == DP_RX_FSE_FLOW_INVALID_VP) {
+		uint32_t meta_tid = DP_RX_FSE_FLOW_EXTRACT_TID(fse_metadata);
+
+		if (DP_RX_FSE_FLOW_EXTRACT_EVT_REQ(fse_metadata) &&
+		    tid != meta_tid) {
+			fse = dp_rx_flow_find_entry_by_flowid(pdev->rx_fst,
+							      flow_index);
+			if (!fse || !fse->is_valid || fse->mismatch)
+				return;
+
+			if (fse->svc_id != DP_RX_FLOW_INVALID_SVC_ID) {
+				struct dp_soc *soc = pdev->soc;
+				struct fse_info_cookie cookie = {0};
+				struct hal_rx_fst *hal_rx_fst =
+						pdev->rx_fst->hal_rx_fst;
+				struct hal_flow_tuple_info *tuple_info =
+						(struct hal_flow_tuple_info *)
+						&cookie.tuple_info;
+				struct cdp_rx_flow_info rx_flow_info = {0};
+
+				hal_rx_flow_get_tuple_info(soc->hal_soc,
+							   hal_rx_fst,
+							   fse->flow_hash,
+							   tuple_info);
+
+				cookie.svc_id = fse->svc_id;
+				cookie.tid = tid;
+				cookie.dest_mac = &fse->dest_mac.raw[0];
+
+				rx_flow_info.flow_tuple_info =
+							cookie.tuple_info;
+				/* Update the tid in fse entry to avoid sending
+				 * repeated wdi events for mismatch.
+				 */
+				fse->tid = tid;
+				fse->mismatch = 1;
+
+				dp_rx_flow_write_entry_metadata(pdev,
+								fse_metadata,
+								fse);
+
+				dp_rx_flow_invalidate_fse_entry(pdev, fse,
+								&rx_flow_info,
+								false);
+
+				dp_wdi_event_handler(WDI_EVENT_FSE_UPDATE, soc,
+						     &cookie, HTT_INVALID_PEER,
+						     dp_rx_fse_event_mismatch,
+						     pdev->pdev_id);
+			}
+		}
+
 		return;
+	}
 
 	qdf_nbuf_set_rx_flow_idx_valid(nbuf,
 				 !hal_rx_msdu_flow_idx_invalid_be(rx_tlv_hdr));
 }
 #else
 static inline void
-dp_rx_update_flow_info(qdf_nbuf_t nbuf, uint8_t *rx_tlv_hdr)
+dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
+		       uint8_t *rx_tlv_hdr, int32_t tid)
 {
 }
 #endif
@@ -72,6 +138,7 @@ dp_rx_update_flow_info(qdf_nbuf_t nbuf, uint8_t *rx_tlv_hdr)
 #ifdef DP_RX_MSDU_DONE_FAIL_HISTORY
 static inline void
 dp_rx_msdu_done_fail_event_record(struct dp_soc *soc,
+				  struct dp_rx_desc *rx_desc,
 				  qdf_nbuf_t nbuf)
 {
 	struct dp_msdu_done_fail_entry *entry;
@@ -84,10 +151,16 @@ dp_rx_msdu_done_fail_event_record(struct dp_soc *soc,
 					DP_MSDU_DONE_FAIL_HIST_MAX);
 	entry = &soc->msdu_done_fail_hist->entry[idx];
 	entry->paddr = qdf_nbuf_get_frag_paddr(nbuf, 0);
+
+	if (rx_desc)
+		entry->sw_cookie = rx_desc->cookie;
+	else
+		entry->sw_cookie = 0xDEAD;
 }
 #else
 static inline void
 dp_rx_msdu_done_fail_event_record(struct dp_soc *soc,
+				  struct dp_rx_desc *rx_desc,
 				  qdf_nbuf_t nbuf)
 {
 }
@@ -189,6 +262,84 @@ dp_rx_wds_learn(struct dp_soc *soc,
 		qdf_nbuf_t nbuf)
 {
 	dp_wds_ext_peer_learn_be(soc, ta_txrx_peer, rx_tlv_hdr, nbuf);
+}
+#endif
+
+#ifdef DP_RX_PEEK_MSDU_DONE_WAR
+static inline int dp_rx_war_peek_msdu_done(struct dp_soc *soc,
+					   struct dp_rx_desc *rx_desc)
+{
+	uint8_t *rx_tlv_hdr;
+
+	qdf_nbuf_sync_for_cpu(soc->osdev, rx_desc->nbuf, QDF_DMA_FROM_DEVICE);
+	rx_tlv_hdr = qdf_nbuf_data(rx_desc->nbuf);
+
+	return hal_rx_tlv_msdu_done_get_be(rx_tlv_hdr);
+}
+
+/**
+ * dp_rx_delink_n_rel_rx_desc() - unmap & free the nbuf in the rx_desc
+ * @soc: DP SoC handle
+ * @rx_desc: rx_desc handle of the nbuf to be unmapped & freed
+ * @reo_ring_num: REO_RING_NUM corresponding to the REO for which the
+ *		  bottom half is being serviced.
+ *
+ * Return: None
+ */
+static inline void
+dp_rx_delink_n_rel_rx_desc(struct dp_soc *soc, struct dp_rx_desc *rx_desc,
+			   uint8_t reo_ring_num)
+{
+	if (!rx_desc)
+		return;
+
+	dp_rx_nbuf_unmap(soc, rx_desc, reo_ring_num);
+	dp_rx_nbuf_free(rx_desc->nbuf);
+	/*
+	 * RX_DESC flags:
+	 * in_use = 0 will be set when this rx_desc is added to local freelist
+	 * unmapped = 1 will be set by dp_rx_nbuf_unmap
+	 * in_err_state = 0 will be set during replenish
+	 * has_reuse_nbuf need not be touched.
+	 * msdu_done_fail = 0 should be set here ..!!
+	 */
+	rx_desc->msdu_done_fail = 0;
+}
+
+static inline struct dp_rx_desc *
+dp_rx_war_store_msdu_done_fail_desc(struct dp_soc *soc,
+				    struct dp_rx_desc *rx_desc,
+				    uint8_t reo_ring_num)
+{
+	struct dp_rx_msdu_done_fail_desc_list *msdu_done_fail_desc_list =
+						&soc->msdu_done_fail_desc_list;
+	struct dp_rx_desc *old_rx_desc;
+	uint32_t idx;
+
+	idx = dp_get_next_index(&msdu_done_fail_desc_list->index,
+				DP_MSDU_DONE_FAIL_DESCS_MAX);
+
+	old_rx_desc = msdu_done_fail_desc_list->msdu_done_fail_descs[idx];
+	dp_rx_delink_n_rel_rx_desc(soc, old_rx_desc, reo_ring_num);
+
+	msdu_done_fail_desc_list->msdu_done_fail_descs[idx] = rx_desc;
+
+	return old_rx_desc;
+}
+
+#else
+static inline int dp_rx_war_peek_msdu_done(struct dp_soc *soc,
+					   struct dp_rx_desc *rx_desc)
+{
+	return 1;
+}
+
+static inline struct dp_rx_desc *
+dp_rx_war_store_msdu_done_fail_desc(struct dp_soc *soc,
+				    struct dp_rx_desc *rx_desc,
+				    uint8_t reo_ring_num)
+{
+	return NULL;
 }
 #endif
 
@@ -446,6 +597,29 @@ more_data:
 				}
 				is_prev_msdu_last = false;
 			}
+		} else if (qdf_unlikely(!dp_rx_war_peek_msdu_done(soc,
+								  rx_desc))) {
+			struct dp_rx_desc *old_rx_desc =
+					dp_rx_war_store_msdu_done_fail_desc(
+								soc, rx_desc,
+								reo_ring_num);
+			if (qdf_likely(old_rx_desc)) {
+				rx_bufs_reaped[rx_desc->chip_id][rx_desc->pool_id]++;
+				dp_rx_add_to_free_desc_list
+					(&head[rx_desc->chip_id][rx_desc->pool_id],
+					 &tail[rx_desc->chip_id][rx_desc->pool_id],
+					 old_rx_desc);
+				quota -= 1;
+				num_pending -= 1;
+				num_rx_bufs_reaped++;
+			}
+			rx_desc->msdu_done_fail = 1;
+			DP_STATS_INC(soc, rx.err.msdu_done_fail, 1);
+			dp_err("MSDU DONE failure %d",
+			       soc->stats.rx.err.msdu_done_fail);
+			dp_rx_msdu_done_fail_event_record(soc, rx_desc,
+							  rx_desc->nbuf);
+			continue;
 		}
 
 		if (!is_prev_msdu_last &&
@@ -641,7 +815,7 @@ done:
 			       soc->stats.rx.err.msdu_done_fail);
 			hal_rx_dump_pkt_tlvs(hal_soc, rx_tlv_hdr,
 					     QDF_TRACE_LEVEL_INFO);
-			dp_rx_msdu_done_fail_event_record(soc, nbuf);
+			dp_rx_msdu_done_fail_event_record(soc, NULL, nbuf);
 			tid_stats->fail_cnt[MSDU_DONE_FAILURE]++;
 			dp_rx_nbuf_free(nbuf);
 			qdf_assert(0);
@@ -758,7 +932,7 @@ done:
 		}
 
 		dp_rx_cksum_offload(vdev->pdev, nbuf, rx_tlv_hdr);
-		dp_rx_update_flow_info(nbuf, rx_tlv_hdr);
+		dp_rx_update_flow_info(vdev->pdev, nbuf, rx_tlv_hdr, tid);
 
 		if (qdf_unlikely(!rx_pdev->rx_fast_flag)) {
 			/*
@@ -2319,11 +2493,11 @@ dp_rx_null_q_desc_handle_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
 				if (qdf_unlikely(vdev->mesh_vdev) ||
 				    qdf_unlikely(txrx_peer->nawds_enabled))
 					dp_rx_tid_setup_wifi3(
-						peer, tid,
+						peer, BIT(tid),
 						hal_get_rx_max_ba_window(soc->hal_soc,tid),
 						IEEE80211_SEQ_MAX);
 				else
-					dp_rx_tid_setup_wifi3(peer, tid, 1,
+					dp_rx_tid_setup_wifi3(peer, BIT(tid), 1,
 							      IEEE80211_SEQ_MAX);
 			}
 			qdf_spin_unlock_bh(&rx_tid->tid_lock);
