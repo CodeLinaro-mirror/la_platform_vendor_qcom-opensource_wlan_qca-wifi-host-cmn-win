@@ -1678,6 +1678,7 @@ void (*peer_send_wds_disconnect)(struct cdp_ctrl_objmgr_psoc *psoc,
 #ifdef CONFIG_SAWF_DEF_QUEUES
 	int (*disable_sawf_svc)(uint8_t svc_id);
 #endif
+	uint16_t (*pdev_get_num_buff)(struct cdp_ctrl_objmgr_psoc *psoc, uint8_t pdev_id);
 };
 
 #ifdef DP_PEER_EXTENDED_API
