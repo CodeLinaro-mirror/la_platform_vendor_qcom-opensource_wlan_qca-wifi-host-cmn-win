@@ -3376,6 +3376,58 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		return QDF_STATUS_SUCCESS;
 
+	case QDF_IPA_MLO_CLIENT_CONNECT_EX:
+		qdf_mutex_acquire(&ipa_ctx->event_lock);
+		/* Enable IPA UC Data PIPEs when first STA connected */
+		if (ipa_ctx->sap_num_mlo_connected_sta == 0 &&
+				ipa_ctx->uc_loaded == true) {
+
+			if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
+			    ipa_ctx->sta_connected &&
+			    !wlan_ipa_is_sta_only_offload_enabled()) {
+				qdf_mutex_release(&ipa_ctx->event_lock);
+				wlan_ipa_uc_offload_enable_disable(ipa_ctx,
+							WMI_STA_RX_DATA_OFFLOAD,
+							sta_session_id, true);
+				qdf_mutex_acquire(&ipa_ctx->event_lock);
+				qdf_atomic_set(&ipa_ctx->stats_quota, 1);
+			}
+
+			/*
+			 * IPA pipes already enabled if STA only offload
+			 * is enabled and STA is connected to remote AP.
+			 */
+			if (wlan_ipa_is_sta_only_offload_enabled() &&
+			    ipa_ctx->sta_connected) {
+				ipa_debug("IPA pipes already enabled");
+			} else if (wlan_ipa_uc_handle_first_con(ipa_ctx)) {
+				ipa_info("%s: handle 1st con fail",
+					 net_dev->name);
+
+				if (wlan_ipa_uc_sta_is_enabled(
+					ipa_ctx->config) &&
+				    ipa_ctx->sta_connected &&
+				    !wlan_ipa_is_sta_only_offload_enabled()) {
+					qdf_atomic_set(&ipa_ctx->stats_quota,
+						       0);
+					qdf_mutex_release(&ipa_ctx->event_lock);
+					wlan_ipa_uc_offload_enable_disable(
+							ipa_ctx,
+							WMI_STA_RX_DATA_OFFLOAD,
+							sta_session_id, false);
+				} else {
+					qdf_mutex_release(&ipa_ctx->event_lock);
+				}
+
+				return QDF_STATUS_E_BUSY;
+			}
+			wlan_ipa_uc_bw_monitor(ipa_ctx, false);
+			ipa_info("first sap client connected");
+		}
+		ipa_ctx->sap_num_mlo_connected_sta++;
+		qdf_mutex_release(&ipa_ctx->event_lock);
+		break;
+
 	case WLAN_CLIENT_DISCONNECT:
 		if (!wlan_ipa_uc_is_enabled(ipa_ctx->config)) {
 			ipa_debug("%s: IPA UC OFFLOAD NOT ENABLED",
@@ -3385,7 +3437,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		qdf_mutex_acquire(&ipa_ctx->event_lock);
 		wlan_ipa_set_sap_client_auth(ipa_ctx, mac_addr, false);
-		if (!ipa_ctx->sap_num_connected_sta) {
+		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			ipa_debug("%s: Evt: %d, Client already disconnected",
 				  msg_ex->name,
@@ -3409,7 +3461,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		 * 1. last client disconnected and
 		 * 2. STA is not connected if STA only offload is enabled
 		 */
-		if (!ipa_ctx->sap_num_connected_sta &&
+		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta &&
 		    ipa_ctx->uc_loaded &&
 		    !(wlan_ipa_is_sta_only_offload_enabled() &&
 		      ipa_ctx->sta_connected)) {
@@ -3457,6 +3509,74 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		ipa_debug("sap_num_connected_sta=%d",
 			  ipa_ctx->sap_num_connected_sta);
+		break;
+
+	case WLAN_IPA_MLO_CLIENT_DISCONNECT:
+		qdf_mutex_acquire(&ipa_ctx->event_lock);
+		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta) {
+			qdf_mutex_release(&ipa_ctx->event_lock);
+			ipa_debug("%s: Evt: %d, Client already disconnected",
+				  msg_ex->name,
+				  QDF_IPA_MSG_META_MSG_TYPE(&meta));
+
+			return QDF_STATUS_SUCCESS;
+		}
+		ipa_ctx->sap_num_mlo_connected_sta--;
+
+		/*
+		 * Disable IPA pipes when
+		 * 1. last client disconnected and
+		 * 2. STA is not connected if STA only offload is enabled
+		 */
+		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta &&
+		    ipa_ctx->uc_loaded &&
+		    !(wlan_ipa_is_sta_only_offload_enabled() &&
+		      ipa_ctx->sta_connected)) {
+			if ((false == ipa_ctx->resource_unloading) &&
+			    wlan_ipa_is_fw_wdi_activated(ipa_ctx) &&
+			    !ipa_ctx->ipa_pipes_down) {
+				if (wlan_ipa_is_driver_unloading(ipa_ctx)) {
+					/*
+					 * We disable WDI pipes directly here
+					 * since IPA_OPCODE_TX/RX_SUSPEND
+					 * message will not be processed when
+					 * unloading WLAN driver is in progress
+					 */
+
+					wlan_ipa_uc_bw_monitor(ipa_ctx, true);
+					wlan_ipa_uc_disable_pipes(ipa_ctx,
+								  true);
+				} else {
+					/*
+					 * If STA is connected, wait for IPA TX
+					 * completions before disabling
+					 * IPA pipes
+					 */
+					wlan_ipa_uc_handle_last_discon(ipa_ctx,
+								       !ipa_ctx->sta_connected);
+					wlan_ipa_uc_bw_monitor(ipa_ctx, true);
+				}
+				ipa_info("last sap client disconnected");
+			}
+
+			if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
+			    ipa_ctx->sta_connected &&
+			    !wlan_ipa_is_sta_only_offload_enabled()) {
+				qdf_atomic_set(&ipa_ctx->stats_quota, 0);
+				qdf_mutex_release(&ipa_ctx->event_lock);
+				wlan_ipa_uc_offload_enable_disable(ipa_ctx,
+							WMI_STA_RX_DATA_OFFLOAD,
+							sta_session_id, false);
+			} else {
+				qdf_mutex_release(&ipa_ctx->event_lock);
+			}
+		} else {
+			qdf_mutex_release(&ipa_ctx->event_lock);
+		}
+
+
+		ipa_debug("sap_num_mlo_connected_sta=%d",
+			  ipa_ctx->sap_num_mlo_connected_sta);
 		break;
 
 	default:
@@ -3527,6 +3647,12 @@ wlan_host_to_ipa_wlan_event(enum wlan_ipa_wlan_event wlan_ipa_event_type)
 		break;
 	case WLAN_IPA_CLIENT_CONNECT_EX:
 		ipa_event = QDF_IPA_CLIENT_CONNECT_EX;
+		break;
+	case WLAN_IPA_MLO_CLIENT_CONNECT_EX:
+		ipa_event = QDF_IPA_MLO_CLIENT_CONNECT_EX;
+		break;
+	case WLAN_IPA_MLO_CLIENT_DISCONNECT:
+		ipa_event = QDF_IPA_MLO_CLIENT_DISCONNECT;
 		break;
 	case WLAN_IPA_WLAN_EVENT_MAX:
 	default:
@@ -4164,6 +4290,7 @@ QDF_STATUS wlan_ipa_setup(struct wlan_ipa_priv *ipa_ctx,
 	if (wlan_ipa_uc_is_enabled(ipa_ctx->config)) {
 		qdf_mem_zero(&ipa_ctx->stats, sizeof(ipa_ctx->stats));
 		ipa_ctx->sap_num_connected_sta = 0;
+		ipa_ctx->sap_num_mlo_connected_sta = 0;
 		ipa_ctx->ipa_tx_packets_diff = 0;
 		ipa_ctx->ipa_rx_packets_diff = 0;
 		ipa_ctx->ipa_p_tx_packets = 0;
@@ -4423,6 +4550,16 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 		goto smmu_map_fail;
 	}
 	ipa_info("TX buffers mapped to IPA");
+
+	/* Setup the Rx buffer SMMU mappings */
+	status = cdp_ipa_rx_buf_smmu_mapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+					     __func__, __LINE__);
+	if (status) {
+		ipa_err("Failure to map Rx buffers for IPA(status=%d)",
+			status);
+		goto smmu_map_fail;
+	}
+	ipa_info("RX buffers mapped to IPA");
 
 	cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 	wlan_ipa_init_metering(ipa_ctx);
@@ -4709,6 +4846,16 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 		}
 		ipa_info("TX buffers mapped to IPA");
 
+		/* Setup the Rx buffer SMMU mappings */
+		status = cdp_ipa_rx_buf_smmu_mapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+						     __func__, __LINE__);
+		if (status) {
+			ipa_err("Failure to map Rx buffers for IPA(status=%d)",
+				status);
+			return status;
+		}
+		ipa_info("RX buffers mapped to IPA");
+
 		cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		wlan_ipa_init_metering(ipa_ctx);
 		wlan_ipa_add_rem_flt_cb_event(ipa_ctx);
@@ -4762,6 +4909,8 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 
 	if (true == ipa_ctx->uc_loaded) {
 		cdp_ipa_tx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+					      __func__, __LINE__);
+		cdp_ipa_rx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      __func__, __LINE__);
 		status = cdp_ipa_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					 ipa_ctx->tx_pipe_handle,

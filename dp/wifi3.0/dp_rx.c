@@ -364,10 +364,12 @@ dp_pdev_nbuf_alloc_and_map_replenish(struct dp_soc *dp_soc,
 
 	nbuf_frag_info_t->paddr =
 		qdf_nbuf_get_frag_paddr((nbuf_frag_info_t->virt_addr).nbuf, 0);
-		dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
+		ret = dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
 						  (nbuf_frag_info_t->virt_addr).nbuf),
 						  rx_desc_pool->buf_size,
 						  true, __func__, __LINE__);
+		if (ret != QDF_STATUS_SUCCESS)
+			dp_err("Error Failed to map the buffer");
 
 	ret = dp_check_paddr(dp_soc, &((nbuf_frag_info_t->virt_addr).nbuf),
 			     &nbuf_frag_info_t->paddr,
@@ -3044,7 +3046,7 @@ dp_pdev_rx_buffers_attach(struct dp_soc *dp_soc, uint32_t mac_id,
 			hal_rxdma_buff_addr_info_set(dp_soc->hal_soc ,rxdma_ring_entry, paddr,
 						     desc_list->rx_desc.cookie,
 						     rx_desc_pool->owner);
-
+/*
 			dp_ipa_handle_rx_buf_smmu_mapping(
 					dp_soc, nbuf,
 					rx_desc_pool->buf_size, true,
@@ -3055,7 +3057,7 @@ dp_pdev_rx_buffers_attach(struct dp_soc *dp_soc, uint32_t mac_id,
 								     QDF_NBUF_CB_PADDR(nbuf)),
 					  QDF_NBUF_CB_PADDR(nbuf),
 					  rx_desc_pool->buf_size);
-
+*/
 			desc_list = next;
 		}
 
@@ -3210,6 +3212,28 @@ void dp_rx_pdev_desc_pool_deinit(struct dp_pdev *pdev)
 	dp_rx_desc_pool_deinit(soc, rx_desc_pool, mac_for_pdev);
 }
 
+#if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_512M)
+static uint32_t dp_ipa_get_num_entries(struct dp_pdev *pdev)
+{
+	struct dp_soc *soc = pdev->soc;
+
+	if (soc->cdp_soc.ol_ops->pdev_get_num_buff)
+		return soc->cdp_soc.ol_ops->pdev_get_num_buff(soc->ctrl_psoc,
+							      pdev->pdev_id);
+	return 0;
+}
+#else
+static uint32_t dp_ipa_get_num_entries(struct dp_pdev *pdev)
+{
+	int mac_for_pdev = pdev->lmac_id;
+	struct dp_soc *soc = pdev->soc;
+	struct dp_srng *dp_rxdma_srng;
+
+	dp_rxdma_srng = &soc->rx_refill_buf_ring[mac_for_pdev];
+	return dp_rxdma_srng->num_entries;
+}
+#endif
+
 QDF_STATUS
 dp_rx_pdev_buffers_alloc(struct dp_pdev *pdev)
 {
@@ -3221,8 +3245,7 @@ dp_rx_pdev_buffers_alloc(struct dp_pdev *pdev)
 	uint32_t target_type = hal_get_target_type(soc->hal_soc);
 
 	dp_rxdma_srng = &soc->rx_refill_buf_ring[mac_for_pdev];
-	rxdma_entries = dp_rxdma_srng->num_entries;
-
+	rxdma_entries = dp_ipa_get_num_entries(pdev);
 	rx_desc_pool = &soc->rx_desc_buf[mac_for_pdev];
 
 	/* Initialize RX buffer pool which will be

@@ -950,6 +950,21 @@ dp_peer_send_wds_disconnect(struct dp_soc *soc, struct dp_peer *peer)
 		}
 	}
 }
+#elif defined(IPA_OFFLOAD) && defined(QCA_SUPPORT_WDS_EXTENDED)
+static void
+dp_peer_send_wds_disconnect(struct dp_soc *soc, struct dp_peer *peer)
+{
+	struct dp_ast_entry *ase = NULL;
+	struct dp_ast_entry *temp_ase;
+
+	DP_PEER_ITERATE_ASE_LIST(peer, ase, temp_ase) {
+		if (ase->type == CDP_TXRX_AST_TYPE_WDS)
+			if (soc->cdp_soc.ol_ops->peer_unmap_event)
+				soc->cdp_soc.ol_ops->peer_unmap_event(soc->ctrl_psoc,
+								      ase->peer_id, ase->vdev_id,
+								      ase->mac_addr.raw);
+	}
+}
 #elif defined(FEATURE_AST)
 static void
 dp_peer_send_wds_disconnect(struct dp_soc *soc, struct dp_peer *peer)
@@ -9122,10 +9137,14 @@ dp_peer_get_authorize(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 {
 	struct dp_soc *soc = (struct dp_soc *)soc_hdl;
 	bool authorize = false;
-	struct dp_peer *peer = dp_peer_find_hash_find(soc, peer_mac,
-						      0, vdev_id,
-						      DP_MOD_ID_CDP);
+	struct dp_peer *peer = NULL;
+	struct cdp_peer_info peer_info = { 0 };
 
+	DP_PEER_INFO_PARAMS_INIT(&peer_info, vdev_id, peer_mac, false,
+				 CDP_WILD_PEER_TYPE);
+
+	peer = dp_peer_hash_find_wrapper((struct dp_soc *)soc, &peer_info,
+					 DP_MOD_ID_CDP);
 	if (!peer) {
 		dp_cdp_debug("%pK: Peer is NULL!\n", soc);
 		return authorize;
@@ -15586,6 +15605,8 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_rx_intrabss_fwd = dp_ipa_rx_intrabss_fwd,
 	.ipa_tx_buf_smmu_mapping = dp_ipa_tx_buf_smmu_mapping,
 	.ipa_tx_buf_smmu_unmapping = dp_ipa_tx_buf_smmu_unmapping,
+	.ipa_rx_buf_smmu_mapping = dp_ipa_rx_buf_smmu_mapping,
+	.ipa_rx_buf_smmu_unmapping = dp_ipa_rx_buf_smmu_unmapping,
 #ifdef QCA_SUPPORT_WDS_EXTENDED
        .ipa_rx_wdsext_iface = dp_ipa_rx_wdsext_iface,
 #endif
@@ -15601,6 +15622,9 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_ast_create = dp_ipa_ast_create,
 #endif
 	.ipa_get_wdi_version = dp_ipa_get_wdi_version,
+#if defined(WLAN_FEATURE_11BE_MLO)
+	.ipa_get_primary_mld_mac = dp_ipa_get_primary_mld_mac,
+#endif
 };
 #endif
 

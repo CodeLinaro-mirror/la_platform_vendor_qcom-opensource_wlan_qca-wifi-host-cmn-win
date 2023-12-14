@@ -451,6 +451,34 @@ QDF_STATUS dp_ipa_tx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
 					uint8_t pdev_id, const char *func,
 					uint32_t line);
 
+/**
+ * dp_ipa_rx_buf_smmu_mapping() - Create SMMU mappings for IPA
+ *				  allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+				      uint8_t pdev_id, const char *func,
+				      uint32_t line);
+
+/**
+ * dp_ipa_rx_buf_smmu_unmapping() - Release SMMU mappings for IPA
+ *				    allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+					uint8_t pdev_id, const char *func,
+					uint32_t line);
+
 #ifndef QCA_OL_DP_SRNG_LOCK_LESS_ACCESS
 static inline void
 dp_ipa_rx_buf_smmu_mapping_lock(struct dp_soc *soc)
@@ -621,6 +649,26 @@ QDF_STATUS dp_ipa_update_peer_rx_stats(struct cdp_soc_t *soc, uint8_t vdev_id,
  * Return: None
  */
 void dp_ipa_get_wdi_version(struct cdp_soc_t *soc_hdl, uint8_t *wdi_ver);
+
+#if defined(WLAN_FEATURE_11BE_MLO)
+/**
+* dp_ipa_get_primary_mld_mac() - get mld mac address only if link is primary
+* @soc_hdl: data path soc handle
+* @vdev_id: vdev id
+* @mld_mac: mld mac address if link is primary
+*
+* Return: None
+*/
+void
+dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+			   uint8_t *mld_mac);
+#else
+void dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+				uint8_t *mld_mac)
+{
+	mld_mac = NULL;
+}
+#endif
 #else
 static inline int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
@@ -696,6 +744,22 @@ static inline QDF_STATUS dp_ipa_tx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
 	return QDF_STATUS_SUCCESS;
 }
 
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+						    uint8_t pdev_id,
+						    const char *func,
+						    uint32_t line)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+						      uint8_t pdev_id,
+						      const char *func,
+						      uint32_t line)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
 #ifdef IPA_WDS_EASYMESH_FEATURE
 static inline QDF_STATUS dp_ipa_ast_create(struct cdp_soc_t *soc_hdl,
 					   qdf_ipa_ast_info_type_t *data)
@@ -706,6 +770,22 @@ static inline QDF_STATUS dp_ipa_ast_create(struct cdp_soc_t *soc_hdl,
 static inline void dp_ipa_get_wdi_version(struct cdp_soc_t *soc_hdl,
 					  uint8_t *wdi_ver)
 {
+}
+void dp_ipa_get_peer_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t *mac_addr,
+			     uint8_t vdev_id, uint8_t *mld_mac, bool *link)
+{
+}
+
+void dp_ipa_get_link_peer_status(struct cdp_soc_t *soc_hdl, uint16_t peer_id,
+				 bool *link_peer)
+{
+	*link_peer = false;
+}
+
+void dp_ipa_get_primary_mld_mac(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+				uint8_t *mld_mac)
+{
+	mld_mac = NULL;
 }
 #endif
 #endif /* _DP_IPA_H_ */

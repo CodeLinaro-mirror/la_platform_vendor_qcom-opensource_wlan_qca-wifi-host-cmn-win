@@ -770,6 +770,67 @@ cdp_ipa_tx_buf_smmu_unmapping(ol_txrx_soc_handle soc, uint8_t pdev_id,
 	return QDF_STATUS_SUCCESS;
 }
 
+/**
+ * cdp_ipa_rx_buf_smmu_mapping() - Create SMMU mappings for Rx
+ *				   buffers allocated to IPA
+ * @soc: data path soc handle
+ * @pdev_id: device instance id
+ * @line: line number
+ * @func: function name
+ *
+ * Create SMMU mappings for Tx buffers allocated to IPA
+ *
+ * return QDF_STATUS_SUCCESS
+ */
+static inline QDF_STATUS
+cdp_ipa_rx_buf_smmu_mapping(ol_txrx_soc_handle soc, uint8_t pdev_id,
+			    const char *func, uint32_t line)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			  "%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (soc->ops->ipa_ops->ipa_rx_buf_smmu_mapping)
+		return soc->ops->ipa_ops->ipa_rx_buf_smmu_mapping(soc, pdev_id,
+								  func,
+								  line);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * cdp_ipa_rx_buf_smmu_unmapping() - Release SMMU mappings for Rx
+ *				     buffers allocated to IPA
+ * @soc: data path soc handle
+ * @pdev_id: device instance id
+ * @line: line number
+ * @func: function name
+ *
+ * Release SMMU mappings for Tx buffers allocated to IPA
+ *
+ * return QDF_STATUS_SUCCESS
+ */
+static inline QDF_STATUS
+cdp_ipa_rx_buf_smmu_unmapping(ol_txrx_soc_handle soc, uint8_t pdev_id,
+			      const char *func, uint32_t line)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			  "%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (soc->ops->ipa_ops->ipa_rx_buf_smmu_unmapping)
+		return soc->ops->ipa_ops->ipa_rx_buf_smmu_unmapping(soc,
+								    pdev_id,
+								    func,
+								    line);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 #ifdef IPA_WDS_EASYMESH_FEATURE
 /**
  * cdp_ipa_ast_create() - Create/update AST entry in AST table
@@ -986,5 +1047,29 @@ cdp_ipa_get_wdi_version(ol_txrx_soc_handle soc, uint8_t *wdi_ver)
 	if (soc->ops->ipa_ops->ipa_get_wdi_version)
 		soc->ops->ipa_ops->ipa_get_wdi_version(soc, wdi_ver);
 }
+
+#if defined(WLAN_FEATURE_11BE_MLO)
+/**
+* cdp_ipa_get_primary_mld_mac() - get mld mac address only if link is primary
+* @soc: data path soc handle
+* @vdev_id: vdev id
+* @mld_mac: mld mac address
+*
+* Return: None
+*/
+static inline void
+cdp_ipa_get_primary_mld_mac(ol_txrx_soc_handle soc, uint8_t vdev_id,
+			    uint8_t  *mld_mac)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			  "%s invalid instance", __func__);
+	}
+
+	if (soc->ops->ipa_ops->ipa_get_primary_mld_mac)
+		soc->ops->ipa_ops->ipa_get_primary_mld_mac(soc, vdev_id,
+							   mld_mac);
+}
+#endif
 #endif /* IPA_OFFLOAD */
 #endif /* _CDP_TXRX_IPA_H_ */
