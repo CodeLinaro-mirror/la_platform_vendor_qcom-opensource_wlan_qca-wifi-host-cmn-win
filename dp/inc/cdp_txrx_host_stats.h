@@ -432,14 +432,14 @@ cdp_update_pdev_host_stats(ol_txrx_soc_handle soc,
  * @vdev_id: id of the virtual device object
  * @data: pdev stats
  * @stats_id: type of stats
- *
+ * @xmit_type: xmit type, MLO/Legacy
  * Return: QDF_STATUS
  */
 static inline QDF_STATUS
 cdp_update_vdev_host_stats(ol_txrx_soc_handle soc,
 			   uint8_t vdev_id,
 			   void *data,
-			   uint16_t stats_id)
+			   uint16_t stats_id, uint8_t xmit_type)
 {
 	if (!soc || !soc->ops) {
 		dp_cdp_debug("Invalid Instance");
@@ -453,7 +453,8 @@ cdp_update_vdev_host_stats(ol_txrx_soc_handle soc,
 
 	return soc->ops->host_stats_ops->txrx_update_vdev_stats(soc, vdev_id,
 								data,
-								stats_id);
+								stats_id,
+								xmit_type);
 }
 
 /**
@@ -539,6 +540,41 @@ cdp_host_get_peer_stats(ol_txrx_soc_handle soc, uint8_t vdev_id,
 	return soc->ops->host_stats_ops->txrx_get_peer_stats(soc, vdev_id,
 							     peer_mac,
 							     peer_stats);
+}
+
+
+/**
+ * cdp_host_get_peer_stats_based_on_peer_type() - Fetch peer stats based on the
+ * peer type
+ * @soc: soc handle
+ * @vdev_id: vdev_id of vdev object
+ * @peer_mac: mac address of the peer
+ * @peer_stats: destination buffer
+ * @peer_type: type of peer
+ *
+ * Return: QDF_STATUS
+ */
+static inline QDF_STATUS
+cdp_host_get_peer_stats_based_on_peer_type(ol_txrx_soc_handle soc, uint8_t vdev_id,
+					   uint8_t *peer_mac,
+					   struct cdp_peer_stats *peer_stats,
+					   enum cdp_peer_type peer_type)
+{
+	if (!soc || !soc->ops) {
+		dp_cdp_debug("Invalid Instance");
+		QDF_BUG(0);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!soc->ops->host_stats_ops ||
+	    !soc->ops->host_stats_ops->txrx_get_peer_stats_based_on_peer_type)
+		return QDF_STATUS_E_FAILURE;
+
+	return soc->ops->host_stats_ops->txrx_get_peer_stats_based_on_peer_type(
+								soc, vdev_id,
+								peer_mac,
+								peer_stats,
+								peer_type);
 }
 
 /**
@@ -982,7 +1018,7 @@ cdp_get_pdev_tid_stats(ol_txrx_soc_handle soc, uint8_t pdev_id,
 								 tid_stats);
 }
 
-#ifdef WLAN_TELEMETRY_STATS_SUPPORT
+#ifdef WLAN_CONFIG_TELEMETRY_AGENT
 /**
  * cdp_get_pdev_telemetry_stats() - function to get pdev telemetry stats
  * @soc: soc handle

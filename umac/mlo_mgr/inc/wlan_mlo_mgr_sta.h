@@ -26,6 +26,7 @@
 #include <wlan_mlo_mgr_cmn.h>
 #ifdef WLAN_FEATURE_11BE_MLO
 #include <wlan_mlo_mgr_public_structs.h>
+#include <wlan_mlo_mgr_peer.h>
 
 /**
  * mlo_connect - Start the connection process
@@ -161,8 +162,187 @@ void ucfg_mlo_mld_clear_mlo_cap(struct wlan_objmgr_vdev *vdev);
  */
 
 int8_t mlo_get_central_umac_id(uint8_t *psoc_ids);
-#endif
 
+/**
+ * mlo_check_topology() - check topology of the psoc's in STA
+ * @pdev: pdev pointer
+ * @vdev: vdev pointer
+ * @aplinks: Number of active links on ap side
+ *
+ * Return: QDF_STATUS
+ */
+
+QDF_STATUS mlo_check_topology(struct wlan_objmgr_pdev *pdev,
+			      struct wlan_objmgr_vdev *vdev,
+			      uint8_t aplinks);
+/**
+ * mlo_update_partner_bridge_info() - Update parter info of bridge vap
+ * @ml_dev: ML dev context
+ * @partner_info: partner info that needs to be updated
+ *
+ * Return: none
+ */
+
+void mlo_update_partner_bridge_info(struct wlan_mlo_dev_context *ml_dev,
+				    struct mlo_partner_info *partner_info);
+/**
+ * mlo_get_total_links() - get total links supported by device
+ * @pdev: pdev pointer
+ *
+ * Return: Number of total links supported
+ */
+
+uint8_t mlo_get_total_links(struct wlan_objmgr_pdev *pdev);
+
+/**
+ * mlo_is_sta_bridge_vdev() - Check if the vdev is sta bridge vdev
+ * @vdev: vdev pointer
+ *
+ * Return: True if STA bridge vdev else false
+ */
+
+bool mlo_is_sta_bridge_vdev(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * mlo_sta_bridge_exists() - Check if bridge vdev exists in a STA MLD
+ * @vdev: vdev pointer
+ *
+ * Return: True if Bridge Vdev exists else false
+ */
+bool mlo_sta_bridge_exists(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * mlo_is_force_central_primary() - Check if central vdev is forced
+ * as primary
+ * @vdev: vdev pointer
+ *
+ * Return: True if Central Vdev is force as primary else false
+ */
+
+bool mlo_is_force_central_primary(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * mlo_set_sta_ctx_bss_mld_addr() - Save BSS MLD in sta ctx
+ * @vdev: vdev pointer
+ * @bss_mld_addr: MLD Address of BSS
+ *
+ * Return: none
+ */
+
+static inline
+void mlo_set_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev,
+				  struct qdf_mac_addr *bss_mld_addr)
+{
+	struct wlan_mlo_dev_context *ml_dev = NULL;
+
+	if (!vdev || !vdev->mlo_dev_ctx || !bss_mld_addr)
+		return;
+
+	ml_dev = vdev->mlo_dev_ctx;
+	if (mlo_sta_bridge_exists(vdev) &&
+	    qdf_is_macaddr_zero(&ml_dev->bridge_sta_ctx->bss_mld_addr)) {
+		if (qdf_is_macaddr_zero(bss_mld_addr))
+			return;
+		qdf_copy_macaddr(&ml_dev->bridge_sta_ctx->bss_mld_addr,
+				 bss_mld_addr);
+	}
+}
+
+/**
+ * mlo_get_sta_ctx_bss_mld_addr() - Get BSS MLD from sta ctx
+ * @vdev: vdev pointer
+ *
+ * Return: pointer to qdf_mac_addr
+ */
+
+static inline
+struct qdf_mac_addr *mlo_get_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_mlo_dev_context *ml_dev = NULL;
+	struct qdf_mac_addr *mld_addr;
+
+	if (!vdev || !vdev->mlo_dev_ctx)
+		return NULL;
+
+	ml_dev = vdev->mlo_dev_ctx;
+	if (mlo_sta_bridge_exists(vdev) &&
+	    !qdf_is_macaddr_zero(&ml_dev->bridge_sta_ctx->bss_mld_addr)) {
+		mld_addr = &ml_dev->bridge_sta_ctx->bss_mld_addr;
+		return mld_addr;
+	}
+	return NULL;
+}
+
+/**
+ * mlo_clear_bridge_sta_ctx() - clear bridge_sta_ctx
+ * @vdev: vdev object
+ *
+ * Return: none
+ */
+static inline
+void mlo_clear_bridge_sta_ctx(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_mlo_dev_context *ml_dev = NULL;
+	struct wlan_objmgr_vdev *tmp_vdev = NULL;
+	uint8_t bridge_umac_id = -1;
+
+	if (!vdev || !vdev->mlo_dev_ctx)
+		return;
+
+	ml_dev = vdev->mlo_dev_ctx;
+	if (ml_dev->bridge_sta_ctx) {
+		bridge_umac_id = ml_dev->bridge_sta_ctx->bridge_umac_id;
+		qdf_mem_zero(ml_dev->bridge_sta_ctx,
+			     sizeof(struct wlan_mlo_bridge_sta));
+	}
+	if (mlo_is_force_central_primary(vdev)) {
+		tmp_vdev = mlo_get_link_vdev_from_psoc_id(ml_dev,
+							  bridge_umac_id,
+							  false);
+		if (!tmp_vdev) {
+			mlo_err("VDEV derivation failed for %u psoc wds bridge",
+				bridge_umac_id);
+			return;
+		}
+		tmp_vdev->vdev_objmgr.mlo_central_vdev = false;
+		wlan_objmgr_vdev_release_ref(tmp_vdev, WLAN_MLO_MGR_ID);
+	}
+}
+
+#else
+static inline
+void mlo_set_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev,
+				  struct qdf_mac_addr *bss_mld_addr)
+{ }
+
+static inline
+struct qdf_mac_addr *mlo_get_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev)
+{
+	return NULL;
+}
+
+static inline
+bool mlo_is_sta_bridge_vdev(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline
+bool mlo_sta_bridge_exists(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline
+bool mlo_is_force_central_primary(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline
+void mlo_clear_bridge_sta_ctx(struct wlan_objmgr_vdev *vdev)
+{ }
+#endif
 /**
  * ucfg_mlo_get_assoc_link_vdev - API to get assoc link vdev
  * @vdev: vdev object
@@ -702,6 +882,39 @@ mlo_allocate_and_copy_ies(struct wlan_cm_connect_req *target,
 void
 mlo_free_connect_ies(struct wlan_cm_connect_req *connect_req);
 #else
+static inline
+void mlo_clear_bridge_sta_ctx(struct wlan_objmgr_vdev *vdev)
+{ }
+
+static inline
+void mlo_set_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev,
+				  struct qdf_mac_addr *bss_mld_addr)
+{ }
+
+static inline
+struct qdf_mac_addr *mlo_get_sta_ctx_bss_mld_addr(struct wlan_objmgr_vdev *vdev)
+{
+	return NULL;
+}
+
+static inline
+bool mlo_is_sta_bridge_vdev(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline
+bool mlo_sta_bridge_exists(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline
+bool mlo_is_force_central_primary(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
 static inline
 QDF_STATUS mlo_connect(struct wlan_objmgr_vdev *vdev,
 		       struct wlan_cm_connect_req *req)

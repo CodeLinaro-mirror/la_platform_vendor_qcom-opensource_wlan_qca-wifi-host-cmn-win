@@ -771,10 +771,32 @@ QDF_STATUS target_if_alloc_psoc_tgt_info(struct wlan_objmgr_psoc *psoc)
 	return QDF_STATUS_SUCCESS;
 }
 
+QDF_STATUS target_if_psoc_tgt_info_mem_free(
+		struct target_psoc_info *tgt_psoc_info)
+{
+	struct wlan_psoc_host_service_ext_param *ext_param;
+
+	if (!tgt_psoc_info) {
+		target_if_err("tgt_psoc_info is NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	/* reminder to move this into init_deinit_chainmask_table_free */
+	ext_param = target_psoc_get_service_ext_param(tgt_psoc_info);
+	if (ext_param)
+		init_deinit_chainmask_table_free(ext_param);
+
+	init_deinit_dbr_ring_cap_free(tgt_psoc_info);
+	init_deinit_spectral_scaling_params_free(tgt_psoc_info);
+	init_deinit_scan_radio_cap_free(tgt_psoc_info);
+	init_deinit_rcc_aoa_cap_ext2_free(tgt_psoc_info);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 QDF_STATUS target_if_free_psoc_tgt_info(struct wlan_objmgr_psoc *psoc)
 {
 	struct target_psoc_info *tgt_psoc_info;
-	struct wlan_psoc_host_service_ext_param *ext_param;
 
 	if (!psoc) {
 		target_if_err("psoc is null");
@@ -783,16 +805,7 @@ QDF_STATUS target_if_free_psoc_tgt_info(struct wlan_objmgr_psoc *psoc)
 
 	tgt_psoc_info = wlan_psoc_get_tgt_if_handle(psoc);
 
-	ext_param = target_psoc_get_service_ext_param(tgt_psoc_info);
-	if (!ext_param) {
-		target_if_err("tgt_psoc_info is NULL");
-		return QDF_STATUS_E_INVAL;
-	}
-	init_deinit_chainmask_table_free(ext_param);
-	init_deinit_dbr_ring_cap_free(tgt_psoc_info);
-	init_deinit_spectral_scaling_params_free(tgt_psoc_info);
-	init_deinit_scan_radio_cap_free(tgt_psoc_info);
-
+	target_if_psoc_tgt_info_mem_free(tgt_psoc_info);
 	qdf_event_destroy(&tgt_psoc_info->info.event);
 
 	wlan_psoc_set_tgt_if_handle(psoc, NULL);
@@ -1220,7 +1233,7 @@ QDF_STATUS target_if_mlo_ready(struct wlan_objmgr_pdev **pdev,
 QDF_STATUS
 target_if_mlo_teardown_req(struct wlan_objmgr_pdev *pdev,
 			   enum wmi_mlo_teardown_reason reason,
-			   bool reset)
+			   bool reset, bool standby_active)
 {
 	wmi_unified_t wmi_handle;
 	struct wmi_mlo_teardown_params params = {0};
@@ -1232,6 +1245,7 @@ target_if_mlo_teardown_req(struct wlan_objmgr_pdev *pdev,
 	params.pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
 	params.reason = reason;
 	params.umac_reset = reset;
+	params.standby_active = standby_active;
 
 	return wmi_mlo_teardown_cmd_send(wmi_handle, &params);
 }

@@ -342,6 +342,7 @@ cdp_get_drop_stats(ol_txrx_soc_handle soc, void *arg,
  * @min_tput: Min throughput
  * @max_latency: Max latency
  * @add_or_sub: Add or Sub parameters
+ * @peer_id: peer id
  *
  * Return: QDF_STATUS
  */
@@ -349,7 +350,7 @@ static inline QDF_STATUS
 cdp_sawf_peer_config_ul(ol_txrx_soc_handle soc, uint8_t *mac_addr, uint8_t tid,
 			uint32_t service_interval, uint32_t burst_size,
 			uint32_t min_tput, uint32_t max_latency,
-			uint8_t add_or_sub)
+			uint8_t add_or_sub, uint16_t peer_id)
 {
 	if (!soc || !soc->ops || !soc->ops->sawf_ops ||
 	    !soc->ops->sawf_ops->peer_config_ul) {
@@ -361,7 +362,7 @@ cdp_sawf_peer_config_ul(ol_txrx_soc_handle soc, uint8_t *mac_addr, uint8_t tid,
 	return soc->ops->sawf_ops->peer_config_ul(soc, mac_addr, tid,
 						  service_interval, burst_size,
 						  min_tput, max_latency,
-						  add_or_sub);
+						  add_or_sub, peer_id);
 }
 
 /**
@@ -372,13 +373,15 @@ cdp_sawf_peer_config_ul(ol_txrx_soc_handle soc, uint8_t *mac_addr, uint8_t tid,
  * @direction: Indication of forward or reverse service class match
  * @start_or_stop: Indication of start or stop
  * @peer_mac: Peer MAC address
+ * @peer_id: peer id
  *
  * Return: QDF_STATUS
  */
 static inline QDF_STATUS
 cdp_sawf_peer_flow_count(ol_txrx_soc_handle soc, uint8_t *mac_addr,
 			 uint8_t svc_id, uint8_t direction,
-			 uint8_t start_or_stop, uint8_t *peer_mac)
+			 uint8_t start_or_stop, uint8_t *peer_mac,
+			 uint16_t peer_id)
 {
 	if (!soc || !soc->ops || !soc->ops->sawf_ops ||
 	    !soc->ops->sawf_ops->sawf_peer_flow_count) {
@@ -388,7 +391,8 @@ cdp_sawf_peer_flow_count(ol_txrx_soc_handle soc, uint8_t *mac_addr,
 	}
 
 	return soc->ops->sawf_ops->sawf_peer_flow_count
-		(soc, mac_addr, svc_id, direction, start_or_stop, peer_mac);
+		(soc, mac_addr, svc_id, direction, start_or_stop, peer_mac,
+								peer_id);
 }
 
 /**
@@ -445,6 +449,39 @@ cdp_swaf_peer_sla_configuration(ol_txrx_soc_handle soc, uint8_t *mac_addr,
 				uint16_t *sla_mask)
 {
 	return QDF_STATUS_E_FAILURE;
+}
+#endif
+
+#ifdef WLAN_FEATURE_11BE_MLO_3_LINK_TX
+static inline
+uint16_t cdp_sawf_get_peer_msduq(ol_txrx_soc_handle soc,
+				 struct net_device *netdev, uint8_t *dest_mac,
+				 uint32_t dscp_pcp, bool pcp)
+{
+	if (!soc || !soc->ops || !soc->ops->sawf_ops ||
+	    !soc->ops->sawf_ops->get_peer_msduq) {
+		dp_cdp_debug("Invalid Instance");
+		QDF_BUG(0);
+		return false;
+	}
+
+	return soc->ops->sawf_ops->get_peer_msduq
+		(netdev, dest_mac, dscp_pcp, pcp);
+}
+
+static inline QDF_STATUS
+cdp_sawf_3_link_peer_flow_count(ol_txrx_soc_handle soc, uint8_t *mac_addr,
+				uint16_t peer_id, uint32_t mark_metadata)
+{
+	if (!soc || !soc->ops || !soc->ops->sawf_ops ||
+	    !soc->ops->sawf_ops->sawf_3_link_peer_flow_count) {
+		dp_cdp_debug("Invalid Instance");
+		QDF_BUG(0);
+		return false;
+	}
+
+	return soc->ops->sawf_ops->sawf_3_link_peer_flow_count
+		(soc, mac_addr, peer_id, mark_metadata);
 }
 #endif
 #endif /* _CDP_TXRX_SAWF_H_ */

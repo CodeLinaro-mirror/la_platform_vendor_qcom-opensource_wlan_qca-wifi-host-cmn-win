@@ -35,10 +35,6 @@
 #include "dfs.h"
 #include <wlan_dfs_tgt_api.h>
 
-#define OCAC_SUCCESS 0
-#define OCAC_RESET 1
-#define OCAC_CANCEL 2
-
 #ifdef WLAN_FEATURE_11BE
 #define TREE_DEPTH_320                    5
 #define TREE_DEPTH_MAX                    TREE_DEPTH_320
@@ -458,11 +454,28 @@ void dfs_prepare_agile_precac_chan(struct wlan_dfs *dfs, bool *is_chan_found);
  * @chwidth : Width of the channel for which OCAC completion is received.
  */
 void dfs_process_ocac_complete(struct wlan_objmgr_pdev *pdev,
-			       uint32_t ocac_status,
+			       enum ocac_status_type ocac_status,
 			       uint32_t center_freq1,
 			       uint32_t center_freq2,
 			       enum phy_ch_width chwidth);
 
+/*
+ * dfs_is_ocac_complete_event_for_cur_agile_chan() - Check if the OCAC
+ * completion event from FW is received for the currently configured agile
+ * channel in host.
+ *
+ * @dfs: Pointer to dfs structure.
+ * @center_freq_mhz1: Center frequency of the band when the precac width is
+ * 20/40/80/160MHz and center frequency of the left 80MHz in case of restricted
+ * 80P80/165MHz.
+ * @center_freq_mhz2: Center frequency of the right 80MHz in case of restricted
+ * 80P80/165MHz. It is zero for other channel widths.
+ * @chwidth: Agile channel width for which the completion event is received.
+ *
+ * return: True if the channel on which OCAC completion event received is same
+ * as currently configured agile channel in host. False otherwise.
+ */
+bool dfs_is_ocac_complete_event_for_cur_agile_chan(struct wlan_dfs *dfs);
 /**
  * dfs_set_agilecac_chan_for_freq() - Find chan freq for agile CAC.
  * @dfs:         Pointer to wlan_dfs structure.
@@ -510,7 +523,7 @@ void dfs_agile_precac_start(struct wlan_dfs *dfs);
  * fields in adfs_param.
  */
 void dfs_start_agile_precac_timer(struct wlan_dfs *dfs,
-				  uint8_t ocac_status,
+				  enum ocac_status_type ocac_status,
 				  struct dfs_agile_cac_params *adfs_param);
 
 /**
@@ -539,11 +552,17 @@ static inline void dfs_prepare_agile_precac_chan(struct wlan_dfs *dfs,
 
 static inline void
 dfs_process_ocac_complete(struct wlan_objmgr_pdev *pdev,
-			  uint32_t ocac_status,
+			  enum ocac_status_type ocac_status,
 			  uint32_t center_freq1,
 			  uint32_t center_freq2,
 			  enum phy_ch_width chwidth)
 {
+}
+
+static inline bool
+dfs_is_ocac_complete_event_for_cur_agile_chan(struct wlan_dfs *dfs)
+{
+	return false;
 }
 
 #ifdef CONFIG_CHAN_FREQ_API
@@ -569,7 +588,7 @@ static inline void dfs_agile_precac_start(struct wlan_dfs *dfs)
 
 static inline void
 dfs_start_agile_precac_timer(struct wlan_dfs *dfs,
-			     uint8_t ocac_status,
+			     enum ocac_status_type ocac_status,
 			     struct dfs_agile_cac_params *adfs_param)
 {
 }
@@ -662,6 +681,7 @@ static inline bool dfs_is_precac_domain(struct wlan_dfs *dfs)
  * 1. FCC domain.
  * 2. MKK domain.
  * 3. MKKN domain.
+ * 4. ETSI domain.
  *
  */
 #if defined(QCA_SUPPORT_ADFS_RCAC)
@@ -1131,12 +1151,6 @@ bool dfs_is_agile_rcac_enabled(struct wlan_dfs *dfs);
  */
 void dfs_prepare_agile_rcac_channel(struct wlan_dfs *dfs,
 				    bool *is_rcac_chan_available);
-/**
- * dfs_start_agile_rcac_timer() - Start Agile RCAC timer.
- * @dfs: Pointer to struct wlan_dfs.
- *
- */
-void dfs_start_agile_rcac_timer(struct wlan_dfs *dfs);
 
 /**
  * dfs_stop_agile_rcac_timer() - Stop Agile RCAC timer.
@@ -1144,19 +1158,26 @@ void dfs_start_agile_rcac_timer(struct wlan_dfs *dfs);
  *
  */
 void dfs_stop_agile_rcac_timer(struct wlan_dfs *dfs);
+
+/**
+ * dfs_agile_cleanup_rcac() - Reset parameters of wlan_dfs relatewd to RCAC
+ *
+ * @dfs: Pointer to struct wlan_dfs.
+ */
+void dfs_agile_cleanup_rcac(struct wlan_dfs *dfs);
 #else
 static inline bool dfs_is_agile_rcac_enabled(struct wlan_dfs *dfs)
 {
 	return false;
 }
 
-static inline void
-dfs_prepare_agile_rcac_channel(struct wlan_dfs *dfs,
-			       bool *is_rcac_chan_available)
+static inline void dfs_agile_cleanup_rcac(struct wlan_dfs *dfs)
 {
 }
 
-static inline void dfs_start_agile_rcac_timer(struct wlan_dfs *dfs)
+static inline void
+dfs_prepare_agile_rcac_channel(struct wlan_dfs *dfs,
+			       bool *is_rcac_chan_available)
 {
 }
 
@@ -1351,6 +1372,14 @@ void dfs_create_punc_sm(struct wlan_dfs *dfs);
 void dfs_destroy_punc_sm(struct wlan_dfs *dfs);
 
 /**
+ * dfs_punc_sm_stop_all() - API to stop all puncture SM object.
+ * @dfs: pointer to wlan_dfs.
+ *
+ * Return: Nothing.
+ */
+void dfs_punc_sm_stop_all(struct wlan_dfs *dfs);
+
+/**
  * dfs_punc_sm_stop() - Stop DFS puncture state machine.
  * @dfs:           Pointer to wlan_dfs.
  * @indx:          Index of DFS puncture state machine.
@@ -1493,6 +1522,11 @@ void dfs_destroy_punc_sm(struct wlan_dfs *dfs)
 }
 
 static inline
+void dfs_punc_sm_stop_all(struct wlan_dfs *dfs)
+{
+}
+
+static inline
 void dfs_punc_sm_stop(struct wlan_dfs *dfs,
 		      uint8_t indx,
 		      struct dfs_punc_obj *dfs_punc_arr)
@@ -1571,4 +1605,19 @@ bool dfs_is_ignore_radar_for_punctured_chans(struct wlan_dfs *dfs,
 	return false;
 }
 #endif /* DFS_BW_PUNCTURE */
+
+/* dfs_is_pcac_on_weather_channel_for_freq() - Given a channel number, find if
+ * it's a weather radar channel.
+ * @dfs: Pointer to WLAN_DFS structure.
+ * @chwidth: PreCAC channel width enum.
+ * @precac_freq: preCAC freq.
+ *
+ * Based on the precac_width, find the first and last subchannels of the given
+ * preCAC channel and check if this range overlaps with weather channel range.
+ *
+ * Return: True if weather channel, else false.
+ */
+bool dfs_is_pcac_on_weather_channel_for_freq(struct wlan_dfs *dfs,
+					     enum phy_ch_width chwidth,
+					     uint16_t precac_freq);
 #endif /* _DFS_ZERO_CAC_H_ */

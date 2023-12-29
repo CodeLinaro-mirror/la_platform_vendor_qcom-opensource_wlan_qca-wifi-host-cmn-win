@@ -434,6 +434,17 @@ void reg_set_afc_noaction(struct wlan_objmgr_psoc *psoc, bool value);
 #endif
 
 /**
+ * reg_update_hal_cap_wireless_modes() - update wireless modes
+ * @psoc: psoc ptr
+ * @modes: modes to set to
+ * @phy_id: phy id
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS reg_update_hal_cap_wireless_modes(struct wlan_objmgr_psoc *psoc,
+					  uint64_t modes, uint8_t phy_id);
+
+/**
  * reg_get_hal_reg_cap() - Get HAL REG capabilities
  * @psoc: psoc for country information
  *
@@ -456,15 +467,22 @@ QDF_STATUS reg_set_hal_reg_cap(
 		uint16_t phy_cnt);
 
 /**
- * reg_update_hal_reg_cap() - Update HAL REG capabilities
+ * reg_update_hal_reg_range_caps() - Update HAL REG frequency ranges
  * @psoc: psoc pointer
- * @wireless_modes: 11AX wireless modes
+ * @lo_2g_chan: low 2g channel
+ * @hi_2g_chan: high 2g channel
+ * @lo_5g_chan: low 5g channel
+ * @hi_5g_chan: high 2g channel
  * @phy_id: phy id
  *
  * Return: QDF_STATUS
  */
-QDF_STATUS reg_update_hal_reg_cap(struct wlan_objmgr_psoc *psoc,
-				  uint64_t wireless_modes, uint8_t phy_id);
+QDF_STATUS reg_update_hal_reg_range_caps(struct wlan_objmgr_psoc *psoc,
+					 uint32_t lo_2g_chan,
+					 uint32_t hi_2g_chan,
+					 uint32_t lo_5g_chan,
+					 uint32_t hi_5g_chan,
+					 uint8_t phy_id);
 
 /**
  * reg_chan_in_range() - Check if the given channel is in pdev's channel range
@@ -1999,8 +2017,8 @@ bool reg_is_6g_psd_power(struct wlan_objmgr_pdev *pdev);
  */
 QDF_STATUS reg_get_6g_chan_ap_power(struct wlan_objmgr_pdev *pdev,
 				    qdf_freq_t chan_freq, bool *is_psd,
-				    uint16_t *tx_power,
-				    uint16_t *eirp_psd_power);
+				    int16_t *tx_power,
+				    int16_t *eirp_psd_power);
 
 /**
  * reg_get_client_power_for_connecting_ap() - Find the channel information when
@@ -2075,7 +2093,7 @@ QDF_STATUS reg_set_ap_pwr_and_update_chan_list(struct wlan_objmgr_pdev *pdev,
 QDF_STATUS
 reg_get_6g_chan_psd_eirp_power(qdf_freq_t freq,
 			       struct regulatory_channel *mas_chan_list,
-			       uint16_t *reg_psd);
+			       int16_t *reg_psd);
 
 /**
  * reg_find_txpower_from_6g_list() - For a given frequency, get the max EIRP
@@ -2089,7 +2107,8 @@ reg_get_6g_chan_psd_eirp_power(qdf_freq_t freq,
 QDF_STATUS
 reg_find_txpower_from_6g_list(qdf_freq_t freq,
 			      struct regulatory_channel *chan_list,
-			      uint16_t *reg_eirp);
+			      int16_t *reg_eirp);
+
 #else
 static inline QDF_STATUS
 reg_set_cur_6g_ap_pwr_type(struct wlan_objmgr_pdev *pdev,
@@ -2153,8 +2172,8 @@ bool reg_is_6g_psd_power(struct wlan_objmgr_pdev *pdev)
 static inline
 QDF_STATUS reg_get_6g_chan_ap_power(struct wlan_objmgr_pdev *pdev,
 				    qdf_freq_t chan_freq, bool *is_psd,
-				    uint16_t *tx_power,
-				    uint16_t *eirp_psd_power)
+				    int16_t *tx_power,
+				    int16_t *eirp_psd_power)
 {
 	*is_psd = false;
 	*eirp_psd_power = 0;
@@ -2198,7 +2217,7 @@ QDF_STATUS reg_set_ap_pwr_and_update_chan_list(struct wlan_objmgr_pdev *pdev,
 static inline QDF_STATUS
 reg_get_6g_chan_psd_eirp_power(qdf_freq_t freq,
 			       struct regulatory_channel *mas_chan_list,
-			       uint16_t *eirp_psd_power)
+			       int16_t *eirp_psd_power)
 {
 	*eirp_psd_power = 0;
 	return QDF_STATUS_E_NOSUPPORT;
@@ -2207,7 +2226,7 @@ reg_get_6g_chan_psd_eirp_power(qdf_freq_t freq,
 static inline QDF_STATUS
 reg_find_txpower_from_6g_list(qdf_freq_t freq,
 			      struct regulatory_channel *chan_list,
-			      uint16_t *reg_eirp)
+			      int16_t *reg_eirp)
 {
 	*reg_eirp = 0;
 	return QDF_STATUS_E_NOSUPPORT;
@@ -2701,12 +2720,12 @@ enum reg_6g_ap_type reg_get_best_pwr_mode(struct wlan_objmgr_pdev *pdev,
  *
  * Return: EIRP power
  */
-uint8_t reg_get_eirp_pwr(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
-			 qdf_freq_t cen320,
-			 uint16_t bw, enum reg_6g_ap_type ap_pwr_type,
-			 uint16_t in_punc_pattern,
-			 bool is_client_list_lookup_needed,
-			 enum reg_6g_client_type client_type);
+int8_t reg_get_eirp_pwr(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
+			qdf_freq_t cen320,
+			uint16_t bw, enum reg_6g_ap_type ap_pwr_type,
+			uint16_t in_punc_pattern,
+			bool is_client_list_lookup_needed,
+			enum reg_6g_client_type client_type);
 #endif /* CONFIG_BAND_6GHZ */
 
 /**
@@ -2916,23 +2935,6 @@ bool reg_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
 				    enum supported_6g_pwr_types in_6g_pwr_mode);
 
 /**
- * reg_is_6ghz_freq_txable() - Check if the given 6 GHz frequency is tx-able.
- * @pdev: Pointer to pdev
- * @freq: Frequency in MHz
- * @in_6ghz_pwr_mode: Input AP power type
- *
- * An SP channel is tx-able if the channel is present in the AFC response.
- * In case of non-OUTDOOR mode, a channel is always tx-able (Assuming it is
- * enabled by regulatory).
- *
- * Return: True if the frequency is tx-able, else false.
- */
-bool
-reg_is_6ghz_freq_txable(struct wlan_objmgr_pdev *pdev,
-			qdf_freq_t freq,
-			enum supported_6g_pwr_types in_6ghz_pwr_mode);
-
-/**
  * reg_set_afc_power_event_received() - Set power event received flag with
  * given val.
  * @pdev: pdev pointer.
@@ -2947,14 +2949,6 @@ static inline bool
 reg_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
 			       enum channel_enum chan_idx,
 			       enum supported_6g_pwr_types in_6g_pwr_mode)
-{
-	return false;
-}
-
-static inline bool
-reg_is_6ghz_freq_txable(struct wlan_objmgr_pdev *pdev,
-			qdf_freq_t freq,
-			enum supported_6g_pwr_types in_6ghz_pwr_mode)
 {
 	return false;
 }
@@ -3038,4 +3032,16 @@ reg_get_num_rules_of_ap_pwr_type(struct wlan_objmgr_pdev *pdev,
  */
 QDF_STATUS reg_process_r2p_table_update_response(struct wlan_objmgr_psoc *psoc,
 						 uint32_t pdev_id);
+
+/**
+ * reg_get_endchan_cen_from_bandstart() - Get the center frequency of the
+ * end channel given the bandstart frequency.
+ * @band_start: Frequency band start in MHz
+ * @bw: Bandwidth in MHz
+ *
+ * Return: End frequency in MHz
+ */
+qdf_freq_t
+reg_get_endchan_cen_from_bandstart(qdf_freq_t band_start,
+				   uint16_t bw);
 #endif

@@ -176,6 +176,9 @@ static QDF_STATUS wlan_crypto_set_param(struct wlan_crypto_params *crypto_params
 	case WLAN_CRYPTO_PARAM_RSN_CAP:
 		status = wlan_crypto_set_rsn_cap(crypto_params,	value);
 		break;
+	case WLAN_CRYPTO_PARAM_RSNX_CAP:
+		status = wlan_crypto_set_rsnx_cap(crypto_params, value);
+		break;
 	case WLAN_CRYPTO_PARAM_KEY_MGMT:
 		status = wlan_crypto_set_key_mgmt(crypto_params, value);
 		break;
@@ -781,14 +784,14 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 			return QDF_STATUS_SUCCESS;
 		}
 		crypto_err("req_key len zero");
-		return QDF_STATUS_E_INVAL;
+		return QDF_STATUS_CRYPTO_INVALID_KEYLEN;
 	}
 
 	cipher = wlan_crypto_cipher_ops[req_key->type];
 
 	if (!cipher && !IS_MGMT_CIPHER(req_key->type)) {
 		crypto_err("cipher invalid");
-		return QDF_STATUS_E_INVAL;
+		return QDF_STATUS_CRYPTO_INVALID_CIPHERTYPE;
 	}
 
 	if (cipher && (!IS_FILS_CIPHER(req_key->type)) &&
@@ -796,13 +799,13 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 	    ((req_key->keylen != (cipher->keylen / CRYPTO_NBBY)) &&
 	    (req_key->type != WLAN_CRYPTO_CIPHER_WEP))) {
 		crypto_err("cipher invalid");
-		return QDF_STATUS_E_INVAL;
+		return QDF_STATUS_CRYPTO_INVALID_CIPHERTYPE;
 	} else if ((req_key->type == WLAN_CRYPTO_CIPHER_WEP) &&
 		!((req_key->keylen == WLAN_CRYPTO_KEY_WEP40_LEN)
 		|| (req_key->keylen == WLAN_CRYPTO_KEY_WEP104_LEN)
 		|| (req_key->keylen == WLAN_CRYPTO_KEY_WEP128_LEN))) {
 		crypto_err("wep key len invalid. keylen: %d", req_key->keylen);
-		return QDF_STATUS_E_INVAL;
+		return QDF_STATUS_CRYPTO_INVALID_KEYLEN;
 	}
 
 	if (req_key->keyix == WLAN_CRYPTO_KEYIX_NONE) {
@@ -814,7 +817,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 	} else {
 		if ((req_key->keyix >= WLAN_CRYPTO_MAX_VLANKEYIX)
 			&& (!IS_MGMT_CIPHER(req_key->type))) {
-			return QDF_STATUS_E_INVAL;
+			return QDF_STATUS_CRYPTO_INVALID_KEYID;
 		}
 
 		req_key->flags |= (WLAN_CRYPTO_KEY_XMIT
@@ -860,7 +863,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 			    !(is_bigtk(req_key->keyix))) {
 				crypto_err("igtk/bigtk key invalid keyid %d",
 					   req_key->keyix);
-				return QDF_STATUS_E_INVAL;
+				return QDF_STATUS_CRYPTO_INVALID_KEYID;
 			}
 			key = qdf_mem_malloc(sizeof(struct wlan_crypto_key));
 			if (!key)
@@ -888,11 +891,11 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 		} else {
 			if (IS_FILS_CIPHER(req_key->type)) {
 				crypto_err("FILS key is not for BroadCast pkt");
-				return QDF_STATUS_E_INVAL;
+				return QDF_STATUS_CRYPTO_INVALID_CIPHERTYPE;
 			}
 			if (!HAS_MCAST_CIPHER(crypto_params, req_key->type)
 				&& (req_key->type != WLAN_CRYPTO_CIPHER_WEP)) {
-				return QDF_STATUS_E_INVAL;
+				return QDF_STATUS_CRYPTO_INVALID_CIPHERTYPE;
 			}
 			if (!crypto_priv->key[req_key->keyix]) {
 				crypto_priv->key[req_key->keyix]
@@ -961,7 +964,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 			    !(is_bigtk(req_key->keyix))) {
 				crypto_err("igtk/bigtk key invalid keyid %d",
 					   req_key->keyix);
-				status = QDF_STATUS_E_INVAL;
+				status = QDF_STATUS_CRYPTO_INVALID_KEYID;
 				goto err;
 			}
 			key = qdf_mem_malloc(sizeof(struct wlan_crypto_key));
@@ -992,7 +995,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 				kid = 0;
 			if (kid >= WLAN_CRYPTO_MAX_VLANKEYIX) {
 				crypto_err("invalid keyid %d", kid);
-				status = QDF_STATUS_E_INVAL;
+				status = QDF_STATUS_CRYPTO_INVALID_KEYID;
 				goto err;
 			}
 			if (!crypto_priv->key[kid]) {
@@ -1657,6 +1660,11 @@ QDF_STATUS wlan_crypto_encap(struct wlan_objmgr_vdev *vdev,
 	else
 		hdrlen = ieee80211_hdrspace(wlan_vdev_get_pdev(vdev),
 					    (uint8_t *)qdf_nbuf_data(wbuf));
+
+	if (!key->valid || !key->cipher_table) {
+		status = QDF_STATUS_E_INVAL;
+		goto err;
+	}
 
 	/* if tkip, is counter measures enabled, then drop the frame */
 	cipher_table = (struct wlan_crypto_cipher *)key->cipher_table;
@@ -2692,6 +2700,22 @@ wlan_crypto_store_akm_list_in_order(struct wlan_crypto_params *crypto_params,
 {
 }
 #endif
+
+void wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
+			      const uint8_t *rsnxe)
+{
+	uint8_t i = 0, len = rsnxe[1];
+
+	for (; len > 0 ; len--) {
+		((uint8_t *)(&crypto_params->rsnx_caps))[i] = rsnxe[2 + i];
+		i++;
+	}
+	/*First 4bits of RSNX capabilitities field is the length of
+	 *the Extended RSN capabilities field -1
+	 *Hence Ignoring them
+	 */
+	((uint8_t *)(&crypto_params->rsnx_caps))[0] &= 0xf0;
+}
 
 QDF_STATUS wlan_crypto_rsnie_check(struct wlan_crypto_params *crypto_params,
 				   const uint8_t *frm)

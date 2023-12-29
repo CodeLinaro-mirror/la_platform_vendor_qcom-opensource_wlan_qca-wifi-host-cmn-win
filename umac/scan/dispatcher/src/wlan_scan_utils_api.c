@@ -552,8 +552,7 @@ util_scan_get_chan_from_he_6g_params(struct wlan_objmgr_pdev *pdev,
 						he_6g_params->primary_channel,
 						band_mask);
 	if (scan_obj->drop_bcn_on_invalid_freq &&
-	    wlan_reg_is_disable_for_pwrmode(pdev, *chan_freq,
-					    REG_BEST_PWR_MODE)) {
+	    !wlan_reg_is_freq_enabled(pdev, *chan_freq, REG_BEST_PWR_MODE)) {
 		scm_debug_rl(QDF_MAC_ADDR_FMT": Drop as invalid channel %d freq %d in HE 6Ghz params",
 			     QDF_MAC_ADDR_REF(scan_params->bssid.bytes),
 			     he_6g_params->primary_channel, *chan_freq);
@@ -1487,8 +1486,9 @@ util_scan_populate_bcn_ie_list(struct wlan_objmgr_pdev *pdev,
 								band_mask);
 			/* Drop if invalid freq */
 			if (scan_obj->drop_bcn_on_invalid_freq &&
-			    !wlan_reg_is_freq_present_in_cur_chan_list(pdev,
-								*chan_freq)) {
+			    !wlan_reg_is_freq_enabled(pdev,
+						      *chan_freq,
+						      REG_CURRENT_PWR_MODE)) {
 				scm_debug(QDF_MAC_ADDR_FMT": Drop as invalid chan %d in DS IE, freq %d, band_mask %d",
 					  QDF_MAC_ADDR_REF(
 						  scan_params->bssid.bytes),
@@ -1586,9 +1586,9 @@ util_scan_populate_bcn_ie_list(struct wlan_objmgr_pdev *pdev,
 								band_mask);
 			/* Drop if invalid freq */
 			if (scan_obj->drop_bcn_on_invalid_freq &&
-			    wlan_reg_is_disable_for_pwrmode(
-						pdev, *chan_freq,
-						REG_CURRENT_PWR_MODE)) {
+			    !wlan_reg_is_freq_enabled(pdev,
+						      *chan_freq,
+						      REG_CURRENT_PWR_MODE)) {
 				scm_debug_rl(QDF_MAC_ADDR_FMT": Drop as invalid channel %d freq %d in HT_INFO IE",
 					     QDF_MAC_ADDR_REF(scan_params->bssid.bytes),
 					     chan_idx, *chan_freq);
@@ -2169,6 +2169,10 @@ static uint8_t util_get_link_info_offset(uint8_t *ml_ie, bool *is_ml_ie_valid)
 	if (presencebm & WLAN_ML_BV_CTRL_PBM_MLDID_P)
 		parsed_ie_len += WLAN_ML_BV_CINFO_MLDID_SIZE;
 
+	/* Check if Extended MLD Cap and Op is present */
+	if (presencebm & WLAN_ML_BV_CTRL_PBM_EXT_MLDCAPANDOP_P)
+		parsed_ie_len += WLAN_ML_BV_CINFO_EXT_MLDCAPANDOP_SIZE;
+
 	/* Offset calculation starts from the beginning of the ML IE (including
 	 * EID) hence, adding the size of IE header to ML IE length.
 	 */
@@ -2233,6 +2237,15 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 
 	/* TODO: loop through all the STA info fields */
 
+	/*
+	 * Per-STA Profile subelement format of the Basic Multi-Link element
+	 *
+	 * |---------------|--------|-------------|----------|-------------|
+	 * | Subelement ID | Length | STA control | STA info | STA profile |
+	 * |---------------|--------|-------------|----------|-------------|
+	 * Octets:  1         1           2         variable     variable
+	 */
+
 	/* Sub element ID 0 represents Per-STA Profile */
 	if (ml_ie[offset] == 0) {
 		perstaprof_len = ml_ie[offset + 1];
@@ -2257,18 +2270,19 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 
 		/*
 		 * offset points to the beginning of the STA Info field which
-		 * holds the length of the variable field.
+		 * indicates the number of octets in the STA Info field,
+		 * including one octet for the STA Info Length subfield.
 		 */
 		perstaprof_stainfo_len = ml_ie[offset];
 
 		/* Skip STA Info Length field */
-		offset += WLAN_ML_BV_LINFO_PERSTAPROF_STAINFO_LENGTH_SIZE;
+		offset += perstaprof_stainfo_len;
 
 		/*
 		 * To point to the ie_list offset move past the STA Info
 		 * field.
 		 */
-		ielist_offset = &ml_ie[offset + perstaprof_stainfo_len];
+		ielist_offset = &ml_ie[offset];
 
 		/*
 		 * Ensure that the STA Control Field + STA Info Field
@@ -2276,7 +2290,6 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 		 * the pointer to avoid underflow during subtraction.
 		 */
 		if ((perstaprof_stainfo_len +
-		     WLAN_ML_BV_LINFO_PERSTAPROF_STAINFO_LENGTH_SIZE +
 		     WLAN_ML_BV_LINFO_PERSTAPROF_STACTRL_SIZE) <
 							perstaprof_len) {
 			if (!(ielist_offset <= end_ptr))
@@ -2284,7 +2297,6 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 			else
 				ielist_len = perstaprof_len -
 					(WLAN_ML_BV_LINFO_PERSTAPROF_STACTRL_SIZE +
-					 WLAN_ML_BV_LINFO_PERSTAPROF_STAINFO_LENGTH_SIZE +
 					 perstaprof_stainfo_len);
 		} else {
 			scm_debug("No STA profile IE list found");
@@ -2552,6 +2564,7 @@ util_scan_gen_scan_entry(struct wlan_objmgr_pdev *pdev,
 	if (!scan_node) {
 		qdf_mem_free(scan_entry->raw_frame.ptr);
 		qdf_mem_free(scan_entry);
+		scm_err("failed to allocate memory for scan_node");
 		return QDF_STATUS_E_FAILURE;
 	}
 

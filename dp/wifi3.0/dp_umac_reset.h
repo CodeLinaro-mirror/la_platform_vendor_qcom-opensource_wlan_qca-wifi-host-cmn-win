@@ -20,6 +20,7 @@
 #include <qdf_types.h>
 struct dp_soc;
 
+#define	DP_UMAC_RESET_NOTIFY_DONE	20
 /**
  * enum umac_reset_action - Actions supported by the UMAC reset
  * @UMAC_RESET_ACTION_NONE: No action
@@ -174,6 +175,7 @@ struct reset_ts {
  * @partner_map: Partner soc map
  * @request_map: Partner soc request map
  * @response_map: Partner soc response map
+ * @tx_desc_pool_cleaned: Global tx_desc pool clean up has been done
  * @grp_ctx_lock: lock for accessing group level umac reset context
  * @umac_reset_in_progress: Flag to indicate if umac reset is in progress
  * @is_target_recovery: Flag to indicate if this is for target recovery
@@ -184,6 +186,7 @@ struct dp_soc_mlo_umac_reset_ctx {
 	unsigned long partner_map;
 	unsigned long request_map;
 	unsigned long response_map;
+	unsigned long tx_desc_pool_cleaned;
 	qdf_spinlock_t grp_ctx_lock;
 	uint8_t umac_reset_in_progress:1,
 		is_target_recovery:1;

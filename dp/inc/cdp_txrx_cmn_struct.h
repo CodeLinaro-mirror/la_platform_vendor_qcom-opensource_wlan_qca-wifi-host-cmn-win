@@ -69,6 +69,9 @@
 /* Invalid vdev_stats_id */
 #define CDP_INVALID_VDEV_STATS_ID 0xFF
 
+/* METADATA used for wakeup triggers, specifically for Standby modes */
+#define CDP_STANDBY_METADATA 5588
+
 /* Options for Dump Statistics */
 #define CDP_HDD_STATS               0
 #define CDP_TXRX_PATH_STATS         1
@@ -466,6 +469,7 @@ enum cdp_peer_type {
  * @is_primary_link: set true for MLO primary link peer
  * @primary_umac_id: primary umac_id
  * @num_links: number of links in MLO
+ * @is_bridge_peer: flag to indicate if peer is bridge peer or not
  */
 struct cdp_peer_setup_info {
 	uint8_t *mld_peer_mac;
@@ -473,6 +477,7 @@ struct cdp_peer_setup_info {
 		is_primary_link:1;
 	uint8_t primary_umac_id;
 	uint8_t num_links;
+	uint8_t is_bridge_peer;
 };
 
 /**
@@ -747,6 +752,7 @@ enum wlan_op_subtype {
  * @op_mode: Operation mode of the vdev
  * @subtype: subtype of the vdev
  * @mld_mac_addr: MLD mac addr of the current vdev.
+ * @is_bridge_vap: current vdev is bridge vap or not.
  */
 struct cdp_vdev_info {
 	uint8_t *vdev_mac_addr;
@@ -756,6 +762,9 @@ struct cdp_vdev_info {
 	enum wlan_op_subtype subtype;
 #ifdef WLAN_FEATURE_11BE_MLO
 	uint8_t *mld_mac_addr;
+#ifdef WLAN_MLO_MULTI_CHIP
+	bool is_bridge_vap;
+#endif
 #endif
 };
 
@@ -1332,6 +1341,7 @@ enum cdp_peer_param_type {
  * @CDP_CONFIG_ENHANCED_STATS_ENABLE:
  * @CDP_ISOLATION: set isolation flag
  * @CDP_CONFIG_UNDECODED_METADATA_CAPTURE_ENABLE: Undecoded metadata capture
+ * @CDP_CONFIG_DELAY_STATS: set/get delay stats
  */
 enum cdp_pdev_param_type {
 	CDP_CONFIG_DEBUG_SNIFFER,
@@ -1367,6 +1377,7 @@ enum cdp_pdev_param_type {
 	CDP_CONFIG_ENHANCED_STATS_ENABLE,
 	CDP_ISOLATION,
 	CDP_CONFIG_UNDECODED_METADATA_CAPTURE_ENABLE,
+	CDP_CONFIG_DELAY_STATS,
 };
 
 /**
@@ -1420,6 +1431,7 @@ enum cdp_pdev_param_type {
  * @cdp_pdev_param_tx_capture: set tx capture
  * @cdp_pdev_param_chn_noise_flr: set channel noise floor
  * @cdp_pdev_param_cfg_vow: set/get vow config
+ * @cdp_pdev_param_cfg_delay_stats: set/get delayed stats
  * @cdp_pdev_param_tidq_override: set/get tid queue override
  * @cdp_pdev_param_mon_freq: set monitor frequency
  * @cdp_pdev_param_bss_color: configure bss color
@@ -1445,6 +1457,7 @@ enum cdp_pdev_param_type {
  * @cdp_skel_enable : Enable/Disable skeleton code for Umac reset debug
  * @cdp_drop_tx_mcast: Enable/Disable tx mcast drop
  * @cdp_vdev_tx_to_fw: Set to_fw bit for all tx packets for the vdev
+ * @cdp_ast_indication_disable: AST indication disable
  */
 typedef union cdp_config_param_t {
 	/* peer params */
@@ -1489,6 +1502,7 @@ typedef union cdp_config_param_t {
 	bool cdp_pdev_param_hmmc_tid_ovrd;
 	bool cdp_pdev_param_fltr_neigh_peers;
 	bool cdp_pdev_param_cfg_vow;
+	bool cdp_pdev_param_cfg_delay_stats;
 	bool cdp_pdev_param_fltr_mcast;
 	bool cdp_pdev_param_fltr_none;
 	bool cdp_pdev_param_fltr_ucast;
@@ -1523,6 +1537,8 @@ typedef union cdp_config_param_t {
 	int cdp_psoc_param_en_nss_cfg;
 	int cdp_psoc_param_preferred_hw_mode;
 	bool cdp_psoc_param_pext_stats;
+	bool cdp_psoc_param_jitter_stats;
+	bool cdp_psoc_param_dp_debug_log;
 
 	bool cdp_skip_bar_update;
 	bool cdp_ipa_enabled;
@@ -1535,6 +1551,7 @@ typedef union cdp_config_param_t {
 	bool cdp_umac_rst_skel;
 	bool cdp_drop_tx_mcast;
 	bool cdp_vdev_tx_to_fw;
+	bool cdp_ast_indication_disable;
 } cdp_config_param_type;
 
 /**
@@ -1690,6 +1707,9 @@ enum cdp_vdev_param_type {
  * @CDP_UMAC_RST_SKEL_ENABLE: Enable Umac reset skeleton code for debug
  * @CDP_SAWF_STATS: set SAWF stats config
  * @CDP_UMAC_RESET_STATS: UMAC reset stats
+ * @CDP_CFG_AST_INDICATION_DISABLE: AST indication disable
+ * @CDP_CFG_PEER_JITTER_STATS: Peer Jitter Stats
+ * @CDP_CONFIG_DP_DEBUG_LOG: set/get dp debug logging
  */
 enum cdp_psoc_param_type {
 	CDP_ENABLE_RATE_STATS,
@@ -1702,6 +1722,9 @@ enum cdp_psoc_param_type {
 	CDP_UMAC_RST_SKEL_ENABLE,
 	CDP_SAWF_STATS,
 	CDP_UMAC_RESET_STATS,
+	CDP_CFG_AST_INDICATION_DISABLE,
+	CDP_CFG_PEER_JITTER_STATS,
+	CDP_CONFIG_DP_DEBUG_LOG,
 };
 
 #define TXRX_FW_STATS_TXSTATS                     1
@@ -1895,11 +1918,13 @@ enum cdp_stats {
  * @UPDATE_PEER_STATS: update peer stats
  * @UPDATE_VDEV_STATS: update vdev stats
  * @UPDATE_PDEV_STATS: Update pdev stats
+ * @UPDATE_VDEV_STATS_MLD: Update mld vdev stats
  */
 enum cdp_stat_update_type {
 	UPDATE_PEER_STATS = 0,
 	UPDATE_VDEV_STATS = 1,
 	UPDATE_PDEV_STATS = 2,
+	UPDATE_VDEV_STATS_MLD = 3,
 };
 
 /**
@@ -2168,7 +2193,8 @@ struct cdp_tx_completion_ppdu_user {
 	uint16_t phy_tx_time_us;
 	uint32_t mpdu_bytes;
 	uint8_t punc_mode;
-	uint16_t punc_pattern_bitmap;
+	uint32_t punc_pattern_bitmap:16,
+		fixed_rate_used:1;
 	uint32_t msduq_bitmap;
 	uint8_t mprot_type:3,
 		rts_success:1,
@@ -3024,6 +3050,34 @@ struct cdp_rx_flow_tuple_info {
 };
 
 /**
+ * enum dp_rx_fse_event_type - fse event type info to be used in wsi events
+ * @dp_rx_fse_event_add: Event to indicate fse addition
+ * @dp_rx_fse_event_mismatch: Event to indicate fse tid mismatch
+ * @dp_rx_fse_event_del: Event to indicate fse deletion
+ *
+ */
+enum dp_rx_fse_event_type {
+	dp_rx_fse_event_add,
+	dp_rx_fse_event_mismatch,
+	dp_rx_fse_event_del,
+};
+
+/**
+ * struct fse_info_cookie - fse entry cookie information
+ * @tuple_info: tuple information
+ * @svc_id: Service class ID
+ * @tid: TID
+ * @dest_mac: Destination MAC of the flow
+ *
+ */
+struct fse_info_cookie {
+	struct cdp_rx_flow_tuple_info tuple_info;
+	uint32_t svc_id;
+	uint8_t tid;
+	uint8_t *dest_mac;
+};
+
+/**
  * struct cdp_rx_flow_info - RX flow info used for addition/deletion
  * @is_addr_ipv4: indicates whether given IP address is IPv4/IPv6
  * @op_code: add/delete/enable/disable operation requested
@@ -3031,7 +3085,10 @@ struct cdp_rx_flow_tuple_info {
  * @fse_metadata: metadata to be set in RX flow
  * @use_ppe_ds: use DS mode
  * @priority_vld: is priority valid
+ * @tid: tid
  * @service_code: service code for DS
+ * @svc_id: service class id
+ * @dest_mac: Destination mac address
  */
 struct cdp_rx_flow_info {
 	bool is_addr_ipv4;
@@ -3040,7 +3097,10 @@ struct cdp_rx_flow_info {
 	uint16_t fse_metadata;
 	uint8_t use_ppe_ds;
 	uint8_t priority_vld;
+	uint8_t tid;
 	uint16_t service_code;
+	uint32_t svc_id;
+	uint8_t *dest_mac;
 };
 
 #ifdef QCA_SUPPORT_SCAN_SPCL_VAP_STATS
@@ -3106,16 +3166,30 @@ struct cdp_pdev_attach_params {
 /*
  * cdp_txrx_peer_params_update
  *
- * @osif_vdev: Handle for OS shim virtual device
+ * @vdev_id: VDEV ID
  * @peer_mac: Peer mac address
  * @chip_id: CHIP ID
  * @pdev_id: PDEV ID
  */
 struct cdp_txrx_peer_params_update {
-	void	*osif_vdev;
+	uint8_t	vdev_id;
 	uint8_t	*peer_mac;
 	uint8_t	chip_id;
 	uint8_t	pdev_id;
 };
 
+/**
+ * enum cdp_umac_reset_state - umac reset in progress state
+ * @CDP_UMAC_RESET_NOT_IN_PROGRESS: Umac reset is not in progress
+ * @CDP_UMAC_RESET_IN_PROGRESS: Umac reset is in progress
+ * @CDP_UMAC_RESET_IN_PROGRESS_DURING_BUFFER_WINDOW: Umac reset was in progress
+ *                                                   during this buffer window.
+ * @CDP_UMAC_RESET_INVALID_STATE: Umac reset invalid state
+ */
+enum cdp_umac_reset_state {
+	CDP_UMAC_RESET_NOT_IN_PROGRESS,
+	CDP_UMAC_RESET_IN_PROGRESS,
+	CDP_UMAC_RESET_IN_PROGRESS_DURING_BUFFER_WINDOW,
+	CDP_UMAC_RESET_INVALID_STATE
+};
 #endif

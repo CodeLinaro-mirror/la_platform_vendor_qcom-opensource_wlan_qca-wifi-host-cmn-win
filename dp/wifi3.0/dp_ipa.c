@@ -524,24 +524,26 @@ dp_ipa_setup_tx_smmu_params_pmac_id(struct dp_soc *soc,
 	QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(tx_smmu, pmac_id);
 }
 
-static inline void
+static void
 dp_ipa_set_rx_chip_id(struct dp_soc *soc,
-		      qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
+		      qdf_ipa_wdi_pipe_setup_info_t *rx)
 {
 	uint8_t mlo_chip_id = 0xFF;
 
-	cdp_mlo_get_mlo_chip_id(soc, &mlo_chip_id);
+	if (soc->cdp_soc.ol_ops->get_mlo_chip_id)
+		mlo_chip_id = soc->cdp_soc.ol_ops->get_mlo_chip_id(soc->ctrl_psoc);
 
-	QDF_IPA_WDI_SETUP_INFO_CHIP_ID(rx_smmu, mlo_chip_id);
+	QDF_IPA_WDI_SETUP_INFO_CHIP_ID(rx, mlo_chip_id);
 }
 
-static inline void
+static void
 dp_ipa_set_rx_smmu_chip_id(struct dp_soc *soc,
 			   qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
 {
 	uint8_t mlo_chip_id = 0xFF;
 
-	cdp_mlo_get_mlo_chip_id(soc, &mlo_chip_id);
+	if (soc->cdp_soc.ol_ops->get_mlo_chip_id)
+		mlo_chip_id = soc->cdp_soc.ol_ops->get_mlo_chip_id(soc->ctrl_psoc);
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(rx_smmu, mlo_chip_id);
 }
@@ -572,7 +574,7 @@ dp_ipa_setup_tx_smmu_params_pmac_id(struct dp_soc *soc,
 
 static inline void
 dp_ipa_set_rx_chip_id(struct dp_soc *soc,
-		      qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
+		      qdf_ipa_wdi_pipe_setup_info_t *rx)
 {
 }
 
@@ -1611,6 +1613,8 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 			  "%s: DP IPA UC TX attach fail code %d",
 			  __func__, error);
+		if (error == -EFAULT)
+			dp_tx_ipa_uc_detach(soc, pdev);
 		return error;
 	}
 
@@ -3077,10 +3081,31 @@ dp_ipa_set_wdi_vlan_hdr_type(qdf_ipa_wdi_hdr_info_t *hdr_info)
 		QDF_IPA_WDI_HDR_INFO_HDR_TYPE(hdr_info) =
 			IPA_HDR_L2_802_1Q;
 }
+
+/**
+ * dp_ipa_setup_meta_data_mask() - Pass meta data mask to IPA
+ * @in: ipa in params
+ *
+ * Pass meta data mask to IPA.
+ *
+ * Return: none
+ */
+static void dp_ipa_setup_meta_data_mask(qdf_ipa_wdi_reg_intf_in_params_t *in)
+{
+	if (ucfg_ipa_is_wds_enabled())
+		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in) = WLAN_IPA_AST_META_DATA_MASK;
+	else
+		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in) = WLAN_IPA_META_DATA_MASK;
+}
 #else
 static inline void
 dp_ipa_set_wdi_vlan_hdr_type(qdf_ipa_wdi_hdr_info_t *hdr_info)
 { }
+
+static void dp_ipa_setup_meta_data_mask(qdf_ipa_wdi_reg_intf_in_params_t *in)
+{
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(in) = WLAN_IPA_META_DATA_MASK;
+}
 #endif
 
 #if !defined(QCA_IPA_LL_TX_FLOW_CONTROL)
@@ -4203,7 +4228,7 @@ void dp_ipa_aggregate_vdev_stats(struct dp_vdev *vdev,
 
 	soc = vdev->pdev->soc;
 	dp_update_vdev_ingress_stats(vdev);
-	qdf_mem_copy(vdev_stats, &vdev->stats, sizeof(vdev->stats));
+	dp_copy_vdev_stats_to_tgt_buf(vdev_stats, &vdev->stats, DP_XMIT_LINK);
 	dp_vdev_iterate_peer(vdev, dp_ipa_update_vdev_stats, vdev_stats,
 			     DP_MOD_ID_GENERIC_STATS);
 	dp_update_vdev_rate_stats(vdev_stats, &vdev->stats);
