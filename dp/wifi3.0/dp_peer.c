@@ -3312,7 +3312,6 @@ dp_rx_peer_unmap_handler(struct dp_soc *soc, uint16_t peer_id,
 		soc->cdp_soc.ol_ops->peer_unmap_event(soc->ctrl_psoc,
 				peer_id, vdev_id, mac_addr);
 	}
-#endif
 
 	dp_update_vdev_stats_on_peer_unmap(vdev, peer);
 

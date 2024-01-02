@@ -6826,7 +6826,7 @@ QDF_STATUS dp_soc_tx_desc_sw_pools_alloc(struct dp_soc *soc)
 
 	if ((num_pool > MAX_TXDESC_POOLS) ||
 	    (num_ext_pool > MAX_TXDESC_POOLS) ||
-	    (num_desc > WLAN_CFG_NUM_TX_DESC_MAX)
+	    (num_desc > WLAN_CFG_NUM_TX_DESC_MAX) ||
 	    (num_spcl_desc > WLAN_CFG_NUM_TX_SPL_DESC_MAX))
 		goto fail1;
 

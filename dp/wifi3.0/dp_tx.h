@@ -957,7 +957,6 @@ static inline void dp_tx_get_queue(struct dp_vdev *vdev,
 	queue->desc_pool_id = queue->ring_id;
 }
 #endif
-#endif
 
 /**
  * dp_tx_get_hal_ring_hdl() - Get the hal_tx_ring_hdl for data transmission
