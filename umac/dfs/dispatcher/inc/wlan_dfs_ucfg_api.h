@@ -80,6 +80,8 @@
  * @mlme_set_tx_flag:                  Called when Radar is detected to
  *                                     indicate stop data traffic.
  * @mlme_send_dfs_cfg_event:           Send dfs events to user space.
+ * @mlme_is_pdev_valid_for_curhwmode:  Validates if the given input pdev is
+ *                                     valid for the current HW mode.
  */
 struct dfs_to_mlme {
 	QDF_STATUS (*pdev_component_obj_attach)(struct wlan_objmgr_pdev *pdev,
@@ -221,6 +223,7 @@ struct dfs_to_mlme {
 	void (*mlme_send_dfs_cfg_event)(struct wlan_objmgr_pdev *pdev,
 					struct wlan_channel *wlan_chan,
 					QDF_RADAR_EVENT event);
+	bool (*mlme_is_pdev_valid_for_curhwmode)(struct wlan_objmgr_pdev *pdev);
 #endif
 };
 
