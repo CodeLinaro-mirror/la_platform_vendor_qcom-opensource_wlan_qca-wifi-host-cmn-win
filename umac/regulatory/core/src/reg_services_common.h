@@ -701,6 +701,14 @@ uint16_t reg_min_6ghz_chan_freq(void);
  * Return: Maximum 6GHz channel center frequency
  */
 uint16_t reg_max_6ghz_chan_freq(void);
+
+/**
+ * reg_is_6g_ap_type_invalid() - Check if the input power mode is valid.
+ * @ap_pwr_type: AP power type
+ *
+ * Return: true if the power type is invalid, else false.
+ */
+bool reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_pwr_type);
 #else
 static inline bool reg_is_6ghz_chan_freq(uint16_t freq)
 {
@@ -741,6 +749,11 @@ static inline bool reg_is_range_only6g(qdf_freq_t low_freq,
 static inline bool REG_IS_6GHZ_FREQ(uint16_t freq)
 {
 	return false;
+}
+
+static inline bool reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_pwr_type)
+{
+	return true;
 }
 
 static inline bool reg_is_6ghz_psc_chan_freq(uint16_t freq)
