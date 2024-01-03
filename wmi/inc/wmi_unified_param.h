@@ -5753,6 +5753,8 @@ typedef enum {
 		   PDEV_PARAM_ATF_VO_DEDICATED_TIME),
 	PDEV_PARAM(pdev_param_atf_vi_dedicated_time,
 		   PDEV_PARAM_ATF_VI_DEDICATED_TIME),
+	PDEV_PARAM(pdev_param_pwr_reduction_in_quarter_db,
+		   PDEV_PARAM_PWR_REDUCTION_IN_QUARTER_DB),
 	pdev_param_max,
 } wmi_conv_pdev_params_id;
 
