@@ -2798,6 +2798,16 @@ static void hif_update_fastpath_recv_bufs_cnt(struct hif_softc *scn)
 			atomic_inc(&pipe_info->recv_bufs_needed);
 	}
 }
+/**
+ * ce_is_fastpath_enabled() - returns true if fastpath mode is enabled
+ * @scn: Handle to HIF context
+ *
+ * Return: true if fastpath is enabled else false.
+ */
+static inline bool ce_is_fastpath_enabled(struct hif_softc *scn)
+{
+	return scn->fastpath_mode_on;
+}
 #else
 static inline void hif_update_fastpath_recv_bufs_cnt(struct hif_softc *scn)
 {

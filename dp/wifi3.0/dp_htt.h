@@ -1035,13 +1035,6 @@ int htt_h2t_rx_ring_cfg(struct htt_soc *htt_soc, int pdev_id,
 			struct htt_rx_ring_tlv_filter *htt_tlv_filter);
 
 /**
- * dp_htt_t2h_msg_handler() - Generic Target to host Msg/event handler
- * @context:	Opaque context (HTT SOC handle)
- * @pkt:	HTC packet
- */
-void dp_htt_t2h_msg_handler(void *context, HTC_PACKET *pkt);
-
-/**
  * htt_t2h_stats_handler() - target to host stats work handler
  * @context:	context (dp soc context)
  *

@@ -3345,6 +3345,12 @@ void *wmi_unified_attach(void *scn_handle,
 	if (param->target_type >= WMI_MAX_TARGET_TYPE)
 		goto error;
 
+	status = wbuff_module_init();
+	if (QDF_IS_STATUS_ERROR(status)) {
+		wmi_err("WBUFF init failed");
+		goto error;
+	}
+
 	if (wmi_attach_register[param->target_type]) {
 		wmi_attach_register[param->target_type](wmi_handle);
 	} else {
@@ -3439,6 +3445,8 @@ void wmi_unified_detach(struct wmi_unified *wmi_handle)
 
 			wmi_interface_sequence_deinit(soc->wmi_pdev[i]);
 			wmi_ext_dbgfs_deinit(soc->wmi_pdev[i]);
+			if (wbuff_module_deinit())
+				wmi_err("WBUFF deinit failed");
 
 			qdf_mem_free(soc->wmi_pdev[i]);
 		}
