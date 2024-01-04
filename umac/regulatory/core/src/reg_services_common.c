@@ -9888,9 +9888,12 @@ static int8_t reg_get_sp_eirp(struct wlan_objmgr_pdev *pdev,
 						       sp_master_chan_list,
 						       freq, bw,
 						       &reg_sp_eirp_pwr);
-
-	if (afc_eirp_pwr)
-		return QDF_MIN(afc_eirp_pwr, (int8_t)reg_sp_eirp_pwr);
+	if (is_client_list_lookup_needed) {
+	    return QDF_MIN(afc_eirp_pwr - SP_AP_AND_CLIENT_POWER_DIFF_IN_DBM,
+			    (int8_t)reg_sp_eirp_pwr);
+	} else if (afc_eirp_pwr) {
+	    return QDF_MIN(afc_eirp_pwr, (int8_t)reg_sp_eirp_pwr);
+	}
 
 	return 0;
 }
