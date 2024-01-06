@@ -3189,13 +3189,11 @@ struct dp_soc {
 	uint8_t mld_mode_ap;
 #endif
 	struct test_qaddr_del *list_shared_qaddr_del;
-	struct test_qaddr_del *reo_write_list;
 	struct test_mem_free *list_qdesc_addr_free;
 	struct test_mem_free *list_qdesc_addr_alloc;
 	uint64_t free_addr_list_idx;
 	uint64_t alloc_addr_list_idx;
 	uint64_t shared_qaddr_del_idx;
-	uint64_t write_paddr_list_idx;
 };
 
 #ifdef IPA_OFFLOAD

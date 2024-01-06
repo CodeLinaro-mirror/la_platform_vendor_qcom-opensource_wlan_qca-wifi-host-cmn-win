@@ -8441,7 +8441,7 @@ fail:
 	return QDF_STATUS_E_FAILURE;
 }
 
-static QDF_STATUS dp_peer_legacy_setup(struct dp_soc *soc, struct dp_peer *peer)
+QDF_STATUS dp_peer_legacy_setup(struct dp_soc *soc, struct dp_peer *peer)
 {
 	/* txrx_peer might exist already in peer reuse case */
 	if (peer->txrx_peer)
@@ -8783,7 +8783,6 @@ dp_peer_setup_wifi3(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	struct dp_peer *peer =
 			dp_peer_find_hash_find(soc, peer_mac, 0, vdev_id,
 					       DP_MOD_ID_CDP);
-	struct dp_peer *mld_peer = NULL;
 	enum wlan_op_mode vdev_opmode;
 	uint8_t lmac_peer_id_msb = 0;
 
@@ -8856,18 +8855,8 @@ dp_peer_setup_wifi3(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		/* In case of MLD peer, switch peer to mld peer and
 		 * do peer_rx_init.
 		 */
-		if (hal_reo_shared_qaddr_is_enable(soc->hal_soc) &&
-		    IS_MLO_DP_LINK_PEER(peer)) {
-			if (setup_info && setup_info->is_first_link) {
-				mld_peer = DP_GET_MLD_PEER_FROM_PEER(peer);
-				if (mld_peer)
-					dp_peer_rx_init(pdev, mld_peer);
-				else
-					dp_peer_err("MLD peer null. Primary link peer:%pK", peer);
-			}
-		} else {
+		if (!hal_reo_shared_qaddr_is_enable(soc->hal_soc))
 			dp_peer_rx_init(pdev, peer);
-		}
 	}
 
 	dp_soc_txrx_peer_setup(vdev_opmode, soc, peer);
@@ -16220,10 +16209,6 @@ static void dp_soc_set_qref_debug_list(struct dp_soc *soc)
 			(struct test_qaddr_del *)
 				qdf_mem_malloc(sizeof(struct test_qaddr_del) *
 					       max_list_size);
-	soc->reo_write_list =
-			(struct test_qaddr_del *)
-				qdf_mem_malloc(sizeof(struct test_qaddr_del) *
-					       max_list_size);
 	soc->list_qdesc_addr_free =
 			(struct test_mem_free *)
 				qdf_mem_malloc(sizeof(struct test_mem_free) *
@@ -16775,7 +16760,6 @@ static void dp_soc_unset_qref_debug_list(struct dp_soc *soc)
 		return;
 
 	qdf_mem_free(soc->list_shared_qaddr_del);
-	qdf_mem_free(soc->reo_write_list);
 	qdf_mem_free(soc->list_qdesc_addr_free);
 	qdf_mem_free(soc->list_qdesc_addr_alloc);
 }
