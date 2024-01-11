@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -22848,6 +22848,8 @@ static void populate_tlv_service(uint32_t *wmi_service)
 		WMI_SERVICE_FISA_DYNAMIC_MSDU_AGGR_SIZE_SUPPORT;
 	wmi_service[wmi_service_radar_flags_support] =
 			WMI_SERVICE_RADAR_FLAGS_SUPPORT;
+	wmi_service[wmi_service_dcs_obss_int_support] =
+			WMI_SERVICE_DCS_OBSS_INT_SUPPORT;
 }
 
 /**
