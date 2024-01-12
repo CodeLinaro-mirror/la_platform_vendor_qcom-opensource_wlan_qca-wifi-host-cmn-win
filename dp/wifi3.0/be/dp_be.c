@@ -134,19 +134,6 @@ static void dp_ppeds_clear_stats(struct dp_soc *soc)
 	be_soc->ppeds_stats.tx.desc_alloc_failed = 0;
 	dp_ppeds_clear_assert_war_stats(be_soc);
 }
-
-static inline
-void dp_vdev_detach_vp_profiles(struct dp_soc_be *be_soc,
-				struct dp_vdev_be *be_vdev)
-{
-	dp_ppeds_detach_vp_profile(be_soc, be_vdev);
-}
-#else
-static inline
-void dp_vdev_detach_vp_profiles(struct dp_soc_be *be_soc,
-				struct dp_vdev_be *be_vdev)
-{
-}
 #endif
 
 static void dp_soc_cfg_attach_be(struct dp_soc *soc)
@@ -1423,7 +1410,6 @@ static QDF_STATUS dp_vdev_detach_be(struct dp_soc *soc, struct dp_vdev *vdev)
 		dp_mlo_mcast_deinit(soc, vdev);
 
 	dp_tx_put_bank_profile(be_soc, be_vdev);
-	dp_vdev_detach_vp_profiles(be_soc, be_vdev);
 
 	return QDF_STATUS_SUCCESS;
 }
