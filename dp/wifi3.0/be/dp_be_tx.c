@@ -1200,7 +1200,8 @@ next_desc:
 						       num_avail_for_reap,
 						       hal_ring_hdl,
 						       &last_prefetch_hw_desc,
-						       &last_prefetch_sw_desc);
+						       &last_prefetch_sw_desc,
+						       NULL);
 		}
 	}
 
