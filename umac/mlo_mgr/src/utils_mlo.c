@@ -488,6 +488,15 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 			return QDF_STATUS_E_PROTO;
 		}
 
+		if (sta_info_len <
+				(parsed_sta_info_len + QDF_MAC_ADDR_SIZE)) {
+			mlo_err_rl("STA Info len %zu octets not sufficient to contain MAC address of size %u octets after parsed STA Info %zu octets.",
+				   sta_info_len,
+				   QDF_MAC_ADDR_SIZE,
+				   parsed_sta_info_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
 		if (macaddr) {
 			qdf_mem_copy(macaddr->bytes,
 				     subelempayload + parsed_payload_len,
@@ -515,6 +524,16 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 				   subelempayloadlen,
 				   WLAN_BEACONINTERVAL_LEN,
 				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		if (sta_info_len <
+				(parsed_sta_info_len +
+				 WLAN_BEACONINTERVAL_LEN)) {
+			mlo_err_rl("STA Info len %zu octets not sufficient to contain Beacon Interval of size %u octets after parsed STA Info %zu octets.",
+				   sta_info_len,
+				   WLAN_BEACONINTERVAL_LEN,
+				   parsed_sta_info_len);
 			return QDF_STATUS_E_PROTO;
 		}
 
@@ -550,6 +569,16 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 			return QDF_STATUS_E_PROTO;
 		}
 
+		if (sta_info_len <
+				(parsed_sta_info_len +
+				 WLAN_ML_TSF_OFFSET_SIZE)) {
+			mlo_err_rl("STA Info len %zu octets not sufficient to contain TSF Offset of size %u octets after parsed STA Info %zu octets.",
+				   sta_info_len,
+				   WLAN_ML_TSF_OFFSET_SIZE,
+				   parsed_sta_info_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
 		if (tsfoffset) {
 			qdf_mem_copy(tsfoffset,
 				     subelempayload + parsed_payload_len,
@@ -575,6 +604,16 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 				   subelempayloadlen,
 				   sizeof(struct wlan_ml_bv_linfo_perstaprof_stainfo_dtiminfo),
 				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		if (sta_info_len <
+				(parsed_sta_info_len +
+				 sizeof(struct wlan_ml_bv_linfo_perstaprof_stainfo_dtiminfo))) {
+			mlo_err_rl("STA Info len %zu octets not sufficient to contain DTIM Info of size %zu octets after parsed STA Info %zu octets.",
+				   sta_info_len,
+				   sizeof(struct wlan_ml_bv_linfo_perstaprof_stainfo_dtiminfo),
+				   parsed_sta_info_len);
 			return QDF_STATUS_E_PROTO;
 		}
 
@@ -607,6 +646,14 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 				return QDF_STATUS_E_PROTO;
 			}
 
+			if (sta_info_len <
+					(parsed_sta_info_len + 1)) {
+				mlo_err_rl("STA Info len %zu octets not sufficient to contain NTSR Bitmap of size 1 octet after parsed STA Info %zu octets.",
+					   sta_info_len,
+					   parsed_sta_info_len);
+				return QDF_STATUS_E_PROTO;
+			}
+
 			parsed_payload_len += 1;
 			parsed_sta_info_len += 1;
 		} else if (nstrbmsz == WLAN_ML_BV_LINFO_PERSTAPROF_STACTRL_NSTRBMSZ_2_OCTETS) {
@@ -615,6 +662,14 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 				mlo_err_rl("Length of subelement payload %zu octets not sufficient to contain NTSR Bitmap  of size 2 octets after parsed payload length of %zu octets.",
 					   subelempayloadlen,
 					   parsed_payload_len);
+				return QDF_STATUS_E_PROTO;
+			}
+
+			if (sta_info_len <
+					(parsed_sta_info_len + 2)) {
+				mlo_err_rl("STA Info len %zu octets not sufficient to contain NTSR Bitmap of size 2 octets after parsed STA Info %zu octets.",
+					   sta_info_len,
+					   parsed_sta_info_len);
 				return QDF_STATUS_E_PROTO;
 			}
 
@@ -655,6 +710,16 @@ util_parse_bvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 				   subelempayloadlen,
 				   WLAN_ML_BSSPARAMCHNGCNT_SIZE,
 				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		if (sta_info_len <
+				(parsed_sta_info_len +
+				 WLAN_ML_BSSPARAMCHNGCNT_SIZE)) {
+			mlo_err_rl("STA Info len %zu octets not sufficient to contain BSS Parameters Change Count of size %u octets after parsed STA Info %zu octets.",
+				   sta_info_len,
+				   WLAN_ML_BSSPARAMCHNGCNT_SIZE,
+				   parsed_sta_info_len);
 			return QDF_STATUS_E_PROTO;
 		}
 
