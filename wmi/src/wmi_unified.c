@@ -1768,8 +1768,8 @@ wmi_buf_alloc_debug(wmi_unified_t wmi_handle, uint32_t len,
 		return NULL;
 	}
 
-	wmi_buf = wbuff_buff_get(wmi_handle->wbuff_handle, WBUFF_MAX_POOL_ID,
-				 len, func_name, line_num);
+	wmi_buf = wbuff_buff_get(wmi_handle->wbuff_handle, len, func_name,
+				 line_num);
 	if (!wmi_buf)
 		wmi_buf = qdf_nbuf_alloc_debug(NULL,
 					       roundup(len + WMI_MIN_HEAD_ROOM,
@@ -1810,8 +1810,8 @@ wmi_buf_t wmi_buf_alloc_fl(wmi_unified_t wmi_handle, uint32_t len,
 		return NULL;
 	}
 
-	wmi_buf = wbuff_buff_get(wmi_handle->wbuff_handle, WBUFF_MAX_POOL_ID,
-				 len, __func__, __LINE__);
+	wmi_buf = wbuff_buff_get(wmi_handle->wbuff_handle, len, __func__,
+				 __LINE__);
 	if (!wmi_buf)
 		wmi_buf = qdf_nbuf_alloc_fl(NULL, roundup(len +
 				WMI_MIN_HEAD_ROOM, 4), WMI_MIN_HEAD_ROOM, 4,
@@ -2647,20 +2647,6 @@ static void wmi_mtrace_rx(uint32_t message_id, uint16_t vdev_id, uint32_t data)
 		   mtrace_message_id, vdev_id, data);
 }
 
-#ifdef WLAN_FEATURE_CE_RX_BUFFER_REUSE
-static void wmi_rx_nbuf_free(qdf_nbuf_t nbuf)
-{
-	nbuf = wbuff_buff_put(nbuf);
-	if (nbuf)
-		qdf_nbuf_free(nbuf);
-}
-#else
-static inline void wmi_rx_nbuf_free(qdf_nbuf_t nbuf)
-{
-	return qdf_nbuf_free(nbuf);
-}
-#endif
-
 /**
  * wmi_process_control_rx() - process fw events callbacks
  * @wmi_handle: handle to wmi_unified
@@ -2680,7 +2666,7 @@ static void wmi_process_control_rx(struct wmi_unified *wmi_handle,
 	idx = wmi_unified_get_event_handler_ix(wmi_handle, id);
 	if (qdf_unlikely(idx == A_ERROR)) {
 		wmi_debug("no handler registered for event id 0x%x", id);
-		wmi_rx_nbuf_free(evt_buf);
+		qdf_nbuf_free(evt_buf);
 		return;
 	}
 	wmi_mtrace_rx(id, 0xFF, idx);
@@ -2722,7 +2708,7 @@ static void wmi_process_control_rx(struct wmi_unified *wmi_handle,
 							    evt_buf);
 	} else {
 		wmi_err("Invalid event context %d", exec_ctx);
-		wmi_rx_nbuf_free(evt_buf);
+		qdf_nbuf_free(evt_buf);
 	}
 
 }
@@ -2746,7 +2732,7 @@ static void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 	if (!wmi_handle) {
 		wmi_err("unable to get wmi_handle to Endpoint %d",
 			htc_packet->Endpoint);
-		wmi_rx_nbuf_free(evt_buf);
+		qdf_nbuf_free(evt_buf);
 		return;
 	}
 
@@ -2774,7 +2760,7 @@ static void wmi_control_diag_rx(void *ctx, HTC_PACKET *htc_packet)
 
 	if (!wmi_handle) {
 		wmi_err("unable to get wmi_handle for diag event end point id:%d", htc_packet->Endpoint);
-		wmi_rx_nbuf_free(evt_buf);
+		qdf_nbuf_free(evt_buf);
 		return;
 	}
 
@@ -2802,7 +2788,7 @@ static void wmi_control_dbr_rx(void *ctx, HTC_PACKET *htc_packet)
 	if (!wmi_handle) {
 		wmi_err("unable to get wmi_handle for dbr event endpoint id:%d",
 			htc_packet->Endpoint);
-		wmi_rx_nbuf_free(evt_buf);
+		qdf_nbuf_free(evt_buf);
 		return;
 	}
 
@@ -2980,7 +2966,7 @@ end:
 		wmi_handle->ops->wmi_free_allocated_event(id, &wmi_cmd_struct_ptr);
 #endif
 
-	wmi_rx_nbuf_free(evt_buf);
+	qdf_nbuf_free(evt_buf);
 
 }
 
