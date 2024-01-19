@@ -82,11 +82,16 @@ struct wbuff_module {
 /**
  * struct wbuff_holder - allocation holder for wbuff
  * @initialized: to identified whether module is initialized
+ * @mod: list of modules
  * @pf_cache: Reference to page frag cache, used for nbuf allocations
+ * @wbuff_debugfs_dir: wbuff debugfs root directory
+ * @wbuff_stats_dentry: wbuff debugfs stats file
  */
 struct wbuff_holder {
 	bool initialized;
 	struct wbuff_module mod[WBUFF_MAX_MODULES];
 	qdf_frag_cache_t pf_cache;
+	struct dentry *wbuff_debugfs_dir;
+	struct dentry *wbuff_stats_dentry;
 };
 #endif /* _WBUFF_H */
