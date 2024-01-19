@@ -3267,6 +3267,9 @@ void reg_propagate_mas_chan_list_to_pdev(struct wlan_objmgr_psoc *psoc,
 		else
 			reg_send_scheduler_msg_sb(psoc, pdev);
 	}
+
+	if (reg_tx_ops->init_dfs_nol)
+		reg_tx_ops->init_dfs_nol(pdev);
 }
 
 /**
