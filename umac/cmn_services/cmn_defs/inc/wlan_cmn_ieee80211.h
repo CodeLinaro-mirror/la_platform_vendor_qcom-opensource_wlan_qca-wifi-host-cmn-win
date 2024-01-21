@@ -1115,6 +1115,9 @@ enum wlan_status_code {
 
 #define WLAN_WPA_OUI 0xf25000
 #define WLAN_WPA_OUI_TYPE 0x01
+#define WLAN_RSN_OVERRIDE_OUI 0x9a6f50
+#define WLAN_RSN_OVERRIDE_OUI_TYPE 0x26
+#define WLAN_RSNX_OVERRIDE_OUI_TYPE 0x27
 #define WPA_VERSION 1
 #define WLAN_WPA_SEL(x) (((x) << 24) | WLAN_WPA_OUI)
 
@@ -3782,6 +3785,36 @@ is_wpa_oui(uint8_t *frm)
 		((WLAN_WPA_OUI_TYPE << 24) | WLAN_WPA_OUI));
 }
 
+
+/**
+ * is_rsn_override_oui() - If vendor IE is RSNE override type
+ * @frm: vendor IE pointer
+ *
+ * API to check if vendor IE is RSNE override
+ *
+ * Return: true if its RSNE override
+ */
+static inline bool
+is_rsn_override_oui(uint8_t *frm)
+{
+	return (frm[1] > 3) && (LE_READ_4(frm + 2) ==
+		((WLAN_RSN_OVERRIDE_OUI_TYPE << 24) | WLAN_RSN_OVERRIDE_OUI));
+}
+
+/**
+ * is_rsnx_override_oui() - If vendor IE is RSNXE override type
+ * @frm: vendor IE pointer
+ *
+ * API to check if vendor IE is RSNXE override
+ *
+ * Return: true if its RSNXE override
+ */
+static inline bool
+is_rsnx_override_oui(uint8_t *frm)
+{
+	return (frm[1] > 3) && (LE_READ_4(frm + 2) ==
+		((WLAN_RSNX_OVERRIDE_OUI_TYPE << 24) | WLAN_RSN_OVERRIDE_OUI));
+}
 /**
  * is_wps_oui() - If vendor IE is WPS type
  * @frm: vendor IE pointer

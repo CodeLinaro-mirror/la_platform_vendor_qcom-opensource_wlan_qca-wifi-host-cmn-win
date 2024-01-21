@@ -1437,8 +1437,15 @@ QDF_STATUS util_validate_reportingsta_ie(const uint8_t *reportingsta_ie,
 			   reportingsta_ie_size, IDEXT_POS + 1);
 		return QDF_STATUS_E_PROTO;
 	}
-
+	/*
+	 *When station supports RSN override, In assoc-req it adds
+	 *3bytes of OUI and 1byte for type without any actual data. 
+         *So bypassing this check so driver does not
+	 *reject assoc request for rsn/rsnxe override IE type.
+	 */
 	if ((reportingsta_ie[ID_POS] == WLAN_ELEMID_VENDOR) &&
+	    !(is_rsn_override_oui((uint8_t *)reportingsta_ie + ID_POS)) &&
+	    !(is_rsnx_override_oui((uint8_t *)reportingsta_ie + ID_POS)) &&
 	    (reportingsta_ie_size < (PAYLOAD_START_POS + OUI_LEN))) {
 		mlo_err_rl("Total length %zu of element for reporting STA is smaller than minimum required to access vendor EID %u",
 			   reportingsta_ie_size, PAYLOAD_START_POS + OUI_LEN);
