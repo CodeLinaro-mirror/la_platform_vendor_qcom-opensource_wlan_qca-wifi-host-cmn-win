@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1946,6 +1946,11 @@ QDF_STATUS (*extract_dcs_awgn_info)(
 		wmi_unified_t wmi_handle,
 		void *evt_buf,
 		struct wmi_host_dcs_awgn_info *awgn_info);
+
+QDF_STATUS (*extract_dcs_obss_intf_info)(
+		wmi_unified_t wmi_handle,
+		void *evt_buf,
+		wmi_host_dcs_obss_intf_info *obss_intf_info);
 #endif
 
 QDF_STATUS (*extract_fips_event_data)(wmi_unified_t wmi_handle,

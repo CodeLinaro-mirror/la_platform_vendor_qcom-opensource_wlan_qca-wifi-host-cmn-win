@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -6464,6 +6464,7 @@ typedef enum {
 #endif
 	wmi_service_fisa_dynamic_msdu_aggr_size_support,
 	wmi_service_radar_flags_support,
+	wmi_service_dcs_obss_int_support,
 	wmi_services_max,
 } wmi_conv_service_ids;
 #define WMI_SERVICE_UNAVAILABLE 0xFFFF
@@ -8141,6 +8142,8 @@ struct wmi_host_dcs_awgn_info {
 	uint32_t               center_freq1;
 	uint32_t               chan_bw_intf_bitmap;
 };
+
+typedef struct wmi_host_dcs_awgn_info wmi_host_dcs_obss_intf_info;
 
 #define WMI_MAX_POWER_DBG_ARGS 8
 
