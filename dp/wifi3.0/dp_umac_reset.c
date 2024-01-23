@@ -321,6 +321,20 @@ bool dp_check_umac_reset_in_progress(struct dp_soc *soc)
 	return !!soc->umac_reset_ctx.intr_ctx_bkp;
 }
 
+
+#if !defined(QCA_SUPPORT_DP_GLOBAL_CTX) || \
+	(defined(QCA_SUPPORT_DP_GLOBAL_CTX) && \
+	!defined(WLAN_FEATURE_11BE_MLO) || !defined(WLAN_MLO_MULTI_CHIP))
+bool dp_get_global_tx_desc_cleanup_flag(struct dp_soc *soc)
+{
+	return true;
+}
+
+void dp_reset_global_tx_desc_cleanup_flag(struct dp_soc *soc)
+{
+}
+#endif
+
 #if !defined(WLAN_FEATURE_11BE_MLO) || !defined(WLAN_MLO_MULTI_CHIP)
 /**
  * dp_umac_reset_initiate_umac_recovery() - Initiate Umac reset session
@@ -336,6 +350,9 @@ static QDF_STATUS dp_umac_reset_initiate_umac_recovery(struct dp_soc *soc,
 				enum umac_reset_rx_event rx_event,
 				bool is_target_recovery)
 {
+	if (dp_umac_reset_is_global_context_enabled())
+		return QDF_STATUS_E_NOSUPPORT;
+
 	return dp_umac_reset_validate_n_update_state_machine_on_rx(
 					umac_reset_ctx, rx_event,
 					UMAC_RESET_STATE_WAIT_FOR_TRIGGER,
@@ -1000,10 +1017,10 @@ QDF_STATUS dp_umac_reset_stats_print(struct dp_soc *soc)
 	umac_reset_ctx = &soc->umac_reset_ctx;
 
 	DP_UMAC_RESET_PRINT_STATS("UMAC reset stats for soc:%pK\n"
-		  "\t\ttrigger time                  :%u us\n"
-		  "\t\tPre_reset time                :%u us\n"
-		  "\t\tPost_reset time               :%u us\n"
-		  "\t\tPost_reset_complete time      :%u us\n"
+		  "\t\ttrigger time                  :%llu us\n"
+		  "\t\tPre_reset time                :%llu us\n"
+		  "\t\tPost_reset time               :%llu us\n"
+		  "\t\tPost_reset_complete time      :%llu us\n"
 		  "\t\tCurrent state                 :%s\n"
 		  "\t\tPending action                :%s",
 		  soc,

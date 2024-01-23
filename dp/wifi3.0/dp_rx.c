@@ -238,7 +238,7 @@ dp_pdev_frag_alloc_and_map(struct dp_soc *dp_soc,
 	QDF_STATUS ret = QDF_STATUS_E_FAILURE;
 
 	(nbuf_frag_info_t->virt_addr).vaddr =
-			qdf_frag_alloc(NULL, rx_desc_pool->buf_size);
+			qdf_frag_alloc(&rx_desc_pool->pf_cache, rx_desc_pool->buf_size);
 
 	if (!((nbuf_frag_info_t->virt_addr).vaddr)) {
 		dp_err("Frag alloc failed");
@@ -758,10 +758,10 @@ QDF_STATUS __dp_pdev_rx_buffers_no_map_attach(struct dp_soc *soc,
 					       rx_desc_pool->buf_size);
 		rxdma_ring_entry = (struct dp_buffer_addr_info *)
 			hal_srng_src_get_next(soc->hal_soc, rxdma_srng);
-		if (!rxdma_ring_entry)
+		if (!rxdma_ring_entry) {
+			qdf_nbuf_free(nbuf);
 			break;
-
-		qdf_assert_always(rxdma_ring_entry);
+		}
 
 		desc_list->rx_desc.nbuf = nbuf;
 		dp_rx_set_reuse_nbuf(&desc_list->rx_desc, nbuf);
@@ -1135,16 +1135,6 @@ dp_rx_deliver_raw(struct dp_vdev *vdev, qdf_nbuf_t nbuf_list,
 		DP_STATS_INC(vdev->pdev, rx_raw_pkts, 1);
 		DP_PEER_PER_PKT_STATS_INC_PKT(txrx_peer, rx.raw, 1,
 					      qdf_nbuf_len(nbuf), link_id);
-		/*
-		 * reset the chfrag_start and chfrag_end bits in nbuf cb
-		 * as this is a non-amsdu pkt and RAW mode simulation expects
-		 * these bit s to be 0 for non-amsdu pkt.
-		 */
-		if (qdf_nbuf_is_rx_chfrag_start(nbuf) &&
-			 qdf_nbuf_is_rx_chfrag_end(nbuf)) {
-			qdf_nbuf_set_rx_chfrag_start(nbuf, 0);
-			qdf_nbuf_set_rx_chfrag_end(nbuf, 0);
-		}
 
 		nbuf = next;
 	}
@@ -2325,6 +2315,52 @@ dp_rx_validate_rx_callbacks(struct dp_soc *soc,
 	return QDF_STATUS_SUCCESS;
 }
 
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(RAW_PKT_MLD_ADDR_CONVERSION)
+static void dp_rx_raw_pkt_mld_addr_conv(struct dp_soc *soc,
+					struct dp_vdev *vdev,
+					struct dp_txrx_peer *txrx_peer,
+					qdf_nbuf_t nbuf_head)
+{
+	qdf_nbuf_t nbuf, next;
+	struct dp_peer *peer = NULL;
+	struct ieee80211_frame *wh = NULL;
+
+	if (vdev->rx_decap_type == htt_cmn_pkt_type_native_wifi)
+		return;
+
+	peer = dp_peer_get_ref_by_id(soc, txrx_peer->peer_id,
+				     DP_MOD_ID_RX);
+
+	if (!peer)
+		return;
+
+	if (!IS_MLO_DP_MLD_PEER(peer)) {
+		dp_peer_unref_delete(peer, DP_MOD_ID_RX);
+		return;
+	}
+
+	nbuf = nbuf_head;
+	while (nbuf) {
+		next = nbuf->next;
+		wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
+		qdf_mem_copy(wh->i_addr1, vdev->mld_mac_addr.raw,
+			     QDF_MAC_ADDR_SIZE);
+		qdf_mem_copy(wh->i_addr2, peer->mac_addr.raw,
+			     QDF_MAC_ADDR_SIZE);
+		nbuf = next;
+	}
+
+	dp_peer_unref_delete(peer, DP_MOD_ID_RX);
+}
+#else
+static inline
+void dp_rx_raw_pkt_mld_addr_conv(struct dp_soc *soc,
+				 struct dp_vdev *vdev,
+				 struct dp_txrx_peer *txrx_peer,
+				 qdf_nbuf_t nbuf_head)
+{ }
+#endif
+
 QDF_STATUS dp_rx_deliver_to_stack(struct dp_soc *soc,
 				  struct dp_vdev *vdev,
 				  struct dp_txrx_peer *txrx_peer,
@@ -2337,6 +2373,7 @@ QDF_STATUS dp_rx_deliver_to_stack(struct dp_soc *soc,
 
 	if (qdf_unlikely(vdev->rx_decap_type == htt_cmn_pkt_type_raw) ||
 			(vdev->rx_decap_type == htt_cmn_pkt_type_native_wifi)) {
+		dp_rx_raw_pkt_mld_addr_conv(soc, vdev, txrx_peer, nbuf_head);
 		vdev->osif_rsim_rx_decap(vdev->osif_vdev, &nbuf_head,
 					 &nbuf_tail);
 	}
@@ -3092,6 +3129,8 @@ void dp_rx_enable_mon_dest_frag(struct rx_desc_pool *rx_desc_pool,
 	rx_desc_pool->rx_mon_dest_frag_enable = is_mon_dest_desc;
 	if (is_mon_dest_desc)
 		dp_alert("Feature DP_RX_MON_MEM_FRAG for mon_dest is enabled");
+	else
+		qdf_frag_cache_drain(&rx_desc_pool->pf_cache);
 }
 #else
 void dp_rx_enable_mon_dest_frag(struct rx_desc_pool *rx_desc_pool,

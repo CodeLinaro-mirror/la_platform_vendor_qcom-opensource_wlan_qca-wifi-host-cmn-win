@@ -370,13 +370,14 @@ struct wlan_mlo_dev_context;
 /**
  * typedef wlan_mlo_t2lm_link_update_handler - T2LM handler API to notify the
  * link update.
- * @mldev: Pointer to mlo_dev_context
- * @arg: ieee_link_map
+ * @vdev: Pointer to vdev context
+ * @t2lm: Pointer to wlan_t2lm_info
  *
  * Return: QDF_STATUS
  */
 typedef QDF_STATUS (*wlan_mlo_t2lm_link_update_handler)(
-		struct wlan_mlo_dev_context *mldev, void *arg);
+					struct wlan_objmgr_vdev *vdev,
+					struct wlan_t2lm_info *t2lm);
 
 /**
  * struct wlan_t2lm_context - T2LM IE information
@@ -394,6 +395,9 @@ typedef QDF_STATUS (*wlan_mlo_t2lm_link_update_handler)(
  * @tsf: time sync func value received via beacon
  * @link_update_handler: handler to update T2LM link
  * @is_valid_handler: T2LM handler is valid or not
+ * @link_update_callback_index: Link update callback index. This callback is
+ *                              invoked as part of mapping switch time and
+ *                              expected duration expiry.
  */
 struct wlan_t2lm_context {
 	struct wlan_mlo_t2lm_ie established_t2lm;
@@ -408,6 +412,7 @@ struct wlan_t2lm_context {
 	wlan_mlo_t2lm_link_update_handler
 		link_update_handler[MAX_T2LM_HANDLERS];
 	bool is_valid_handler[MAX_T2LM_HANDLERS];
+	int link_update_callback_index;
 };
 
 #ifdef WLAN_FEATURE_11BE
@@ -538,12 +543,14 @@ void wlan_unregister_t2lm_link_update_notify_handler(
 /**
  * wlan_mlo_dev_t2lm_notify_link_update() - API to call the registered handlers
  * when there is a link update happens using T2LM
- * @mldev: Pointer to mlo context
+ * @vdev: Pointer to vdev
+ * @t2lm: Pointer to T2LM info
  *
  * Return: QDF_STATUS
  */
 QDF_STATUS wlan_mlo_dev_t2lm_notify_link_update(
-		struct wlan_mlo_dev_context *mldev);
+		struct wlan_objmgr_vdev *vdev,
+		struct wlan_t2lm_info *t2lm);
 
 /**
  * wlan_mlo_parse_t2lm_ie() - API to parse the T2LM IE
@@ -698,6 +705,17 @@ QDF_STATUS
 wlan_handle_t2lm_timer(struct wlan_objmgr_vdev *vdev);
 
 /**
+ * wlan_mlo_t2lm_register_link_update_notify_handler() - API to register a T2LM
+ * callback that needs to be invoked on mapping switch time expiry and expected
+ * duration expiry.
+ * @ml_dev: Pointer MLO dev context
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS wlan_mlo_t2lm_register_link_update_notify_handler(
+		struct wlan_mlo_dev_context *ml_dev);
+
+/**
  * wlan_process_bcn_prbrsp_t2lm_ie() - API to process the received T2LM IE from
  * beacon/probe response.
  * @vdev: Pointer to vdev
@@ -811,6 +829,13 @@ wlan_handle_t2lm_timer(struct wlan_objmgr_vdev *vdev)
 	return QDF_STATUS_E_NOSUPPORT;
 }
 
+static inline
+QDF_STATUS wlan_mlo_t2lm_register_link_update_notify_handler(
+		struct wlan_mlo_dev_context *ml_dev)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
 static inline QDF_STATUS
 wlan_process_bcn_prbrsp_t2lm_ie(struct wlan_objmgr_vdev *vdev,
 				struct wlan_t2lm_context *rx_t2lm_ie,
@@ -834,7 +859,8 @@ void wlan_unregister_t2lm_link_update_notify_handler(
 }
 
 static inline QDF_STATUS wlan_mlo_dev_t2lm_notify_link_update(
-		struct wlan_mlo_dev_context *mldev)
+		struct wlan_objmgr_vdev *vdev,
+		struct wlan_t2lm_info *t2lm)
 {
 	return QDF_STATUS_SUCCESS;
 }

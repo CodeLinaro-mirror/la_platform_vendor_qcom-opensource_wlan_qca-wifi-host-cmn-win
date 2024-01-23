@@ -205,6 +205,11 @@ static inline
 void hal_srng_hw_disable_generic(struct hal_soc *hal, struct hal_srng *srng)
 {
 	uint32_t reg_val = 0;
+	struct hal_hw_srng_config *ring_config =
+		HAL_SRNG_CONFIG(hal, srng->ring_type);
+
+	if (ring_config->lmac_ring)
+		return;
 
 	if (srng->ring_dir == HAL_SRNG_DST_RING) {
 		reg_val = SRNG_DST_REG_READ(srng, MISC) & ~(SRNG_ENABLE_BIT);
@@ -302,7 +307,7 @@ void hal_srng_src_hw_init_generic(struct hal_soc *hal,
 	if (srng->intr_timer_thres_us) {
 		reg_val |= SRNG_SM(SRNG_SRC_FLD(CONSUMER_INT_SETUP_IX0,
 			INTERRUPT_TIMER_THRESHOLD),
-			srng->intr_timer_thres_us);
+			srng->intr_timer_thres_us >> 3);
 		/* For HK v2 this should be (srng->intr_timer_thres_us >> 3) */
 	}
 

@@ -46,24 +46,6 @@ void mlo_setup_deinit(void);
 bool mlo_is_ml_soc(struct wlan_objmgr_psoc *psoc, uint8_t grp_id);
 
 /**
- * mlo_check_start_stop_inprogress() - API to set  ML group
- * start or stop in progress bit and return last value
- * @grp_id: ID of the required mlo group to be checked
- *
- * Return: true if mlo group is in start/stop, or else return false
- */
-bool mlo_check_start_stop_inprogress(uint8_t grp_id);
-
-/**
- * mlo_clear_start_stop_inprogress() - API to clear the value of ML group
- *                                   start or stop in progress bit
- * @grp_id: ID of the required mlo group to be set
- *
- * Return: none
- */
-void mlo_clear_start_stop_inprogress(uint8_t grp_id);
-
-/**
  * mlo_get_soc_list() - API to get the list of SOCs participating in MLO
  * @soc_list: list where ML participating SOCs need to be populated
  * @grp_id: ID of the required mlo group
@@ -240,6 +222,27 @@ QDF_STATUS mlo_check_all_pdev_state(struct wlan_objmgr_psoc *psoc,
 				    enum MLO_LINK_STATE state);
 
 /**
+ * mlo_update_wsi_stats_info_support() - API to update WSI stats info
+ *					 support
+ * @psoc: Pointer to psoc object
+ * @wsi_stats_info_support: Indicates WSI stats info is to be enabled or not
+ *
+ * Return: None
+ */
+void mlo_update_wsi_stats_info_support(struct wlan_objmgr_psoc *psoc,
+				       bool wsi_stats_info_support);
+
+/**
+ * mlo_get_wsi_stats_info_support() - API to get whether WSI stats info
+ *                                    support
+ * @psoc: Pointer to psoc object
+ *
+ * Return: 1 enable
+ *	   0 disable
+ */
+uint8_t mlo_get_wsi_stats_info_support(struct wlan_objmgr_psoc *psoc);
+
+/**
  * mlo_update_tsf_sync_support() - API to update TSF sync support per MLO
  *				   group.
  *
@@ -250,6 +253,18 @@ QDF_STATUS mlo_check_all_pdev_state(struct wlan_objmgr_psoc *psoc,
  */
 void mlo_update_tsf_sync_support(struct wlan_objmgr_psoc *psoc,
 				 bool tsf_sync_enab);
+
+/**
+ * mlo_pdev_derive_bridge_link_pdevs() - API to get the list of pdevs
+ *					 for creating bridge vdevs.
+ *
+ * @pdev: pdev of the mlo group
+ * @pdev_list: list where pdevs for creating bridge vdevs need to be populated
+ *
+ * Return: true if success otherwise false.
+ */
+bool mlo_pdev_derive_bridge_link_pdevs(struct wlan_objmgr_pdev *pdev,
+				       struct wlan_objmgr_pdev **pdev_list);
 #else
 static inline void mlo_setup_init(uint8_t total_grp)
 {
@@ -277,6 +292,12 @@ static inline
 bool mlo_psoc_get_grp_id(struct wlan_objmgr_psoc *psoc, uint8_t *grp_id)
 {
 	return 0;
+}
+
+static inline
+void init_deinit_pdev_wsi_stats_info_support(struct wlan_objmgr_psoc *psoc,
+					     bool wsi_stats_info_support)
+{
 }
 
 static inline

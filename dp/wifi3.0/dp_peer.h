@@ -48,6 +48,84 @@
 	__QDF_TRACE_FL(QDF_TRACE_LEVEL_INFO_HIGH, QDF_MODULE_ID_DP_PEER, ## params)
 #define dp_peer_debug(params...) QDF_TRACE_DEBUG(QDF_MODULE_ID_DP_PEER, params)
 
+void check_free_list_for_invalid_flush(struct dp_soc *soc);
+
+static inline
+void add_entry_alloc_list(struct dp_soc *soc, struct dp_rx_tid *rx_tid,
+			  struct dp_peer *peer, void *hw_qdesc_vaddr)
+{
+	uint32_t max_list_size;
+	unsigned long curr_ts = qdf_get_system_timestamp();
+	uint32_t qref_index = soc->free_addr_list_idx;
+
+	max_list_size = soc->wlan_cfg_ctx->qref_control_size;
+
+	if (max_list_size == 0)
+		return;
+
+	soc->list_qdesc_addr_alloc[qref_index].hw_qdesc_paddr =
+							 rx_tid->hw_qdesc_paddr;
+	soc->list_qdesc_addr_alloc[qref_index].ts_qdesc_mem_hdl = curr_ts;
+	soc->list_qdesc_addr_alloc[qref_index].hw_qdesc_vaddr_align =
+								 hw_qdesc_vaddr;
+	soc->list_qdesc_addr_alloc[qref_index].hw_qdesc_vaddr_unalign =
+					       rx_tid->hw_qdesc_vaddr_unaligned;
+	soc->list_qdesc_addr_alloc[qref_index].peer_id = peer->peer_id;
+	soc->list_qdesc_addr_alloc[qref_index].tid = rx_tid->tid;
+	soc->alloc_addr_list_idx++;
+
+	if (soc->alloc_addr_list_idx == max_list_size)
+		soc->alloc_addr_list_idx = 0;
+}
+
+static inline
+void add_entry_free_list(struct dp_soc *soc, struct dp_rx_tid *rx_tid)
+{
+	uint32_t max_list_size;
+	unsigned long curr_ts = qdf_get_system_timestamp();
+	uint32_t qref_index = soc->free_addr_list_idx;
+
+	max_list_size = soc->wlan_cfg_ctx->qref_control_size;
+
+	if (max_list_size == 0)
+		return;
+
+	soc->list_qdesc_addr_free[qref_index].ts_qdesc_mem_hdl = curr_ts;
+	soc->list_qdesc_addr_free[qref_index].hw_qdesc_paddr =
+							 rx_tid->hw_qdesc_paddr;
+	soc->list_qdesc_addr_free[qref_index].hw_qdesc_vaddr_align =
+						 rx_tid->hw_qdesc_vaddr_aligned;
+	soc->list_qdesc_addr_free[qref_index].hw_qdesc_vaddr_unalign =
+					       rx_tid->hw_qdesc_vaddr_unaligned;
+	soc->free_addr_list_idx++;
+
+	if (soc->free_addr_list_idx == max_list_size)
+		soc->free_addr_list_idx = 0;
+}
+
+static inline
+void add_entry_write_list(struct dp_soc *soc, struct dp_peer *peer,
+			  uint32_t tid)
+{
+	uint32_t max_list_size;
+	unsigned long curr_ts = qdf_get_system_timestamp();
+
+	max_list_size = soc->wlan_cfg_ctx->qref_control_size;
+
+	if (max_list_size == 0)
+		return;
+
+	soc->reo_write_list[soc->write_paddr_list_idx].ts_qaddr_del = curr_ts;
+	soc->reo_write_list[soc->write_paddr_list_idx].peer_id = peer->peer_id;
+	soc->reo_write_list[soc->write_paddr_list_idx].paddr =
+					       peer->rx_tid[tid].hw_qdesc_paddr;
+	soc->reo_write_list[soc->write_paddr_list_idx].tid = tid;
+	soc->write_paddr_list_idx++;
+
+	if (soc->write_paddr_list_idx == max_list_size)
+		soc->write_paddr_list_idx = 0;
+}
+
 #ifdef REO_QDESC_HISTORY
 enum reo_qdesc_event_type {
 	REO_QDESC_UPDATE_CB = 0,
@@ -793,6 +871,23 @@ struct dp_ast_entry *dp_peer_ast_hash_find_soc(struct dp_soc *soc,
 					       uint8_t *ast_mac_addr);
 
 /**
+ * dp_peer_ast_hash_find_soc_by_type() - Find AST entry by MAC address
+ * and AST type
+ * @soc: SoC handle
+ * @ast_mac_addr: Mac address
+ * @type: AST entry type
+ *
+ * It assumes caller has taken the ast lock to protect the access to
+ * AST hash table
+ *
+ * Return: AST entry
+ */
+struct dp_ast_entry *dp_peer_ast_hash_find_soc_by_type(
+					struct dp_soc *soc,
+					uint8_t *ast_mac_addr,
+					enum cdp_txrx_ast_entry_type type);
+
+/**
  * dp_peer_ast_get_pdev_id() - get pdev_id from the ast entry
  * @soc: SoC handle
  * @ast_entry: AST entry of the node
@@ -1243,6 +1338,17 @@ void dp_soc_wds_detach(struct dp_soc *soc);
 QDF_STATUS dp_peer_ast_table_attach(struct dp_soc *soc);
 
 /**
+ * dp_find_peer_by_macaddr() - Finding the peer from mac address provided.
+ * @soc: soc handle
+ * @mac_addr: MAC address to be used to find peer
+ * @vdev_id: VDEV id
+ * @mod_id: MODULE ID
+ *
+ * Return: struct dp_peer
+ */
+struct dp_peer *dp_find_peer_by_macaddr(struct dp_soc *soc, uint8_t *mac_addr,
+					uint8_t vdev_id, enum dp_mod_id mod_id);
+/**
  * dp_peer_ast_hash_attach() - Allocate and initialize AST Hash Table
  * @soc: SoC handle
  *
@@ -1650,12 +1756,14 @@ void dp_mld_peer_deinit_link_peers_info(struct dp_peer *mld_peer)
  * dp_mld_peer_add_link_peer() - add link peer info to mld peer
  * @mld_peer: mld dp peer pointer
  * @link_peer: link dp peer pointer
+ * @is_bridge_peer: flag to indicate if peer is bridge peer
  *
  * Return: None
  */
 static inline
 void dp_mld_peer_add_link_peer(struct dp_peer *mld_peer,
-			       struct dp_peer *link_peer)
+			       struct dp_peer *link_peer,
+			       uint8_t is_bridge_peer)
 {
 	int i;
 	struct dp_peer_link_info *link_peer_info;
@@ -1672,6 +1780,7 @@ void dp_mld_peer_add_link_peer(struct dp_peer *mld_peer,
 			link_peer_info->vdev_id = link_peer->vdev->vdev_id;
 			link_peer_info->chip_id =
 				dp_mlo_get_chip_id(link_peer->vdev->pdev->soc);
+			link_peer_info->is_bridge_peer = is_bridge_peer;
 			mld_peer->num_links++;
 			break;
 		}
@@ -2029,12 +2138,13 @@ struct dp_peer *dp_get_primary_link_peer_by_id(struct dp_soc *soc,
 		for (i = 0; i < link_peers_info.num_links; i++) {
 			link_peer = link_peers_info.link_peers[i];
 			if (link_peer->primary_link) {
-				primary_peer = link_peer;
 				/*
 				 * Take additional reference over
 				 * primary link peer.
 				 */
-				dp_peer_get_ref(NULL, primary_peer, mod_id);
+				if (QDF_STATUS_SUCCESS ==
+				    dp_peer_get_ref(NULL, link_peer, mod_id))
+					primary_peer = link_peer;
 				break;
 			}
 		}
@@ -2517,4 +2627,23 @@ bool dp_peer_check_wds_ext_peer(struct dp_peer *peer);
  * Return: DP MLD peer id
  */
 uint16_t dp_gen_ml_peer_id(struct dp_soc *soc, uint16_t peer_id);
+
+#ifdef FEATURE_AST
+/**
+ * dp_peer_host_add_map_ast() - Add ast entry with HW AST Index
+ * @soc: SoC handle
+ * @peer_id: peer id from firmware
+ * @mac_addr: MAC address of ast node
+ * @hw_peer_id: HW AST Index returned by target in peer map event
+ * @vdev_id: vdev id for VAP to which the peer belongs to
+ * @ast_hash: ast hash value in HW
+ * @is_wds: flag to indicate peer map event for WDS ast entry
+ *
+ * Return: QDF_STATUS code
+ */
+QDF_STATUS dp_peer_host_add_map_ast(struct dp_soc *soc, uint16_t peer_id,
+				    uint8_t *mac_addr, uint16_t hw_peer_id,
+				    uint8_t vdev_id, uint16_t ast_hash,
+				    uint8_t is_wds);
+#endif
 #endif /* _DP_PEER_H_ */

@@ -49,7 +49,8 @@
 			    + (DP_RX_MON_TLV_HDR_MARKER_LEN)\
 			    + (DP_RX_MON_TLV_TOTAL_LEN))
 
-#define DP_RX_MON_WQ_THRESHOLD 128
+#define DP_RX_MON_MAX_RX_HEADER_LEN 128
+
 /*
  * dp_rx_mon_buffers_alloc() - allocate rx monitor buffers
  * @soc: DP soc handle
@@ -243,4 +244,13 @@ void dp_rx_mon_shift_pf_tag_in_headroom(qdf_nbuf_t nbuf, struct dp_soc *soc)
  */
 void dp_mon_rx_print_advanced_stats_2_0(struct dp_soc *soc,
 					struct dp_pdev *pdev);
+
+/**
+ * dp_mon_pdev_flush_desc() - Flush status and packet desc during deinit
+ *
+ * @pdev: DP pdev handle
+ *
+ * Return
+ */
+QDF_STATUS dp_mon_pdev_flush_desc(struct dp_pdev *pdev);
 #endif /* _DP_RX_MON_2_0_H_ */

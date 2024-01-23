@@ -3196,7 +3196,6 @@ void *wmi_unified_get_pdev_handle(struct wmi_soc *soc, uint32_t pdev_idx)
 		wmi_handle->cmd_phy_id_map = soc->cmd_phy_id_map;
 		wmi_handle->evt_phy_id_map = soc->evt_phy_id_map;
 		wmi_interface_logging_init(wmi_handle, pdev_idx);
-		qdf_atomic_init(&wmi_handle->pending_cmds);
 		qdf_atomic_init(&wmi_handle->is_target_suspended);
 		wmi_handle->target_type = soc->target_type;
 		wmi_handle->wmi_max_cmds = soc->wmi_max_cmds;
@@ -3210,6 +3209,7 @@ void *wmi_unified_get_pdev_handle(struct wmi_soc *soc, uint32_t pdev_idx)
 	} else
 		wmi_handle = soc->wmi_pdev[pdev_idx];
 
+	qdf_atomic_init(&wmi_handle->pending_cmds);
 	wmi_handle->wmi_stopinprogress = 0;
 	wmi_handle->wmi_endpoint_id = soc->wmi_endpoint_id[pdev_idx];
 	wmi_handle->htc_handle = soc->htc_handle;
@@ -3511,6 +3511,11 @@ static void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 			WMI_MGMT_COMMAND_TX_CMP_RECORD(wmi_handle, cmd_id,
 						       offset_ptr);
 		} else {
+			if (wmi_handle->ops->is_force_fw_hang_cmd(cmd_id)) {
+				wmi_info("Tx completion received for WMI_FORCE_FW_HANG_CMDID, current_time:%ld",
+					 qdf_mc_timer_get_system_time());
+			}
+
 			WMI_COMMAND_TX_CMP_RECORD(wmi_handle, cmd_id,
 						  offset_ptr, dma_addr,
 						  phy_addr);

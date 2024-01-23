@@ -37,6 +37,7 @@
 
 QDF_STATUS dp_rx_mon_ppdu_info_cache_create(struct dp_pdev *pdev)
 {
+	struct dp_soc *soc = pdev->soc;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 	struct dp_mon_pdev_be *mon_pdev_be =
 			dp_get_be_mon_pdev_from_dp_mon_pdev(mon_pdev);
@@ -53,7 +54,7 @@ QDF_STATUS dp_rx_mon_ppdu_info_cache_create(struct dp_pdev *pdev)
 	}
 
 	TAILQ_INIT(&mon_pdev_be->rx_mon_free_queue);
-	for (obj = 0; obj < DP_RX_MON_WQ_THRESHOLD; obj++) {
+	for (obj = 0; obj < wlan_cfg_get_rx_mon_wq_threshold(soc->wlan_cfg_ctx); obj++) {
 		ppdu_info =  (struct hal_rx_ppdu_info *)qdf_kmem_cache_alloc(mon_pdev_be->ppdu_info_cache);
 
 		if (ppdu_info) {
@@ -138,6 +139,8 @@ QDF_STATUS dp_mon_pdev_ext_deinit_2_0(struct dp_pdev *pdev)
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 	struct dp_mon_pdev_be *mon_pdev_be =
 			dp_get_be_mon_pdev_from_dp_mon_pdev(mon_pdev);
+
+	dp_mon_pdev_flush_desc(pdev);
 
 	if (!mon_pdev_be->rx_mon_workqueue)
 		return QDF_STATUS_E_FAILURE;
@@ -1690,7 +1693,7 @@ struct cdp_mon_ops dp_ops_mon_2_0 = {
 #endif
 	.txrx_set_mon_pdev_params_rssi_dbm_conv =
 				dp_mon_pdev_params_rssi_dbm_conv,
-#ifdef WLAN_TELEMETRY_STATS_SUPPORT
+#ifdef WLAN_CONFIG_TELEMETRY_AGENT
 	.txrx_update_pdev_mon_telemetry_airtime_stats =
 			dp_pdev_update_telemetry_airtime_stats,
 #endif

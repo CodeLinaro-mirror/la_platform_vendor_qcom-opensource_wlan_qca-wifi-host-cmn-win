@@ -173,9 +173,11 @@ struct wlan_srng_cfg {
  * @int_timer_threshold_rx:
  * @int_batch_threshold_other:
  * @int_timer_threshold_other:
- * @int_timer_threshold_mon:
+ * @int_batch_threshold_mon_dest: Batch threshold counter for monitor dest
+ * @int_timer_threshold_mon_dest: Timer threshold counter for monitor dest
  * @tx_ring_size:
  * @time_control_bp:
+ * @qref_control_size: list size for memory history arrays
  * @tx_comp_ring_size:
  * @tx_comp_ring_size_nss:
  * @int_rx_mon_ring_mask: Bitmap of Rx monitor ring interrupts mapped to each
@@ -326,6 +328,7 @@ struct wlan_srng_cfg {
  * @txmon_sw_peer_filtering: TxMON sw peer filtering support
  * @num_rxdma_status_rings_per_pdev: Num RXDMA status rings
  * @tx_capt_max_mem_allowed: Max memory for Tx packet capture
+ * @tx_capt_rbm_id: Return Buffer Manager ID to be used for Tx packet capture
  * @sawf_enabled:  Is SAWF enabled
  * @sawf_stats: SAWF Statistics
  * @mpdu_retry_threshold_1: MPDU retry threshold 1 to increment tx bad count
@@ -338,6 +341,13 @@ struct wlan_srng_cfg {
  *			    based ILP feature is enabled
  * @pointer_timer_threshold_rx: RX REO2SW ring pointer update timer threshold
  * @pointer_num_threshold_rx: RX REO2SW ring pointer update entries threshold
+ * @rx_rr: rx round robin enable / disable
+ * @umac_reset_buffer_window: Buffer time to check if umac reset was in progress
+ *                            during this window, configured time is in
+ *                            milliseconds.
+ * @fw_ast_indication_disable: Disable AST
+ * @rx_mon_wq_threshold: rx monitor work queue threshold.
+ * @rx_mon_wq_depth: rx monitor work queue depth.
  */
 struct wlan_cfg_dp_soc_ctxt {
 	int num_int_ctxts;
@@ -369,9 +379,11 @@ struct wlan_cfg_dp_soc_ctxt {
 	int int_timer_threshold_rx;
 	int int_batch_threshold_other;
 	int int_timer_threshold_other;
-	int int_timer_threshold_mon;
+	int int_batch_threshold_mon_dest;
+	int int_timer_threshold_mon_dest;
 	int tx_ring_size;
 	int time_control_bp;
+	int qref_control_size;
 	int tx_comp_ring_size;
 	int tx_comp_ring_size_nss;
 	uint8_t int_tx_ring_mask[WLAN_CFG_INT_NUM_CONTEXTS];
@@ -520,6 +532,7 @@ struct wlan_cfg_dp_soc_ctxt {
 	uint8_t num_rxdma_status_rings_per_pdev;
 #ifdef WLAN_TX_PKT_CAPTURE_ENH
 	uint32_t tx_capt_max_mem_allowed;
+	uint8_t tx_capt_rbm_id[MAX_PDEV_CNT];
 #endif
 #ifdef CONFIG_SAWF
 	bool sawf_enabled;
@@ -537,6 +550,15 @@ struct wlan_cfg_dp_soc_ctxt {
 #endif
 	uint16_t pointer_timer_threshold_rx;
 	uint8_t pointer_num_threshold_rx;
+#ifdef WLAN_SUPPORT_RX_FLOW_TAG
+	bool rx_rr;
+#endif
+#ifdef DP_UMAC_HW_RESET_SUPPORT
+	uint32_t umac_reset_buffer_window;
+#endif
+	bool fw_ast_indication_disable;
+	uint8_t rx_mon_wq_threshold;
+	uint8_t rx_mon_wq_depth;
 };
 
 /**
@@ -1227,6 +1249,16 @@ int wlan_cfg_get_num_global_spcl_tx_desc(struct wlan_cfg_dp_soc_ctxt *wlan_cfg_c
 int wlan_cfg_get_num_tx_desc(struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx);
 
 /**
+ * wlan_cfg_set_num_tx_spl_desc() - Set the number of special Tx Descriptors
+ * per pool
+ *
+ * @cfg: Configuration Handle
+ * @num_desc: Number of descriptor
+ */
+void wlan_cfg_set_num_tx_spl_desc(struct wlan_cfg_dp_soc_ctxt *cfg,
+				  int num_desc);
+
+/**
  * wlan_cfg_get_num_tx_spl_desc() - Number of Tx Descriptors for special
  *				    frames per pool
  * @wlan_cfg_ctx: Configuration Handle
@@ -1380,6 +1412,21 @@ bool wlan_cfg_is_ipa_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
 void wlan_cfg_set_rx_hash(struct wlan_cfg_dp_soc_ctxt *cfg, bool rx_hash);
 
 /**
+ * wlan_cfg_is_rx_rr_enabled - Return RX round robin enabled/disabled
+ * @cfg: soc configuration context
+ *
+ * Return: true - enabled false - disabled
+ */
+bool wlan_cfg_is_rx_rr_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_set_rx_rr - set rx round robin enabled/disabled
+ * @cfg: soc configuration context
+ * @rx_rr: true - enabled false - disabled
+ */
+void wlan_cfg_set_rx_rr(struct wlan_cfg_dp_soc_ctxt *cfg, bool rx_rr);
+
+/**
  * wlan_cfg_get_dp_pdev_nss_enabled - Return pdev nss enabled/disabled
  * @cfg: pdev configuration context
  *
@@ -1478,12 +1525,22 @@ int wlan_cfg_get_int_batch_threshold_other(struct wlan_cfg_dp_soc_ctxt *cfg);
 int wlan_cfg_get_int_timer_threshold_other(struct wlan_cfg_dp_soc_ctxt *cfg);
 
 /**
- * wlan_cfg_get_int_timer_threshold_mon - Get int mitigation cfg for mon srngs
+ * wlan_cfg_get_int_batch_threshold_mon_dest - Get interrupt mitigation cfg for
+ * monitor destination srng
+ * @cfg: soc configuration context
+ *
+ * Return: Batch threshold
+ */
+int wlan_cfg_get_int_batch_threshold_mon_dest(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_get_int_timer_threshold_mon_dest - Get interrupt mitigation cfg for
+ * monitor destination srngs
  * @cfg: soc configuration context
  *
  * Return: Timer threshold
  */
-int wlan_cfg_get_int_timer_threshold_mon(struct wlan_cfg_dp_soc_ctxt *cfg);
+int wlan_cfg_get_int_timer_threshold_mon_dest(struct wlan_cfg_dp_soc_ctxt *cfg);
 
 /**
  * wlan_cfg_get_checksum_offload - Get checksum offload enable or disable status
@@ -1524,6 +1581,14 @@ int wlan_cfg_tx_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg);
  * Return: interval time
  */
 int wlan_cfg_time_control_bp(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_qref_control_size - Get debug array size
+ * @cfg: soc configuration context
+ *
+ * Return: array size
+ */
+int wlan_cfg_qref_control_size(struct wlan_cfg_dp_soc_ctxt *cfg);
 
 /**
  * wlan_cfg_tx_comp_ring_size - Get Tx completion ring size (WBM Ring)
@@ -1869,12 +1934,14 @@ wlan_cfg_is_tx_per_pkt_vdev_id_check_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
  * @interrupt_mode: Type of interrupt
  * @is_monitor_mode: is monitor mode enabled
  * @ppeds_attached: is ppeds attached
+ * @umac_reset_support: Umac reset support
  *
  * Return: void
  */
 void wlan_cfg_fill_interrupt_mask(struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx,
 				  int num_dp_msi, int interrupt_mode,
-				  bool is_monitor_mode, bool ppeds_attached);
+				  bool is_monitor_mode, bool ppeds_attached,
+				  bool umac_reset_support);
 
 /**
  * wlan_cfg_is_rx_fisa_enabled() - Get Rx FISA enabled flag
@@ -2445,6 +2512,26 @@ wlan_cfg_get_tx_capt_max_mem(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return cfg->tx_capt_max_mem_allowed;
 }
+
+/**
+ * wlan_cfg_get_tx_capt_rbm_id - Get RBM_ID to be used for tx capture feature
+ * @cfg: Configuration Handle
+ * @idx: Pdev_id
+ *
+ * Return: Return Buffer manager id to be used
+ */
+static inline int
+wlan_cfg_get_tx_capt_rbm_id(struct wlan_cfg_dp_soc_ctxt *cfg, uint8_t idx)
+{
+	if (idx >= MAX_PDEV_CNT) {
+		qdf_err("!!! pdev index is greater than expected");
+		qdf_assert(0);
+		/* resetting idx to zero */
+		idx = 0;
+	}
+
+	return cfg->tx_capt_rbm_id[idx];
+}
 #endif /* WLAN_TX_PKT_CAPTURE_ENH */
 
 /**
@@ -2486,4 +2573,58 @@ wlan_cfg_get_pointer_timer_threshold_rx(struct wlan_cfg_dp_soc_ctxt *cfg);
 uint8_t
 wlan_cfg_get_pointer_num_threshold_rx(struct wlan_cfg_dp_soc_ctxt *cfg);
 
+#ifdef DP_UMAC_HW_RESET_SUPPORT
+/**
+ * wlan_cfg_get_umac_reset_buffer_window_ms() - Get umac reset buffer window
+ * @cfg: soc configuration context
+ *
+ * Return: Umac reset buffer window in milliseconds
+ */
+uint32_t
+wlan_cfg_get_umac_reset_buffer_window_ms(struct wlan_cfg_dp_soc_ctxt *cfg);
+#else
+static inline uint32_t
+wlan_cfg_get_umac_reset_buffer_window_ms(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return 0;
+}
+#endif /* DP_UMAC_HW_RESET_SUPPORT */
+
+/**
+ * wlan_cfg_set_ast_indication_disable - Set AST disable
+ *
+ * @cfg: soc configuration context
+ * @val: value to be set
+ *
+ * Return: void
+ */
+void wlan_cfg_set_ast_indication_disable(struct wlan_cfg_dp_soc_ctxt *cfg,
+					 bool val);
+
+/**
+ * wlan_cfg_get_ast_indication_disable - Get AST disable
+ *
+ * @cfg: soc configuration context
+ *
+ * Return: true or false
+ */
+bool wlan_cfg_get_ast_indication_disable(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_get_rx_mon_wq_threshold - Get rx mon work queue threshold
+ *
+ * @cfg: soc configuration context
+ *
+ * Return: uint8_t
+ */
+uint8_t wlan_cfg_get_rx_mon_wq_threshold(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_get_rx_mon_wq_depth - Get rx mon work queue depth
+ *
+ * @cfg: soc configuration context
+ *
+ * Return: uint8_t
+ */
+uint8_t wlan_cfg_get_rx_mon_wq_depth(struct wlan_cfg_dp_soc_ctxt *cfg);
 #endif /*__WLAN_CFG_H*/

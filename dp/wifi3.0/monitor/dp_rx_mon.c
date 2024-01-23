@@ -120,16 +120,15 @@ dp_rx_mon_populate_cfr_ppdu_info(struct dp_pdev *pdev,
 	dp_rx_mon_handle_cfr_mu_info(pdev, ppdu_info, cdp_rx_ppdu);
 	rx_user_status = &ppdu_info->rx_user_status[num_users - 1];
 	sw_peer_id = rx_user_status->sw_peer_id;
+	cdp_rx_ppdu->num_users = num_users;
 	peer = dp_peer_get_ref_by_id(soc, sw_peer_id, DP_MOD_ID_RX_PPDU_STATS);
 	if (!peer) {
 		cdp_rx_ppdu->peer_id = HTT_INVALID_PEER;
-		cdp_rx_ppdu->num_users = 0;
 		return;
 	}
 
 	cdp_rx_ppdu->peer_id = peer->peer_id;
 	cdp_rx_ppdu->vdev_id = peer->vdev->vdev_id;
-	cdp_rx_ppdu->num_users = num_users;
 
 	dp_peer_unref_delete(peer, DP_MOD_ID_RX_PPDU_STATS);
 }
@@ -349,9 +348,9 @@ void
 dp_rx_populate_su_evm_details(struct hal_rx_ppdu_info *ppdu_info,
 			      struct cdp_rx_indication_ppdu *cdp_rx_ppdu)
 {
-	uint8_t pilot_evm;
-	uint8_t nss_count;
-	uint8_t pilot_count;
+	uint16_t pilot_evm;
+	uint16_t nss_count;
+	uint16_t pilot_count;
 
 	nss_count = ppdu_info->evm_info.nss_count;
 	pilot_count = ppdu_info->evm_info.pilot_count;
@@ -750,66 +749,7 @@ static inline void dp_rx_rate_stats_update(struct dp_peer *peer,
 		peer->vdev->stats.rx.last_rx_rate = ratekbps;
 }
 
-#ifdef WLAN_FEATURE_11BE
-static inline uint8_t dp_get_bw_offset_frm_bw(struct dp_soc *soc,
-					      enum CMN_BW_TYPES bw)
-{
-	uint8_t pkt_bw_offset;
-
-	switch (bw) {
-	case CMN_BW_20MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_20MHZ;
-		break;
-	case CMN_BW_40MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_40MHZ;
-		break;
-	case CMN_BW_80MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_80MHZ;
-		break;
-	case CMN_BW_160MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_160MHZ;
-		break;
-	case CMN_BW_320MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_320MHZ;
-		break;
-	default:
-		pkt_bw_offset = 0;
-		dp_rx_mon_status_debug("%pK: Invalid BW index = %d",
-				       soc, bw);
-	}
-
-	return pkt_bw_offset;
-}
-#else
-static inline uint8_t dp_get_bw_offset_frm_bw(struct dp_soc *soc,
-					      enum CMN_BW_TYPES bw)
-{
-	uint8_t pkt_bw_offset;
-
-	switch (bw) {
-	case CMN_BW_20MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_20MHZ;
-		break;
-	case CMN_BW_40MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_40MHZ;
-		break;
-	case CMN_BW_80MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_80MHZ;
-		break;
-	case CMN_BW_160MHZ:
-		pkt_bw_offset = PKT_BW_GAIN_160MHZ;
-		break;
-	default:
-		pkt_bw_offset = 0;
-		dp_rx_mon_status_debug("%pK: Invalid BW index = %d",
-				       soc, bw);
-	}
-
-	return pkt_bw_offset;
-}
-#endif
-
-#ifdef WLAN_TELEMETRY_STATS_SUPPORT
+#ifdef WLAN_CONFIG_TELEMETRY_AGENT
 static void
 dp_ppdu_desc_user_rx_time_update(struct dp_pdev *pdev,
 				 struct dp_peer *peer,
@@ -933,7 +873,6 @@ static void dp_rx_stats_update(struct dp_pdev *pdev,
 	struct dp_soc *soc = NULL;
 	uint8_t mcs, preamble, ac = 0, nss, ppdu_type;
 	uint32_t num_msdu;
-	uint8_t pkt_bw_offset;
 	struct dp_peer *peer;
 	struct dp_mon_peer *mon_peer;
 	struct cdp_rx_stats_ppdu_user *ppdu_user;
@@ -990,8 +929,7 @@ static void dp_rx_stats_update(struct dp_pdev *pdev,
 		byte_count = ppdu_user->mpdu_ok_byte_count +
 			ppdu_user->mpdu_err_byte_count;
 
-		pkt_bw_offset = dp_get_bw_offset_frm_bw(soc, ppdu->u.bw);
-		DP_STATS_UPD(mon_peer, rx.snr, (ppdu->rssi + pkt_bw_offset));
+		DP_STATS_UPD(mon_peer, rx.snr, ppdu->rssi);
 
 		if (qdf_unlikely(mon_peer->stats.rx.avg_snr == CDP_INVALID_SNR))
 			mon_peer->stats.rx.avg_snr =
@@ -1127,8 +1065,7 @@ static void dp_rx_stats_update(struct dp_pdev *pdev,
 			continue;
 
 		dp_peer_stats_notify(pdev, peer);
-		DP_STATS_UPD(mon_peer, rx.last_snr,
-			     (ppdu->rssi + pkt_bw_offset));
+		DP_STATS_UPD(mon_peer, rx.last_snr, ppdu->rssi);
 
 		dp_peer_qos_stats_notify(pdev, ppdu_user);
 
@@ -1402,7 +1339,7 @@ static inline bool
 dp_rx_is_valid_undecoded_frame(uint64_t err_mask, uint8_t err_code)
 {
 	if (err_code < CDP_PHYRX_ERR_MAX &&
-	    (err_mask & (1L << err_code)))
+	    (err_mask & (1ULL << err_code)))
 		return true;
 
 	return false;
@@ -1927,7 +1864,7 @@ QDF_STATUS dp_rx_mon_deliver(struct dp_soc *soc, uint32_t mac_id,
 	if (mon_pdev->mcopy_mode)
 		return dp_send_mgmt_packet_to_stack(soc, mon_mpdu, pdev);
 
-	if (mon_mpdu && mon_pdev->mvdev &&
+	if (mon_pdev->mvdev &&
 	    mon_pdev->mvdev->osif_vdev &&
 	    mon_pdev->mvdev->monitor_vdev &&
 	    mon_pdev->mvdev->monitor_vdev->osif_rx_mon) {
@@ -1944,7 +1881,8 @@ QDF_STATUS dp_rx_mon_deliver(struct dp_soc *soc, uint32_t mac_id,
 					      mon_mpdu,
 					      qdf_nbuf_headroom(mon_mpdu))) {
 			DP_STATS_INC(pdev, dropped.mon_radiotap_update_err, 1);
-			goto mon_deliver_fail;
+			qdf_nbuf_free(mon_mpdu);
+			return QDF_STATUS_E_INVAL;
 		}
 
 		dp_rx_mon_update_pf_tag_to_buf_headroom(soc, mon_mpdu);
@@ -1956,7 +1894,8 @@ QDF_STATUS dp_rx_mon_deliver(struct dp_soc *soc, uint32_t mac_id,
 				     , soc, mon_mpdu, mon_pdev->mvdev,
 				     (mon_pdev->mvdev ? mon_pdev->mvdev->osif_vdev
 				     : NULL));
-		goto mon_deliver_fail;
+		qdf_nbuf_free(mon_mpdu);
+		return QDF_STATUS_E_INVAL;
 	}
 
 	return QDF_STATUS_SUCCESS;

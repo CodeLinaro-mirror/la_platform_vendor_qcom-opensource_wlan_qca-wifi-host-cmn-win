@@ -28,6 +28,7 @@
 #include "qdf_nbuf.h"
 #include "dp_rx_defrag.h"
 #include "dp_ipa.h"
+#include "dp_internal.h"
 #ifdef WIFI_MONITOR_SUPPORT
 #include "dp_htt.h"
 #include <dp_mon.h>
@@ -1065,7 +1066,10 @@ more_msdu_link_desc:
 						soc,
 						msdu_list.sw_cookie[i]);
 
-		qdf_assert_always(rx_desc);
+		if (dp_assert_always_internal_stat(rx_desc, soc,
+						   rx.err.reo_err_rx_desc_null))
+			continue;
+
 		nbuf = rx_desc->nbuf;
 
 		/*
@@ -1522,6 +1526,22 @@ fail:
 	return;
 }
 
+#ifdef WLAN_SUPPORT_RX_FLOW_TAG
+static void dp_rx_peek_trapped_packet(struct dp_soc *soc,
+				      struct dp_vdev *vdev)
+{
+	if (soc->cdp_soc.ol_ops->send_wakeup_trigger)
+		soc->cdp_soc.ol_ops->send_wakeup_trigger(soc->ctrl_psoc,
+				vdev->vdev_id);
+}
+#else
+static void dp_rx_peek_trapped_packet(struct dp_soc *soc,
+				      struct dp_vdev *vdev)
+{
+	return;
+}
+#endif
+
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_MLO_MULTI_CHIP) && \
 	defined(WLAN_MCAST_MLO)
 static bool dp_rx_igmp_handler(struct dp_soc *soc,
@@ -1577,6 +1597,22 @@ dp_rx_err_route_hdl(struct dp_soc *soc, qdf_nbuf_t nbuf,
 	struct hal_rx_msdu_metadata msdu_metadata;
 	bool is_eapol;
 
+	qdf_nbuf_set_rx_chfrag_start(
+				nbuf,
+				hal_rx_msdu_end_first_msdu_get(soc->hal_soc,
+							       rx_tlv_hdr));
+	qdf_nbuf_set_rx_chfrag_end(nbuf,
+				   hal_rx_msdu_end_last_msdu_get(soc->hal_soc,
+								 rx_tlv_hdr));
+	qdf_nbuf_set_da_mcbc(nbuf, hal_rx_msdu_end_da_is_mcbc_get(soc->hal_soc,
+								  rx_tlv_hdr));
+	qdf_nbuf_set_da_valid(nbuf,
+			      hal_rx_msdu_end_da_is_valid_get(soc->hal_soc,
+							      rx_tlv_hdr));
+	qdf_nbuf_set_sa_valid(nbuf,
+			      hal_rx_msdu_end_sa_is_valid_get(soc->hal_soc,
+							      rx_tlv_hdr));
+
 	hal_rx_msdu_metadata_get(soc->hal_soc, rx_tlv_hdr, &msdu_metadata);
 	msdu_len = hal_rx_msdu_start_msdu_len_get(soc->hal_soc, rx_tlv_hdr);
 	pkt_len = msdu_len + msdu_metadata.l3_hdr_pad + soc->rx_pkt_tlv_size;
@@ -1588,7 +1624,6 @@ dp_rx_err_route_hdl(struct dp_soc *soc, qdf_nbuf_t nbuf,
 		/* Set length in nbuf */
 		qdf_nbuf_set_pktlen(
 			nbuf, qdf_min(pkt_len, (uint32_t)RX_DATA_BUFFER_SIZE));
-		qdf_assert_always(nbuf->data == rx_tlv_hdr);
 	}
 
 	/*
@@ -1622,6 +1657,10 @@ dp_rx_err_route_hdl(struct dp_soc *soc, qdf_nbuf_t nbuf,
 		qdf_nbuf_pull_head(nbuf, (msdu_metadata.l3_hdr_pad +
 				   soc->rx_pkt_tlv_size));
 
+	if (hal_rx_msdu_cce_metadata_get(soc->hal_soc, rx_tlv_hdr) ==
+			CDP_STANDBY_METADATA)
+		dp_rx_peek_trapped_packet(soc, vdev);
+
 	QDF_NBUF_CB_RX_PEER_ID(nbuf) = txrx_peer->peer_id;
 	if (dp_rx_igmp_handler(soc, vdev, txrx_peer, nbuf, link_id))
 		return;
@@ -1653,6 +1692,10 @@ dp_rx_err_route_hdl(struct dp_soc *soc, qdf_nbuf_t nbuf,
 			DP_PEER_TO_STACK_INCC_PKT(txrx_peer, 1,
 						  qdf_nbuf_len(nbuf),
 						  vdev->pdev->enhanced_stats_en);
+			DP_PEER_PER_PKT_STATS_INC_PKT(txrx_peer,
+						      rx.rx_success, 1,
+						      qdf_nbuf_len(nbuf),
+						      link_id);
 			qdf_nbuf_set_exc_frame(nbuf, 1);
 			qdf_nbuf_set_next(nbuf, NULL);
 
@@ -2546,7 +2589,7 @@ dp_rx_wbm_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 				dp_rx_err_alert("invalid reo push reason %u",
 						wbm_err_info.reo_psh_rsn);
 				dp_rx_nbuf_free(nbuf);
-				qdf_assert_always(0);
+				dp_assert_always_internal(0);
 			}
 		} else if (wbm_err_info.wbm_err_src ==
 					HAL_RX_WBM_ERR_SRC_RXDMA) {
@@ -2672,7 +2715,7 @@ dp_rx_wbm_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 				dp_rx_err_alert("invalid rxdma push reason %u",
 						wbm_err_info.rxdma_psh_rsn);
 				dp_rx_nbuf_free(nbuf);
-				qdf_assert_always(0);
+				dp_assert_always_internal(0);
 			}
 		} else {
 			/* Should not come here */

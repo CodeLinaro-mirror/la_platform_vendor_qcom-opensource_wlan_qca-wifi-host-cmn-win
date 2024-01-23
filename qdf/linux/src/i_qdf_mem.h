@@ -120,6 +120,11 @@ typedef struct kmem_cache *qdf_kmem_cache_t;
 #endif
 
 /**
+ * typedef qdf_gfp_t - typedef for gfp_t
+ */
+typedef gfp_t qdf_gfp_t;
+
+/**
  * typedef __dma_data_direction - typedef for dma_data_direction
  */
 typedef enum dma_data_direction __dma_data_direction;

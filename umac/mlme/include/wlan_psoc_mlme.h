@@ -146,6 +146,7 @@ struct wlan_ipa_evt_wq {
  * @psoc_vdev_rt:          PSoC Vdev response timer
  * @psoc_mlme_wakelock:    Wakelock to prevent system going to suspend
  * @rnr_6ghz_cache:        Cache of 6Ghz vap in RNR ie format
+ * @rnr_6ghz_cache_legacy: Legacy (13TBTT) cache of 6Ghz vap in RNR ie format
  * @psoc_cfg:              Psoc level configs
  * @ipa_evt_wq:            IPA workqueue struct
  */
@@ -157,6 +158,7 @@ struct psoc_mlme_obj {
 	struct psoc_mlme_wakelock psoc_mlme_wakelock;
 #endif
 	struct wlan_6ghz_rnr_global_cache rnr_6ghz_cache[WLAN_UMAC_MAX_PDEVS];
+	struct wlan_6ghz_rnr_global_cache rnr_6ghz_cache_legacy[WLAN_UMAC_MAX_PDEVS];
 	struct psoc_config psoc_cfg;
 #if defined(IPA_OFFLOAD) && defined(QCA_IPA_LL_TX_FLOW_CONTROL)
 	struct wlan_ipa_evt_wq *ipa_evt_wq;

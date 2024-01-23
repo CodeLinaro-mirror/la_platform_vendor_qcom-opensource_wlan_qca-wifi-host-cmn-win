@@ -176,13 +176,23 @@ void dp_rx_mon_enable_mpdu_logging(uint32_t *msg_word,
 }
 
 void
-dp_rx_mon_word_mask_subscribe(uint32_t *msg_word,
-				  struct htt_rx_ring_tlv_filter *tlv_filter)
+dp_rx_mon_word_mask_subscribe(struct dp_soc *soc,
+			      uint32_t *msg_word, int pdev_id,
+			      struct htt_rx_ring_tlv_filter *tlv_filter)
 {
+	struct dp_pdev *pdev;
+	struct dp_mon_pdev *mon_pdev;
+
 	if (!msg_word || !tlv_filter)
 		return;
 
 	if (!tlv_filter->enable)
+		return;
+
+	pdev = soc->pdev_list[pdev_id];
+	mon_pdev = pdev->monitor_pdev;
+
+	if (mon_pdev->rx_pktlog_mode != DP_RX_PKTLOG_DISABLED)
 		return;
 
 	HTT_RX_RING_SELECTION_CFG_WORD_MASK_COMPACTION_ENABLE_SET(*msg_word, 1);
@@ -194,6 +204,10 @@ dp_rx_mon_word_mask_subscribe(uint32_t *msg_word,
 	HTT_RX_RING_SELECTION_CFG_RX_MPDU_START_WORD_MASK_SET(
 				*msg_word,
 				RX_MON_MPDU_START_WMASK);
+
+	HTT_RX_RING_SELECTION_CFG_RX_MPDU_END_WORD_MASK_SET(
+				*msg_word,
+				RX_MON_MPDU_END_WMASK);
 
 	/* word 15 */
 	msg_word++;
@@ -209,7 +223,11 @@ dp_rx_mon_word_mask_subscribe(uint32_t *msg_word,
 	*msg_word = 0;
 	HTT_RX_RING_SELECTION_CFG_RX_MPDU_START_WORD_MASK_V2_SET(
 				*msg_word,
-				RX_MON_MPDU_START_WMASK);
+				RX_MON_MPDU_START_WMASK_V2);
+
+	HTT_RX_RING_SELECTION_CFG_RX_MPDU_END_WORD_MASK_V2_SET(
+				*msg_word,
+				RX_MON_MPDU_END_WMASK_V2);
 
 	/* word 18 */
 	msg_word++;

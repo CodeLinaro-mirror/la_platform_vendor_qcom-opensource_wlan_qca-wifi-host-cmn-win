@@ -449,6 +449,9 @@ typedef bool (*qdf_irqlocked_func_t)(void *);
  * @QDF_MODULE_ID_SCS: SCS module ID
  * @QDF_MODULE_ID_COAP: Constrained Application Protocol module ID
  * @QDF_MODULE_ID_QMI: QMI module ID
+ * @QDF_MODULE_ID_EPCS: EPCS module ID
+ * @QDF_MODULE_ID_SOUNDING: txbf SOUNDING
+ * @QDF_MODULE_ID_RF_PATH_SWITCH: RF path switch Module ID
  * @QDF_MODULE_ID_ANY: anything
  * @QDF_MODULE_ID_MAX: Max place holder module ID
  *
@@ -614,6 +617,9 @@ typedef enum {
 	QDF_MODULE_ID_SCS,
 	QDF_MODULE_ID_COAP,
 	QDF_MODULE_ID_QMI,
+	QDF_MODULE_ID_EPCS,
+	QDF_MODULE_ID_SOUNDING,
+	QDF_MODULE_ID_RF_PATH_SWITCH,
 	QDF_MODULE_ID_ANY,
 	QDF_MODULE_ID_MAX,
 } QDF_MODULE_ID;
@@ -1580,6 +1586,12 @@ enum qdf_suspend_type {
  * @QDF_FLUSH_LOGS : Recovery needed when sending flush completion to userspace
  * @QDF_WMI_CMD_SENT_DURING_SUSPEND: WMI command is received when target is
  * suspended
+ * @QDF_MGMT_RX_REO_INCONSISTENT_SNAPSHOT: Inconsistent management Rx reorder
+ * snapshots
+ * @QDF_MGMT_RX_REO_OUT_OF_ORDER_PKT: Reception of management packet with out
+ * of order packet counter values
+ * @QDF_MGMT_RX_REO_ZERO_DURATION_PKT: Reception of management packet with zero
+ * packet duration
  */
 enum qdf_hang_reason {
 	QDF_REASON_UNSPECIFIED,
@@ -1617,6 +1629,9 @@ enum qdf_hang_reason {
 	QDF_DEL_SELF_STA_FAILED,
 	QDF_FLUSH_LOGS,
 	QDF_WMI_CMD_SENT_DURING_SUSPEND,
+	QDF_MGMT_RX_REO_INCONSISTENT_SNAPSHOT,
+	QDF_MGMT_RX_REO_OUT_OF_ORDER_PKT,
+	QDF_MGMT_RX_REO_ZERO_DURATION_PKT,
 };
 
 /**

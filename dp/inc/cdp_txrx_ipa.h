@@ -665,7 +665,7 @@ cdp_ipa_rx_wdsext_iface(ol_txrx_soc_handle soc, uint8_t peer_id,
 {
 	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
-				"%s invalid instance", __func__);
+			  "%s invalid instance", __func__);
 		return false;
 	}
 

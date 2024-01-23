@@ -3427,6 +3427,9 @@ struct category_name_info g_qdf_category_name[MAX_SUPPORTED_CATEGORY] = {
 	[QDF_MODULE_ID_WIFI_RADAR] = {"WIFI RADAR"},
 	[QDF_MODULE_ID_CDP] =  {"CDP"},
 	[QDF_MODULE_ID_QMI] = {"QMI"},
+	[QDF_MODULE_ID_EPCS] = {"EPCS"},
+	[QDF_MODULE_ID_SOUNDING] = {"SOUNDING"},
+	[QDF_MODULE_ID_RF_PATH_SWITCH] = {"Dynamic RF Path Switch"},
 	[QDF_MODULE_ID_ANY] = {"ANY"},
 };
 qdf_export_symbol(g_qdf_category_name);
@@ -3998,6 +4001,9 @@ static void set_default_trace_levels(struct category_info *cinfo)
 		[QDF_MODULE_ID_WIFI_RADAR] = QDF_TRACE_LEVEL_NONE,
 		[QDF_MODULE_ID_TARGET] = QDF_TRACE_LEVEL_NONE,
 		[QDF_MODULE_ID_QMI] = QDF_TRACE_LEVEL_ERROR,
+		[QDF_MODULE_ID_EPCS] = QDF_TRACE_LEVEL_INFO,
+		[QDF_MODULE_ID_SOUNDING] = QDF_TRACE_LEVEL_ERROR,
+		[QDF_MODULE_ID_RF_PATH_SWITCH] = QDF_TRACE_LEVEL_INFO,
 		[QDF_MODULE_ID_ANY] = QDF_TRACE_LEVEL_INFO,
 	};
 
@@ -4175,10 +4181,9 @@ void qdf_log_dump_at_kernel_level(bool enable)
 
 qdf_export_symbol(qdf_log_dump_at_kernel_level);
 
-bool qdf_print_is_category_enabled(unsigned int idx, QDF_MODULE_ID category)
+QDF_TRACE_LEVEL qdf_print_get_category_verbose(unsigned int idx,
+					       QDF_MODULE_ID category)
 {
-	QDF_TRACE_LEVEL verbose_mask;
-
 	/* Check if index passed is valid */
 	if (idx < 0 || idx >= MAX_PRINT_CONFIG_SUPPORTED) {
 		pr_info("%s: Invalid index - %d\n", __func__, idx);
@@ -4197,14 +4202,23 @@ bool qdf_print_is_category_enabled(unsigned int idx, QDF_MODULE_ID category)
 		return false;
 	}
 
-	verbose_mask =
-		print_ctrl_obj[idx].cat_info[category].category_verbose_mask;
+	return print_ctrl_obj[idx].cat_info[category].category_verbose_mask;
+}
+
+qdf_export_symbol(qdf_print_get_category_verbose);
+
+bool qdf_print_is_category_enabled(unsigned int idx, QDF_MODULE_ID category)
+{
+	QDF_TRACE_LEVEL verbose_mask;
+
+	verbose_mask = qdf_print_get_category_verbose(idx, category);
 
 	if (verbose_mask == QDF_TRACE_LEVEL_NONE)
 		return false;
 	else
 		return true;
 }
+
 qdf_export_symbol(qdf_print_is_category_enabled);
 
 bool qdf_print_is_verbose_enabled(unsigned int idx, QDF_MODULE_ID category,
