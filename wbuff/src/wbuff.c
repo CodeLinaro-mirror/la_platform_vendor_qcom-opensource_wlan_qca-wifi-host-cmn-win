@@ -31,10 +31,10 @@
 struct wbuff_holder wbuff;
 
 /**
- * wbuff_get_pool_slot_from_len() - get pool_id from length
+ * wbuff_get_pool_slot_from_len() - get pool_slot from length
  * @len: length of the buffer
  *
- * Return: pool_id
+ * Return: pool slot
  */
 static uint8_t wbuff_get_pool_slot_from_len(uint16_t len)
 {
@@ -49,16 +49,16 @@ static uint8_t wbuff_get_pool_slot_from_len(uint16_t len)
 }
 
 /**
- * wbuff_get_len_from_pool_slot() - get len from pool_id
- * @pool_id: pool ID
+ * wbuff_get_len_from_pool_slot() - get len from pool slot
+ * @pool_slot: wbuff pool_slot
  *
- * Return: nbuf length from pool_id
+ * Return: nbuf length from pool slot
  */
-static uint32_t wbuff_get_len_from_pool_slot(uint16_t pool_id)
+static uint32_t wbuff_get_len_from_pool_slot(uint16_t pool_slot)
 {
 	uint32_t len = 0;
 
-	switch (pool_id) {
+	switch (pool_slot) {
 	case 0:
 		len = WBUFF_LEN_POOL0;
 		break;
@@ -79,25 +79,25 @@ static uint32_t wbuff_get_len_from_pool_slot(uint16_t pool_id)
 }
 
 /**
- * wbuff_get_free_mod_slot() - get free module_id
+ * wbuff_get_free_mod_slot() - get free module slot
  *
- * Return: module_id
+ * Return: module slot
  */
 static uint8_t wbuff_get_free_mod_slot(void)
 {
-	uint8_t module_id = 0;
+	uint8_t mslot = 0;
 
-	for (module_id = 0; module_id < WBUFF_MAX_MODULES; module_id++) {
-		qdf_spin_lock_bh(&wbuff.mod[module_id].lock);
-		if (!wbuff.mod[module_id].registered) {
-			wbuff.mod[module_id].registered = true;
-			qdf_spin_unlock_bh(&wbuff.mod[module_id].lock);
+	for (mslot = 0; mslot < WBUFF_MAX_MODULES; mslot++) {
+		qdf_spin_lock_bh(&wbuff.mod[mslot].lock);
+		if (!wbuff.mod[mslot].registered) {
+			wbuff.mod[mslot].registered = true;
+			qdf_spin_unlock_bh(&wbuff.mod[mslot].lock);
 			break;
 		}
-		qdf_spin_unlock_bh(&wbuff.mod[module_id].lock);
+		qdf_spin_unlock_bh(&wbuff.mod[mslot].lock);
 	}
 
-	return module_id;
+	return mslot;
 }
 
 /**
@@ -112,13 +112,13 @@ static bool wbuff_is_valid_alloc_req(struct wbuff_alloc_request *req,
 				     uint8_t num)
 {
 	uint16_t psize = 0;
-	uint8_t alloc = 0, pool_id = 0;
+	uint8_t alloc = 0, pslot = 0;
 
 	for (alloc = 0; alloc < num; alloc++) {
-		pool_id = req[alloc].slot;
+		pslot = req[alloc].slot;
 		psize = req[alloc].size;
-		if ((pool_id > WBUFF_MAX_POOLS - 1) ||
-		    (psize > wbuff_alloc_max[pool_id]))
+		if ((pslot > WBUFF_MAX_POOLS - 1) ||
+		    (psize > wbuff_alloc_max[pslot]))
 			return false;
 	}
 
@@ -127,8 +127,8 @@ static bool wbuff_is_valid_alloc_req(struct wbuff_alloc_request *req,
 
 /**
  * wbuff_prepare_nbuf() - allocate nbuf
- * @module_id: module ID
- * @pool_id: pool ID
+ * @mslot: module slot
+ * @pslot: pool slot
  * @len: length of the buffer
  * @reserve: nbuf headroom to start with
  * @align: alignment for the nbuf
@@ -136,7 +136,7 @@ static bool wbuff_is_valid_alloc_req(struct wbuff_alloc_request *req,
  * Return: nbuf if success
  *         NULL if failure
  */
-static qdf_nbuf_t wbuff_prepare_nbuf(uint8_t module_id, uint8_t pool_id,
+static qdf_nbuf_t wbuff_prepare_nbuf(uint8_t mslot, uint8_t pslot,
 				     uint32_t len, int reserve, int align)
 {
 	qdf_nbuf_t buf;
@@ -146,9 +146,9 @@ static qdf_nbuf_t wbuff_prepare_nbuf(uint8_t module_id, uint8_t pool_id,
 			     align, false);
 	if (!buf)
 		return NULL;
-	dev_scratch = module_id;
-	dev_scratch <<= WBUFF_MODULE_ID_SHIFT;
-	dev_scratch |= ((pool_id << WBUFF_POOL_ID_SHIFT) | 1);
+	dev_scratch = mslot;
+	dev_scratch <<= WBUFF_MSLOT_SHIFT;
+	dev_scratch |= ((pslot << WBUFF_PSLOT_SHIFT) | 1);
 	qdf_nbuf_set_dev_scratch(buf, dev_scratch);
 
 	return buf;
@@ -173,18 +173,18 @@ static bool wbuff_is_valid_handle(struct wbuff_handle *handle)
 QDF_STATUS wbuff_module_init(void)
 {
 	struct wbuff_module *mod = NULL;
-	uint8_t module_id = 0, pool_id = 0;
+	uint8_t mslot = 0, pslot = 0;
 
 	if (!qdf_nbuf_is_dev_scratch_supported()) {
 		wbuff.initialized = false;
 		return QDF_STATUS_E_NOSUPPORT;
 	}
 
-	for (module_id = 0; module_id < WBUFF_MAX_MODULES; module_id++) {
-		mod = &wbuff.mod[module_id];
+	for (mslot = 0; mslot < WBUFF_MAX_MODULES; mslot++) {
+		mod = &wbuff.mod[mslot];
 		qdf_spinlock_create(&mod->lock);
-		for (pool_id = 0; pool_id < WBUFF_MAX_POOLS; pool_id++)
-			mod->pool[pool_id] = NULL;
+		for (pslot = 0; pslot < WBUFF_MAX_POOLS; pslot++)
+			mod->pool[pslot] = NULL;
 		mod->registered = false;
 	}
 	wbuff.initialized = true;
@@ -195,14 +195,14 @@ QDF_STATUS wbuff_module_init(void)
 QDF_STATUS wbuff_module_deinit(void)
 {
 	struct wbuff_module *mod = NULL;
-	uint8_t module_id = 0;
+	uint8_t mslot = 0;
 
 	if (!wbuff.initialized)
 		return QDF_STATUS_E_INVAL;
 
 	wbuff.initialized = false;
-	for (module_id = 0; module_id < WBUFF_MAX_MODULES; module_id++) {
-		mod = &wbuff.mod[module_id];
+	for (mslot = 0; mslot < WBUFF_MAX_MODULES; mslot++) {
+		mod = &wbuff.mod[mslot];
 		if (mod->registered)
 			wbuff_module_deregister((struct wbuff_mod_handle *)
 						&mod->handle);
@@ -220,7 +220,7 @@ wbuff_module_register(struct wbuff_alloc_request *req, uint8_t num,
 	qdf_nbuf_t buf = NULL;
 	uint32_t len = 0;
 	uint16_t idx = 0, psize = 0;
-	uint8_t alloc = 0, module_id = 0, pool_id = 0;
+	uint8_t alloc = 0, mslot = 0, pslot = 0;
 
 	if (!wbuff.initialized)
 		return NULL;
@@ -231,33 +231,33 @@ wbuff_module_register(struct wbuff_alloc_request *req, uint8_t num,
 	if (!wbuff_is_valid_alloc_req(req, num))
 		return NULL;
 
-	module_id = wbuff_get_free_mod_slot();
-	if (module_id == WBUFF_MAX_MODULES)
+	mslot = wbuff_get_free_mod_slot();
+	if (mslot == WBUFF_MAX_MODULES)
 		return NULL;
 
-	mod = &wbuff.mod[module_id];
+	mod = &wbuff.mod[mslot];
 
-	mod->handle.id = module_id;
+	mod->handle.id = mslot;
 
 	for (alloc = 0; alloc < num; alloc++) {
-		pool_id = req[alloc].slot;
+		pslot = req[alloc].slot;
 		psize = req[alloc].size;
-		len = wbuff_get_len_from_pool_slot(pool_id);
+		len = wbuff_get_len_from_pool_slot(pslot);
 		/**
 		 * Allocate pool_cnt number of buffers for
-		 * the pool given by pool_id
+		 * the pool given by pslot
 		 */
 		for (idx = 0; idx < psize; idx++) {
-			buf = wbuff_prepare_nbuf(module_id, pool_id, len,
-						 reserve, align);
+			buf = wbuff_prepare_nbuf(mslot, pslot, len, reserve,
+						 align);
 			if (!buf)
 				continue;
-			if (!mod->pool[pool_id]) {
+			if (!mod->pool[pslot]) {
 				qdf_nbuf_set_next(buf, NULL);
-				mod->pool[pool_id] = buf;
+				mod->pool[pslot] = buf;
 			} else {
-				qdf_nbuf_set_next(buf, mod->pool[pool_id]);
-				mod->pool[pool_id] = buf;
+				qdf_nbuf_set_next(buf, mod->pool[pslot]);
+				mod->pool[pslot] = buf;
 			}
 		}
 	}
@@ -271,7 +271,7 @@ QDF_STATUS wbuff_module_deregister(struct wbuff_mod_handle *hdl)
 {
 	struct wbuff_handle *handle;
 	struct wbuff_module *mod = NULL;
-	uint8_t module_id = 0, pool_id = 0;
+	uint8_t mslot = 0, pslot = 0;
 	qdf_nbuf_t first = NULL, buf = NULL;
 
 	handle = (struct wbuff_handle *)hdl;
@@ -279,12 +279,12 @@ QDF_STATUS wbuff_module_deregister(struct wbuff_mod_handle *hdl)
 	if ((!wbuff.initialized) || (!wbuff_is_valid_handle(handle)))
 		return QDF_STATUS_E_INVAL;
 
-	module_id = handle->id;
-	mod = &wbuff.mod[module_id];
+	mslot = handle->id;
+	mod = &wbuff.mod[mslot];
 
 	qdf_spin_lock_bh(&mod->lock);
-	for (pool_id = 0; pool_id < WBUFF_MAX_POOLS; pool_id++) {
-		first = mod->pool[pool_id];
+	for (pslot = 0; pslot < WBUFF_MAX_POOLS; pslot++) {
+		first = mod->pool[pslot];
 		while (first) {
 			buf = first;
 			first = qdf_nbuf_next(buf);
@@ -302,8 +302,8 @@ qdf_nbuf_t wbuff_buff_get(struct wbuff_mod_handle *hdl, uint32_t len,
 {
 	struct wbuff_handle *handle;
 	struct wbuff_module *mod = NULL;
-	uint8_t module_id = 0;
-	uint8_t pool_id = 0;
+	uint8_t mslot = 0;
+	uint8_t pslot = 0;
 	qdf_nbuf_t buf = NULL;
 
 	handle = (struct wbuff_handle *)hdl;
@@ -312,14 +312,14 @@ qdf_nbuf_t wbuff_buff_get(struct wbuff_mod_handle *hdl, uint32_t len,
 	    (len > WBUFF_MAX_BUFFER_SIZE))
 		return NULL;
 
-	module_id = handle->id;
-	pool_id = wbuff_get_pool_slot_from_len(len);
-	mod = &wbuff.mod[module_id];
+	mslot = handle->id;
+	pslot = wbuff_get_pool_slot_from_len(len);
+	mod = &wbuff.mod[mslot];
 
 	qdf_spin_lock_bh(&mod->lock);
-	if (mod->pool[pool_id]) {
-		buf = mod->pool[pool_id];
-		mod->pool[pool_id] = qdf_nbuf_next(buf);
+	if (mod->pool[pslot]) {
+		buf = mod->pool[pslot];
+		mod->pool[pslot] = qdf_nbuf_next(buf);
 		mod->pending_returns++;
 	}
 	qdf_spin_unlock_bh(&mod->lock);
@@ -334,34 +334,32 @@ qdf_nbuf_t wbuff_buff_get(struct wbuff_mod_handle *hdl, uint32_t len,
 qdf_nbuf_t wbuff_buff_put(qdf_nbuf_t buf)
 {
 	qdf_nbuf_t buffer = buf;
-	unsigned long pool_info = 0;
-	uint8_t module_id = 0, pool_id = 0;
+	unsigned long slot_info = 0;
+	uint8_t mslot = 0, pslot = 0;
 
 	if (!wbuff.initialized)
 		return buffer;
 
-	pool_info = qdf_nbuf_get_dev_scratch(buf);
-	if (!pool_info)
+	slot_info = qdf_nbuf_get_dev_scratch(buf);
+	if (!slot_info)
 		return buffer;
 
-	module_id = (pool_info & WBUFF_MODULE_ID_BITMASK) >>
-			WBUFF_MODULE_ID_SHIFT;
-	pool_id = (pool_info & WBUFF_POOL_ID_BITMASK) >> WBUFF_POOL_ID_SHIFT;
+	mslot = (slot_info & WBUFF_MSLOT_BITMASK) >> WBUFF_MSLOT_SHIFT;
+	pslot = (slot_info & WBUFF_PSLOT_BITMASK) >> WBUFF_PSLOT_SHIFT;
 
-	if (module_id >= WBUFF_MAX_MODULES || pool_id >= WBUFF_MAX_POOLS)
+	if (mslot >= WBUFF_MAX_MODULES || pslot >= WBUFF_MAX_POOLS)
 		return NULL;
 
-	qdf_nbuf_reset(buffer, wbuff.mod[module_id].reserve,
-		       wbuff.mod[module_id].align);
-
-	qdf_spin_lock_bh(&wbuff.mod[module_id].lock);
-	if (wbuff.mod[module_id].registered) {
-		qdf_nbuf_set_next(buffer, wbuff.mod[module_id].pool[pool_id]);
-		wbuff.mod[module_id].pool[pool_id] = buffer;
-		wbuff.mod[module_id].pending_returns--;
+	qdf_nbuf_reset(buffer, wbuff.mod[mslot].reserve, wbuff.mod[mslot].
+		       align);
+	qdf_spin_lock_bh(&wbuff.mod[mslot].lock);
+	if (wbuff.mod[mslot].registered) {
+		qdf_nbuf_set_next(buffer, wbuff.mod[mslot].pool[pslot]);
+		wbuff.mod[mslot].pool[pslot] = buffer;
+		wbuff.mod[mslot].pending_returns--;
 		buffer = NULL;
 	}
-	qdf_spin_unlock_bh(&wbuff.mod[module_id].lock);
+	qdf_spin_unlock_bh(&wbuff.mod[mslot].lock);
 
 	return buffer;
 }
