@@ -264,7 +264,6 @@ QDF_STATUS wbuff_module_init(void)
 
 	return QDF_STATUS_SUCCESS;
 }
-qdf_export_symbol(wbuff_module_init);
 
 QDF_STATUS wbuff_module_deinit(void)
 {
@@ -287,7 +286,6 @@ QDF_STATUS wbuff_module_deinit(void)
 
 	return QDF_STATUS_SUCCESS;
 }
-qdf_export_symbol(wbuff_module_deinit);
 
 struct wbuff_mod_handle *
 wbuff_module_register(struct wbuff_alloc_request *req, uint8_t num_pools,
@@ -359,7 +357,6 @@ wbuff_module_register(struct wbuff_alloc_request *req, uint8_t num_pools,
 
 	return (struct wbuff_mod_handle *)&mod->handle;
 }
-qdf_export_symbol(wbuff_module_register);
 
 QDF_STATUS wbuff_module_deregister(struct wbuff_mod_handle *hdl)
 {
@@ -401,7 +398,6 @@ QDF_STATUS wbuff_module_deregister(struct wbuff_mod_handle *hdl)
 
 	return QDF_STATUS_SUCCESS;
 }
-qdf_export_symbol(wbuff_module_deregister);
 
 qdf_nbuf_t
 wbuff_buff_get(struct wbuff_mod_handle *hdl, uint8_t pool_id, uint32_t len,
@@ -448,7 +444,6 @@ wbuff_buff_get(struct wbuff_mod_handle *hdl, uint8_t pool_id, uint32_t len,
 
 	return buf;
 }
-qdf_export_symbol(wbuff_buff_get);
 
 qdf_nbuf_t wbuff_buff_put(qdf_nbuf_t buf)
 {
@@ -487,4 +482,3 @@ qdf_nbuf_t wbuff_buff_put(qdf_nbuf_t buf)
 
 	return buffer;
 }
-qdf_export_symbol(wbuff_buff_put);
