@@ -1444,7 +1444,7 @@ dp_rx_intrabss_ucast_check_be(qdf_nbuf_t nbuf,
 		dp_peer_unref_delete(da_peer, DP_MOD_ID_RX);
 	}
 
-	if (!be_soc->ml_ctxt) {
+	if ((!be_vdev->mlo_dev_ctxt) || (!be_soc->ml_ctxt)) {
 		params->tx_vdev_id = ta_peer->vdev->vdev_id;
 		return true;
 	}

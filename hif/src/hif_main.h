@@ -388,9 +388,6 @@ struct hif_softc {
 	struct pld_shadow_reg_v3_cfg shadow_regs[MAX_SHADOW_REGS];
 	int num_shadow_registers_configured;
 #endif
-#ifdef WLAN_FEATURE_CE_RX_BUFFER_REUSE
-	struct wbuff_mod_handle *wbuff_handle;
-#endif
 };
 
 static inline
