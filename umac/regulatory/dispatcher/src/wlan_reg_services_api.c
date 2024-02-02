@@ -786,6 +786,8 @@ QDF_STATUS wlan_reg_get_freq_range(struct wlan_objmgr_pdev *pdev,
 	return QDF_STATUS_SUCCESS;
 }
 
+qdf_export_symbol(wlan_reg_get_freq_range);
+
 struct wlan_lmac_if_reg_tx_ops *
 wlan_reg_get_tx_ops(struct wlan_objmgr_psoc *psoc)
 {
