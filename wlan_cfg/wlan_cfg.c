@@ -3578,8 +3578,6 @@ wlan_soc_ipa_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
 			cfg_get(psoc, CFG_DP_IPA_TX_ALT_RING_SIZE);
 	wlan_cfg_ctx->ipa_tx_alt_comp_ring_size =
 			cfg_get(psoc, CFG_DP_IPA_TX_ALT_COMP_RING_SIZE);
-	wlan_cfg_ctx->ipa_tx_desc_size =
-			cfg_get(psoc, CFG_DP_IPA_TX_DESC);
 }
 #else /* !IPA_WDI3_TX_TWO_PIPES */
 /**
@@ -5306,11 +5304,6 @@ uint32_t wlan_cfg_ipa_tx_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg)
 uint32_t wlan_cfg_ipa_tx_comp_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return cfg->ipa_tx_comp_ring_size;
-}
-
-int  wlan_cfg_ipa_get_num_tx_desc_size(struct wlan_cfg_dp_soc_ctxt *cfg)
-{
-	return cfg->ipa_tx_desc_size;
 }
 
 #ifdef IPA_WDI3_TX_TWO_PIPES

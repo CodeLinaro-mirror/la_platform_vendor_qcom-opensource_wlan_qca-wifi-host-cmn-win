@@ -18340,7 +18340,7 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	* single PDEV operation.
 	*/
 	if (1 == pdev->pdev_id)
-		if (dp_ipa_uc_alt_attach(soc) != QDF_STATUS_SUCCESS)
+		if (dp_ipa_uc_alt_attach(soc, pdev) != QDF_STATUS_SUCCESS)
 			qdf_err("%pK: dp_ipa_uc_alt_attach failed", soc);
 
 	/* initialize sw rx descriptors */

@@ -304,7 +304,6 @@ struct wlan_srng_cfg {
  * @ipa_tx_ring_size: IPA tx ring size
  * @ipa_tx_comp_ring_size: IPA tx completion ring size
  * @ipa_tx_alt_ring_size: IPA tx alt ring size
- * @ipa_tx_desc_size: IPA tx desc size
  * @ipa_tx_alt_comp_ring_size: IPA tx alt completion ring size
  * @hw_cc_enabled: cookie conversion enabled
  * @tcl_wbm_map_array: TCL-WBM map array
@@ -499,7 +498,6 @@ struct wlan_cfg_dp_soc_ctxt {
 #ifdef IPA_WDI3_TX_TWO_PIPES
 	int ipa_tx_alt_ring_size;
 	int ipa_tx_alt_comp_ring_size;
-	int ipa_tx_desc_size;
 #endif /* IPA_WDI3_TX_TWO_PIPES */
 #endif /* IPA_OFFLOAD */
 	bool hw_cc_enabled;
@@ -2125,14 +2123,6 @@ int wlan_cfg_ipa_tx_alt_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg);
  */
 int
 wlan_cfg_ipa_tx_alt_comp_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg);
-
-/**
- * wlan_cfg_ipa_get_num_tx_desc_size - Get num tx desc size for IPA
- * @cfg: dp cfg context
- *
- * Return: IPA Num of TX Desc
- */
-int wlan_cfg_ipa_get_num_tx_desc_size(struct wlan_cfg_dp_soc_ctxt *cfg);
 #else
 static inline
 uint32_t wlan_cfg_ipa_tx_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg)

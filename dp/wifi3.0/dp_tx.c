@@ -6857,18 +6857,6 @@ fail1:
 	return QDF_STATUS_E_RESOURCES;
 }
 
-#if defined(IPA_OFFLOAD) && defined(QCA_WIFI_QCN9224)
-static inline int dp_soc_get_num_tx_desc(struct dp_soc *soc)
-{
-	return wlan_cfg_ipa_get_num_tx_desc_size(soc->wlan_cfg_ctx);
-}
-#else
-static inline int dp_soc_get_num_tx_desc(struct dp_soc *soc)
-{
-	return wlan_cfg_get_num_tx_desc(soc->wlan_cfg_ctx);
-}
-#endif
-
 QDF_STATUS dp_soc_tx_desc_sw_pools_init(struct dp_soc *soc)
 {
 	uint8_t num_pool, num_ext_pool;
@@ -6881,7 +6869,7 @@ QDF_STATUS dp_soc_tx_desc_sw_pools_init(struct dp_soc *soc)
 
 	num_pool = wlan_cfg_get_num_tx_desc_pool(soc->wlan_cfg_ctx);
 	num_ext_pool = dp_get_ext_tx_desc_pool_num(soc);
-	num_desc = dp_soc_get_num_tx_desc(soc);
+	wlan_cfg_get_num_tx_desc(soc->wlan_cfg_ctx);
 	num_spcl_desc = wlan_cfg_get_num_tx_spl_desc(soc->wlan_cfg_ctx);
 	num_ext_desc = wlan_cfg_get_num_tx_ext_desc(soc->wlan_cfg_ctx);
 

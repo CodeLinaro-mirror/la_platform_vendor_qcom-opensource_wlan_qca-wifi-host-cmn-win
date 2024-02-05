@@ -617,7 +617,7 @@ static void dp_ipa_tx_alt_pool_detach(struct dp_soc *soc, struct dp_pdev *pdev)
 	qdf_mem_free_sgtable(&ipa_res->tx_alt_comp_ring.sgtable);
 }
 
-static int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc)
+static int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	uint32_t tx_buffer_count;
 	uint32_t ring_base_align = 8;
@@ -646,8 +646,8 @@ static int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc)
 	hal_get_srng_params(soc->hal_soc,
 			    hal_srng_to_hal_ring_handle(wbm_srng),
 			    &srng_params);
-	num_entries = srng_params.num_entries;
-
+	num_entries = dp_ipa_get_num_entries(pdev, srng_params.num_entries,
+					     QDF_BUFF_TYPE_TX);
 	max_alloc_count =
 		num_entries - DP_IPA_WAR_WBM2SW_REL_RING_NO_BUF_ENTRIES;
 	if (max_alloc_count <= 0) {
@@ -760,6 +760,9 @@ static void dp_ipa_tx_alt_ring_resource_setup(struct dp_soc *soc)
 	/* IPA TCL_DATA Alternative Ring - HAL_SRNG_SW2TCL2 */
 	hal_srng = (struct hal_srng *)
 		soc->tcl_data_ring[IPA_TX_ALT_RING_IDX].hal_srng;
+	if (!hal_srng)
+		return;
+
 	hal_get_srng_params(hal_soc_to_hal_soc_handle(hal_soc),
 			    hal_srng_to_hal_ring_handle(hal_srng),
 			    &srng_params);
@@ -794,6 +797,9 @@ static void dp_ipa_tx_alt_ring_resource_setup(struct dp_soc *soc)
 	/* IPA TX Alternative COMP Ring - HAL_SRNG_WBM2SW4_RELEASE */
 	hal_srng = (struct hal_srng *)
 		soc->tx_comp_ring[IPA_TX_ALT_COMP_RING_IDX].hal_srng;
+	if (!hal_srng)
+		return;
+
 	hal_get_srng_params(hal_soc_to_hal_soc_handle(hal_soc),
 			    hal_srng_to_hal_ring_handle(hal_srng),
 			    &srng_params);
@@ -1062,7 +1068,7 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 {
 	dp_debug("session_id %u is_tx1_used %d", session_id, is_tx1_used);
 
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_TX1_USED(in) = is_tx1_used;
 }
 #else
@@ -1182,7 +1188,8 @@ static inline void dp_ipa_tx_alt_ring_resource_setup(struct dp_soc *soc)
 {
 }
 
-static inline int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc)
+static inline int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc,
+					    struct dp_pdev *pdev)
 {
 	return 0;
 }
@@ -1481,8 +1488,8 @@ static int dp_tx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 
 	hal_get_srng_params(soc->hal_soc, hal_srng_to_hal_ring_handle(wbm_srng),
 			    &srng_params);
-	num_entries = srng_params.num_entries;
-
+	num_entries = dp_ipa_get_num_entries(pdev, srng_params.num_entries,
+					     QDF_BUFF_TYPE_TX);
 	max_alloc_count =
 		num_entries - DP_IPA_WAR_WBM2SW_REL_RING_NO_BUF_ENTRIES;
 	if (max_alloc_count <= 0) {
@@ -1585,12 +1592,12 @@ static int dp_rx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 }
 
 #if defined(QCA_IPA_LL_TX_FLOW_CONTROL) && defined(IPA_WDI3_TX_TWO_PIPES)
-int dp_ipa_uc_alt_attach(struct dp_soc *soc)
+int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	int error;
 
 	/* Setup 2nd TX pipe */
-	error = dp_ipa_tx_alt_pool_attach(soc);
+	error = dp_ipa_tx_alt_pool_attach(soc, pdev);
 	if (error) {
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 			  "%s: DP IPA TX pool2 attach fail code %d",
@@ -1613,8 +1620,6 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 			  "%s: DP IPA UC TX attach fail code %d",
 			  __func__, error);
-		if (error == -EFAULT)
-			dp_tx_ipa_uc_detach(soc, pdev);
 		return error;
 	}
 
@@ -1631,7 +1636,7 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 	return QDF_STATUS_SUCCESS;	/* success */
 }
 #else
-int dp_ipa_uc_alt_attach(struct dp_soc *soc)
+int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	return QDF_STATUS_SUCCESS;	/* success */
 }
@@ -1656,7 +1661,7 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 
 	/* Setup 2nd TX pipe */
 	if (dp_ipa_is_alt_tx_required(soc)) {
-		error = dp_ipa_tx_alt_pool_attach(soc);
+		error = dp_ipa_tx_alt_pool_attach(soc, pdev);
 		if (error) {
 			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 				  "%s: DP IPA TX pool2 attach fail code %d",
@@ -3153,7 +3158,7 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 	dp_ipa_setup_meta_data_mask(&in);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_HANDLE(&in) = hdl;
 
-	vdev = dp_vdev_get_ref_by_session_id(soc, session_id);
+	vdev = dp_vdev_get_ref_by_id(soc, session_id, DP_MOD_ID_IPA);
 	if (!vdev) {
 		qdf_err("dp_vdev is Null for vdev_id:%d", session_id);
 		return ret;
