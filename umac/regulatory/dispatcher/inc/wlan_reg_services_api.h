@@ -151,6 +151,15 @@ uint16_t wlan_reg_get_max_chwidth(struct wlan_objmgr_pdev *pdev,
 enum phy_ch_width
 wlan_reg_get_next_lower_bandwidth(enum phy_ch_width ch_width);
 
+/**
+ * wlan_reg_get_next_higher_bandwidth() - Get next higher bandwdith
+ * @ch_width: channel bandwdith
+ *
+ * Return: Return next higher bandwidth of input channel bandwidth
+ */
+enum phy_ch_width
+wlan_reg_get_next_higher_bandwidth(enum phy_ch_width ch_width);
+
 #ifdef CONFIG_REG_CLIENT
 /**
  * wlan_reg_is_freq_indoor_in_secondary_list() - Check if the input frequency is
@@ -172,6 +181,15 @@ bool wlan_reg_is_freq_indoor_in_secondary_list(struct wlan_objmgr_pdev *pdev,
  * Return: true if channel frequency is 6GHz, else false
  */
 bool wlan_reg_is_6ghz_chan_freq(uint16_t freq);
+
+/**
+ * wlan_reg_is_6g_ap_type_invalid() - Check if the given ap power mode is valid.
+ * @ap_6g_pwr_type: 6 GHz power mode
+ *
+ * Return: true if the power mode is invalid, false otherwise.
+ */
+bool wlan_reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_6g_pwr_type);
+
 #define WLAN_REG_IS_6GHZ_CHAN_FREQ(freq) wlan_reg_is_6ghz_chan_freq(freq)
 
 #ifdef CONFIG_6G_FREQ_OVERLAP
@@ -317,6 +335,12 @@ QDF_STATUS wlan_reg_get_superchan_entry(
 static inline bool wlan_reg_is_6ghz_chan_freq(uint16_t freq)
 {
 	return false;
+}
+
+static inline bool
+wlan_reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_6g_pwr_type)
+{
+	return true;
 }
 
 static inline bool wlan_reg_is_range_only6g(qdf_freq_t low_freq,

@@ -429,6 +429,30 @@ reg_get_bonded_chan_entry(qdf_freq_t freq,
 
 #endif /*CONFIG_CHAN_FREQ_API*/
 
+/* For a given chan_width, provide the next higher chan_width */
+static const enum phy_ch_width next_higher_bw[] = {
+	[CH_WIDTH_20MHZ] = CH_WIDTH_40MHZ,
+	[CH_WIDTH_40MHZ] = CH_WIDTH_80MHZ,
+	[CH_WIDTH_80MHZ] = CH_WIDTH_160MHZ,
+	[CH_WIDTH_5MHZ]  = CH_WIDTH_10MHZ,
+	[CH_WIDTH_10MHZ] = CH_WIDTH_20MHZ,
+#ifdef WLAN_FEATURE_11BE
+	[CH_WIDTH_160MHZ] = CH_WIDTH_320MHZ,
+	[CH_WIDTH_320MHZ]   = CH_WIDTH_INVALID
+#else
+	[CH_WIDTH_80P80MHZ] = CH_WIDTH_160MHZ,
+	[CH_WIDTH_160MHZ] = CH_WIDTH_INVALID
+#endif
+};
+
+enum phy_ch_width reg_get_next_higher_bandwidth(enum phy_ch_width ch_width)
+{
+	if (ch_width >= CH_WIDTH_20MHZ && ch_width <= CH_WIDTH_320MHZ)
+	    return next_higher_bw[ch_width];
+	else
+	    return CH_WIDTH_INVALID;
+}
+
 enum phy_ch_width get_next_lower_bandwidth(enum phy_ch_width ch_width)
 {
 	static const enum phy_ch_width get_next_lower_bw[] = {
@@ -445,7 +469,10 @@ enum phy_ch_width get_next_lower_bandwidth(enum phy_ch_width ch_width)
 		[CH_WIDTH_5MHZ] = CH_WIDTH_INVALID
 	};
 
-	return get_next_lower_bw[ch_width];
+	if (ch_width >= CH_WIDTH_20MHZ && ch_width <= CH_WIDTH_320MHZ)
+	    return get_next_lower_bw[ch_width];
+	else
+	    return CH_WIDTH_INVALID;
 }
 
 const struct chan_map channel_map_us[NUM_CHANNELS] = {
@@ -9071,7 +9098,7 @@ reg_get_best_6g_pwr_type(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq)
 	return pdev_priv_obj->super_chan_list[sixg_freq_idx].best_power_mode;
 }
 
-static inline bool reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_pwr_type)
+bool reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_pwr_type)
 {
 	return ((ap_pwr_type < REG_INDOOR_AP) ||
 		(ap_pwr_type > REG_MAX_SUPP_AP_TYPE));
@@ -9817,9 +9844,12 @@ static int8_t reg_get_sp_eirp(struct wlan_objmgr_pdev *pdev,
 						       sp_master_chan_list,
 						       freq, bw,
 						       &reg_sp_eirp_pwr);
-
-	if (afc_eirp_pwr)
-		return QDF_MIN(afc_eirp_pwr, (int8_t)reg_sp_eirp_pwr);
+	if (is_client_list_lookup_needed) {
+	    return QDF_MIN(afc_eirp_pwr - SP_AP_AND_CLIENT_POWER_DIFF_IN_DBM,
+			    (int8_t)reg_sp_eirp_pwr);
+	} else if (afc_eirp_pwr) {
+	    return QDF_MIN(afc_eirp_pwr, (int8_t)reg_sp_eirp_pwr);
+	}
 
 	return 0;
 }
