@@ -2506,21 +2506,24 @@ void dp_audio_smmu_unmap(qdf_device_t qdf_dev, qdf_dma_addr_t iova,
 
 /**
  * dp_ipa_get_num_entries - Get tx,rx num of buffers
- * @pdev: pdev object
+ * @soc: soc object
+ * @pdev_id: pdev id
  * @num_entries: number of entries in ring
  * @buff_type: buffer type
+ *
+ * Return: Number of TX/RX Buffers.
  */
 #if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_LOW_MEM)
 static inline uint32_t
-dp_ipa_get_num_entries(struct dp_pdev *pdev, uint32_t num_entries,
+dp_ipa_get_num_entries(struct dp_soc *soc, uint8_t pdev_id,
+		       uint32_t num_entries,
 		       enum qdf_buff_type_tx_rx buff_type)
 {
-	struct dp_soc *soc = pdev->soc;
 	uint32_t num_buff = num_entries;
 
 	if (soc->cdp_soc.ol_ops->pdev_get_num_buff)
 		num_buff =  soc->cdp_soc.ol_ops->pdev_get_num_buff(soc->ctrl_psoc,
-							           pdev->pdev_id,
+							           pdev_id,
 							           buff_type);
 	if (num_buff > num_entries)
 		num_buff = num_entries;

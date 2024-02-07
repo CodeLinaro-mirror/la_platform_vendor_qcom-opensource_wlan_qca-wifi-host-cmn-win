@@ -645,7 +645,8 @@ static int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 	hal_get_srng_params(soc->hal_soc,
 			    hal_srng_to_hal_ring_handle(wbm_srng),
 			    &srng_params);
-	num_entries = dp_ipa_get_num_entries(pdev, srng_params.num_entries,
+	num_entries = dp_ipa_get_num_entries(soc, pdev->pdev_id,
+					     srng_params.num_entries,
 					     QDF_BUFF_TYPE_TX);
 	max_alloc_count =
 		num_entries - DP_IPA_WAR_WBM2SW_REL_RING_NO_BUF_ENTRIES;
@@ -1487,7 +1488,8 @@ static int dp_tx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 
 	hal_get_srng_params(soc->hal_soc, hal_srng_to_hal_ring_handle(wbm_srng),
 			    &srng_params);
-	num_entries = dp_ipa_get_num_entries(pdev, srng_params.num_entries,
+	num_entries = dp_ipa_get_num_entries(soc, IPA_DEF_PDEV_ID,
+					     srng_params.num_entries,
 					     QDF_BUFF_TYPE_TX);
 	max_alloc_count =
 		num_entries - DP_IPA_WAR_WBM2SW_REL_RING_NO_BUF_ENTRIES;
