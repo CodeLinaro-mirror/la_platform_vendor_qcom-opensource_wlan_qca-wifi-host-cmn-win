@@ -3262,7 +3262,7 @@ dp_rx_pdev_buffers_alloc(struct dp_pdev *pdev)
 	uint32_t target_type = hal_get_target_type(soc->hal_soc);
 
 	dp_rxdma_srng = &soc->rx_refill_buf_ring[mac_for_pdev];
-	rxdma_entries = dp_ipa_get_num_entries(pdev,
+	rxdma_entries = dp_ipa_get_num_entries(pdev->soc, pdev->pdev_id,
 					       dp_rxdma_srng->num_entries,
 					       QDF_BUFF_TYPE_RX);
 	rx_desc_pool = &soc->rx_desc_buf[mac_for_pdev];
