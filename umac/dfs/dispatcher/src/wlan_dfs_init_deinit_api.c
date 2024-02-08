@@ -159,6 +159,17 @@ static inline void register_dfs_callbacks_spoof_success_failure(
 #endif
 
 #ifndef MOBILE_DFS_SUPPORT
+static void
+register_dfs_callbacks_for_cfg_dfs_events(struct dfs_to_mlme *mlme_callback)
+{
+	if (!mlme_callback)
+		return;
+
+	mlme_callback->mlme_send_dfs_cfg_event = mlme_dfs_send_dfs_cfg_events;
+}
+#endif
+
+#ifndef MOBILE_DFS_SUPPORT
 void register_dfs_callbacks(void)
 {
 	struct dfs_to_mlme *tmp_dfs_to_mlme = &global_dfs_to_mlme;
@@ -206,6 +217,8 @@ void register_dfs_callbacks(void)
 	tmp_dfs_to_mlme->mlme_mark_dfs =
 		mlme_dfs_mark_dfs;
 	tmp_dfs_to_mlme->mlme_set_tx_flag = mlme_dfs_set_tx_flag;
+	tmp_dfs_to_mlme->mlme_is_pdev_valid_for_curhwmode =
+		mlme_dfs_is_pdev_valid_for_curhwmode;
 	/*
 	 * Register precac auto channel switch feature related callbacks
 	 */
@@ -214,6 +227,7 @@ void register_dfs_callbacks(void)
 	register_dfs_callbacks_for_freq(tmp_dfs_to_mlme);
 	register_dfs_postnol_csa_callback(tmp_dfs_to_mlme);
 	register_dfs_unpunc_chan_switch_callback(tmp_dfs_to_mlme);
+	register_dfs_callbacks_for_cfg_dfs_events(tmp_dfs_to_mlme);
 }
 #else
 void register_dfs_callbacks(void)
