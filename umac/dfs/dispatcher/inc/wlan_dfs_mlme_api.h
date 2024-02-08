@@ -377,4 +377,32 @@ void dfs_mlme_release_radar_mode_switch_lock(struct wlan_objmgr_pdev *pdev)
 {
 }
 #endif
+
+#ifndef MOBILE_DFS_SUPPORT
+/*
+ * dfs_mlme_send_cfg80211_event: Send NL DFS events to the user space.
+ *
+ * @pdev: Pointer to pdev.
+ * @chan: Pointer to channel for which the event is sent.
+ * @event: The DFS event that is sent to user space.
+ * Return: void.
+ */
+void dfs_mlme_send_cfg80211_event(struct wlan_objmgr_pdev *pdev,
+				  struct wlan_channel *chan,
+				  QDF_RADAR_EVENT event);
+#else
+static inline
+void dfs_mlme_send_cfg80211_event(struct wlan_objmgr_pdev *pdev,
+				  struct wlan_channel *chan,
+				  QDF_RADAR_EVENT event)
+{
+}
+#endif
+
+/**
+ * dfs_mlme_is_pdev_valid() - Return true if the given pdev is valid
+ * for the current operating HW mode, false otherwise.
+ * @pdev: Pointer to struct wlan_objmgr_pdev
+ */
+bool dfs_mlme_is_pdev_valid(struct wlan_objmgr_pdev *pdev);
 #endif /* _WLAN_DFS_MLME_API_H_ */

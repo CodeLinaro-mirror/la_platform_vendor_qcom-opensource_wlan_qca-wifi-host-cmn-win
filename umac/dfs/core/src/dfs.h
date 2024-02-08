@@ -46,6 +46,7 @@
 #include "target_type.h"
 #include <wlan_dfs_public_struct.h>
 #include <reg_services_public_struct.h>
+#include <wlan_objmgr_vdev_obj.h>
 
 /* File Line and Submodule String */
 #define FLSM(x, str)   #str " : " FL(x)
@@ -2435,6 +2436,21 @@ void dfs_deliver_cac_state_events(struct wlan_dfs *dfs)
 {
 }
 #endif
+
+/*
+ * dfs_deliver_cac_state_events_for_prevchan() - Deliver the DFS CAC events
+ * on dfs_prevchan.
+ *
+ * @dfs: Pointer to wlan_dfs structure.
+ */
+#if defined(WLAN_DISP_CHAN_INFO)
+void dfs_deliver_cac_state_events_for_prevchan(struct wlan_dfs *dfs);
+#else
+static inline
+void dfs_deliver_cac_state_events_for_prevchan(struct wlan_dfs *dfs)
+{
+}
+#endif
 #else
 static inline
 void dfs_stacac_stop(struct wlan_dfs *dfs)
@@ -2527,6 +2543,11 @@ void dfs_cac_timer_detach(struct wlan_dfs *dfs)
 
 static inline
 void dfs_deliver_cac_state_events(struct wlan_dfs *dfs)
+{
+}
+
+static inline
+void dfs_deliver_cac_state_events_for_prevchan(struct wlan_dfs *dfs)
 {
 }
 
@@ -3350,4 +3371,25 @@ dfs_restart_rcac_on_nol_expiry(struct wlan_dfs *dfs)
  * Return: Channel width in MHz. (uint16) -EINVAL on invalid channel.
  */
 uint16_t dfs_chan_to_ch_width(struct dfs_channel *chan);
+
+#ifndef MOBILE_DFS_SUPPORT
+/**
+ * dfs_conv_dfs_channel_to_wlan_channel() - Convert dfs_channel structure to
+ * wlan_channel structure.
+ *
+ * @chan: Pointer to the input dfs_channel structure.
+ * @wlan_chan: Pointer to the input wlan_channel structure.
+ *
+ * Return: void
+ */
+void dfs_conv_dfs_channel_to_wlan_channel(struct dfs_channel *chan,
+					  struct wlan_channel *wlan_chan);
+#else
+static inline
+void dfs_conv_dfs_channel_to_wlan_channel(struct dfs_channel *chan,
+					  struct wlan_channel *wlan_chan)
+{
+}
+#endif
+
 #endif  /* _DFS_H_ */

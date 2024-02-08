@@ -874,6 +874,12 @@ wlan_reg_get_next_lower_bandwidth(enum phy_ch_width ch_width)
 	return get_next_lower_bandwidth(ch_width);
 }
 
+enum phy_ch_width
+wlan_reg_get_next_higher_bandwidth(enum phy_ch_width ch_width)
+{
+	return reg_get_next_higher_bandwidth(ch_width);
+}
+
 #ifdef CONFIG_REG_CLIENT
 bool wlan_reg_is_freq_indoor_in_secondary_list(struct wlan_objmgr_pdev *pdev,
 					       qdf_freq_t freq)
@@ -886,6 +892,11 @@ bool wlan_reg_is_freq_indoor_in_secondary_list(struct wlan_objmgr_pdev *pdev,
 bool wlan_reg_is_6ghz_chan_freq(uint16_t freq)
 {
 	return reg_is_6ghz_chan_freq(freq);
+}
+
+bool wlan_reg_is_6g_ap_type_invalid(enum reg_6g_ap_type ap_6g_pwr_type)
+{
+	return reg_is_6g_ap_type_invalid(ap_6g_pwr_type);
 }
 
 #ifdef CONFIG_6G_FREQ_OVERLAP

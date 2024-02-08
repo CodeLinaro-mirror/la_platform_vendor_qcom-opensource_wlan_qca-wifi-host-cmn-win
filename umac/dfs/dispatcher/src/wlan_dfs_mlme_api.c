@@ -281,6 +281,14 @@ void dfs_mlme_set_tx_flag(struct wlan_objmgr_pdev *pdev, bool is_tx_allowed)
 		global_dfs_to_mlme.mlme_set_tx_flag(pdev, is_tx_allowed);
 }
 
+bool dfs_mlme_is_pdev_valid(struct wlan_objmgr_pdev *pdev)
+{
+	if (global_dfs_to_mlme.mlme_is_pdev_valid_for_curhwmode)
+	    return global_dfs_to_mlme.mlme_is_pdev_valid_for_curhwmode(pdev);
+
+	return false;
+}
+
 void dfs_mlme_clist_update(struct wlan_objmgr_pdev *pdev,
 		void *nollist,
 		int nentries)
@@ -372,4 +380,14 @@ bool dfs_mlme_is_opmode_sta(struct wlan_objmgr_pdev *pdev)
 		return false;
 
 	return global_dfs_to_mlme.mlme_is_opmode_sta(pdev);
+}
+
+void dfs_mlme_send_cfg80211_event(struct wlan_objmgr_pdev *pdev,
+				  struct wlan_channel *chan,
+				  QDF_RADAR_EVENT event)
+{
+	if (!global_dfs_to_mlme.mlme_send_dfs_cfg_event)
+		return;
+
+	global_dfs_to_mlme.mlme_send_dfs_cfg_event(pdev, chan, event);
 }
