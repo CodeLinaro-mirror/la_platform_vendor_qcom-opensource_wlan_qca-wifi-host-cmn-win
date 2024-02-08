@@ -2531,9 +2531,10 @@ dp_ipa_get_num_entries(struct dp_soc *soc, uint8_t pdev_id,
 	return num_buff;
 }
 #else
-static inline uint32_t dp_ipa_get_num_entries(struct dp_pdev *pdev,
-					      uint32_t num_entries,
-					      enum qdf_buff_type_tx_rx buff_type)
+static inline uint32_t
+dp_ipa_get_num_entries(struct dp_soc *soc, uint8_t pdev_id,
+		       uint32_t num_entries,
+		       enum qdf_buff_type_tx_rx buff_type)
 {
 	return num_entries;
 }
