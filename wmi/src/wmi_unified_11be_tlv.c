@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -344,6 +344,7 @@ uint8_t *peer_assoc_add_ml_partner_links(uint8_t *buf_ptr,
 					      partner_info[i].mlo_bridge_peer);
 		ml_partner_link->mlo_flags.emlsr_support = partner_info[i].emlsr_support;
 		ml_partner_link->logical_link_index = partner_info[i].logical_link_index;
+		ml_partner_link->ieee_link_id = partner_info[i].link_id;
 
 		ml_partner_link++;
 	}

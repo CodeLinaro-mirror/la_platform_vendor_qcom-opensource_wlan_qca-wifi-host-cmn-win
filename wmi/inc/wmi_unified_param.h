@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1273,6 +1273,7 @@ struct peer_assoc_mlo_params {
  * @mlo_bridge_peer: indicate if peer is bridge peer
  * @unused: spare bits
  * @logical_link_index: Unique index for links of the mlo. Starts with Zero
+ * @link_id: AP Link Id
  */
 struct ml_partner_info {
 	uint32_t vdev_id;
@@ -1289,6 +1290,7 @@ struct ml_partner_info {
 		 mlo_bridge_peer:1,
 		 unused:22;
 	uint32_t logical_link_index;
+	uint32_t link_id;
 };
 
 /**
