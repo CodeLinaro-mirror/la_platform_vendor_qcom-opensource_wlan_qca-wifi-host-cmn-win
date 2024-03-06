@@ -6619,6 +6619,19 @@ void dp_rxdma_setup_refill_ring3(struct dp_soc *soc,
 { }
 #endif
 
+#if defined(IPA_OFFLOAD) && defined(QCA_WIFI_QCN9224)
+static inline
+void dp_monitor_soc_srng_setup(struct dp_soc *soc)
+{
+	dp_monitor_soc_htt_srng_setup(soc);
+}
+#else
+static inline
+void dp_monitor_soc_srng_setup(struct dp_soc *soc)
+{
+}
+#endif
+
 /**
  * dp_rxdma_ring_config() - configure the RX DMA rings
  * @soc: data path SoC handle
@@ -6635,6 +6648,7 @@ static QDF_STATUS dp_rxdma_ring_config(struct dp_soc *soc)
 	int i;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 
+	dp_monitor_soc_srng_setup(soc);
 	for (i = 0; i < MAX_PDEV_CNT; i++) {
 		struct dp_pdev *pdev = soc->pdev_list[i];
 
