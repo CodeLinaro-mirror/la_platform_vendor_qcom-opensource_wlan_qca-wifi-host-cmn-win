@@ -1068,7 +1068,7 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 {
 	dp_debug("session_id %u is_tx1_used %d", session_id, is_tx1_used);
 
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 24);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_TX1_USED(in) = is_tx1_used;
 }
 #else
@@ -1288,9 +1288,16 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 					  uint8_t session_id, bool is_tx1_used)
 {
 	if (ucfg_ipa_is_wds_enabled())
-		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id);
+		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 24);
 	else
 		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
+}
+#else
+#ifdef QCA_IPA_LL_TX_FLOW_CONTROL
+static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
+					  uint8_t session_id)
+{
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 24);
 }
 #else
 static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
@@ -1298,6 +1305,7 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 {
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
 }
+#endif
 #endif
 
 static inline void dp_ipa_tx_comp_ring_init_hp(struct dp_soc *soc,
