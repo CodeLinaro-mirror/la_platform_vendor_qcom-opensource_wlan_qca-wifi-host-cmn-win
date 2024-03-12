@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -171,27 +171,28 @@ cdp_mlo_get_mld_vdev_stats(ol_txrx_soc_handle soc,
 							 link_vdev_only);
 }
 
-#ifdef IPA_OFFLOAD
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
 /*
- * cdp_mlo_get_mlo_chip_id - Get Mlo Chip ID
+ * cdp_mlo_get_mlo_dest_soc - Get dest soc
  * @soc: soc handle
- * @chip_id: pointer to chip_id
- *
- * return: none
+ * @nbuf: socket buffer
+ * @vdev_id: id of virtual device
+ * @params: pointer to parameter structure
+ * return: false in case of error, else true
  */
-static inline void
-cdp_mlo_get_mlo_chip_id(ol_txrx_soc_handle soc,
-			uint8_t *chip_id)
+static inline bool
+cdp_mlo_get_mlo_dest_soc(ol_txrx_soc_handle soc, qdf_nbuf_t nbuf,
+                        uint8_t vdev_id, struct dp_ipa_params *params)
 {
-	if (!soc || !soc->ops) {
-		QDF_BUG(0);
-		return;
-	}
+       if (!soc || !soc->ops) {
+               QDF_BUG(0);
+               return false;
+       }
 
-	if (!soc->ops->mlo_ops || !soc->ops->mlo_ops->mlo_get_mlo_chip_id)
-		return;
+       if (!soc->ops->mlo_ops || !soc->ops->mlo_ops->mlo_get_mlo_dest_soc)
+               return false;
 
-	soc->ops->mlo_ops->mlo_get_mlo_chip_id(soc, chip_id);
+       return soc->ops->mlo_ops->mlo_get_mlo_dest_soc(soc, nbuf, vdev_id, params);
 }
 #endif
 #endif /*_CDP_TXRX_MLO_H_*/

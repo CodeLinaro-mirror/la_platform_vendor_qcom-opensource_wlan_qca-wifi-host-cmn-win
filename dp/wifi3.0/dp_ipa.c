@@ -1069,7 +1069,7 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 {
 	dp_debug("session_id %u is_tx1_used %d", session_id, is_tx1_used);
 
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id);
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_TX1_USED(in) = is_tx1_used;
 }
 #else
@@ -1294,11 +1294,19 @@ static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 		QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
 }
 #else
+#ifdef QCA_IPA_LL_TX_FLOW_CONTROL
+static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
+					  uint8_t session_id)
+{
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id);
+}
+#else
 static void dp_ipa_setup_iface_session_id(qdf_ipa_wdi_reg_intf_in_params_t *in,
 					  uint8_t session_id, bool is_tx1_used)
 {
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(in) = htonl(session_id << 16);
 }
+#endif
 #endif
 
 static inline void dp_ipa_tx_comp_ring_init_hp(struct dp_soc *soc,
@@ -3827,6 +3835,98 @@ static inline bool dp_ipa_peer_check(struct dp_soc *soc,
 }
 #endif
 
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(QCA_IPA_LL_TX_FLOW_CONTROL) && \
+    defined(IPA_OFFLOAD)
+bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
+			    qdf_nbuf_t nbuf, bool *fwd_success)
+{
+	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+	struct dp_vdev *dest_vdev = NULL;
+	struct dp_vdev *src_vdev = NULL;
+	struct dp_pdev *pdev;
+	qdf_nbuf_t nbuf_copy;
+	uint8_t da_is_bcmc;
+	struct ethhdr *eh;
+	bool status = false;
+	struct dp_ipa_params params;
+
+	*fwd_success = false; /* set default as failure */
+
+	/*
+	 * WDI 3.0 skb->cb[] info from IPA driver
+	 * skb->cb[0] = vdev_id
+	 * skb->cb[1].bit#1 = da_is_bcmc
+	 */
+	da_is_bcmc = ((uint8_t)nbuf->cb[1]) & 0x2;
+
+	if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
+		return false;
+
+	dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc, params.vdev_id,
+				     DP_MOD_ID_IPA);
+
+	if (qdf_unlikely(!dest_vdev))
+		return false;
+
+	pdev = dest_vdev->pdev;
+	if (qdf_unlikely(!pdev))
+		goto out;
+
+	/* no fwd for station mode and just pass up to stack */
+	if (dest_vdev->opmode == wlan_op_mode_sta)
+		goto out;
+
+	if (da_is_bcmc) {
+		nbuf_copy = qdf_nbuf_copy(nbuf);
+		if (!nbuf_copy)
+			goto out;
+
+		if (dp_ipa_intrabss_send(pdev, dest_vdev, nbuf_copy))
+			qdf_nbuf_free(nbuf_copy);
+		else
+			*fwd_success = true;
+
+		/* return false to pass original pkt up to stack */
+		goto out;
+	}
+
+	eh = (struct ethhdr *)qdf_nbuf_data(nbuf);
+
+	if (!qdf_mem_cmp(eh->h_dest, dest_vdev->mac_addr.raw,
+			 QDF_MAC_ADDR_SIZE))
+		goto out;
+
+	if (!dp_ipa_peer_check(params.dest_soc, eh->h_dest, dest_vdev->vdev_id))
+		goto out;
+
+	src_vdev = dp_vdev_get_ref_by_id(soc, vdev_id, DP_MOD_ID_IPA);
+	if (qdf_unlikely(!src_vdev))
+		goto out;
+
+	if (!dp_ipa_peer_check(soc, eh->h_source, src_vdev->vdev_id))
+		goto out;
+
+	/*
+	 * In intra-bss forwarding scenario, skb is allocated by IPA driver.
+	 * Need to add skb to internal tracking table to avoid nbuf memory
+	 * leak check for unallocated skb.
+	 */
+	qdf_net_buf_debug_acquire_skb(nbuf, __FILE__, __LINE__);
+
+	if (dp_ipa_intrabss_send(pdev, dest_vdev, nbuf))
+		qdf_nbuf_free(nbuf);
+	else
+		*fwd_success = true;
+
+	status = true;
+out:
+	dp_vdev_unref_delete(params.dest_soc, dest_vdev, DP_MOD_ID_IPA);
+	if (src_vdev)
+		dp_vdev_unref_delete(soc, src_vdev, DP_MOD_ID_IPA);
+	return status;
+}
+
+#else
 bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 			    qdf_nbuf_t nbuf, bool *fwd_success)
 {
@@ -3901,6 +4001,7 @@ out:
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
 	return status;
 }
+#endif
 
 #ifdef MDM_PLATFORM
 bool dp_ipa_is_mdm_platform(void)
