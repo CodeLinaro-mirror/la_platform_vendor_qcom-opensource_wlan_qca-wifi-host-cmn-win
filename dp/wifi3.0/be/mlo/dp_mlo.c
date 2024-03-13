@@ -787,69 +787,6 @@ dp_get_interface_stats_be(struct cdp_soc_t *soc_hdl,
 }
 #endif
 
-#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
-#define NBUF_CB_DEST_CHIP_ID_OFFSET    7
-#define NBUF_CB_DEST_CHIP_PMAC_ID_OFFSET       8
-
-static bool dp_mlo_get_dest_soc(struct cdp_soc_t *soc_hdl, qdf_nbuf_t nbuf,
-				uint8_t vdev_id, struct dp_ipa_params *params)
-{
-	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
-	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-	struct dp_vdev *vdev = NULL;
-	struct dp_vdev_be *be_vdev = NULL;
-	uint8_t dest_chip_id, dest_chip_pmac_id;
-	bool status = false;
-
-	vdev = dp_vdev_get_ref_by_id(soc, vdev_id, DP_MOD_ID_IPA);
-	if (qdf_unlikely(!vdev))
-		return false;
-
-	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
-
-	dest_chip_id =  (uint8_t)nbuf->cb[NBUF_CB_DEST_CHIP_ID_OFFSET];
-	qdf_assert_always(dest_chip_id <= (DP_MLO_MAX_DEST_CHIP_ID - 1));
-
-	dest_chip_pmac_id = (uint8_t)nbuf->cb[NBUF_CB_DEST_CHIP_PMAC_ID_OFFSET];
-
-	if (!be_soc->ml_ctxt)
-		params->dest_soc = (struct dp_soc *)be_soc;
-	else
-		params->dest_soc = dp_mlo_get_soc_ref_by_chip_id(be_soc->ml_ctxt
-							         , dest_chip_id
-								);
-	if (!params->dest_soc) {
-		qdf_err("dest soc is null");
-		goto out;
-	}
-
-	if ((!be_vdev->mlo_dev_ctxt) || (!be_soc->ml_ctxt)) {
-		params->vdev_id = vdev->vdev_id;
-		status = true;
-		goto out;
-	}
-
-	if (dest_chip_id == be_soc->mlo_chip_id) {
-		if (dest_chip_pmac_id == vdev->pdev->pdev_id)
-			params->vdev_id = vdev->vdev_id;
-		else
-			params->vdev_id =
-				be_vdev->mlo_dev_ctxt->vdev_list[dest_chip_id]
-				[dest_chip_pmac_id];
-		status = true;
-		goto out;
-	}
-
-	params->vdev_id = be_vdev->mlo_dev_ctxt->vdev_list[dest_chip_id]
-							  [dest_chip_pmac_id];
-	status = true;
-out:
-	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
-	return status;
-}
-
-#endif
-
 static struct cdp_mlo_ops dp_mlo_ops = {
 	.mlo_soc_setup = dp_mlo_soc_setup,
 	.mlo_soc_teardown = dp_mlo_soc_teardown,
@@ -861,9 +798,6 @@ static struct cdp_mlo_ops dp_mlo_ops = {
 	.mlo_ctxt_detach = dp_mlo_ctxt_detach_wifi3,
 #ifdef CONFIG_MLO_SINGLE_DEV
 	.mlo_get_mld_vdev_stats = dp_mlo_get_mld_vdev_stats,
-#endif
-#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
-	.mlo_get_mlo_dest_soc = dp_mlo_get_dest_soc,
 #endif
 };
 
