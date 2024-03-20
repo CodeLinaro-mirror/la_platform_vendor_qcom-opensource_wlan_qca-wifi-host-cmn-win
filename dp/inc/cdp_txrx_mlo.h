@@ -170,4 +170,29 @@ cdp_mlo_get_mld_vdev_stats(ol_txrx_soc_handle soc,
 							 buf,
 							 link_vdev_only);
 }
+
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
+/*
+ * cdp_mlo_get_mlo_dest_soc - Get dest soc
+ * @soc: soc handle
+ * @nbuf: socket buffer
+ * @vdev_id: id of virtual device
+ * @params: pointer to parameter structure
+ * return: false in case of error, else true
+ */
+static inline bool
+cdp_mlo_get_mlo_dest_soc(ol_txrx_soc_handle soc, qdf_nbuf_t nbuf,
+                        uint8_t vdev_id, struct dp_ipa_params *params)
+{
+       if (!soc || !soc->ops) {
+               QDF_BUG(0);
+               return false;
+       }
+
+       if (!soc->ops->mlo_ops || !soc->ops->mlo_ops->mlo_get_mlo_dest_soc)
+               return false;
+
+       return soc->ops->mlo_ops->mlo_get_mlo_dest_soc(soc, nbuf, vdev_id, params);
+}
+#endif
 #endif /*_CDP_TXRX_MLO_H_*/
