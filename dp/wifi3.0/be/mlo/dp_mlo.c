@@ -787,20 +787,6 @@ dp_get_interface_stats_be(struct cdp_soc_t *soc_hdl,
 }
 #endif
 
-#ifdef IPA_OFFLOAD
-static void dp_mlo_get_mlo_chip_id(struct cdp_soc_t *soc_hdl,
-				   uint8_t *chip_id)
-{
-	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
-	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-
-	if (!be_soc->mlo_enabled)
-		*chip_id = 0xFF;
-	else
-		*chip_id = be_soc->mlo_chip_id;
-}
-#endif
-
 static struct cdp_mlo_ops dp_mlo_ops = {
 	.mlo_soc_setup = dp_mlo_soc_setup,
 	.mlo_soc_teardown = dp_mlo_soc_teardown,
@@ -812,9 +798,6 @@ static struct cdp_mlo_ops dp_mlo_ops = {
 	.mlo_ctxt_detach = dp_mlo_ctxt_detach_wifi3,
 #ifdef CONFIG_MLO_SINGLE_DEV
 	.mlo_get_mld_vdev_stats = dp_mlo_get_mld_vdev_stats,
-#endif
-#ifdef IPA_OFFLOAD
-	.mlo_get_mlo_chip_id = dp_mlo_get_mlo_chip_id,
 #endif
 };
 

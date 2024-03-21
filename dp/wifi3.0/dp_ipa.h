@@ -394,7 +394,7 @@ bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 			    qdf_nbuf_t nbuf, bool *fwd_success);
 int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev);
 int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev);
-int dp_ipa_uc_alt_attach(struct dp_soc *soc);
+int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev);
 
 /**
  * dp_ipa_ring_resource_setup() - setup IPA ring resources
@@ -597,12 +597,14 @@ static inline void dp_ipa_opt_dp_ixo_remap(uint8_t *ix0_map)
  * @vdev_id: id of vdev handle
  * @peer_mac: peer mac address
  * @peer_stats: buffer to hold peer stats
+ * @peer_type: peer type
  *
  * Return: status success/failure
  */
 QDF_STATUS dp_ipa_txrx_get_peer_stats(struct cdp_soc_t *soc, uint8_t vdev_id,
 				      uint8_t *peer_mac,
-				      struct cdp_peer_stats *peer_stats);
+				      struct cdp_peer_stats *peer_stats,
+				      enum cdp_peer_type peer_type);
 
 /**
  * dp_ipa_txrx_get_vdev_stats - fetch vdev stats
@@ -680,7 +682,7 @@ static inline int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 	return QDF_STATUS_SUCCESS;
 }
 
-static inline int dp_ipa_uc_alt_attach(struct dp_soc *soc)
+static inline int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	return QDF_STATUS_SUCCESS;
 }

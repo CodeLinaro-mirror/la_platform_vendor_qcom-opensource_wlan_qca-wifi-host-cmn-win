@@ -155,7 +155,6 @@ enum cdp_peer_txq_flush_policy {
  * @mlo_ctxt_attach: Attach DP MLO context
  * @mlo_ctxt_detach: Detach DP MLO context
  * @mlo_get_mld_vdev_stats: Get MLD vdev stats
- * @mlo_get_mlo_chip_id: Get MLO Chip ID
  */
 struct cdp_mlo_ops {
 	void (*mlo_soc_setup)(struct cdp_soc_t *cdp_soc,
@@ -176,10 +175,6 @@ struct cdp_mlo_ops {
 	QDF_STATUS (*mlo_get_mld_vdev_stats)(struct cdp_soc_t *soc,
 					     uint8_t vdev_id, void *buf,
 					     bool link_vdev_only);
-#ifdef IPA_OFFLOAD
-	void (*mlo_get_mlo_chip_id)(struct cdp_soc_t *soc,
-				    uint8_t *chip_id);
-#endif
 };
 #endif
 
@@ -1720,8 +1715,12 @@ void (*peer_send_wds_disconnect)(struct cdp_ctrl_objmgr_psoc *psoc,
 #ifdef CONFIG_SAWF_DEF_QUEUES
 	int (*disable_sawf_svc)(uint8_t svc_id);
 #endif
-	uint16_t (*pdev_get_num_buff)(struct cdp_ctrl_objmgr_psoc *psoc, uint8_t pdev_id);
 	uint8_t (*get_mlo_chip_id)(struct cdp_ctrl_objmgr_psoc *psoc);
+#if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_LOW_MEM)
+	uint16_t (*pdev_get_num_buff)(struct cdp_ctrl_objmgr_psoc *psoc,
+				      uint8_t pdev_id,
+				      enum qdf_buff_type_tx_rx buff_type);
+#endif
 };
 
 #ifdef DP_PEER_EXTENDED_API

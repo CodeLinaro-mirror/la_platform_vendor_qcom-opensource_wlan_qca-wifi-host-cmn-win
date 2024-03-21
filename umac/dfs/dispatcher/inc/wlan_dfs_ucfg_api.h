@@ -78,6 +78,8 @@
  * @mlme_proc_spoof_success:           Called when FW send spoof success event.
  * @mlme_set_tx_flag:                  Called when Radar is detected to
  *                                     indicate stop data traffic.
+ * @mlme_is_pdev_valid_for_curhwmode:  Validates if the given input pdev is
+ *                                     valid for the current HW mode.
  */
 struct dfs_to_mlme {
 	QDF_STATUS (*pdev_component_obj_attach)(struct wlan_objmgr_pdev *pdev,
@@ -215,6 +217,9 @@ struct dfs_to_mlme {
 #endif
 	QDF_STATUS (*mlme_set_tx_flag)(struct wlan_objmgr_pdev *pdev,
 				       bool is_tx_allowed);
+#ifndef MOBILE_DFS_SUPPORT
+	bool (*mlme_is_pdev_valid_for_curhwmode)(struct wlan_objmgr_pdev *pdev);
+#endif
 };
 
 extern struct dfs_to_mlme global_dfs_to_mlme;

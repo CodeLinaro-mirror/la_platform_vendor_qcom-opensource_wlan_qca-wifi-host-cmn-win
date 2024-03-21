@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -170,28 +170,4 @@ cdp_mlo_get_mld_vdev_stats(ol_txrx_soc_handle soc,
 							 buf,
 							 link_vdev_only);
 }
-
-#ifdef IPA_OFFLOAD
-/*
- * cdp_mlo_get_mlo_chip_id - Get Mlo Chip ID
- * @soc: soc handle
- * @chip_id: pointer to chip_id
- *
- * return: none
- */
-static inline void
-cdp_mlo_get_mlo_chip_id(ol_txrx_soc_handle soc,
-			uint8_t *chip_id)
-{
-	if (!soc || !soc->ops) {
-		QDF_BUG(0);
-		return;
-	}
-
-	if (!soc->ops->mlo_ops || !soc->ops->mlo_ops->mlo_get_mlo_chip_id)
-		return;
-
-	soc->ops->mlo_ops->mlo_get_mlo_chip_id(soc, chip_id);
-}
-#endif
 #endif /*_CDP_TXRX_MLO_H_*/

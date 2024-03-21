@@ -1277,7 +1277,7 @@ wlan_ipa_set_sap_client_auth(struct wlan_ipa_priv *ipa_ctx,
 			     const uint8_t *peer_mac,
 			     uint8_t is_authenticated)
 {
-	uint8_t idx;
+	uint16_t idx;
 	struct ipa_uc_stas_map *sta_map;
 
 	for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
@@ -1294,7 +1294,7 @@ wlan_ipa_set_sap_client_auth(struct wlan_ipa_priv *ipa_ctx,
 static inline uint8_t
 wlan_ipa_get_sap_client_auth(struct wlan_ipa_priv *ipa_ctx, uint8_t *peer_mac)
 {
-	uint8_t idx;
+	uint16_t idx;
 	struct ipa_uc_stas_map *sta_map;
 
 	for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
@@ -1911,7 +1911,7 @@ static bool wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
 					   const uint8_t *mac_addr)
 {
 	bool sta_found = false;
-	uint8_t idx;
+	uint16_t idx;
 
 	for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
 		if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
@@ -4910,6 +4910,7 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 	if (true == ipa_ctx->uc_loaded) {
 		cdp_ipa_tx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      __func__, __LINE__);
+
 		cdp_ipa_rx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      __func__, __LINE__);
 		status = cdp_ipa_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
