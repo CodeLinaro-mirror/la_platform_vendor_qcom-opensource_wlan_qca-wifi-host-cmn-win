@@ -216,6 +216,9 @@ struct dp_rx_desc {
 #define dp_rx_add_to_free_desc_list(head, tail, new) \
 	__dp_rx_add_to_free_desc_list(head, tail, new, __func__)
 
+#define dp_rx_add_to_free_desc_list_err(head, tail, new) \
+	__dp_rx_add_to_free_desc_list_err(head, tail, new, __func__)
+
 #define dp_rx_add_to_free_desc_list_reuse(head, tail, new) \
 	__dp_rx_add_to_free_desc_list_reuse(head, tail, new, __func__)
 
@@ -223,6 +226,12 @@ struct dp_rx_desc {
 				num_buffers, desc_list, tail, req_only) \
 	__dp_rx_buffers_replenish(soc, mac_id, rxdma_srng, rx_desc_pool, \
 				  num_buffers, desc_list, tail, req_only, \
+				  __func__)
+
+#define dp_rx_buffers_replenish_err(soc, mac_id, rxdma_srng, rx_desc_pool, \
+				num_buffers, desc_list, tail, nbuf_head, nbuf_tail, req_only) \
+	__dp_rx_buffers_replenish_err(soc, mac_id, rxdma_srng, rx_desc_pool, \
+				  num_buffers, desc_list, tail, nbuf_head, nbuf_tail, req_only, \
 				  __func__)
 
 #ifdef WLAN_SUPPORT_RX_FISA
@@ -546,6 +555,11 @@ static inline void dp_rx_put_le32(uint8_t *p, uint32_t v)
 union dp_rx_desc_list_elem_t {
 	union dp_rx_desc_list_elem_t *next;
 	struct dp_rx_desc rx_desc;
+};
+
+union dp_rx_desc_nbuf_list {
+	union dp_rx_desc_nbuf_list *next;
+	qdf_nbuf_t nbuf;
 };
 
 #ifdef RX_DESC_MULTI_PAGE_ALLOC
@@ -1166,6 +1180,26 @@ void __dp_rx_add_to_free_desc_list(union dp_rx_desc_list_elem_t **head,
 		*tail = *head;
 }
 
+static inline
+void __dp_rx_add_to_free_desc_list_err(union dp_rx_desc_list_elem_t **head,
+				 union dp_rx_desc_list_elem_t **tail,
+				 struct dp_rx_desc *new,
+				 const char *func_name)
+{
+	qdf_assert(head && new);
+
+	//want to use same nbuf so dont free this nbuf and reffill the same
+	new->nbuf = NULL;
+	new->in_use = 0;
+
+	((union dp_rx_desc_list_elem_t *)new)->next = *head;
+	*head = (union dp_rx_desc_list_elem_t *)new;
+
+	/* reset tail if head->next is NULL */
+	if (!*tail || !(*head)->next)
+		*tail = *head;
+}
+
 /**
  * dp_rx_process_invalid_peer(): Function to pass invalid peer list to umac
  * @soc: DP SOC handle
@@ -1692,6 +1726,16 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 				 bool req_only,
 				 const char *func_name);
 
+QDF_STATUS __dp_rx_buffers_replenish_err(struct dp_soc *dp_soc, uint32_t mac_id,
+				 struct dp_srng *dp_rxdma_srng,
+				 struct rx_desc_pool *rx_desc_pool,
+				 uint32_t num_req_buffers,
+				 union dp_rx_desc_list_elem_t **desc_list,
+				 union dp_rx_desc_list_elem_t **tail,
+				 qdf_nbuf_t nbuf_head,
+				 qdf_nbuf_t nbuf_tail,
+				 bool req_only,
+				 const char *func_name);
 /**
  * __dp_rx_buffers_no_map_replenish() - replenish rxdma ring with rx nbufs
  *					use direct APIs to get invalidate
@@ -2754,6 +2798,20 @@ void dp_rx_buffers_replenish_simple(struct dp_soc *soc, uint32_t mac_id,
 {
 	dp_rx_buffers_replenish(soc, mac_id, rxdma_srng, rx_desc_pool,
 				num_req_buffers, desc_list, tail, false);
+}
+
+static inline
+void dp_rx_buffers_replenish_simple_err(struct dp_soc *soc, uint32_t mac_id,
+				    struct dp_srng *rxdma_srng,
+				    struct rx_desc_pool *rx_desc_pool,
+				    uint32_t num_req_buffers,
+				    union dp_rx_desc_list_elem_t **desc_list,
+				    union dp_rx_desc_list_elem_t **tail,
+				    qdf_nbuf_t nbuf_head, qdf_nbuf_t nbuf_tail)
+{
+	dp_rx_buffers_replenish_err(soc, mac_id, rxdma_srng, rx_desc_pool,
+				num_req_buffers, desc_list, tail, nbuf_head,
+				nbuf_tail, false);
 }
 
 static inline
