@@ -1812,7 +1812,14 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 		*head[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
 	union dp_rx_desc_list_elem_t
 		*tail[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
+	union dp_rx_desc_list_elem_t
+		*head_oor[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
+	union dp_rx_desc_list_elem_t
+		*tail_oor[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
+	qdf_nbuf_t nbuf_list_h = NULL;
+	qdf_nbuf_t nbuf_list_t = NULL;
 	uint32_t rx_bufs_reaped[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { 0 } };
+	uint32_t rx_bufs_reaped_oor[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { 0 } };
 	uint8_t buf_type;
 	uint8_t mac_id;
 	struct dp_srng *dp_rxdma_srng;
@@ -1828,6 +1835,7 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct dp_soc *replenish_soc;
 	uint8_t chip_id;
 	struct hal_rx_mpdu_desc_info mpdu_desc_info = { 0 };
+	bool err_oor = false;
 
 	qdf_assert(soc && hal_ring_hdl);
 	hal_soc = soc->hal_soc;
@@ -1896,6 +1904,41 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 		}
 
 		hal_rx_wbm_err_info_get(ring_desc, &wbm_err_info, hal_soc);
+
+		if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) &&
+				(wbm_err_info.reo_err_code ==
+				 HAL_REO_ERR_REGULAR_FRAME_OOR)) {
+			/* WAR: To avoid unmap and map for OOR packet as these
+			 * packets are causing SMMU issue, which is a system
+			 * level issue or coming due to race in buffer accessing
+			 * by GSI HW and buffer mapping/unmapping by WLAN driver,
+			 * hence for now we know under high traffic load the
+			 * buffer map/unmap is happening only for ERR packets
+			 * but OOR err packets are having high frequency, and
+			 * causing smmu address translation issue.
+			 */
+			rx_bufs_reaped_oor[rx_desc->chip_id][rx_desc->pool_id]++;
+			err_oor = true;
+
+			/* Keeping record of skb so that same can be refilled
+			 * in RXDMA_BUF ring
+			 */
+			DP_RX_LIST_APPEND(nbuf_list_h,
+					  nbuf_list_t,
+					  rx_desc->nbuf);
+
+			dp_rx_add_to_free_desc_list_err(
+				&head_oor[rx_desc->chip_id][rx_desc->pool_id],
+				&tail_oor[rx_desc->chip_id][rx_desc->pool_id],
+				rx_desc);
+			/*
+			 * we want to refill back the same buffer in refill ring
+			 * so keeping the same rx_desc and not freeing/null the
+			 * nbuf in it.
+			 */
+			continue;
+		}
+
 		nbuf = rx_desc->nbuf;
 
 		status = dp_rx_wbm_desc_nbuf_sanity_check(soc, hal_ring_hdl,
@@ -2033,6 +2076,42 @@ done:
 			*rx_bufs_used += rx_bufs_reaped[chip_id][mac_id];
 		}
 	}
+
+	if (!err_oor)
+		return nbuf_head;
+
+	for (chip_id = 0; chip_id < WLAN_MAX_MLO_CHIPS; chip_id++) {
+		for (mac_id = 0; mac_id < MAX_PDEV_CNT; mac_id++) {
+			/*
+			 * continue with next mac_id if no pkts were reaped
+			 * from that pool
+			 */
+			if (!rx_bufs_reaped_oor[chip_id][mac_id])
+				continue;
+
+			replenish_soc = dp_rx_replenish_soc_get(soc, chip_id);
+
+			dp_rxdma_srng =
+				&replenish_soc->rx_refill_buf_ring[mac_id];
+
+			rx_desc_pool = &replenish_soc->rx_desc_buf[mac_id];
+
+			/*
+			 * dont allocate new buffer and attach in rx_desc,
+			 * whatever rx_desc is passed use that and put it back
+			 * in rx_refill ring
+			 */
+			dp_rx_buffers_replenish_simple_err(replenish_soc, mac_id,
+						dp_rxdma_srng,
+						rx_desc_pool,
+						rx_bufs_reaped_oor[chip_id][mac_id],
+						&head_oor[chip_id][mac_id],
+						&tail_oor[chip_id][mac_id],
+						nbuf_list_h, nbuf_list_t);
+			*rx_bufs_used += rx_bufs_reaped_oor[chip_id][mac_id];
+		}
+	}
+
 	return nbuf_head;
 }
 
