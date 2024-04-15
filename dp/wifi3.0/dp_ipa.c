@@ -217,8 +217,7 @@ QDF_STATUS dp_ipa_handle_rx_buf_smmu_mapping(struct dp_soc *soc,
 		} else {
 			DP_STATS_INC(soc, rx.err.ipa_smmu_unmap_dup, 1);
 		}
-		/* NO issue in returning Success as buffer is already Mapped */
-		return QDF_STATUS_SUCCESS;
+		return QDF_STATUS_E_INVAL;
 	}
 
 	qdf_nbuf_set_rx_ipa_smmu_map(nbuf, create);
