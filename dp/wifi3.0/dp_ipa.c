@@ -217,8 +217,7 @@ QDF_STATUS dp_ipa_handle_rx_buf_smmu_mapping(struct dp_soc *soc,
 		} else {
 			DP_STATS_INC(soc, rx.err.ipa_smmu_unmap_dup, 1);
 		}
-		/* NO issue in returning Success as buffer is already Mapped */
-		return QDF_STATUS_SUCCESS;
+		return QDF_STATUS_E_INVAL;
 	}
 
 	qdf_nbuf_set_rx_ipa_smmu_map(nbuf, create);
@@ -3860,11 +3859,17 @@ bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	 */
 	da_is_bcmc = ((uint8_t)nbuf->cb[1]) & 0x2;
 
-	if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
-		return false;
+	if (!da_is_bcmc) {
+		if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
+			return false;
 
-	dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc, params.vdev_id,
-				     DP_MOD_ID_IPA);
+		dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc,
+						  params.vdev_id,
+						  DP_MOD_ID_IPA);
+	}
+	else {
+		dest_vdev = dp_vdev_get_ref_by_id(soc, vdev_id, DP_MOD_ID_IPA);
+	}
 
 	if (qdf_unlikely(!dest_vdev))
 		return false;
