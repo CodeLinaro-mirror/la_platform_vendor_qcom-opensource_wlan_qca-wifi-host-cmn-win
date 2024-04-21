@@ -1123,8 +1123,7 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 				     uint32_t num_req_buffers,
 				     union dp_rx_desc_list_elem_t **desc_list,
 				     union dp_rx_desc_list_elem_t **tail,
-				     bool req_only, bool force_replenish,
-				     const char *func_name)
+				     bool req_only, const char *func_name)
 {
 	uint16_t num_desc_to_free = 0;
 	struct dp_pdev *dp_pdev = dp_get_pdev_for_lmac_id(dp_soc, mac_id);
@@ -1165,17 +1164,7 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 
 	count = 0;
 
-	dp_rx_buf_smmu_mapping_lock(dp_soc);
 	while (count < num_req_buffers) {
-		/* rx_desc.in_use should be zero at this time*/
-		if (dp_assert_always_internal_stat(
-			(!(*desc_list)->rx_desc.in_use), dp_soc,
-					rx.err.rx_desc_in_use)) {
-			count++;
-			*desc_list = (*desc_list)->next;
-			continue;
-		}
-
 		/* Flag is set while pdev rx_desc_pool initialization */
 		if (qdf_unlikely(rx_desc_pool->rx_mon_dest_frag_enable))
 			ret = dp_pdev_frag_alloc_and_map(dp_soc,
@@ -1210,6 +1199,9 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 			dp_rx_desc_prep(&((*desc_list)->rx_desc),
 					&nbuf_frag_info);
 
+		/* rx_desc.in_use should be zero at this time*/
+		qdf_assert_always((*desc_list)->rx_desc.in_use == 0);
+
 		(*desc_list)->rx_desc.in_use = 1;
 		(*desc_list)->rx_desc.in_err_state = 0;
 		dp_rx_desc_update_dbg_info(&(*desc_list)->rx_desc,
@@ -1226,7 +1218,6 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 
 		*desc_list = next;
 	}
-	dp_rx_buf_smmu_mapping_unlock(dp_soc);
 
 	dp_rx_refill_ring_record_entry(dp_soc, dp_pdev->lmac_id, rxdma_srng,
 				       num_req_buffers, count);
