@@ -2254,8 +2254,10 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 	}
 
 	scan_entry->ml_info.num_links = link_idx;
-	if (!offset)
+	if (!offset ||
+	    (offset + sizeof(struct wlan_ml_bv_linfo_perstaprof) >= ml_ie_len)) {
 		return;
+	}
 
 	/* TODO: loop through all the STA info fields */
 
@@ -2299,6 +2301,9 @@ static void util_get_ml_bv_partner_link_info(struct scan_cache_entry *scan_entry
 
 		/* Skip STA Info Length field */
 		offset += perstaprof_stainfo_len;
+		if (offset >= ml_ie_len) {
+			return;
+		}
 
 		/*
 		 * To point to the ie_list offset move past the STA Info
@@ -3125,8 +3130,9 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 	 * copied to new ie, skip ssid, capability, bssid-index ie
 	 */
 	tmp_new = sub_copy;
-	while (((tmp_new + tmp_new[1] + MIN_IE_LEN) - sub_copy) <=
-	       (subie_len - 1)) {
+	while ((subie_len > 0) &&
+	       (((tmp_new + tmp_new[1] + MIN_IE_LEN) - sub_copy) <=
+		(subie_len - 1))) {
 		if (!(tmp_new[0] == WLAN_ELEMID_NONTX_BSSID_CAP ||
 		      tmp_new[0] == WLAN_ELEMID_SSID ||
 		      tmp_new[0] == WLAN_ELEMID_MULTI_BSSID_IDX ||
@@ -3508,6 +3514,8 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 			}
 
 			if (mbssid_info.split_prof_continue) {
+				if (!split_prof_start)
+					break;
 				nontx_profile = split_prof_start;
 				subie_len = split_prof_len;
 			} else {
@@ -3526,6 +3534,7 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 					qdf_mem_free(split_prof_start);
 					split_prof_start = NULL;
 					split_prof_end = NULL;
+					split_prof_len = 0;
 				}
 				continue;
 			}
@@ -3596,6 +3605,7 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 					qdf_mem_free(split_prof_start);
 					split_prof_start = NULL;
 					split_prof_end = NULL;
+					split_prof_len = 0;
 					qdf_mem_zero(&mbssid_info,
 						     sizeof(mbssid_info));
 				}
@@ -3610,6 +3620,7 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 				qdf_mem_free(split_prof_start);
 				split_prof_start = NULL;
 				split_prof_end = NULL;
+				split_prof_len = 0;
 			}
 			qdf_mem_free(new_frame);
 		}
