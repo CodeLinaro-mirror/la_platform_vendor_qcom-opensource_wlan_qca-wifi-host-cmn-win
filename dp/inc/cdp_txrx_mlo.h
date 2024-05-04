@@ -194,5 +194,30 @@ cdp_mlo_get_mlo_dest_soc(ol_txrx_soc_handle soc, qdf_nbuf_t nbuf,
 
        return soc->ops->mlo_ops->mlo_get_mlo_dest_soc(soc, nbuf, vdev_id, params);
 }
+
+/*
+ * cdp_get_mcast_primary_vdev - Get Mcast Primary vdev
+ * @soc_hdl: soc handle
+ * @vdev_hdl: vdev handle
+ * @mcast_vdev_hdl: Multicast vdev handle
+ * return: false in case of error, else true
+ */
+static inline bool
+cdp_get_mcast_primary_vdev(ol_txrx_soc_handle soc_hdl,
+			   struct cdp_vdev *vdev_hdl,
+			   struct cdp_vdev *mcast_vdev_hdl)
+{
+	if (!soc_hdl || !soc_hdl->ops) {
+		QDF_BUG(0);
+		return false;
+	}
+
+	if (!soc_hdl->ops->mlo_ops ||
+	    !soc_hdl->ops->mlo_ops->get_mcast_primary_vdev)
+		return false;
+
+	return soc_hdl->ops->mlo_ops->get_mcast_primary_vdev(soc_hdl, vdev_hdl,
+							     mcast_vdev_hdl);
+}
 #endif
 #endif /*_CDP_TXRX_MLO_H_*/

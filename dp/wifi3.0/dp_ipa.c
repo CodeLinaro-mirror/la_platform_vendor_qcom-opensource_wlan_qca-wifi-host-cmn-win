@@ -3665,6 +3665,14 @@ static qdf_nbuf_t dp_ipa_intrabss_send(struct dp_pdev *pdev,
 {
 	struct dp_peer *vdev_peer;
 	uint16_t len;
+	struct dp_vdev *mcast_primary_vdev = NULL;
+	struct cdp_tx_exception_metadata tx_exc_metadata = {0};
+
+	tx_exc_metadata.is_mlo_mcast = 1;
+	tx_exc_metadata.tx_encap_type = CDP_INVALID_TX_ENCAP_TYPE;
+	tx_exc_metadata.sec_type = CDP_INVALID_SEC_TYPE;
+	tx_exc_metadata.peer_id = CDP_INVALID_PEER;
+	tx_exc_metadata.tid = CDP_INVALID_TID;
 
 	vdev_peer = dp_vdev_bss_peer_ref_n_get(pdev->soc, vdev, DP_MOD_ID_IPA);
 	if (qdf_unlikely(!vdev_peer))
@@ -3678,10 +3686,23 @@ static qdf_nbuf_t dp_ipa_intrabss_send(struct dp_pdev *pdev,
 	qdf_mem_zero(nbuf->cb, sizeof(nbuf->cb));
 	len = qdf_nbuf_len(nbuf);
 
-	if (dp_tx_send((struct cdp_soc_t *)pdev->soc, vdev->vdev_id, nbuf)) {
+	if (!cdp_get_mcast_primary_vdev((struct cdp_soc_t *)pdev->soc,
+					(struct cdp_vdev *)vdev,
+					(struct cdp_vdev *)mcast_primary_vdev))
+		nbuf = dp_tx_send((struct cdp_soc_t *)pdev->soc, vdev->vdev_id,
+				  nbuf);
+	else {
+		nbuf = dp_tx_send_exception((struct cdp_soc_t *)
+					    mcast_primary_vdev->pdev->soc,
+					    mcast_primary_vdev->vdev_id,
+					    nbuf, &tx_exc_metadata);
+		dp_vdev_unref_delete(mcast_primary_vdev->pdev->soc,
+				     mcast_primary_vdev, DP_MOD_ID_IPA);
+	}
+
+	if (nbuf) {
 		DP_PEER_PER_PKT_STATS_INC_PKT(vdev_peer->txrx_peer,
-					      rx.intra_bss.fail, 1, len,
-					      0);
+					      rx.intra_bss.fail, 1, len, 0);
 		dp_peer_unref_delete(vdev_peer, DP_MOD_ID_IPA);
 		return nbuf;
 	}
@@ -3921,7 +3942,10 @@ bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	status = true;
 out:
-	dp_vdev_unref_delete(params.dest_soc, dest_vdev, DP_MOD_ID_IPA);
+	if (!da_is_bcmc)
+		dp_vdev_unref_delete(params.dest_soc, dest_vdev, DP_MOD_ID_IPA);
+	else
+		dp_vdev_unref_delete(soc, dest_vdev, DP_MOD_ID_IPA);
 	if (src_vdev)
 		dp_vdev_unref_delete(soc, src_vdev, DP_MOD_ID_IPA);
 	return status;
