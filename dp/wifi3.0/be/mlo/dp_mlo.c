@@ -848,6 +848,24 @@ out:
 	return status;
 }
 
+static bool dp_get_mcast_primary_vdev(struct cdp_soc_t *soc_hdl,
+				      struct cdp_vdev *vdev_hdl,
+				      struct cdp_vdev *mcast_vdev_hdl)
+{
+	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+	struct dp_vdev *vdev = (struct dp_vdev *)vdev_hdl;
+	struct dp_vdev *mcast_primary_vdev = (struct dp_vdev *)mcast_vdev_hdl;
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	mcast_primary_vdev = dp_mlo_get_mcast_primary_vdev(be_soc,
+							   be_vdev,
+							   DP_MOD_ID_IPA);
+	if (!mcast_primary_vdev)
+		return false;
+
+	return true;
+}
 #endif
 
 static struct cdp_mlo_ops dp_mlo_ops = {
@@ -864,6 +882,7 @@ static struct cdp_mlo_ops dp_mlo_ops = {
 #endif
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
 	.mlo_get_mlo_dest_soc = dp_mlo_get_dest_soc,
+	.get_mcast_primary_vdev = dp_get_mcast_primary_vdev,
 #endif
 };
 
