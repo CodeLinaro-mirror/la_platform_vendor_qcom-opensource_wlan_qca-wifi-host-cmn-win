@@ -589,6 +589,32 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 			   hal_ring_handle_t hal_ring_hdl, uint32_t quota,
 			   uint32_t *rx_bufs_used);
 
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
+/*
+ * dp_mlo_get_dest_soc_be - Get dest soc
+ * @soc: Handle to DP Soc structure
+ * @nbuf: socket buffer
+ * @vdev_id: id of virtual device
+ * @params: pointer to parameter structure
+ * return: false in case of error, else true
+ */
+bool
+dp_mlo_get_dest_soc_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
+		       uint8_t vdev_id, struct dp_ipa_params *params);
+
+/*
+ * dp_get_mcast_primary_vdev_be - Get Mcast Primary vdev
+ * @soc: Handle to DP Soc structure
+ * @vdev: DP vdev handle
+ * @mcast_primary_vdev: Multicast vdev handle
+ * return: false in case of error, else true
+ */
+bool
+dp_get_mcast_primary_vdev_be(struct dp_soc *soc,
+			     struct dp_vdev *vdev,
+			     struct dp_vdev **mcast_primary_vdev);
+
+#endif
 /**
  * dp_rx_null_q_desc_handle_be() - Function to handle NULL Queue
  *                                 descriptor violation on either a

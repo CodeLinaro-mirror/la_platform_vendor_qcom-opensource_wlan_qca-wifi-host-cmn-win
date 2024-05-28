@@ -2306,6 +2306,8 @@ enum dp_context_type {
  * @dp_rx_null_q_desc_handle: Handle Null Queue Exception Error
  * @dp_get_vdev_stats_for_unmap_peer: Get vdev stats pointer for unmap peer
  * @dp_get_interface_stats: Get interface stats
+ * @dp_mlo_get_dest_soc: Get dest soc
+ * @dp_get_mcast_primary_vdev: Get Mcast Primary vdev
  * @ppeds_handle_attached:
  * @txrx_soc_ppeds_interrupt_stop:
  * @txrx_soc_ppeds_interrupt_start:
@@ -2549,6 +2551,15 @@ struct dp_arch_ops {
 					     uint8_t vdev_id,
 					     void *buf,
 					     bool is_aggregate);
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
+	bool (*dp_mlo_get_dest_soc)(struct dp_soc *soc, qdf_nbuf_t nbuf,
+				    uint8_t vdev_id,
+				    struct dp_ipa_params *params);
+	bool (*dp_get_mcast_primary_vdev)(struct dp_soc *soc,
+					  struct dp_vdev *vdev,
+					  struct dp_vdev **mcast_primary_vdev);
+#endif
+
 #ifdef WLAN_SUPPORT_PPEDS
 	void (*txrx_soc_ppeds_interrupt_stop)(struct dp_soc *soc);
 	void (*txrx_soc_ppeds_interrupt_start)(struct dp_soc *soc);

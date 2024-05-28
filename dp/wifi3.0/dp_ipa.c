@@ -3667,6 +3667,7 @@ static qdf_nbuf_t dp_ipa_intrabss_send(struct dp_pdev *pdev,
 	uint16_t len;
 	struct dp_vdev *mcast_primary_vdev = NULL;
 	struct cdp_tx_exception_metadata tx_exc_metadata = {0};
+	uint8_t da_is_bcmc = ((uint8_t)nbuf->cb[1]) & 0x2;
 
 	tx_exc_metadata.is_mlo_mcast = 1;
 	tx_exc_metadata.tx_encap_type = CDP_INVALID_TX_ENCAP_TYPE;
@@ -3686,18 +3687,23 @@ static qdf_nbuf_t dp_ipa_intrabss_send(struct dp_pdev *pdev,
 	qdf_mem_zero(nbuf->cb, sizeof(nbuf->cb));
 	len = qdf_nbuf_len(nbuf);
 
-	if (!cdp_get_mcast_primary_vdev((struct cdp_soc_t *)pdev->soc,
-					(struct cdp_vdev *)vdev,
-					(struct cdp_vdev *)mcast_primary_vdev))
+	if (!da_is_bcmc)
 		nbuf = dp_tx_send((struct cdp_soc_t *)pdev->soc, vdev->vdev_id,
 				  nbuf);
 	else {
-		nbuf = dp_tx_send_exception((struct cdp_soc_t *)
-					    mcast_primary_vdev->pdev->soc,
-					    mcast_primary_vdev->vdev_id,
-					    nbuf, &tx_exc_metadata);
-		dp_vdev_unref_delete(mcast_primary_vdev->pdev->soc,
-				     mcast_primary_vdev, DP_MOD_ID_IPA);
+		if (!pdev->soc->arch_ops.dp_get_mcast_primary_vdev
+						(pdev->soc, vdev,
+						 &mcast_primary_vdev)) {
+			nbuf = dp_tx_send((struct cdp_soc_t *)pdev->soc,
+					  vdev->vdev_id, nbuf);
+		} else {
+			nbuf = dp_tx_send_exception((struct cdp_soc_t *)
+					mcast_primary_vdev->pdev->soc,
+					mcast_primary_vdev->vdev_id,
+					nbuf, &tx_exc_metadata);
+			dp_vdev_unref_delete(mcast_primary_vdev->pdev->soc,
+					     mcast_primary_vdev, DP_MOD_ID_IPA);
+		}
 	}
 
 	if (nbuf) {
@@ -3876,7 +3882,8 @@ bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	da_is_bcmc = ((uint8_t)nbuf->cb[1]) & 0x2;
 
 	if (!da_is_bcmc) {
-		if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
+		if (!soc->arch_ops.dp_mlo_get_dest_soc(soc, nbuf, vdev_id,
+						       &params))
 			return false;
 
 		dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc,
