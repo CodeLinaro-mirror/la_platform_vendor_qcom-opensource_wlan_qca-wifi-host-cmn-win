@@ -1803,6 +1803,81 @@ bool dp_rx_intrabss_fwd_be(struct dp_soc *soc, struct dp_txrx_peer *ta_peer,
 }
 #endif
 
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
+#define NBUF_CB_DEST_CHIP_ID_OFFSET    7
+#define NBUF_CB_DEST_CHIP_PMAC_ID_OFFSET       8
+
+bool dp_mlo_get_dest_soc_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
+			    uint8_t vdev_id,
+			    struct dp_ipa_params *params)
+{
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+	struct dp_vdev *vdev = NULL;
+	struct dp_vdev_be *be_vdev = NULL;
+	uint8_t dest_chip_id, dest_chip_pmac_id;
+	bool status = false;
+
+	vdev = dp_vdev_get_ref_by_id(soc, vdev_id, DP_MOD_ID_IPA);
+	if (qdf_unlikely(!vdev))
+		return false;
+
+	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	dest_chip_id =  (uint8_t)nbuf->cb[NBUF_CB_DEST_CHIP_ID_OFFSET];
+	qdf_assert_always(dest_chip_id <= (DP_MLO_MAX_DEST_CHIP_ID - 1));
+
+	dest_chip_pmac_id = (uint8_t)nbuf->cb[NBUF_CB_DEST_CHIP_PMAC_ID_OFFSET];
+
+	if (!be_soc->ml_ctxt)
+		params->dest_soc = (struct dp_soc *)be_soc;
+	else
+		params->dest_soc = dp_mlo_get_soc_ref_by_chip_id(be_soc->ml_ctxt
+								, dest_chip_id);
+	if (!params->dest_soc) {
+		qdf_err("dest soc is null");
+		goto out;
+	}
+
+	if (!be_vdev->mlo_dev_ctxt || !be_soc->ml_ctxt) {
+		params->vdev_id = vdev->vdev_id;
+		status = true;
+		goto out;
+	}
+	if (dest_chip_id == be_soc->mlo_chip_id) {
+		if (dest_chip_pmac_id == vdev->pdev->pdev_id)
+			params->vdev_id = vdev->vdev_id;
+		else
+			params->vdev_id =
+				be_vdev->mlo_dev_ctxt->vdev_list[dest_chip_id]
+				[dest_chip_pmac_id];
+		status = true;
+		goto out;
+	}
+	params->vdev_id = be_vdev->mlo_dev_ctxt->vdev_list[dest_chip_id]
+			  [dest_chip_pmac_id];
+	status = true;
+out:
+	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
+	return status;
+}
+
+bool dp_get_mcast_primary_vdev_be(struct dp_soc *soc,
+				  struct dp_vdev *vdev,
+				  struct dp_vdev **mcast_primary_vdev)
+{
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	*mcast_primary_vdev = dp_mlo_get_mcast_primary_vdev(be_soc,
+							    be_vdev,
+							    DP_MOD_ID_IPA);
+	if (!*mcast_primary_vdev)
+		return false;
+
+	return true;
+}
+#endif
+
 qdf_nbuf_t
 dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 			   hal_ring_handle_t hal_ring_hdl, uint32_t quota,
