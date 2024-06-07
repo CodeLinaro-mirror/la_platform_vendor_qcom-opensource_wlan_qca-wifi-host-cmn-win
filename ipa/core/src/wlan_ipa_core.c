@@ -2678,14 +2678,26 @@ static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
 	return QDF_STATUS_SUCCESS;
 }
 
-#ifdef QCA_CONFIG_RPS
+#if defined(QCA_CONFIG_RPS) && !defined(MDM_PLATFORM)
+/**
+ * wlan_ipa_handle_multiple_sap_evt() - Handle multiple SAP connect/disconnect
+ * @ipa_ctx: IPA global context
+ * @type: IPA event type
+ * @session_id: vdev id
+ *
+ * This function is used to disable pipes when multiple SAP are connected and
+ * enable pipes back when only one SAP is connected.
+ *
+ * Return: None
+ */
 void wlan_ipa_handle_multiple_sap_evt(struct wlan_ipa_priv *ipa_ctx,
-				      qdf_ipa_wlan_event type)
+				      qdf_ipa_wlan_event type,
+				      uint8_t session_id)
 {
 	struct wlan_ipa_iface_context *iface_ctx;
 	int i;
 
-	if (type ==  QDF_IPA_AP_DISCONNECT) {
+	if (type == QDF_IPA_AP_DISCONNECT) {
 		ipa_debug("Multiple SAP disconnecting. Enabling IPA");
 
 		if (ipa_ctx->sap_num_connected_sta > 0)
@@ -2702,7 +2714,7 @@ void wlan_ipa_handle_multiple_sap_evt(struct wlan_ipa_priv *ipa_ctx,
 				break;
 			}
 		}
-	} else if (type ==  QDF_IPA_AP_CONNECT) {
+	} else if (type == QDF_IPA_AP_CONNECT) {
 		ipa_debug("Multiple SAP connected. Disabling IPA");
 
 		for (i = 0; i < WLAN_IPA_MAX_IFACE; i++) {
@@ -2719,6 +2731,27 @@ void wlan_ipa_handle_multiple_sap_evt(struct wlan_ipa_priv *ipa_ctx,
 		if (!ipa_ctx->ipa_pipes_down)
 			wlan_ipa_uc_handle_last_discon(ipa_ctx, true);
 	}
+}
+#else
+/**
+ * wlan_ipa_handle_multiple_sap_evt() - Handle multiple SAP connect/disconnect
+ * @ipa_ctx: IPA global context
+ * @type: IPA event type
+ * @session_id: vdev id
+ *
+ * Enable IPA for new SAP when multiple SAP are turned on
+ *
+ * Return: None
+ */
+static void wlan_ipa_handle_multiple_sap_evt(struct wlan_ipa_priv *ipa_ctx,
+					     qdf_ipa_wlan_event type,
+					     uint8_t session_id)
+{
+	if (type == QDF_IPA_AP_CONNECT)
+		wlan_ipa_uc_offload_enable_disable(ipa_ctx,
+						   WMI_AP_RX_DATA_OFFLOAD,
+						   session_id,
+						   true);
 }
 #endif
 
@@ -3003,7 +3036,8 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 				if (qdf_ipa_get_lan_rx_napi() &&
 				    ipa_ctx->num_sap_connected == 1) {
 					wlan_ipa_handle_multiple_sap_evt(ipa_ctx,
-									 type);
+									 type,
+									 session_id);
 				}
 			}
 
@@ -3134,7 +3168,8 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			if (qdf_ipa_get_lan_rx_napi() &&
 			    (ipa_ctx->num_sap_connected > 1)) {
-				wlan_ipa_handle_multiple_sap_evt(ipa_ctx, type);
+				wlan_ipa_handle_multiple_sap_evt(ipa_ctx, type,
+								 session_id);
 			} else {
 				wlan_ipa_uc_offload_enable_disable(ipa_ctx,
 							WMI_AP_RX_DATA_OFFLOAD,
@@ -3282,7 +3317,8 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		if (qdf_ipa_get_lan_rx_napi() &&
 		    (ipa_ctx->num_sap_connected == 1))
-			wlan_ipa_handle_multiple_sap_evt(ipa_ctx, type);
+			wlan_ipa_handle_multiple_sap_evt(ipa_ctx, type,
+							 session_id);
 
 		qdf_mutex_release(&ipa_ctx->event_lock);
 		break;
