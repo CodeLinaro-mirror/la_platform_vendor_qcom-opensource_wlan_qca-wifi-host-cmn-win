@@ -1065,7 +1065,28 @@ static inline hal_ring_handle_t dp_tx_get_hal_ring_hdl(struct dp_soc *soc,
 #else /* QCA_OL_TX_MULTIQ_SUPPORT */
 
 #ifdef TX_MULTI_TCL
-#ifdef IPA_OFFLOAD
+#if defined(IPA_OFFLOAD) && defined(WLAN_SUPPORT_LAPB)
+static inline void dp_tx_get_queue(struct dp_vdev *vdev,
+				   qdf_nbuf_t nbuf, struct dp_tx_queue *queue)
+{
+	/* get flow id */
+	queue->desc_pool_id = DP_TX_GET_DESC_POOL_ID(vdev);
+
+	if (vdev->pdev->soc->wlan_cfg_ctx->ipa_enabled &&
+	    !ipa_config_is_opt_wifi_dp_enabled())
+		queue->ring_id = DP_TX_GET_RING_ID(vdev);
+	else if (wlan_cfg_is_lapb_enabled(vdev->pdev->soc->wlan_cfg_ctx)) {
+		if (wlan_dp_is_lapb_frame(vdev->pdev->soc, nbuf))
+			queue->ring_id =
+				    vdev->pdev->soc->num_tcl_data_rings - 1;
+		else
+			queue->ring_id = (qdf_nbuf_get_queue_mapping(nbuf) %
+				    (vdev->pdev->soc->num_tcl_data_rings - 1));
+	} else
+		queue->ring_id = (qdf_nbuf_get_queue_mapping(nbuf) %
+				  vdev->pdev->soc->num_tcl_data_rings);
+}
+#elif defined(IPA_OFFLOAD)
 static inline void dp_tx_get_queue(struct dp_vdev *vdev,
 				   qdf_nbuf_t nbuf, struct dp_tx_queue *queue)
 {
@@ -1716,6 +1737,16 @@ struct dp_tx_desc_pool_s *dp_get_spcl_tx_desc_pool(struct dp_soc *soc,
 	dp_global = wlan_objmgr_get_global_ctx();
 	return dp_global->spcl_tx_desc[soc->arch_id][pool_id];
 }
+
+static inline
+struct dp_tx_ext_desc_pool_s *dp_get_tx_ext_desc_pool(struct dp_soc *soc,
+						      uint8_t pool_id)
+{
+	struct dp_global_context *dp_global = NULL;
+
+	dp_global = wlan_objmgr_get_global_ctx();
+	return dp_global->tx_ext_desc[pool_id];
+}
 #else
 static inline
 struct dp_tx_desc_pool_s *dp_get_tx_desc_pool(struct dp_soc *soc,
@@ -1729,6 +1760,13 @@ struct dp_tx_desc_pool_s *dp_get_spcl_tx_desc_pool(struct dp_soc *soc,
 						   uint8_t pool_id)
 {
 	return &soc->tx_desc[pool_id];
+}
+
+static inline
+struct dp_tx_ext_desc_pool_s *dp_get_tx_ext_desc_pool(struct dp_soc *soc,
+						      uint8_t pool_id)
+{
+	return &((soc)->tx_ext_desc[pool_id]);
 }
 #endif
 

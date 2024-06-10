@@ -1641,28 +1641,6 @@ static int dp_srng_calculate_msi_group(struct dp_soc *soc,
 	return QDF_STATUS_SUCCESS;
 }
 
-#if defined(IPA_OFFLOAD) && defined(IPA_WDI3_VLAN_SUPPORT)
-static void
-dp_ipa_vlan_srng_msi_setup(struct hal_srng_params *ring_params, int ring_type,
-			   int ring_num)
-{
-	if (wlan_ipa_is_vlan_enabled()) {
-		if ((ring_type == REO_DST) &&
-		    (ring_num == IPA_ALT_REO_DEST_RING_IDX)) {
-			ring_params->msi_addr = 0;
-			ring_params->msi_data = 0;
-			ring_params->flags &= ~HAL_SRNG_MSI_INTR;
-		}
-	}
-}
-#else
-static inline void
-dp_ipa_vlan_srng_msi_setup(struct hal_srng_params *ring_params, int ring_type,
-			   int ring_num)
-{
-}
-#endif
-
 void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 		       struct hal_srng_params *ring_params,
 		       int ring_type, int ring_num)
@@ -1724,8 +1702,6 @@ void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 	ring_params->msi_data = (reg_msi_grp_num % msi_data_count)
 		+ msi_data_start;
 	ring_params->flags |= HAL_SRNG_MSI_INTR;
-
-	dp_ipa_vlan_srng_msi_setup(ring_params, ring_type, ring_num);
 
 	dp_debug("ring type %u ring_num %u msi->data %u msi_addr %llx",
 		 ring_type, ring_num, ring_params->msi_data,
@@ -6218,21 +6194,27 @@ QDF_STATUS dp_peer_mlo_setup(
 				mld_peer->vdev, vdev_id,
 				qdf_atomic_read(&mld_peer->vdev->ref_cnt));
 
-			params.old_vdev_id = mld_peer->vdev->vdev_id;
-			params.old_pdev_id = mld_peer->vdev->pdev->pdev_id;
-			params.old_chip_id =
+			if (peer->vdev->opmode != wlan_op_mode_sta) {
+				params.old_vdev_id = mld_peer->vdev->vdev_id;
+				params.old_pdev_id =
+						mld_peer->vdev->pdev->pdev_id;
+				params.old_chip_id =
 				dp_get_chip_id(mld_peer->vdev->pdev->soc);
-			dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
 
-			params.vdev_id = peer->vdev->vdev_id;
-			params.peer_mac = mld_peer->mac_addr.raw;
-			params.chip_id = dp_get_chip_id(soc);
-			params.pdev_id = peer->vdev->pdev->pdev_id;
+				dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
 
-			dp_wdi_event_handler(
+				params.vdev_id = peer->vdev->vdev_id;
+				params.peer_mac = mld_peer->mac_addr.raw;
+				params.chip_id = dp_get_chip_id(soc);
+				params.pdev_id = peer->vdev->pdev->pdev_id;
+
+				dp_wdi_event_handler(
 					WDI_EVENT_PEER_PRIMARY_UMAC_UPDATE,
 					soc, (void *)&params, peer->peer_id,
 					WDI_NO_VAL, params.pdev_id);
+			} else {
+				dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
+			}
 		}
 
 		/* associate mld and link peer */
@@ -12988,7 +12970,7 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 	.txrx_get_vdev_stats  = dp_ipa_txrx_get_vdev_stats,
 	.txrx_get_pdev_stats = dp_ipa_txrx_get_pdev_stats,
 	.txrx_get_peer_stats_based_on_peer_type =
-			dp_ipa_txrx_get_peer_stats,
+			dp_ipa_txrx_get_peer_stats_based_on_peer_type,
 #endif
 	.txrx_get_ratekbps = dp_txrx_get_ratekbps,
 	.txrx_update_vdev_stats = dp_txrx_update_vdev_host_stats,
@@ -15084,8 +15066,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	if (wlan_cfg_get_dp_soc_dpdk_cfg(soc->ctrl_psoc)) {
 		dp_soc_reset_dpdk_intr_mask(soc);
 	}
-	/* Reset the cpu ring map if radio is NSS offloaded */
-	dp_soc_reset_ipa_vlan_intr_mask(soc);
 
 	TAILQ_INIT(&pdev->vdev_list);
 	qdf_spinlock_create(&pdev->vdev_list_lock);
