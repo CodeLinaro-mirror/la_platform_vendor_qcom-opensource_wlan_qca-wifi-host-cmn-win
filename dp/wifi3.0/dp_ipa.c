@@ -3859,17 +3859,11 @@ bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	 */
 	da_is_bcmc = ((uint8_t)nbuf->cb[1]) & 0x2;
 
-	if (!da_is_bcmc) {
-		if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
-			return false;
+	if (!cdp_mlo_get_mlo_dest_soc(soc_hdl, nbuf, vdev_id, &params))
+		return false;
 
-		dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc,
-						  params.vdev_id,
-						  DP_MOD_ID_IPA);
-	}
-	else {
-		dest_vdev = dp_vdev_get_ref_by_id(soc, vdev_id, DP_MOD_ID_IPA);
-	}
+	dest_vdev = dp_vdev_get_ref_by_id(params.dest_soc, params.vdev_id,
+				     DP_MOD_ID_IPA);
 
 	if (qdf_unlikely(!dest_vdev))
 		return false;
