@@ -37,6 +37,10 @@
 #endif
 #include "wlan_psoc_mlme_api.h"
 #include "reg_services_public_struct.h"
+#ifdef WLAN_FEATURE_ACTION_OUI
+#include <wlan_action_oui_main.h>
+#include <wlan_action_oui_public_struct.h>
+#endif
 
 #define MAX_IE_LEN 1024
 #define SHORT_SSID_LEN 4
@@ -2648,7 +2652,8 @@ static uint8_t
 	if (!ies)
 		return NULL;
 
-	while (len >= MIN_IE_LEN && len >= ies[TAG_LEN_POS] + MIN_IE_LEN) {
+	while ((len >= MIN_IE_LEN + 1) && len >= ies[TAG_LEN_POS] + MIN_IE_LEN)
+	{
 		if ((ies[ID_POS] == elem_id) &&
 		    (ies[ELEM_ID_EXTN_POS] ==
 		     WLAN_EXTN_ELEMID_NONINHERITANCE)) {
@@ -2972,17 +2977,54 @@ static int util_handle_rnr_ie_for_mbssid(const uint8_t *rnr,
 }
 #endif
 
-static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
+#ifdef WLAN_FEATURE_ACTION_OUI
+static uint8_t *util_copy_reporting_ap_vendor_ies(struct wlan_objmgr_psoc *psoc,
+						  const uint8_t *ie,
+						  uint32_t ie_len,
+						  uint8_t *buf_ie)
+{
+	struct action_oui_search_attr attr;
+	enum action_oui_id oui_id = ACTION_OUI_RESTRICT_MAX_MLO_LINKS;
+
+	attr.ie_data = (uint8_t *)ie;
+	attr.ie_length = ie_len;
+
+	if (wlan_action_oui_search(psoc, &attr, oui_id)) {
+		qdf_mem_copy(buf_ie, ie, ie_len);
+		buf_ie += ie_len;
+	}
+
+	return buf_ie;
+}
+#else
+static inline uint8_t *
+util_copy_reporting_ap_vendor_ies(struct wlan_objmgr_psoc *psoc,
+				  const uint8_t *ie, uint32_t ie_len,
+				  uint8_t *buf_ie)
+{
+	return buf_ie;
+}
+#endif
+
+static uint32_t util_gen_new_ie(struct wlan_objmgr_pdev *pdev,
+				uint8_t *ie, uint32_t ielen,
 				uint8_t *subelement,
 				size_t subie_len, uint8_t *new_ie,
 				uint8_t bssid_index)
 {
+	struct wlan_objmgr_psoc *psoc;
 	uint8_t *pos, *tmp;
 	const uint8_t *tmp_old, *tmp_new;
 	uint8_t *sub_copy, *extn_elem = NULL;
 	struct non_inheritance_ie ninh = {0};
 	uint8_t *elem_list = NULL, *extn_elem_list = NULL;
 	size_t tmp_rem_len;
+
+	psoc = wlan_pdev_get_psoc(pdev);
+	if (!psoc) {
+		scm_err("NULL PSOC");
+		return 0;
+	}
 
 	/* copy subelement as we need to change its content to
 	 * mark an ie after it is processed.
@@ -3011,9 +3053,11 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 	extn_elem = util_scan_find_noninheritance_ie(WLAN_ELEMID_EXTN_ELEM,
 						     sub_copy, subie_len);
 
-	if (extn_elem && extn_elem[TAG_LEN_POS]) {
-		util_parse_noninheritance_list(extn_elem, &elem_list,
-					       &extn_elem_list, &ninh);
+	if (extn_elem && extn_elem[TAG_LEN_POS] >= VALID_ELEM_LEAST_LEN) {
+		if (((extn_elem + extn_elem[1] + MIN_IE_LEN) - sub_copy)
+		    < subie_len)
+			util_parse_noninheritance_list(extn_elem, &elem_list,
+						       &extn_elem_list, &ninh);
 	}
 
 	/* go through IEs in ie (skip SSID) and subelement,
@@ -3021,6 +3065,11 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 	 */
 	tmp_old = util_scan_find_ie(WLAN_ELEMID_SSID, ie, ielen);
 	tmp_old = (tmp_old) ? tmp_old + tmp_old[1] + MIN_IE_LEN : ie;
+
+	if (((tmp_old + MIN_IE_LEN) - ie) >= ielen) {
+		qdf_mem_free(sub_copy);
+		return 0;
+	}
 
 	while (((tmp_old + tmp_old[1] + MIN_IE_LEN) - ie) <= ielen) {
 		ninh.non_inh_ie_found = 0;
@@ -3043,6 +3092,9 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 		}
 
 		if (ninh.non_inh_ie_found || (tmp_old[0] == 0)) {
+			if (((tmp_old + tmp_old[1] + MIN_IE_LEN) - ie) >=
+			    (ielen - MIN_IE_LEN))
+				break;
 			tmp_old += tmp_old[1] + MIN_IE_LEN;
 			continue;
 		}
@@ -3077,6 +3129,18 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 			tmp_rem_len = subie_len - (tmp - sub_copy);
 			if (tmp_old[0] == WLAN_ELEMID_VENDOR &&
 			    tmp_rem_len >= MIN_VENDOR_TAG_LEN) {
+				/*
+				 * In order to identify few Vendor APs the
+				 * generated frame should contain the reporting
+				 * APs matching VSIE or else the entry generated
+				 * will not have this VSIE and logic kept to
+				 * take certain action on specific Vendor APs
+				 * will fail.
+				 */
+				pos = util_copy_reporting_ap_vendor_ies(psoc,
+									tmp_old,
+									tmp_old[1] + MIN_IE_LEN,
+									pos);
 				/* If Vendor IE also presents in STA profile,
 				 * then ignore the Vendor IE which is for
 				 * reporting STA. It only needs to copy Vendor
@@ -3084,8 +3148,8 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 				 * The copy happens when going through the
 				 * remaining IEs.
 				 */
-				;
-			} else if (tmp_old[0] == WLAN_ELEMID_EXTN_ELEM) {
+			} else if (tmp_old[0] == WLAN_ELEMID_EXTN_ELEM &&
+				   tmp_rem_len >= (MIN_IE_LEN + 1)) {
 				if (tmp_old[PAYLOAD_START_POS] ==
 				    tmp[PAYLOAD_START_POS]) {
 					/* same ie, copy from subelement */
@@ -3120,7 +3184,8 @@ static uint32_t util_gen_new_ie(uint8_t *ie, uint32_t ielen,
 			}
 		}
 
-		if (((tmp_old + tmp_old[1] + MIN_IE_LEN) - ie) >= ielen)
+		if (((tmp_old + tmp_old[1] + MIN_IE_LEN) - ie) >=
+		    (ielen - MIN_IE_LEN))
 			break;
 
 		tmp_old += tmp_old[1] + MIN_IE_LEN;
@@ -3523,7 +3588,7 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 			}
 
 			new_ie_len =
-				util_gen_new_ie(ie, ielen,
+				util_gen_new_ie(pdev, ie, ielen,
 						(nontx_profile +
 						 PAYLOAD_START_POS),
 						subie_len, new_ie,

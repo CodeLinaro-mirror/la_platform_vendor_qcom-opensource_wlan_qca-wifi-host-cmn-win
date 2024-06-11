@@ -193,6 +193,9 @@ struct cdp_mlo_ops {
 				     uint8_t vdev_id,
 				     struct dp_ipa_params *params
 				    );
+	bool (*get_mcast_primary_vdev)(struct cdp_soc_t *soc_hdl,
+				       struct cdp_vdev *vdev_hdl,
+				       struct cdp_vdev *mcast_vdev_hdl);
 #endif
 };
 #endif
