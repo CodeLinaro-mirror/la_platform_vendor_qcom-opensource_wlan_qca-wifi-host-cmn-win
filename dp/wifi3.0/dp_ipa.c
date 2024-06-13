@@ -547,6 +547,59 @@ dp_ipa_set_rx_smmu_chip_id(struct dp_soc *soc,
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(rx_smmu, mlo_chip_id);
 }
+
+/**
+ * dp_ipa_is_target_ready() - check if target is ready or not
+ * @soc: datapath soc handle
+ *
+ * Return: true if target is ready
+ */
+static inline
+bool dp_ipa_is_target_ready(struct dp_soc *soc)
+{
+	if (hif_get_target_status(soc->hif_handle) == TARGET_STATUS_RESET)
+		return false;
+	else
+		return true;
+}
+
+/**
+ * dp_ipa_update_txr_db_status() - Indicate transfer ring DB is SMMU mapped or not
+ * @dev: Pointer to device
+ * @txrx_smmu: WDI TX/RX configuration
+ *
+ * Return: None
+ */
+static inline
+void dp_ipa_update_txr_db_status(struct device *dev,
+				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
+{
+	int pcie_slot = pld_get_pci_slot(dev);
+
+	if (pcie_slot)
+		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = false;
+	else
+		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = true;
+}
+
+/**
+ * dp_ipa_update_evt_db_status() - Indicate evt ring DB is SMMU mapped or not
+ * @dev: Pointer to device
+ * @txrx_smmu: WDI TX/RX configuration
+ *
+ * Return: None
+ */
+static inline
+void dp_ipa_update_evt_db_status(struct device *dev,
+				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
+{
+	int pcie_slot = pld_get_pci_slot(dev);
+
+	if (pcie_slot)
+		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = false;
+	else
+		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = true;
+}
 #else
 static inline void
 dp_ipa_setup_tx_alt_params_pmac_id(struct dp_soc *soc,
@@ -582,6 +635,26 @@ static inline void
 dp_ipa_set_rx_smmu_chip_id(struct dp_soc *soc,
 			   qdf_ipa_wdi_pipe_setup_info_smmu_t *rx_smmu)
 {
+}
+
+static inline
+bool dp_ipa_is_target_ready(struct dp_soc *soc)
+{
+	return true;
+}
+
+static inline
+void dp_ipa_update_txr_db_status(struct device *dev,
+				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
+{
+	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = true;
+}
+
+static inline
+void dp_ipa_update_evt_db_status(struct device *dev,
+				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
+{
+	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = true;
 }
 #endif
 
@@ -1000,7 +1073,7 @@ dp_ipa_wdi_tx_alt_pipe_smmu_params(struct dp_soc *soc,
 	/* WBM Tail Pointer Address */
 	QDF_IPA_WDI_SETUP_INFO_SMMU_TRANSFER_RING_DOORBELL_PA(tx_smmu) =
 		soc->ipa_uc_tx_rsc_alt.ipa_wbm_tp_paddr;
-	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(tx_smmu) = true;
+	dp_ipa_update_txr_db_status(soc->osdev->dev, tx_smmu);
 
 	qdf_mem_copy(&QDF_IPA_WDI_SETUP_INFO_SMMU_EVENT_RING_BASE(tx_smmu),
 		     &ipa_res->tx_alt_ring.sgtable,
@@ -1011,7 +1084,7 @@ dp_ipa_wdi_tx_alt_pipe_smmu_params(struct dp_soc *soc,
 	/* TCL Head Pointer Address */
 	QDF_IPA_WDI_SETUP_INFO_SMMU_EVENT_RING_DOORBELL_PA(tx_smmu) =
 		soc->ipa_uc_tx_rsc_alt.ipa_tcl_hp_paddr;
-	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(tx_smmu) = true;
+	dp_ipa_update_evt_db_status(soc->osdev->dev, tx_smmu);
 
 	QDF_IPA_WDI_SETUP_INFO_SMMU_NUM_PKT_BUFFERS(tx_smmu) =
 		ipa_res->tx_alt_ring_num_alloc_buffer;
@@ -2211,81 +2284,6 @@ qdf_nbuf_t dp_tx_send_ipa_data_frame(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	return NULL;
 }
 
-#ifdef QCA_IPA_LL_TX_FLOW_CONTROL
-/**
- * dp_ipa_is_target_ready() - check if target is ready or not
- * @soc: datapath soc handle
- *
- * Return: true if target is ready
- */
-static inline
-bool dp_ipa_is_target_ready(struct dp_soc *soc)
-{
-	if (hif_get_target_status(soc->hif_handle) == TARGET_STATUS_RESET)
-		return false;
-	else
-		return true;
-}
-
-/**
- * dp_ipa_update_txr_db_status() - Indicate transfer ring DB is SMMU mapped or not
- * @dev: Pointer to device
- * @txrx_smmu: WDI TX/RX configuration
- *
- * Return: None
- */
-static inline
-void dp_ipa_update_txr_db_status(struct device *dev,
-				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
-{
-	int pcie_slot = pld_get_pci_slot(dev);
-
-	if (pcie_slot)
-		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = false;
-	else
-		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = true;
-}
-
-/**
- * dp_ipa_update_evt_db_status() - Indicate evt ring DB is SMMU mapped or not
- * @dev: Pointer to device
- * @txrx_smmu: WDI TX/RX configuration
- *
- * Return: None
- */
-static inline
-void dp_ipa_update_evt_db_status(struct device *dev,
-				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
-{
-	int pcie_slot = pld_get_pci_slot(dev);
-
-	if (pcie_slot)
-		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = false;
-	else
-		QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = true;
-}
-#else
-static inline
-bool dp_ipa_is_target_ready(struct dp_soc *soc)
-{
-	return true;
-}
-
-static inline
-void dp_ipa_update_txr_db_status(struct device *dev,
-				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
-{
-	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(txrx_smmu) = true;
-}
-
-static inline
-void dp_ipa_update_evt_db_status(struct device *dev,
-				 qdf_ipa_wdi_pipe_setup_info_smmu_t *txrx_smmu)
-{
-	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_EVT_RN_DB_PCIE_ADDR(txrx_smmu) = true;
-}
-#endif
-
 QDF_STATUS dp_ipa_enable_autonomy(struct cdp_soc_t *soc_hdl, uint8_t pdev_id)
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
@@ -2654,7 +2652,7 @@ dp_ipa_wdi_rx_alt_pipe_smmu_params(struct dp_soc *soc,
 	/* REO Tail Pointer Address */
 	QDF_IPA_WDI_SETUP_INFO_SMMU_TRANSFER_RING_DOORBELL_PA(rx_smmu) =
 		soc->ipa_uc_rx_rsc_alt.ipa_reo_tp_paddr;
-	QDF_IPA_WDI_SETUP_INFO_SMMU_IS_TXR_RN_DB_PCIE_ADDR(rx_smmu) = true;
+	dp_ipa_update_txr_db_status(soc->osdev->dev, rx_smmu);
 
 	qdf_mem_copy(&QDF_IPA_WDI_SETUP_INFO_SMMU_EVENT_RING_BASE(rx_smmu),
 		     &ipa_res->rx_alt_refill_ring.sgtable,
