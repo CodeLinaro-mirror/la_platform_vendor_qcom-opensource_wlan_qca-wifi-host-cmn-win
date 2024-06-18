@@ -4157,6 +4157,21 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	DP_STATS_INC_PKT(vdev, tx_i[xmit_type].rcvd, 1, qdf_nbuf_len(nbuf));
 
+	/*
+	 * Get HW Queue to use for this frame.
+	 * TCL supports upto 4 DMA rings, out of which 3 rings are
+	 * dedicated for data and 1 for command.
+	 * "queue_id" maps to one hardware ring.
+	 *  With each ring, we also associate a unique Tx descriptor pool
+	 *  to minimize lock contention for these resources.
+	 */
+	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
+
+	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
+
+	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
+				 TX_EXCEPTION);
+
 	if (qdf_unlikely(!dp_check_exc_metadata(tx_exc_metadata))) {
 		dp_tx_err("Invalid parameters in exception path");
 		goto fail;
@@ -4233,17 +4248,6 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 					       tx_exc_metadata->ppdu_cookie);
 	}
 
-	/*
-	 * Get HW Queue to use for this frame.
-	 * TCL supports upto 4 DMA rings, out of which 3 rings are
-	 * dedicated for data and 1 for command.
-	 * "queue_id" maps to one hardware ring.
-	 *  With each ring, we also associate a unique Tx descriptor pool
-	 *  to minimize lock contention for these resources.
-	 */
-	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
-
-	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
 	DP_STATS_INC(vdev,
 		     tx_i[xmit_type].rcvd_per_core[msdu_info.tx_queue.desc_pool_id],
@@ -4491,6 +4495,21 @@ qdf_nbuf_t dp_tx_send(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	vdev = soc->vdev_id_map[vdev_id];
 	if (qdf_unlikely(!vdev))
 		return nbuf;
+	/*
+	 * Get HW Queue to use for this frame.
+	 * TCL supports upto 4 DMA rings, out of which 3 rings are
+	 * dedicated for data and 1 for command.
+	 * "queue_id" maps to one hardware ring.
+	 *  With each ring, we also associate a unique Tx descriptor pool
+	 *  to minimize lock contention for these resources.
+	 */
+	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
+
+	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
+
+	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
+				 TX_RECV_FROM_STACK);
+
 
 	dp_tx_get_driver_ingress_ts(vdev, &msdu_info, nbuf);
 
@@ -4515,17 +4534,6 @@ qdf_nbuf_t dp_tx_send(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		nbuf = nbuf_mesh;
 	}
 
-	/*
-	 * Get HW Queue to use for this frame.
-	 * TCL supports upto 4 DMA rings, out of which 3 rings are
-	 * dedicated for data and 1 for command.
-	 * "queue_id" maps to one hardware ring.
-	 *  With each ring, we also associate a unique Tx descriptor pool
-	 *  to minimize lock contention for these resources.
-	 */
-	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
-
-	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
 	DP_STATS_INC(vdev,
 		     tx_i[xmit_type].rcvd_per_core[msdu_info.tx_queue.desc_pool_id],
