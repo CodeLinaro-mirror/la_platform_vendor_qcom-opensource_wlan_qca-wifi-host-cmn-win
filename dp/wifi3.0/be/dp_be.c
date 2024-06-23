@@ -3442,6 +3442,10 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 	arch_ops->dp_tx_compute_hw_delay = dp_tx_compute_tx_delay_be;
 	arch_ops->dp_rx_wbm_err_reap_desc = dp_rx_wbm_err_reap_desc_be;
 	arch_ops->dp_rx_null_q_desc_handle = dp_rx_null_q_desc_handle_be;
+#if defined(WLAN_FEATURE_11BE_MLO) && defined(IPA_OFFLOAD)
+	arch_ops->dp_mlo_get_dest_soc = dp_mlo_get_dest_soc_be;
+	arch_ops->dp_get_mcast_primary_vdev = dp_get_mcast_primary_vdev_be;
+#endif
 #endif
 	arch_ops->txrx_get_context_size = dp_get_context_size_be;
 #ifdef WIFI_MONITOR_SUPPORT
