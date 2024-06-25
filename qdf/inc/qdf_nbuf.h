@@ -2553,6 +2553,18 @@ void qdf_nbuf_ssr_register_region(void);
 
 void qdf_nbuf_ssr_unregister_region(void);
 
+/**
+ * qdf_nbuf_linearize() - linearize nbuf
+ * @buf: Network buf instance
+ *
+ * Return: int32_t
+ */
+#define qdf_nbuf_linearize(buf) \
+	qdf_nbuf_linearize_debug(buf, __func__, __LINE__)
+
+int32_t
+qdf_nbuf_linearize_debug(qdf_nbuf_t buf, const char *func_name,
+			 uint32_t line_num);
 #else /* NBUF_MEMORY_DEBUG */
 
 static inline
@@ -2730,6 +2742,18 @@ qdf_nbuf_page_frag_alloc_fl(qdf_device_t osdev, qdf_size_t size, int reserve,
 {
 	return __qdf_nbuf_page_frag_alloc(osdev, size, reserve, align, pf_cache,
 					  func, line);
+}
+
+/**
+ * qdf_nbuf_linearize() - linearize nbuf
+ * @buf: Network buf instance
+ *
+ * Return: int32_t
+ */
+static inline int
+qdf_nbuf_linearize(qdf_nbuf_t buf)
+{
+	return __qdf_nbuf_linearize(buf);
 }
 #endif /* NBUF_MEMORY_DEBUG */
 
@@ -5193,12 +5217,6 @@ static inline qdf_nbuf_t
 qdf_nbuf_expand(qdf_nbuf_t buf, uint32_t headroom, uint32_t tailroom)
 {
 	return __qdf_nbuf_expand(buf, headroom, tailroom);
-}
-
-static inline int
-qdf_nbuf_linearize(qdf_nbuf_t buf)
-{
-	return __qdf_nbuf_linearize(buf);
 }
 
 static inline bool

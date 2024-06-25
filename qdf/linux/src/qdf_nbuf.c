@@ -3985,6 +3985,53 @@ qdf_nbuf_dev_kfree_list_debug(__qdf_nbuf_queue_head_t *nbuf_queue_head,
 }
 
 qdf_export_symbol(qdf_nbuf_dev_kfree_list_debug);
+
+#ifdef QDF_NBUF_GLOBAL_COUNT
+int qdf_nbuf_linearize_debug(qdf_nbuf_t buf, const char *func,
+			     uint32_t line)
+{
+	qdf_nbuf_t ext_list;
+	int num_nbuf;
+
+	if (is_initial_mem_debug_disabled)
+		return __qdf_nbuf_linearize(buf);
+
+	if (qdf_nbuf_get_users(buf) > 1)
+		return -ENOMEM;
+
+	qdf_nbuf_frag_count_dec(buf);
+	qdf_net_buf_debug_release_frag(buf, func, line);
+
+	num_nbuf = 0;
+
+	/*Handle frag_list */
+	ext_list = qdf_nbuf_get_ext_list(buf);
+	while (ext_list) {
+		if (qdf_nbuf_get_users(ext_list) == 1)
+			++num_nbuf;
+		ext_list = qdf_nbuf_queue_next(ext_list);
+	}
+
+	qdf_atomic_sub(num_nbuf, &nbuf_count);
+	return __qdf_nbuf_linearize(buf);
+}
+#else
+int qdf_nbuf_linearize_debug(qdf_nbuf_t buf, const char *func,
+			     uint32_t line)
+{
+	if (is_initial_mem_debug_disabled)
+		return __qdf_nbuf_linearize(buf);
+
+	if (qdf_nbuf_get_users(buf) > 1)
+		return -ENOMEM;
+
+	qdf_nbuf_frag_count_dec(buf);
+	qdf_net_buf_debug_release_frag(buf, func, line);
+
+	return __qdf_nbuf_linearize(buf);
+}
+#endif /* QDF_NBUF_GLOBAL_COUNT */
+qdf_export_symbol(qdf_nbuf_linearize_debug);
 #endif /* NBUF_MEMORY_DEBUG */
 
 #if defined(QCA_DP_NBUF_FAST_PPEDS)
