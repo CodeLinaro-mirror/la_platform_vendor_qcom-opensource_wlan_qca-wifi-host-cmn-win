@@ -1957,6 +1957,7 @@ struct cdp_tx_stats {
  * @duplicate_count: Duplicate packets count
  * @fragment_count: Fragment packet count
  * @proto: Datapath protocol statistics
+ * @retried_msdu_count: retried msdu count
  */
 struct cdp_rx_stats {
 	struct cdp_pkt_info to_stack;
@@ -2061,6 +2062,7 @@ struct cdp_rx_stats {
 #ifdef QCA_DP_PROTOCOL_STATS
 	struct cdp_rx_proto_stats proto;
 #endif
+	uint32_t retried_msdu_count;
 };
 
 /**
