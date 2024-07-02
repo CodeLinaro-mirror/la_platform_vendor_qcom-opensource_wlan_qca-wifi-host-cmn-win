@@ -331,11 +331,13 @@ QDF_STATUS dp_mon_soc_detach(struct dp_soc *soc)
  * dp_rx_err_match_dhost() - function to check whether dest-mac is correct
  * @eh: Ethernet header of incoming packet
  * @vdev: dp_vdev object of the VAP on which this data packet is received
+ * @is_ml: Whether the peer is MLD or not
  *
  * Return: 1 if the destination mac is correct,
  *         0 if this frame is not correctly destined to this VAP/MLD
  */
-int dp_rx_err_match_dhost(qdf_ether_header_t *eh, struct dp_vdev *vdev);
+int dp_rx_err_match_dhost(qdf_ether_header_t *eh, struct dp_vdev *vdev,
+			  bool is_ml);
 
 #ifdef MONITOR_MODULARIZED_ENABLE
 static inline bool dp_monitor_modularized_enable(void)
@@ -1492,6 +1494,23 @@ void DP_PRINT_STATS(const char *fmt, ...);
 #define DP_TX_HIST_STATS_PER_PDEV()
 #endif /* DISABLE_DP_STATS */
 
+#ifdef QCA_DP_PROTOCOL_STATS
+#define DP_PEER_INC_PROTO_STATS(_handle, _link, _field) \
+{ \
+	if (likely(_handle)) \
+		(_handle)->stats[_link].per_pkt_stats._field++; \
+}
+
+#define DP_INC_PROTO_STATS(_handle, _field) \
+{ \
+	if (likely(_handle)) \
+		(_handle)->stats._field++; \
+}
+#else
+#define DP_PEER_INC_PROTO_STATS(_handle, _link, _field)
+#define DP_INC_PROTO_STATS(_handle, _field)
+#endif /* QCA_DP_PROTOCOL_STATS */
+
 #define FRAME_MASK_IPV4_ARP   0x1
 #define FRAME_MASK_IPV4_DHCP  0x2
 #define FRAME_MASK_IPV4_EAPOL 0x4
@@ -1966,6 +1985,29 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 #define DP_UPDATE_PROTOCOL_COUNT_STATS(_tgtobj, _srcobj)
 #endif
 
+#ifdef QCA_DP_PROTOCOL_STATS
+#define DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj) \
+{ \
+	uint8_t i, j; \
+	for (i = 0; i < RX_UPD_LEVEL_MAX; i++) { \
+		for (j = 0; j < CDP_PKT_TYPE_L3_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l3[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l3[j]; \
+		} \
+		for (j = 0; j < CDP_PKT_TYPE_L4_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l4[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l4[j]; \
+		} \
+		for (j = 0; j < CDP_PKT_TYPE_L5_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l5[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l5[j]; \
+		} \
+	} \
+}
+#else
+#define DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj)
+#endif /* QCA_DP_PROTOCOL_STATS */
+
 #ifdef WLAN_FEATURE_11BE
 #define DP_UPDATE_11BE_STATS(_tgtobj, _srcobj) \
 	do { \
@@ -2188,6 +2230,7 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 		} \
 		DP_IPA_UPDATE_PER_PKT_RX_STATS(_tgtobj, _srcobj); \
 		DP_UPDATE_PROTOCOL_COUNT_STATS(_tgtobj, _srcobj); \
+		DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj); \
 	} while (0)
 
 #define DP_UPDATE_PER_PKT_STATS(_tgtobj, _srcobj) \

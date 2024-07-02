@@ -3170,7 +3170,8 @@ dp_ppdu_desc_user_deter_stats_update(struct dp_pdev *pdev,
 	if (qdf_unlikely(!mon_peer))
 		return;
 
-	if (ppdu_desc->txmode_type == TX_MODE_TYPE_UNKNOWN)
+	if (ppdu_desc->txmode_type == TX_MODE_TYPE_UNKNOWN ||
+	    ppdu_desc->txmode >= TX_MODE_UL_MAX)
 		return;
 
 	if (ppdu_desc->txmode_type == TX_MODE_TYPE_UL &&
@@ -7103,6 +7104,7 @@ void dp_mon_feature_ops_deregister(struct dp_soc *soc)
 	mon_ops->rx_enable_mpdu_logging = NULL;
 	mon_ops->rx_enable_fpmo = NULL;
 	mon_ops->mon_neighbour_peers_detach = NULL;
+	mon_ops->rx_config_packet_type_subtype = NULL;
 	mon_ops->mon_vdev_set_monitor_mode_buf_rings = NULL;
 	mon_ops->mon_vdev_set_monitor_mode_rings = NULL;
 #ifdef QCA_ENHANCED_STATS_SUPPORT

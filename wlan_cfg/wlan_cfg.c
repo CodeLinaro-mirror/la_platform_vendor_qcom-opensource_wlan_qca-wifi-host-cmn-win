@@ -138,9 +138,21 @@ struct dp_int_mask_assignment {
  * NEAR-FULL IRQ mask should be updated, if any change is made to
  * the below TX mask.
  */
+#ifdef IPA_WDI3_TX_TWO_PIPES
 static const uint8_t tx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
 	[0] = WLAN_CFG_TX_RING_MASK_0, [1] = WLAN_CFG_TX_RING_MASK_4,
 	[2] = WLAN_CFG_TX_RING_MASK_2};
+#else /* !IPA_WDI3_TX_TWO_PIPES */
+#if defined(QCA_WIFI_KIWI_V2) || defined(QCA_WIFI_WCN7750)
+static const uint8_t tx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
+	[0] = WLAN_CFG_TX_RING_MASK_0, [1] = WLAN_CFG_TX_RING_MASK_4,
+	[2] = WLAN_CFG_TX_RING_MASK_2, [3] = WLAN_CFG_TX_RING_MASK_5};
+#else /* !QCA_WIFI_KIWI_V2 */
+static const uint8_t tx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
+	[0] = WLAN_CFG_TX_RING_MASK_0, [1] = WLAN_CFG_TX_RING_MASK_4,
+	[2] = WLAN_CFG_TX_RING_MASK_2, [3] = WLAN_CFG_TX_RING_MASK_6};
+#endif /* QCA_WIFI_KIWI_V2 */
+#endif /* IPA_WDI3_TX_TWO_PIPES*/
 #else /* !IPA_OFFLOAD */
 #if defined(QCA_WIFI_KIWI_V2) || defined(QCA_WIFI_WCN7750)
 static const uint8_t tx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
@@ -194,10 +206,17 @@ uint8_t *wlan_cfg_get_tx_ring_int_mask(struct wlan_cfg_dp_soc_ctxt *cfg_ctx)
 #endif /* CONFIG_BERYLLIUM */
 
 #ifdef CONFIG_BERYLLIUM
+int wlan_cfg_get_intr_idx_from_rx_ring_id(uint8_t rx_ring_id)
+{
+	return (rx_ring_id + 5);
+}
 #ifdef IPA_OFFLOAD
 static const uint8_t rx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
 	[5] = WLAN_CFG_RX_RING_MASK_0, [6] = WLAN_CFG_RX_RING_MASK_1,
 	[7] = WLAN_CFG_RX_RING_MASK_2, [9] = WLAN_CFG_RX_RING_MASK_4,
+#ifdef WLAN_FEATURE_LATENCY_SENSITIVE_REO
+	[12] = WLAN_CFG_RX_RING_MASK_7,
+#endif
 	[10] = WLAN_CFG_RX_RING_MASK_5, [11] = WLAN_CFG_RX_RING_MASK_6};
 #else
 static const uint8_t rx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
@@ -208,10 +227,23 @@ static const uint8_t rx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
 #endif /* IPA_OFFLOAD */
 #else /* !defined(CONFIG_BERYLLIUM) */
 #ifdef IPA_OFFLOAD
+int wlan_cfg_get_intr_idx_from_rx_ring_id(uint8_t rx_ring_id)
+{
+	return (rx_ring_id + 1);
+}
 static const uint8_t rx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
 	[1] = WLAN_CFG_RX_RING_MASK_0, [2] = WLAN_CFG_RX_RING_MASK_1,
 	[3] = WLAN_CFG_RX_RING_MASK_2};
 #else
+int wlan_cfg_get_intr_idx_from_rx_ring_id(uint8_t rx_ring_id)
+{
+	if (rx_ring_id < 2)
+		return (rx_ring_id + 1);
+	else if (rx_ring_id < 4)
+		return 3;
+	else
+		return -EINVAL;
+}
 static const uint8_t rx_ring_mask_msi[WLAN_CFG_INT_NUM_CONTEXTS] = {
 	[1] = WLAN_CFG_RX_RING_MASK_0, [2] = WLAN_CFG_RX_RING_MASK_1,
 	[3] = WLAN_CFG_RX_RING_MASK_2 | WLAN_CFG_RX_RING_MASK_3};
@@ -4135,6 +4167,24 @@ wlan_soc_sawf_reclaim_timer_val_attach(
 	wlan_cfg_ctx->sawf_msduq_reclaim_timer_val =
 				cfg_get(psoc, CFG_DP_SAWF_RECLAIM_TIMER_VAL);
 }
+
+/*
+ * wlan_soc_sawf_msduq_tid_skid_cfg_attach() - Update MSDUQ TID skid
+ * enable/disable value
+ * @psoc: object manager psoc
+ * @wlan_cfg_ctx: dp soc cfg ctx
+ *
+ * Return: None
+ */
+static void
+wlan_soc_sawf_msduq_tid_skid_cfg_attach(
+				struct cdp_ctrl_objmgr_psoc *psoc,
+				struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx)
+{
+	wlan_cfg_ctx->sawf_msduq_tid_skid_enabled =
+			cfg_get(psoc, CFG_DP_SAWF_MSDUQ_TID_SKID_ENABLE);
+}
+
 #else
 static void
 wlan_soc_sawf_mcast_attach(struct cdp_ctrl_objmgr_psoc *psoc,
@@ -4146,6 +4196,13 @@ static void
 wlan_soc_sawf_reclaim_timer_val_attach(
 		struct cdp_ctrl_objmgr_psoc *psoc,
 		struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx)
+{
+}
+
+static void
+wlan_soc_sawf_msduq_tid_skid_cfg_attach(
+				struct cdp_ctrl_objmgr_psoc *psoc,
+				struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx)
 {
 }
 #endif
@@ -4192,6 +4249,34 @@ wlan_soc_direct_link_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
 {
 }
 #endif
+
+#ifdef QCA_DP_PROTOCOL_STATS
+static inline void
+wlan_soc_dp_proto_stats_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
+				   struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx)
+{
+	wlan_cfg_ctx->dp_proto_stats = cfg_get(psoc,
+					       CFG_DP_PROTOCOL_STATISTICS);
+}
+
+bool wlan_cfg_get_dp_proto_stats(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return cfg->dp_proto_stats;
+}
+#else
+static inline void
+wlan_soc_dp_proto_stats_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
+				   struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx)
+{
+}
+
+bool wlan_cfg_get_dp_proto_stats(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return false;
+}
+#endif
+
+qdf_export_symbol(wlan_cfg_get_dp_proto_stats);
 
 #ifdef WLAN_SOFTUMAC_SUPPORT
 struct wlan_cfg_dp_soc_ctxt *
@@ -4292,6 +4377,11 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 
 	wlan_cfg_ctx->rxdma_refill_ring = cfg_get(psoc,
 						  CFG_DP_RXDMA_REFILL_RING);
+	wlan_cfg_ctx->rxdma_scan_radio_refill_ring = cfg_get(psoc,
+					CFG_DP_RXDMA_SCAN_RADIO_REFILL_RING);
+	wlan_cfg_ctx->rxdma_scan_radio_refill_lt_disable =
+					cfg_get(psoc,
+						CFG_DP_RXDMA_SCAN_RADIO_REFILL_LT_DISABLE);
 	wlan_cfg_ctx->tx_desc_limit_0 = cfg_get(psoc,
 						CFG_DP_TX_DESC_LIMIT_0);
 	wlan_cfg_ctx->tx_desc_limit_1 = cfg_get(psoc,
@@ -4405,6 +4495,7 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 	wlan_soc_ast_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_mcast_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_reclaim_timer_val_attach(psoc, wlan_cfg_ctx);
+	wlan_soc_sawf_msduq_tid_skid_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_direct_link_cfg_attach(psoc, wlan_cfg_ctx);
 
 	return wlan_cfg_ctx;
@@ -4550,9 +4641,14 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 						CFG_DP_REO_STATUS_RING);
 	wlan_cfg_ctx->rxdma_refill_ring = cfg_get(psoc,
 						  CFG_DP_RXDMA_REFILL_RING);
+	wlan_cfg_ctx->rxdma_scan_radio_refill_ring = cfg_get(psoc,
+					CFG_DP_RXDMA_SCAN_RADIO_REFILL_RING);
 	wlan_cfg_ctx->rxdma_refill_lt_disable =
 					cfg_get(psoc,
 						CFG_DP_RXDMA_REFILL_LT_DISABLE);
+	wlan_cfg_ctx->rxdma_scan_radio_refill_lt_disable =
+					cfg_get(psoc,
+						CFG_DP_RXDMA_SCAN_RADIO_REFILL_LT_DISABLE);
 	wlan_cfg_ctx->tx_desc_limit_0 = cfg_get(psoc,
 						CFG_DP_TX_DESC_LIMIT_0);
 	wlan_cfg_ctx->tx_desc_limit_1 = cfg_get(psoc,
@@ -4688,9 +4784,11 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 	wlan_soc_ast_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_mcast_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_reclaim_timer_val_attach(psoc, wlan_cfg_ctx);
+	wlan_soc_sawf_msduq_tid_skid_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_direct_link_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_cfg_ctx->rxmon_mgmt_linearization =
 		cfg_get(psoc, CFG_DP_RXMON_MGMT_LINEARIZATION);
+	wlan_soc_dp_proto_stats_cfg_attach(psoc, wlan_cfg_ctx);
 
 	return wlan_cfg_ctx;
 }
@@ -5060,7 +5158,7 @@ int wlan_cfg_num_nss_tcl_data_rings(struct wlan_cfg_dp_soc_ctxt *cfg)
 #if defined(IPA_OFFLOAD) && defined(TX_MULTI_TCL)
 int wlan_cfg_num_tcl_data_rings(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
-	if (!cfg->ipa_enabled || ipa_config_is_opt_wifi_dp_enabled())
+	if (!cfg->ipa_enabled || wlan_ipa_config_is_opt_wifi_dp_enabled())
 		return cfg->num_tcl_data_rings;
 
 	return 1;
@@ -5559,11 +5657,10 @@ wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_ring_size(struct wlan_cfg_dp_soc_ctx
 }
 
 void
-wlan_cfg_set_dp_soc_rxdma_scan_radio_refill_ring_size(struct cdp_ctrl_objmgr_psoc *psoc,
-						      struct wlan_cfg_dp_soc_ctxt *cfg)
+wlan_cfg_set_dp_soc_rxdma_scan_radio_refill_ring_size(struct wlan_cfg_dp_soc_ctxt *cfg,
+						      int ring_size)
 {
-	cfg->rxdma_scan_radio_refill_ring = cfg_get(psoc,
-						    CFG_DP_RXDMA_SCAN_RADIO_REFILL_RING);
+	cfg->rxdma_scan_radio_refill_ring = ring_size;
 }
 bool
 wlan_cfg_get_dp_soc_rxdma_refill_lt_disable(struct wlan_cfg_dp_soc_ctxt *cfg)
@@ -5576,6 +5673,19 @@ wlan_cfg_set_dp_soc_rxdma_refill_lt_disable(struct wlan_cfg_dp_soc_ctxt *cfg,
 					    bool rx_refill_lt_disable)
 {
 	cfg->rxdma_refill_lt_disable = rx_refill_lt_disable;
+}
+
+bool
+wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_lt_disable(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return cfg->rxdma_scan_radio_refill_lt_disable;
+}
+
+void
+wlan_cfg_set_dp_soc_rxdma_scan_radio_refill_lt_disable(struct wlan_cfg_dp_soc_ctxt *cfg,
+						       bool rx_refill_lt_disable)
+{
+	cfg->rxdma_scan_radio_refill_lt_disable = rx_refill_lt_disable;
 }
 
 int
@@ -6215,6 +6325,12 @@ bool wlan_cfg_get_sawf_mc_config(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return cfg->sawf_mcast_enabled;
 }
+
+bool wlan_cfg_get_sawf_msduq_tid_skid_config(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return cfg->sawf_msduq_tid_skid_enabled;
+}
+
 #else
 bool wlan_cfg_get_sawf_config(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
@@ -6229,6 +6345,7 @@ void wlan_cfg_set_sawf_msduq_reclaim_config(struct wlan_cfg_dp_soc_ctxt *cfg,
 					    bool val)
 {
 }
+
 bool wlan_cfg_get_sawf_msduq_reclaim_config(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return false;
@@ -6241,6 +6358,11 @@ wlan_cfg_get_sawf_msduq_reclaim_timer_val(struct wlan_cfg_dp_soc_ctxt *cfg)
 }
 
 bool wlan_cfg_get_sawf_mc_config(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return false;
+}
+
+bool wlan_cfg_get_sawf_msduq_tid_skid_config(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return false;
 }

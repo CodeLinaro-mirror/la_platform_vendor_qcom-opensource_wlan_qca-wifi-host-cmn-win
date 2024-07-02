@@ -2832,8 +2832,8 @@ dp_rx_mlo_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 		}
 
 		if (peer->vdev->opmode == wlan_op_mode_sta)
-			dp_rx_mlo_update_ast_idx(peer->vdev, ast_hash,
-						 hw_peer_id);
+			dp_rx_mlo_update_ast_idx(peer->vdev, hw_peer_id,
+						 ast_hash);
 
 		/* Add ast entry incase self ast entry is
 		 * deleted due to DP CP sync issue
@@ -3051,10 +3051,13 @@ dp_rx_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 							   DP_NON_QOS_TID,
 							   peer->rx_tid[DP_NON_QOS_TID].hw_qdesc_paddr);
 			}
+
+			__dp_peer_event_notify(soc, CDP_PEER_EVENT_MAP,
+					       peer->peer_id,
+					       peer->vdev->vdev_id,
+					       peer->mac_addr.raw);
 		}
 
-		__dp_peer_event_notify(soc, CDP_PEER_EVENT_MAP, peer->peer_id,
-				       peer->vdev->vdev_id, peer->mac_addr.raw);
 		err = dp_peer_map_ast(soc, peer, peer_mac_addr, hw_peer_id,
 				      vdev_id, ast_hash, is_wds);
 	}

@@ -891,10 +891,16 @@ struct emlsr_capability {
 /**
  * struct wlan_mlo_sta_assoc_pending_list - MLO sta assoc pending list entry
  * @peer_list: MLO peer list
+ * @is_timer_started: Indicate timer is started to remove peer mld mac from list
+ * @force_remove: To clear all peer mld mac's from the list
+ * @rem_peer_mld_mac: timer trigger parameter
  * @list_lock: lock to access members of structure
  */
 struct wlan_mlo_sta_assoc_pending_list {
 	qdf_list_t peer_list;
+	bool is_timer_started;
+	bool force_remove;
+	qdf_timer_t rem_peer_mld_mac;
 	qdf_spinlock_t list_lock;
 };
 
@@ -1027,6 +1033,7 @@ struct wlan_mlo_link_mac_update {
  * @wlan_bridge_vdev_list: list of bridge vdevs associated with this MLO
  * @wlan_bridge_vdev_count: number of elements in the bridge vdev list
  * @bridge_sta_ctx: bridge sta context
+ * @br_pdev_list: pdev used for bridge vap creation in the MLD
  * @wlan_vdev_count: number of elements in the vdev list
  * @mlo_peer_list: list peers in this MLO connection
  * @wlan_max_mlo_peer_count: peer count across the links of specific MLO
@@ -1054,6 +1061,7 @@ struct wlan_mlo_dev_context {
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_MLO_MULTI_CHIP)
 	struct wlan_objmgr_vdev *wlan_bridge_vdev_list[WLAN_UMAC_MLO_MAX_BRIDGE_VDEVS];
 	struct wlan_mlo_bridge_sta *bridge_sta_ctx;
+	struct wlan_objmgr_pdev *br_pdev_list[MLO_MAX_BRIDGE_LINKS_PER_MLD];
 #endif
 	uint16_t wlan_vdev_count;
 	uint16_t wlan_bridge_vdev_count;
@@ -1769,16 +1777,19 @@ struct mlo_link_disable_request_evt_params {
 	uint32_t link_id_bitmap;
 };
 
-#define MAX_INDEX_FOR_LINK_PRIORITY_BITMAP 3
+#define MAX_INDEX_FOR_LINK_PRIORITY_BITMAP 5
+#define NUM_TID_PER_AC 2
 /**
  * struct mlo_tlt_selection_evt_params - MLO tlt selection
  * request params
  * @mld_addr: mld address
- * @link_priority: Link priority bitmap
+ * @link_priority: link priority order based on hw chip id
+ * @link_bmap: Link priority bitmap
  */
 struct mlo_tlt_selection_evt_params {
 	struct qdf_mac_addr mld_addr;
-	uint8_t link_priority[MAX_INDEX_FOR_LINK_PRIORITY_BITMAP];
+	uint32_t link_priority[MAX_INDEX_FOR_LINK_PRIORITY_BITMAP];
+	uint32_t link_bmap[NUM_TID_PER_AC];
 };
 
 #define MAX_LINK_SWITCH_TLV 5
@@ -1901,11 +1912,13 @@ struct peer_entry_ptqm_migrate_event_params {
 /**
  * struct wlan_mlo_sta_entry - MLO sta entry
  * @mac_node: QDF list mac_node member
+ * @time: To indicate when the peer mld mac is added to list
  * @peer_mld_addr: MLO peer MAC address
  */
 
 struct wlan_mlo_sta_entry {
 	qdf_list_node_t mac_node;
+	qdf_time_t time;
 	struct qdf_mac_addr peer_mld_addr;
 };
 

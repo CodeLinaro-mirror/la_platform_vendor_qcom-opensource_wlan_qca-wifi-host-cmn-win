@@ -1260,7 +1260,7 @@ bool dp_rx_intrabss_mcbc_fwd(struct dp_soc *soc, struct dp_txrx_peer *ta_peer,
 
 	len = QDF_NBUF_CB_RX_PKT_LEN(nbuf);
 
-	qdf_mem_set(nbuf_copy->cb, 0x0, sizeof(nbuf_copy->cb));
+	qdf_mem_set(nbuf_copy->cb, sizeof(nbuf_copy->cb), 0x0);
 	dp_classify_critical_pkts(soc, ta_peer->vdev, nbuf_copy);
 
 	if (soc->arch_ops.dp_rx_intrabss_mcast_handler(soc, ta_peer,
@@ -1320,7 +1320,7 @@ bool dp_rx_intrabss_ucast_fwd(struct dp_soc *soc, struct dp_txrx_peer *ta_peer,
 		}
 	}
 
-	qdf_mem_set(nbuf->cb, 0x0, sizeof(nbuf->cb));
+	qdf_mem_set(nbuf->cb, sizeof(nbuf->cb), 0x0);
 	dp_classify_critical_pkts(soc, ta_peer->vdev, nbuf);
 
 	/* Don't send packets if tx is paused */
@@ -3501,22 +3501,15 @@ dp_rx_pdev_buffers_alloc(struct dp_pdev *pdev)
 	int mac_for_pdev = pdev->lmac_id;
 	struct dp_soc *soc = pdev->soc;
 	struct dp_srng *dp_rxdma_srng;
-	struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx;
 	struct rx_desc_pool *rx_desc_pool;
 	uint32_t rxdma_entries;
 	uint32_t target_type = hal_get_target_type(soc->hal_soc);
 
-	soc_cfg_ctx = soc->wlan_cfg_ctx;
-	wlan_cfg_set_dp_soc_rxdma_scan_radio_refill_ring_size(soc->ctrl_psoc,
-							      soc_cfg_ctx);
 	dp_rxdma_srng = &soc->rx_refill_buf_ring[mac_for_pdev];
 
 	rxdma_entries = dp_get_num_entries(pdev,
 					   dp_rxdma_srng->num_entries,
 					   QDF_BUFF_TYPE_RX);
-	if (soc->scan_radio_support)
-		rxdma_entries = wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_ring_size(soc_cfg_ctx);
-
 	rx_desc_pool = &soc->rx_desc_buf[mac_for_pdev];
 
 	/* Initialize RX buffer pool which will be

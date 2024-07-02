@@ -109,9 +109,6 @@
 	HTT_TCL_METADATA_TYPE_VDEV_BASED
 #endif
 
-#define DP_GET_HW_LINK_ID_FRM_PPDU_ID(PPDU_ID, LINK_ID_OFFSET, LINK_ID_BITS) \
-	(((PPDU_ID) >> (LINK_ID_OFFSET)) & ((1 << (LINK_ID_BITS)) - 1))
-
 QDF_COMPILE_TIME_ASSERT(max_fw2wbm_tx_status_check,
                         MAX_EAPOL_TX_COMP_STATUS == HTT_TX_FW2WBM_TX_STATUS_MAX);
 
@@ -1647,35 +1644,39 @@ void dp_vdev_peer_stats_update_protocol_cnt_tx(struct dp_vdev *vdev_hdl,
 #endif
 
 #ifdef WLAN_SUPPORT_LAPB
-#ifdef WLAN_DP_FEATURE_SW_LATENCY_MGR
-#error LAPB and SWLM features are not validated together
-#endif
-int
-dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
-			 struct dp_tx_desc_s *tx_desc,
-			 uint8_t tid,
-			 struct dp_tx_msdu_info_s *msdu_info,
-			 uint8_t ring_id)
+static inline
+bool dp_is_lapb_ring_id(struct dp_soc *soc, int8_t ring_id)
 {
 	struct wlan_lapb *lapb = &soc->lapb;
+
+	if (!lapb->is_init || lapb->ring_id != ring_id)
+		return false;
+
+	return true;
+}
+
+static inline int
+dp_tx_attempt_coalescing_lapb(struct dp_soc *soc, struct dp_vdev *vdev,
+			      struct dp_tx_desc_s *tx_desc,
+			      uint8_t tid,
+			      struct dp_tx_msdu_info_s *msdu_info,
+			      uint8_t ring_id)
+{
 	int coalesce = 0;
 
-	if (!lapb->is_init)
-		return coalesce;
-
 	soc->lapb.ops->wlan_dp_lapb_handle_frame(soc, tx_desc->nbuf,
-							 &coalesce, msdu_info);
+						 &coalesce, msdu_info);
 	return coalesce;
 }
 #endif
 
 #ifdef WLAN_DP_FEATURE_SW_LATENCY_MGR
-int
-dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
-			 struct dp_tx_desc_s *tx_desc,
-			 uint8_t tid,
-			 struct dp_tx_msdu_info_s *msdu_info,
-			 uint8_t ring_id)
+static inline int
+dp_tx_attempt_coalescing_swlm(struct dp_soc *soc, struct dp_vdev *vdev,
+			      struct dp_tx_desc_s *tx_desc,
+			      uint8_t tid,
+			      struct dp_tx_msdu_info_s *msdu_info,
+			      uint8_t ring_id)
 {
 	struct dp_swlm *swlm = &soc->swlm;
 	union swlm_data swlm_query_data;
@@ -1708,6 +1709,47 @@ dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
 	}
 
 	return ret;
+}
+#endif
+
+#if defined(WLAN_SUPPORT_LAPB) && defined(WLAN_DP_FEATURE_SW_LATENCY_MGR)
+int
+dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
+			 struct dp_tx_desc_s *tx_desc,
+			 uint8_t tid,
+			 struct dp_tx_msdu_info_s *msdu_info,
+			 uint8_t ring_id)
+{
+	if (qdf_unlikely(dp_is_lapb_rind_id(soc, ring_id)))
+		return dp_tx_attempt_coalescing_lapb(soc, vdev, tx_desc, tid,
+						     msdu_info, ring_id);
+
+	return dp_tx_attempt_coalescing_swlm(soc, vdev, tx_desc, tid,
+					     msdu_info, ring_id);
+}
+#elif defined(WLAN_SUPPORT_LAPB)
+int
+dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
+			 struct dp_tx_desc_s *tx_desc,
+			 uint8_t tid,
+			 struct dp_tx_msdu_info_s *msdu_info,
+			 uint8_t ring_id)
+{
+	if (qdf_unlikely(dp_is_lapb_rind_id(soc, ring_id)))
+		return dp_tx_attempt_coalescing_lapb(soc, vdev, tx_desc, tid,
+						     msdu_info, ring_id);
+	return 0;
+}
+#elif defined(WLAN_DP_FEATURE_SW_LATENCY_MGR)
+int
+dp_tx_attempt_coalescing(struct dp_soc *soc, struct dp_vdev *vdev,
+			 struct dp_tx_desc_s *tx_desc,
+			 uint8_t tid,
+			 struct dp_tx_msdu_info_s *msdu_info,
+			 uint8_t ring_id)
+{
+	return dp_tx_attempt_coalescing_swlm(soc, vdev, tx_desc, tid,
+					     msdu_info, ring_id);
 }
 #endif
 
@@ -2174,6 +2216,9 @@ is_nbuf_frm_rmnet(qdf_nbuf_t nbuf, struct dp_tx_msdu_info_s *msdu_info)
 	uint16_t buf_len = 0;
 	uint16_t linear_data_len = 0;
 	uint8_t *payload_addr = NULL;
+
+	if (!nbuf->dev)
+		return false;
 
 	ingress_dev = dev_get_by_index(dev_net(nbuf->dev), nbuf->skb_iif);
 
@@ -3204,7 +3249,7 @@ dp_tx_send_msdu_single(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
 
 	if (!paddr) {
 		/* Handle failure */
-		dp_err("qdf_nbuf_map failed");
+		dp_err_rl("qdf_nbuf_map failed");
 		DP_STATS_INC(vdev,
 			     tx_i[msdu_info->xmit_type].dropped.dma_error, 1);
 		drop_code = TX_DMA_MAP_ERR;
@@ -5984,11 +6029,6 @@ dp_tx_comp_process_desc(struct dp_soc *soc,
 							   txrx_peer, ts,
 							   desc->nbuf,
 							   time_latency)) {
-			dp_send_completion_to_stack(soc,
-						    desc->pdev,
-						    ts->peer_id,
-						    ts->ppdu_id,
-						    desc->nbuf);
 			return;
 		}
 	}
@@ -6893,7 +6933,6 @@ uint32_t dp_tx_comp_handler(struct dp_intr *int_ctx, struct dp_soc *soc,
 
 	num_entries = hal_srng_get_num_entries(soc->hal_soc, hal_ring_hdl);
 	dp_tx_nbuf_queue_head_init(&h);
-
 more_data:
 
 	hal_soc = soc->hal_soc;
@@ -6934,6 +6973,7 @@ more_data:
 			break;
 		buffer_src = hal_tx_comp_get_buffer_source(hal_soc,
 							   tx_comp_hal_desc);
+		dp_update_wbm_rsm_stats(soc, ring_id, buffer_src);
 
 		/* If this buffer was not released by TQM or FW, then it is not
 		 * Tx completion indication, assert */
@@ -7030,12 +7070,14 @@ more_data:
 				dp_tx_dump_tx_desc(tx_desc);
 			}
 		} else {
+			tx_desc->tx_status =
+				hal_tx_comp_get_tx_status(tx_comp_hal_desc);
+			dp_update_tqm_rsn_cnt(soc, ring_id, tx_desc->tx_status,
+					      buffer_src);
+
 			if (tx_desc->flags & DP_TX_DESC_FLAG_FASTPATH_SIMPLE ||
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS)
 				goto add_to_pool2;
-
-			tx_desc->tx_status =
-				hal_tx_comp_get_tx_status(tx_comp_hal_desc);
 			tx_desc->buffer_src = buffer_src;
 			/*
 			 * If the fast completion mode is enabled extended
