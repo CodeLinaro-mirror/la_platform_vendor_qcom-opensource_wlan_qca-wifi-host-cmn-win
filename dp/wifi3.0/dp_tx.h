@@ -2577,4 +2577,17 @@ void dp_tx_dump_tx_desc(struct dp_tx_desc_s *tx_desc)
 	}
 }
 #endif /* WLAN_SOFTUMAC_SUPPORT */
+
+#ifdef QCA_DP_OPTIMIZED_TX_DESC
+static inline
+struct dp_tx_desc_pool_s *dp_get_tx_desc_pool_wrapper(struct dp_soc *soc)
+{
+	return dp_get_tx_desc_pool(soc, qdf_get_cpu());
+}
+#else
+static inline
+struct dp_tx_desc_pool_s *dp_get_tx_desc_pool_wrapper(struct dp_soc *soc)
+{
+}
+#endif /* QCA_DP_OPTIMIZED_TX_DESC */
 #endif

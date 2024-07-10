@@ -6694,13 +6694,13 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 	uint16_t peer_id = DP_INVALID_PEER;
 	dp_txrx_ref_handle txrx_ref_handle = NULL;
 	qdf_nbuf_queue_head_t h;
-	uint8_t valid_tx_desc_pool = 0;
 	uint16_t comp_index = 0, ppeds_comp_index = 0;
 	struct dp_tx_desc_pool_s *tx_desc_pool = NULL;
 
 	desc = comp_head;
 
 	dp_tx_nbuf_queue_head_init(&h);
+	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
 
 	while (desc) {
 		next = desc->next;
@@ -6720,11 +6720,6 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 		if (dp_tx_mcast_reinject_handler(soc, desc)) {
 			desc = next;
 			continue;
-		}
-
-		if (!valid_tx_desc_pool) {
-			tx_desc_pool = dp_get_tx_desc_pool(soc, desc->pool_id);
-			valid_tx_desc_pool = 1;
 		}
 
 		if (desc->flags & DP_TX_DESC_FLAG_PPEDS) {
@@ -6965,7 +6960,6 @@ uint32_t dp_tx_comp_handler(struct dp_intr *int_ctx, struct dp_soc *soc,
 	uint32_t num_entries;
 	qdf_nbuf_queue_head_t h;
 	QDF_STATUS status;
-	uint8_t valid_tx_desc_pool = 0;
 	uint16_t comp_index = 0;
 	struct dp_tx_desc_pool_s *tx_desc_pool = NULL;
 
@@ -7004,6 +6998,8 @@ more_data:
 	last_prefetched_hw_desc = dp_srng_dst_prefetch_32_byte_desc(hal_soc,
 							    hal_ring_hdl,
 							    num_avail_for_reap);
+
+	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
 
 	/* Find head descriptor from completion ring */
 	while (qdf_likely(num_avail_for_reap--)) {
@@ -7080,12 +7076,6 @@ more_data:
 
 		dp_tx_comp_reset_stale_entry_detection(soc, ring_id);
 		tx_desc->buffer_src = buffer_src;
-		/* get tx_desc pool from first sw desc */
-		if (!valid_tx_desc_pool) {
-			tx_desc_pool = dp_get_tx_desc_pool(soc,
-							   tx_desc->pool_id);
-			valid_tx_desc_pool = 1;
-		}
 
 		/*
 		 * If the release source is FW, process the HTT status
