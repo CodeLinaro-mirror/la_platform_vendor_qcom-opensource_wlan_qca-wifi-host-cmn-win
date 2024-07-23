@@ -1134,6 +1134,8 @@ enum hal_tx_tlv_status {
 	HAL_MON_TX_MSDU_START,
 	HAL_MON_TX_BUFFER_ADDR,
 	HAL_MON_TX_DATA,
+	HAL_MON_TX_MSDU_END,
+	HAL_MON_TX_MPDU_END,
 
 	HAL_MON_TX_FES_STATUS_START,
 
@@ -1142,6 +1144,7 @@ enum hal_tx_tlv_status {
 
 	HAL_MON_TX_FES_STATUS_START_PPDU,
 	HAL_MON_TX_FES_STATUS_USER_PPDU,
+	HAL_MON_TX_FES_STATUS_ACK_BA,
 	HAL_MON_TX_QUEUE_EXTENSION,
 
 	HAL_MON_RX_FRAME_BITMAP_ACK,
@@ -1493,8 +1496,12 @@ struct hal_tx_status_info {
  * @is_used: boolean flag to identify valid ppdu info
  * @is_data: boolean flag to identify data frame
  * @cur_usr_idx: Current user index of the PPDU
+ * @ack_recvd: boolean flag to indicate if ack is received
+ * @cts_recvd: boolean flag to indicate if cts is received
+ * @su_or_mu: type of transmission used like su, mu, mu_su transmission.
  * @reserved: for future purpose
  * @prot_tlv_status: protection tlv status
+ * @ack_rssi: rssi of received ack. Valid only if ack_recvd is set
  * @tx_tlv_info: store tx tlv info for recording
  * @packet_info: packet information
  * @rx_status: monitor mode rx status information
@@ -1506,9 +1513,13 @@ struct hal_tx_ppdu_info {
 		 is_used	:1,
 		 is_data	:1,
 		 cur_usr_idx	:8,
-		 reserved	:15;
+		 ack_recvd	:1,
+		 cts_recvd	:1,
+		 su_or_mu	:2,
+		 reserved	:10;
 
 	uint32_t prot_tlv_status;
+	int8_t ack_rssi;
 
 #ifdef MONITOR_TLV_RECORDING_ENABLE
 	struct hal_tx_tlv_info tx_tlv_info;
@@ -2284,13 +2295,16 @@ hal_rx_update_su_evm_info(void *rx_tlv,
 
 /**
  * hal_rx_mon_phyrx_other_receive_info_tlv() - API to get tlv info
+ * @hal_soc: hal soc handle
  * @rx_tlv_hdr: RX TLV header
  * @ppdu_info_hdl: Handle to PPDU info to update
  *
  * Return: None
  */
 static inline void
-hal_rx_mon_phyrx_other_receive_info_tlv(void *rx_tlv_hdr, void *ppdu_info_hdl)
+hal_rx_mon_phyrx_other_receive_info_tlv(struct hal_soc *hal_soc,
+					void *rx_tlv_hdr,
+					void *ppdu_info_hdl)
 {
 	uint32_t tlv_len, tlv_tag;
 	void *rx_tlv;
@@ -2307,10 +2321,12 @@ hal_rx_mon_phyrx_other_receive_info_tlv(void *rx_tlv_hdr, void *ppdu_info_hdl)
 
 	if (!tlv_len)
 		return;
+
 	switch (tlv_tag) {
 	case WIFIPHYRX_OTHER_RECEIVE_INFO_EVM_DETAILS_E:
 		/* Skip TLV length to get TLV content */
 		rx_tlv = (uint8_t *)rx_tlv + HAL_RX_TLV64_HDR_SIZE;
+
 		ppdu_info->evm_info.number_of_symbols = HAL_RX_GET(rx_tlv,
 			PHYRX_OTHER_RECEIVE_INFO,
 			EVM_DETAILS_NUMBER_OF_DATA_SYM);
@@ -2322,6 +2338,9 @@ hal_rx_mon_phyrx_other_receive_info_tlv(void *rx_tlv_hdr, void *ppdu_info_hdl)
 			EVM_DETAILS_NUMBER_OF_STREAMS);
 		hal_rx_update_su_evm_info(rx_tlv, ppdu_info_hdl);
 		break;
+	case WIFIPHYRX_OTHER_RECEIVE_INFO_RU_DETAILS_E:
+		hal_rx_ru_info_details(hal_soc, rx_tlv, ppdu_info);
+		break;
 	default:
 		qdf_debug("%s unhandled TLV type: %d, TLV len:%d",
 			  __func__, tlv_tag, tlv_len);
@@ -2331,14 +2350,16 @@ hal_rx_mon_phyrx_other_receive_info_tlv(void *rx_tlv_hdr, void *ppdu_info_hdl)
 #else
 /**
  * hal_rx_mon_phyrx_other_receive_info_tlv() - API to get tlv info
+ * @hal_soc: hal soc handle
  * @rx_tlv_hdr: RX TLV header
  * @ppdu_info_hdl: Handle to PPDU info to update
  *
  * Return: None
  */
 static inline
-void hal_rx_mon_phyrx_other_receive_info_tlv(void *rx_tlv_hdr,
-						   void *ppdu_info_hdl)
+void hal_rx_mon_phyrx_other_receive_info_tlv(struct hal_soc *hal_soc,
+					     void *rx_tlv_hdr,
+					     void *ppdu_info_hdl)
 {
 }
 #endif /* WLAN_SA_API_ENABLE */
@@ -2636,7 +2657,8 @@ hal_rx_parse_receive_user_info(struct hal_soc *hal_soc, uint8_t *tlv,
 
 		if (ppdu_info->rx_status.reception_type ==
 		    HAL_RX_TYPE_MU_OFDMA) {
-			ppdu_info->rx_status.he_mu_flags = 1;
+			if (ppdu_info->rx_status.mu_dl_ul != HAL_RX_TYPE_UL)
+				ppdu_info->rx_status.he_mu_flags = 1;
 
 			/* HE-data1 */
 			mon_rx_user_status->he_data1 |=
@@ -3870,8 +3892,8 @@ hal_rx_status_get_tlv_info_generic_be(void *rx_tlv_hdr, void *ppduinfo,
 		break;
 	}
 	case WIFIPHYRX_OTHER_RECEIVE_INFO_E:
-		hal_rx_mon_phyrx_other_receive_info_tlv(rx_tlv_hdr,
-							 ppdu_info);
+		hal_rx_mon_phyrx_other_receive_info_tlv(hal, rx_tlv_hdr,
+							ppdu_info);
 		break;
 	case WIFIPHYRX_GENERIC_U_SIG_E:
 		hal_rx_parse_u_sig_hdr(hal, rx_tlv, ppdu_info);
@@ -4028,6 +4050,7 @@ hal_rx_status_get_tlv_info_generic_be(void *rx_tlv_hdr, void *ppduinfo,
 	case WIFIMON_DROP_E:
 		hal_rx_update_ppdu_drop_cnt(rx_tlv, ppdu_info);
 		hal_rx_record_tlv_info(ppdu_info, tlv_tag);
+		ppdu_info->is_drop_ppdu = true;
 		return HAL_TLV_STATUS_MON_DROP;
 	case 0:
 		hal_rx_record_tlv_info(ppdu_info, tlv_tag);

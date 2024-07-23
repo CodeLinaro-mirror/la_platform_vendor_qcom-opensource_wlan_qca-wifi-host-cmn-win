@@ -109,8 +109,17 @@
 	HTT_TCL_METADATA_TYPE_VDEV_BASED
 #endif
 
-#define DP_GET_HW_LINK_ID_FRM_PPDU_ID(PPDU_ID, LINK_ID_OFFSET, LINK_ID_BITS) \
-	(((PPDU_ID) >> (LINK_ID_OFFSET)) & ((1 << (LINK_ID_BITS)) - 1))
+#ifndef HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_M
+#define HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_M 0x00008000
+#define HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_S 15
+
+#define HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_SET(var, val) \
+do { \
+	HTT_CHECK_SET_VAL(HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID, val); \
+	((var) |= ((val) << HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_S)); \
+} while (0)
+
+#endif
 
 QDF_COMPILE_TIME_ASSERT(max_fw2wbm_tx_status_check,
                         MAX_EAPOL_TX_COMP_STATUS == HTT_TX_FW2WBM_TX_STATUS_MAX);
@@ -1233,7 +1242,7 @@ dp_tx_is_wds_ast_override_en(struct dp_soc *soc,
 			     struct cdp_tx_exception_metadata *tx_exc_metadata)
 {
 	if (soc->features.wds_ext_ast_override_enable &&
-	    tx_exc_metadata && tx_exc_metadata->is_wds_extended)
+	    tx_exc_metadata && tx_exc_metadata->is_wds_extended_mc_bc)
 		return true;
 
 	return false;
@@ -2447,18 +2456,11 @@ int dp_tx_frame_is_drop(struct dp_vdev *vdev, uint8_t *srcmac, uint8_t *dstmac)
 	return 0;
 }
 
-#if defined(WLAN_FEATURE_11BE_MLO) && ((defined(WLAN_MLO_MULTI_CHIP) && \
-	defined(WLAN_MCAST_MLO)) || defined(WLAN_MCAST_MLO_SAP))
-/* MLO peer id for reinject*/
-#define DP_MLO_MCAST_REINJECT_PEER_ID 0x1fff
-/* MLO vdev id inc offset */
-#define DP_MLO_VDEV_ID_OFFSET 0x80
-
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 static inline bool
 dp_tx_wds_ext_check(struct cdp_tx_exception_metadata *tx_exc_metadata)
 {
-	if (tx_exc_metadata && tx_exc_metadata->is_wds_extended)
+	if (tx_exc_metadata && tx_exc_metadata->is_wds_extended_mc_bc)
 		return true;
 
 	return false;
@@ -2470,6 +2472,13 @@ dp_tx_wds_ext_check(struct cdp_tx_exception_metadata *tx_exc_metadata)
 	return false;
 }
 #endif
+
+#if defined(WLAN_FEATURE_11BE_MLO) && ((defined(WLAN_MLO_MULTI_CHIP) && \
+	defined(WLAN_MCAST_MLO)) || defined(WLAN_MCAST_MLO_SAP))
+/* MLO peer id for reinject*/
+#define DP_MLO_MCAST_REINJECT_PEER_ID 0x1fff
+/* MLO vdev id inc offset */
+#define DP_MLO_VDEV_ID_OFFSET 0x80
 
 #if defined(WLAN_MCAST_MLO_SAP)
 static inline void
@@ -2510,6 +2519,11 @@ dp_tx_update_mcast_param(uint16_t peer_id,
 		msdu_info->vdev_id = vdev->vdev_id + DP_MLO_VDEV_ID_OFFSET;
 		HTT_TX_TCL_METADATA_GLBL_SEQ_HOST_INSPECTED_SET(
 							*htt_tcl_metadata, 1);
+
+		if (msdu_info->exception_fw)
+			HTT_TX_TCL_METADATA_GLBL_SEQ_VALID_HTT_EXT_ID_SET(
+					*htt_tcl_metadata, 1);
+
 	} else {
 		msdu_info->vdev_id = vdev->vdev_id;
 	}
@@ -3252,7 +3266,7 @@ dp_tx_send_msdu_single(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
 
 	if (!paddr) {
 		/* Handle failure */
-		dp_err("qdf_nbuf_map failed");
+		dp_err_rl("qdf_nbuf_map failed");
 		DP_STATS_INC(vdev,
 			     tx_i[msdu_info->xmit_type].dropped.dma_error, 1);
 		drop_code = TX_DMA_MAP_ERR;
@@ -4137,12 +4151,18 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		     struct cdp_tx_exception_metadata *tx_exc_metadata)
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
+	struct dp_pdev *pdev;
 	struct dp_tx_msdu_info_s msdu_info;
 	struct dp_vdev *vdev = dp_vdev_get_ref_by_id(soc, vdev_id,
 						     DP_MOD_ID_TX_EXCEPTION);
+	qdf_ether_header_t *eh;
 	uint8_t xmit_type = qdf_nbuf_get_vdev_xmit_type(nbuf);
 
 	if (qdf_unlikely(!vdev))
+		goto fail;
+
+	pdev = vdev->pdev;
+	if (!pdev)
 		goto fail;
 
 	qdf_mem_zero(&msdu_info, sizeof(msdu_info));
@@ -4150,12 +4170,35 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	if (!tx_exc_metadata)
 		goto fail;
 
-	msdu_info.tid = tx_exc_metadata->tid;
+	if (qdf_unlikely(dp_tx_wds_ext_check(tx_exc_metadata) &&
+			 pdev->hmmc_tid_override_en)) {
+		eh = (qdf_ether_header_t *)qdf_nbuf_data(nbuf);
+		if (!DP_FRAME_IS_BROADCAST((eh)->ether_dhost))
+			msdu_info.tid = pdev->hmmc_tid;
+	} else {
+		msdu_info.tid = tx_exc_metadata->tid;
+	}
+
 	msdu_info.xmit_type = xmit_type;
 	dp_verbose_debug("skb "QDF_MAC_ADDR_FMT,
 			 QDF_MAC_ADDR_REF(nbuf->data));
 
 	DP_STATS_INC_PKT(vdev, tx_i[xmit_type].rcvd, 1, qdf_nbuf_len(nbuf));
+
+	/*
+	 * Get HW Queue to use for this frame.
+	 * TCL supports upto 4 DMA rings, out of which 3 rings are
+	 * dedicated for data and 1 for command.
+	 * "queue_id" maps to one hardware ring.
+	 *  With each ring, we also associate a unique Tx descriptor pool
+	 *  to minimize lock contention for these resources.
+	 */
+	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
+
+	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
+
+	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
+				 TX_EXCEPTION);
 
 	if (qdf_unlikely(!dp_check_exc_metadata(tx_exc_metadata))) {
 		dp_tx_err("Invalid parameters in exception path");
@@ -4233,17 +4276,6 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 					       tx_exc_metadata->ppdu_cookie);
 	}
 
-	/*
-	 * Get HW Queue to use for this frame.
-	 * TCL supports upto 4 DMA rings, out of which 3 rings are
-	 * dedicated for data and 1 for command.
-	 * "queue_id" maps to one hardware ring.
-	 *  With each ring, we also associate a unique Tx descriptor pool
-	 *  to minimize lock contention for these resources.
-	 */
-	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
-
-	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
 	DP_STATS_INC(vdev,
 		     tx_i[xmit_type].rcvd_per_core[msdu_info.tx_queue.desc_pool_id],
@@ -4491,6 +4523,21 @@ qdf_nbuf_t dp_tx_send(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	vdev = soc->vdev_id_map[vdev_id];
 	if (qdf_unlikely(!vdev))
 		return nbuf;
+	/*
+	 * Get HW Queue to use for this frame.
+	 * TCL supports upto 4 DMA rings, out of which 3 rings are
+	 * dedicated for data and 1 for command.
+	 * "queue_id" maps to one hardware ring.
+	 *  With each ring, we also associate a unique Tx descriptor pool
+	 *  to minimize lock contention for these resources.
+	 */
+	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
+
+	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
+
+	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
+				 TX_RECV_FROM_STACK);
+
 
 	dp_tx_get_driver_ingress_ts(vdev, &msdu_info, nbuf);
 
@@ -4515,17 +4562,6 @@ qdf_nbuf_t dp_tx_send(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		nbuf = nbuf_mesh;
 	}
 
-	/*
-	 * Get HW Queue to use for this frame.
-	 * TCL supports upto 4 DMA rings, out of which 3 rings are
-	 * dedicated for data and 1 for command.
-	 * "queue_id" maps to one hardware ring.
-	 *  With each ring, we also associate a unique Tx descriptor pool
-	 *  to minimize lock contention for these resources.
-	 */
-	dp_tx_get_queue(vdev, nbuf, &msdu_info.tx_queue);
-
-	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
 	DP_STATS_INC(vdev,
 		     tx_i[xmit_type].rcvd_per_core[msdu_info.tx_queue.desc_pool_id],
@@ -6032,11 +6068,6 @@ dp_tx_comp_process_desc(struct dp_soc *soc,
 							   txrx_peer, ts,
 							   desc->nbuf,
 							   time_latency)) {
-			dp_send_completion_to_stack(soc,
-						    desc->pdev,
-						    ts->peer_id,
-						    ts->ppdu_id,
-						    desc->nbuf);
 			return;
 		}
 	}
@@ -6663,13 +6694,13 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 	uint16_t peer_id = DP_INVALID_PEER;
 	dp_txrx_ref_handle txrx_ref_handle = NULL;
 	qdf_nbuf_queue_head_t h;
-	uint8_t valid_tx_desc_pool = 0;
 	uint16_t comp_index = 0, ppeds_comp_index = 0;
 	struct dp_tx_desc_pool_s *tx_desc_pool = NULL;
 
 	desc = comp_head;
 
 	dp_tx_nbuf_queue_head_init(&h);
+	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
 
 	while (desc) {
 		next = desc->next;
@@ -6689,11 +6720,6 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 		if (dp_tx_mcast_reinject_handler(soc, desc)) {
 			desc = next;
 			continue;
-		}
-
-		if (!valid_tx_desc_pool) {
-			tx_desc_pool = dp_get_tx_desc_pool(soc, desc->pool_id);
-			valid_tx_desc_pool = 1;
 		}
 
 		if (desc->flags & DP_TX_DESC_FLAG_PPEDS) {
@@ -6759,7 +6785,8 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 			dp_tx_nbuf_dev_queue_free(&h, desc);
 			dp_tx_desc_free(soc, desc, desc->pool_id);
 		} else {
-			dp_tx_comp_free_buf(soc, desc, false);
+			if (desc->flags & DP_TX_DESC_FLAG_COMPLETED_TX)
+				dp_tx_comp_free_buf(soc, desc, false);
 			dp_tx_desc_release(soc, desc, desc->pool_id);
 		}
 		desc = next;
@@ -6933,7 +6960,6 @@ uint32_t dp_tx_comp_handler(struct dp_intr *int_ctx, struct dp_soc *soc,
 	uint32_t num_entries;
 	qdf_nbuf_queue_head_t h;
 	QDF_STATUS status;
-	uint8_t valid_tx_desc_pool = 0;
 	uint16_t comp_index = 0;
 	struct dp_tx_desc_pool_s *tx_desc_pool = NULL;
 
@@ -6941,7 +6967,6 @@ uint32_t dp_tx_comp_handler(struct dp_intr *int_ctx, struct dp_soc *soc,
 
 	num_entries = hal_srng_get_num_entries(soc->hal_soc, hal_ring_hdl);
 	dp_tx_nbuf_queue_head_init(&h);
-
 more_data:
 
 	hal_soc = soc->hal_soc;
@@ -6974,6 +6999,8 @@ more_data:
 							    hal_ring_hdl,
 							    num_avail_for_reap);
 
+	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
+
 	/* Find head descriptor from completion ring */
 	while (qdf_likely(num_avail_for_reap--)) {
 
@@ -6982,6 +7009,7 @@ more_data:
 			break;
 		buffer_src = hal_tx_comp_get_buffer_source(hal_soc,
 							   tx_comp_hal_desc);
+		dp_update_wbm_rsm_stats(soc, ring_id, buffer_src);
 
 		/* If this buffer was not released by TQM or FW, then it is not
 		 * Tx completion indication, assert */
@@ -7048,12 +7076,6 @@ more_data:
 
 		dp_tx_comp_reset_stale_entry_detection(soc, ring_id);
 		tx_desc->buffer_src = buffer_src;
-		/* get tx_desc pool from first sw desc */
-		if (!valid_tx_desc_pool) {
-			tx_desc_pool = dp_get_tx_desc_pool(soc,
-							   tx_desc->pool_id);
-			valid_tx_desc_pool = 1;
-		}
 
 		/*
 		 * If the release source is FW, process the HTT status
@@ -7078,12 +7100,14 @@ more_data:
 				dp_tx_dump_tx_desc(tx_desc);
 			}
 		} else {
+			tx_desc->tx_status =
+				hal_tx_comp_get_tx_status(tx_comp_hal_desc);
+			dp_update_tqm_rsn_cnt(soc, ring_id, tx_desc->tx_status,
+					      buffer_src);
+
 			if (tx_desc->flags & DP_TX_DESC_FLAG_FASTPATH_SIMPLE ||
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS)
 				goto add_to_pool2;
-
-			tx_desc->tx_status =
-				hal_tx_comp_get_tx_status(tx_comp_hal_desc);
 			tx_desc->buffer_src = buffer_src;
 			/*
 			 * If the fast completion mode is enabled extended
