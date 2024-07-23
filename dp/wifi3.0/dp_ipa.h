@@ -566,6 +566,33 @@ QDF_STATUS dp_ipa_rx_buf_pool_smmu_mapping(struct cdp_soc_t *soc_hdl,
 QDF_STATUS dp_ipa_set_smmu_mapped(struct cdp_soc_t *soc, int val);
 int dp_ipa_get_smmu_mapped(struct cdp_soc_t *soc);
 
+/**
+ * dp_ipa_rx_buf_smmu_mapping() - Create SMMU mappings for IPA
+ *				  allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+				      uint8_t pdev_id, const char *func,
+				      uint32_t line);
+
+/**
+ * dp_ipa_rx_buf_smmu_unmapping() - Release SMMU mappings for IPA
+ *				    allocated RX buffers
+ * @soc_hdl: handle to the soc
+ * @pdev_id: pdev id number, to get the handle
+ * @func: caller function
+ * @line: line number
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+					uint8_t pdev_id, const char *func,
+					uint32_t line);
 #ifdef IPA_WDS_EASYMESH_FEATURE
 /**
  * dp_ipa_ast_create() - Create/update AST entry in AST table
@@ -807,6 +834,22 @@ static inline QDF_STATUS dp_ipa_set_smmu_mapped(struct cdp_soc_t *soc, int val)
 }
 
 static inline int dp_ipa_get_smmu_mapped(struct cdp_soc_t *soc)
+{
+         return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_mapping(struct cdp_soc_t *soc_hdl,
+						    uint8_t pdev_id,
+						    const char *func,
+						    uint32_t line)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(struct cdp_soc_t *soc_hdl,
+						      uint8_t pdev_id,
+						      const char *func,
+						      uint32_t line)
 {
 	return QDF_STATUS_SUCCESS;
 }
