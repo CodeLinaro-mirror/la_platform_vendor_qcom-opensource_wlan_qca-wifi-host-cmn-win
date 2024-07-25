@@ -376,6 +376,7 @@ struct mlo_wsi_info {
  * @last_mlo_peer_id: Previously allocated ML peer ID
  * @setup_info: Pointer to MLO setup_info of all groups
  * @total_grp: Total number of MLO groups
+ * @dynamic_wsi_bypassed: Dynamic bypassed performed
  * @tsf_sync_enabled: MLO TSF sync is enabled at FW or not
  * @mlme_ops: MLO MLME callback function pointers
  * @osif_ops: MLO to OSIF callback function pointers
@@ -404,6 +405,7 @@ struct mlo_mgr_context {
 #ifdef WLAN_MLO_MULTI_CHIP
 	struct mlo_setup_info *setup_info;
 	uint8_t total_grp;
+	bool dynamic_wsi_bypassed;
 #elif defined(WLAN_FEATURE_11BE_MLO) && !defined(WLAN_MLO_MULTI_CHIP)
 	bool tsf_sync_enabled;
 #endif
@@ -891,10 +893,16 @@ struct emlsr_capability {
 /**
  * struct wlan_mlo_sta_assoc_pending_list - MLO sta assoc pending list entry
  * @peer_list: MLO peer list
+ * @is_timer_started: Indicate timer is started to remove peer mld mac from list
+ * @force_remove: To clear all peer mld mac's from the list
+ * @rem_peer_mld_mac: timer trigger parameter
  * @list_lock: lock to access members of structure
  */
 struct wlan_mlo_sta_assoc_pending_list {
 	qdf_list_t peer_list;
+	bool is_timer_started;
+	bool force_remove;
+	qdf_timer_t rem_peer_mld_mac;
 	qdf_spinlock_t list_lock;
 };
 
@@ -1771,16 +1779,19 @@ struct mlo_link_disable_request_evt_params {
 	uint32_t link_id_bitmap;
 };
 
-#define MAX_INDEX_FOR_LINK_PRIORITY_BITMAP 3
+#define MAX_INDEX_FOR_LINK_PRIORITY_BITMAP 5
+#define NUM_TID_PER_AC 2
 /**
  * struct mlo_tlt_selection_evt_params - MLO tlt selection
  * request params
  * @mld_addr: mld address
- * @link_priority: Link priority bitmap
+ * @link_priority: link priority order based on hw chip id
+ * @link_bmap: Link priority bitmap
  */
 struct mlo_tlt_selection_evt_params {
 	struct qdf_mac_addr mld_addr;
-	uint8_t link_priority[MAX_INDEX_FOR_LINK_PRIORITY_BITMAP];
+	uint32_t link_priority[MAX_INDEX_FOR_LINK_PRIORITY_BITMAP];
+	uint32_t link_bmap[NUM_TID_PER_AC];
 };
 
 #define MAX_LINK_SWITCH_TLV 5
@@ -1903,11 +1914,13 @@ struct peer_entry_ptqm_migrate_event_params {
 /**
  * struct wlan_mlo_sta_entry - MLO sta entry
  * @mac_node: QDF list mac_node member
+ * @time: To indicate when the peer mld mac is added to list
  * @peer_mld_addr: MLO peer MAC address
  */
 
 struct wlan_mlo_sta_entry {
 	qdf_list_node_t mac_node;
+	qdf_time_t time;
 	struct qdf_mac_addr peer_mld_addr;
 };
 

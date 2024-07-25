@@ -5508,6 +5508,7 @@ typedef enum {
 	wmi_mlo_teardown_complete_event_id,
 	wmi_mlo_link_set_active_resp_eventid,
 	wmi_mlo_link_removal_eventid,
+	wmi_mlo_tlt_selection_for_tid_eventid,
 	wmi_mlo_link_disable_request_eventid,
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
 	wmi_mlo_link_switch_request_eventid,
@@ -6745,6 +6746,9 @@ typedef enum {
 #endif
 	wmi_service_support_ap_suspend_resume,
 	wmi_service_epm,
+#ifdef WLAN_FEATURE_MULTI_LINK_SAP
+	wmi_service_mlo_sap_emlsr_support,
+#endif
 	wmi_services_max,
 } wmi_conv_service_ids;
 #define WMI_SERVICE_UNAVAILABLE 0xFFFF

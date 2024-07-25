@@ -1163,6 +1163,20 @@ void DP_PRINT_STATS(const char *fmt, ...);
 		_handle->stats._field += _delta; \
 }
 
+#ifdef QCA_DP_PROTOCOL_STATS
+#define DP_TX_PROTO_STATS_INC(_handle, _proto, _ring, _level, _field, _delta) \
+{ \
+	if (_proto == 3) \
+		_handle->stats.tx.proto.tx_proto[_ring][_level].l3[_field] += _delta; \
+	if (_proto == 4) \
+		_handle->stats.tx.proto.tx_proto[_ring][_level].l4[_field] += _delta; \
+	if (_proto == 5) \
+		_handle->stats.tx.proto.tx_proto[_ring][_level].l5[_field] += _delta; \
+}
+#else
+#define DP_TX_PROTO_STATS_INC(_handle, _proto, _ring, _level, _field, _delta)
+#endif /* QCA_DP_PROTOCOL_STATS */
+
 #define DP_PEER_LINK_STATS_INC(_handle, _field, _delta, _link) \
 { \
 	if (likely(_handle)) \
@@ -1493,6 +1507,23 @@ void DP_PRINT_STATS(const char *fmt, ...);
 #define DP_RX_HIST_STATS_PER_PDEV()
 #define DP_TX_HIST_STATS_PER_PDEV()
 #endif /* DISABLE_DP_STATS */
+
+#ifdef QCA_DP_PROTOCOL_STATS
+#define DP_PEER_INC_PROTO_STATS(_handle, _link, _field) \
+{ \
+	if (likely(_handle)) \
+		(_handle)->stats[_link].per_pkt_stats._field++; \
+}
+
+#define DP_INC_PROTO_STATS(_handle, _field) \
+{ \
+	if (likely(_handle)) \
+		(_handle)->stats._field++; \
+}
+#else
+#define DP_PEER_INC_PROTO_STATS(_handle, _link, _field)
+#define DP_INC_PROTO_STATS(_handle, _field)
+#endif /* QCA_DP_PROTOCOL_STATS */
 
 #define FRAME_MASK_IPV4_ARP   0x1
 #define FRAME_MASK_IPV4_DHCP  0x2
@@ -1968,6 +1999,52 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 #define DP_UPDATE_PROTOCOL_COUNT_STATS(_tgtobj, _srcobj)
 #endif
 
+#ifdef QCA_DP_PROTOCOL_STATS
+#define DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj) \
+{ \
+	uint8_t i, j; \
+	for (i = 0; i < RX_UPD_LEVEL_MAX; i++) { \
+		for (j = 0; j < CDP_PKT_TYPE_L3_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l3[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l3[j]; \
+		} \
+		for (j = 0; j < CDP_PKT_TYPE_L4_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l4[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l4[j]; \
+		} \
+		for (j = 0; j < CDP_PKT_TYPE_L5_MAX; j++) { \
+			(_tgtobj)->rx.proto.rx_proto[i].l5[j] +=\
+				(_srcobj)->rx.proto.rx_proto[i].l5[j]; \
+		} \
+	} \
+}
+
+#define DP_UPDATE_TX_PROTOCOL_VDEV_STATS(_tgtobj, _srcobj) \
+{\
+	uint8_t type, ring_id, level; \
+	for (level = 0; level < TX_UPD_LEVEL_MAX; level++) { \
+		for (ring_id = 0; ring_id < CDP_MAX_TX_DATA_RINGS; ring_id++) { \
+			for (type = 0; type < CDP_PKT_TYPE_L3_MAX; type++) { \
+				_tgtobj.tx.proto.tx_proto[ring_id][level].l3[type] += \
+				_srcobj->tx.proto.tx_proto[ring_id][level].l3[type]; \
+			} \
+			for (type = 0; type < CDP_PKT_TYPE_L4_MAX; type++) { \
+				_tgtobj.tx.proto.tx_proto[ring_id][level].l4[type] += \
+				_srcobj->tx.proto.tx_proto[ring_id][level].l4[type]; \
+			}		\
+			for (type = 0; type < CDP_PKT_TYPE_L5_MAX; type++) { \
+				_tgtobj.tx.proto.tx_proto[ring_id][level].l5[type] += \
+				_srcobj->tx.proto.tx_proto[ring_id][level].l5[type]; \
+			} \
+		} \
+	} \
+}
+
+#else
+#define DP_UPDATE_TX_PROTOCOL_VDEV_STATS(_tgtobj, _srcobj)
+#define DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj)
+#endif /* QCA_DP_PROTOCOL_STATS */
+
 #ifdef WLAN_FEATURE_11BE
 #define DP_UPDATE_11BE_STATS(_tgtobj, _srcobj) \
 	do { \
@@ -2190,6 +2267,7 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 		} \
 		DP_IPA_UPDATE_PER_PKT_RX_STATS(_tgtobj, _srcobj); \
 		DP_UPDATE_PROTOCOL_COUNT_STATS(_tgtobj, _srcobj); \
+		DP_UPDATE_PROTOCOL_STATS(_tgtobj, _srcobj); \
 	} while (0)
 
 #define DP_UPDATE_PER_PKT_STATS(_tgtobj, _srcobj) \
