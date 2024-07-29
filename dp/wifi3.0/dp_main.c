@@ -9806,6 +9806,71 @@ static QDF_STATUS dp_txrx_update_vdev_host_stats(struct cdp_soc_t *soc_hdl,
 	return QDF_STATUS_SUCCESS;
 }
 
+#ifdef IPA_OFFLOAD
+/**
+ * dp_txrx_update_peer_stats() - update tx and rx values at peer level for IPA
+ * @peer_stats: destination buffer to copy to
+ *
+ * Return: none
+ */
+static void
+dp_txrx_update_peer_stats(struct cdp_peer_stats *peer_stats)
+{
+	peer_stats->tx.tx_success.num =
+				peer_stats->tx.tx_ucast_success.num;
+	peer_stats->tx.tx_success.bytes =
+				peer_stats->tx.tx_ucast_success.bytes;
+	peer_stats->tx.ucast.num =
+				peer_stats->tx.tx_ucast_total.num;
+	peer_stats->tx.ucast.bytes =
+				peer_stats->tx.tx_ucast_total.bytes;
+
+	if (peer_stats->rx.rx_total.num >=  peer_stats->rx.multicast.num)
+		peer_stats->rx.unicast.num = peer_stats->rx.rx_total.num -
+					peer_stats->rx.multicast.num;
+
+	if (peer_stats->rx.rx_total.bytes >= peer_stats->rx.multicast.bytes)
+		peer_stats->rx.unicast.bytes = peer_stats->rx.rx_total.bytes -
+					peer_stats->rx.multicast.bytes;
+	peer_stats->rx.rx_retries = peer_stats->rx.retried_msdu_count;
+}
+
+/**
+ * dp_txrx_update_vdev_stats()- update tx and rx values at vdev level for IPA
+ * @vdev_stats: destination buffer to copy to
+ *
+ * Return: none
+ */
+static void
+dp_txrx_update_vdev_stats(struct cdp_vdev_stats *vdev_stats)
+{
+	vdev_stats->tx.ucast.num = vdev_stats->tx.tx_ucast_total.num;
+	vdev_stats->tx.ucast.bytes = vdev_stats->tx.tx_ucast_total.bytes;
+	vdev_stats->tx.tx_success.num = vdev_stats->tx.tx_ucast_success.num;
+	vdev_stats->tx.tx_success.bytes = vdev_stats->tx.tx_ucast_success.bytes;
+
+	if (vdev_stats->rx.rx_total.num >= vdev_stats->rx.multicast.num)
+		vdev_stats->rx.unicast.num = vdev_stats->rx.rx_total.num -
+					vdev_stats->rx.multicast.num;
+	if (vdev_stats->rx.rx_total.bytes >=  vdev_stats->rx.multicast.bytes)
+		vdev_stats->rx.unicast.bytes = vdev_stats->rx.rx_total.bytes -
+					vdev_stats->rx.multicast.bytes;
+	vdev_stats->rx.to_stack.num = vdev_stats->rx.rx_total.num;
+	vdev_stats->rx.to_stack.bytes = vdev_stats->rx.rx_total.bytes;
+	vdev_stats->rx.rx_retries = vdev_stats->rx.retried_msdu_count;
+}
+#else
+static void
+dp_txrx_update_peer_stats(struct cdp_peer_stats *peer_stats)
+{
+}
+
+static void
+dp_txrx_update_vdev_stats(struct cdp_vdev_stats *vdev_stats)
+{
+}
+#endif
+
 /**
  * dp_txrx_get_peer_stats_wrapper() - will get cdp_peer_stats
  * @soc: soc handle
@@ -9831,6 +9896,7 @@ dp_txrx_get_peer_stats_wrapper(struct cdp_soc_t *soc,
 
 	dp_get_peer_stats(peer, peer_stats);
 
+	dp_txrx_update_peer_stats(peer_stats);
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
 
 	return QDF_STATUS_SUCCESS;
@@ -10135,6 +10201,7 @@ dp_txrx_get_vdev_stats(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 						    &vdev->stats, DP_XMIT_LINK);
 	}
 
+	dp_txrx_update_vdev_stats(vdev_stats);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 	return QDF_STATUS_SUCCESS;
 }
@@ -12981,13 +13048,6 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 	.txrx_get_per_link_stats = dp_txrx_get_per_link_peer_stats,
 	.txrx_reset_peer_stats = dp_txrx_reset_peer_stats,
 	.txrx_get_pdev_stats = dp_txrx_get_pdev_stats,
-#if defined(IPA_OFFLOAD) && defined(QCA_ENHANCED_STATS_SUPPORT)
-	.txrx_get_peer_stats = dp_ipa_txrx_get_peer_stats,
-	.txrx_get_vdev_stats  = dp_ipa_txrx_get_vdev_stats,
-	.txrx_get_pdev_stats = dp_ipa_txrx_get_pdev_stats,
-	.txrx_get_peer_stats_based_on_peer_type =
-			dp_ipa_txrx_get_peer_stats_based_on_peer_type,
-#endif
 	.txrx_get_ratekbps = dp_txrx_get_ratekbps,
 	.txrx_update_vdev_stats = dp_txrx_update_vdev_host_stats,
 	.txrx_get_peer_delay_stats = dp_txrx_get_peer_delay_stats,
