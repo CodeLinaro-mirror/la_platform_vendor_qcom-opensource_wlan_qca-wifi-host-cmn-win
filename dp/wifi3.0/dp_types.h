@@ -5204,7 +5204,9 @@ struct dp_peer_per_pkt_rx_stats {
  * @punc_bw: MSDU count for punctured bw
  * @bar_cnt: Block ACK Request frame count
  * @ndpa_cnt: NDP announcement frame count
+ * @rx_total: total rx count
  * @wme_ac_type_bytes: Wireless Multimedia type Bytes Count
+ * @retried_msdu_count: rx msdu retries count
  */
 struct dp_peer_extd_rx_stats {
 	struct cdp_pkt_type pkt_type[DOT11_MAX];
@@ -5252,7 +5254,9 @@ struct dp_peer_extd_rx_stats {
 #endif
 	uint32_t bar_cnt;
 	uint32_t ndpa_cnt;
+	struct cdp_pkt_info rx_total;
 	uint64_t wme_ac_type_bytes[WME_AC_MAX];
+	uint32_t retried_msdu_count;
 };
 
 /**

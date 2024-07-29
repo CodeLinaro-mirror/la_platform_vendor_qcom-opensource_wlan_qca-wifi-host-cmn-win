@@ -9769,6 +9769,12 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 	tgtobj->stats.tx.tx_success.num += srcobj->tx.tx_success.num;
 	tgtobj->stats.tx.tx_success.bytes +=
 		srcobj->tx.tx_success.bytes;
+	tgtobj->stats.tx.tx_ucast_success.num += srcobj->tx.tx_ucast_success.num;
+	tgtobj->stats.tx.tx_ucast_success.bytes +=
+		srcobj->tx.tx_ucast_success.bytes;
+	tgtobj->stats.tx.tx_ucast_total.num += srcobj->tx.tx_ucast_total.num;
+	tgtobj->stats.tx.tx_ucast_total.bytes +=
+		srcobj->tx.tx_ucast_total.bytes;
 	tgtobj->stats.tx.nawds_mcast.num +=
 		srcobj->tx.nawds_mcast.num;
 	tgtobj->stats.tx.nawds_mcast.bytes +=
@@ -9856,6 +9862,8 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 	tgtobj->stats.rx.mcast_3addr_drop += srcobj->rx.mcast_3addr_drop;
 	tgtobj->stats.rx.to_stack.num += srcobj->rx.to_stack.num;
 	tgtobj->stats.rx.to_stack.bytes += srcobj->rx.to_stack.bytes;
+	tgtobj->stats.rx.rx_total.num += srcobj->rx.rx_total.num;
+	tgtobj->stats.rx.rx_total.bytes += srcobj->rx.rx_total.bytes;
 
 	for (i = 0; i < CDP_MAX_RX_RINGS; i++) {
 		tgtobj->stats.rx.rcvd_reo[i].num +=
@@ -9890,6 +9898,7 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 	tgtobj->stats.rx.raw.bytes += srcobj->rx.raw.bytes;
 	tgtobj->stats.rx.intra_bss.pkts.num +=
 			srcobj->rx.intra_bss.pkts.num;
+	tgtobj->stats.rx.retried_msdu_count += srcobj->rx.retried_msdu_count;
 	tgtobj->stats.rx.intra_bss.pkts.bytes +=
 			srcobj->rx.intra_bss.pkts.bytes;
 	tgtobj->stats.rx.intra_bss.fail.num +=

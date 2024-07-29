@@ -78,6 +78,20 @@ struct htt_dbgfs_cfg {
 	qdf_debugfs_file_t m;
 };
 
+/**
+ * struct dp_rx_defrag_cipher: structure to indicate cipher header
+ * @ic_name: Name
+ * @ic_header: header length
+ * @ic_trailer: trail length
+ * @ic_miclen: MIC length
+ */
+struct dp_rx_defrag_cipher {
+	const char *ic_name;
+	uint16_t ic_header;
+	uint8_t ic_trailer;
+	uint8_t ic_miclen;
+};
+
 /* Cookie MSB bits assigned for different use case.
  * Note: User can't use last 3 bits, as it is reserved for pdev_id.
  * If in future number of pdev are more than 3.
@@ -2375,6 +2389,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 			_tgtobj->tx.rssi_chain[i] = _srcobj->tx.rssi_chain[i]; \
 		_tgtobj->rx.mpdu_cnt_fcs_ok += _srcobj->rx.mpdu_cnt_fcs_ok; \
 		_tgtobj->rx.mpdu_cnt_fcs_err += _srcobj->rx.mpdu_cnt_fcs_err; \
+		_tgtobj->rx.rx_total.num += _srcobj->rx.rx_total.num; \
+		_tgtobj->rx.rx_total.bytes += _srcobj->rx.rx_total.bytes; \
 		_tgtobj->rx.non_ampdu_cnt += _srcobj->rx.non_ampdu_cnt; \
 		_tgtobj->rx.ampdu_cnt += _srcobj->rx.ampdu_cnt; \
 		_tgtobj->rx.rx_mpdus += _srcobj->rx.rx_mpdus; \
@@ -2387,6 +2403,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 		_tgtobj->rx.avg_snr = _srcobj->rx.avg_snr; \
 		_tgtobj->rx.rx_snr_measured_time = \
 					_srcobj->rx.rx_snr_measured_time; \
+		_tgtobj->rx.retried_msdu_count += \
+					_srcobj->rx.retried_msdu_count; \
 		_tgtobj->rx.snr = _srcobj->rx.snr; \
 		_tgtobj->rx.last_snr = _srcobj->rx.last_snr; \
 		_tgtobj->rx.nss_info = _srcobj->rx.nss_info; \
