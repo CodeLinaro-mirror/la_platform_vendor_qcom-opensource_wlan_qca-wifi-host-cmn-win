@@ -5190,6 +5190,16 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 	}
 	ipa_info("TX buffers mapped to IPA");
 
+	/* Setup the Rx buffer SMMU mappings */
+	status = cdp_ipa_rx_buf_smmu_mapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+					     __func__, __LINE__);
+	if (status) {
+		ipa_err("Failure to map Rx buffers for IPA(status=%d)",
+			status);
+		goto smmu_map_fail;
+	}
+	ipa_info("RX buffers mapped to IPA");
+
 	cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 	wlan_ipa_init_metering(ipa_ctx);
 	wlan_ipa_add_rem_flt_cb_event(ipa_ctx);
@@ -5696,6 +5706,16 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 		}
 		ipa_info("TX buffers mapped to IPA");
 
+		/* Setup the Rx buffer SMMU mappings */
+		status = cdp_ipa_rx_buf_smmu_mapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+						     __func__, __LINE__);
+		if (status) {
+			ipa_err("Failure to map Rx buffers for IPA(status=%d)",
+				status);
+			return status;
+		}
+		ipa_info("RX buffers mapped to IPA");
+
 		cdp_ipa_set_doorbell_paddr(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		wlan_ipa_init_metering(ipa_ctx);
 		if (wlan_ipa_init_perf_level(ipa_ctx) != QDF_STATUS_SUCCESS)
@@ -5762,6 +5782,10 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 				status);
 		else
 			ipa_info("TX buffers unmapped from IPA");
+
+		cdp_ipa_rx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+					      __func__, __LINE__);
+
 		status = cdp_ipa_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					 ipa_ctx->tx_pipe_handle,
 					 ipa_ctx->rx_pipe_handle, ipa_ctx->hdl);
