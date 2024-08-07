@@ -654,14 +654,14 @@ cdp_ipa_set_perf_level(ol_txrx_soc_handle soc, int client,
 /**
  * cdp_ipa_rx_wdsext_iface() - Forward RX exception packets to wdsext interface
  * @soc: data path soc handle
- * @peer_id: Peer id to get respective peer
  * @skb: socket buffer
+ * @mac_addr: MAC address
  *
  * Return: true if packets sent to wds ext interface, else false.
  */
 static inline bool
-cdp_ipa_rx_wdsext_iface(ol_txrx_soc_handle soc, uint8_t peer_id,
-			qdf_nbuf_t skb)
+cdp_ipa_rx_wdsext_iface(ol_txrx_soc_handle soc, qdf_nbuf_t skb,
+			uint8_t *mac_addr)
 {
 	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
@@ -670,8 +670,8 @@ cdp_ipa_rx_wdsext_iface(ol_txrx_soc_handle soc, uint8_t peer_id,
 	}
 
 	if (soc->ops->ipa_ops->ipa_rx_wdsext_iface)
-		return soc->ops->ipa_ops->ipa_rx_wdsext_iface(soc, peer_id,
-							      skb);
+		return soc->ops->ipa_ops->ipa_rx_wdsext_iface(soc, skb,
+							      mac_addr);
 
 	return false;
 }
