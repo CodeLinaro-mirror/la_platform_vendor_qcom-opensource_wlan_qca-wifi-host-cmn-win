@@ -4178,7 +4178,7 @@ QDF_STATUS dp_ipa_tx_opt_dp_ctrl_pkt(struct cdp_soc_t *soc_hdl,
 #endif
 #endif /* IPA_OPT_WIFI_DP */
 
-#ifdef IPA_WDS_EASYMESH_FEATURE
+#if defined (IPA_WDS_EASYMESH_FEATURE) || defined (QCA_IPA_LL_TX_FLOW_CONTROL)
 /**
  * dp_peer_get_ref_by_ast() - Returns peer object given the ast
  *                        mac address if ast_entry is active
@@ -4399,6 +4399,9 @@ static bool dp_ipa_rx_intrabss_ucast_fwd(struct dp_soc *soc, qdf_nbuf_t nbuf,
 	struct dp_be_intrabss_params params_out;
 	struct ethhdr *eh;
 	bool status = false;
+
+	if (qdf_unlikely(!src_vdev))
+		return status;
 
 	params_in.da_peer_id = DP_INVALID_PEER_ID;
 	params_in.dest_chip_id =
