@@ -1827,22 +1827,6 @@ static int dp_rx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 	return QDF_STATUS_SUCCESS;
 }
 
-#if defined(QCA_IPA_LL_TX_FLOW_CONTROL) && defined(IPA_WDI3_TX_TWO_PIPES)
-int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev)
-{
-	int error;
-
-	/* Setup 2nd TX pipe */
-	error = dp_ipa_tx_alt_pool_attach(soc, pdev);
-	if (error) {
-		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
-			  "%s: DP IPA TX pool2 attach fail code %d",
-			  __func__, error);
-		return error;
-	}
-	return QDF_STATUS_SUCCESS;	/* success */
-}
-
 int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	int error;
@@ -1858,52 +1842,6 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 			  __func__, error);
 		if (error == -EFAULT)
 			dp_tx_ipa_uc_detach(soc, pdev);
-		return error;
-	}
-
-	/* Setup 2nd TX pipe */
-	error = dp_ipa_tx_alt_pool_attach(soc, pdev);
-	if (error) {
-		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
-			  "%s: DP IPA TX pool2 attach fail code %d",
-			  __func__, error);
-		dp_tx_ipa_uc_detach(soc, pdev);
-		return error;
-	}
-
-	/* RX resource attach */
-	error = dp_rx_ipa_uc_attach(soc, pdev);
-	if (error) {
-		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
-			  "%s: DP IPA UC RX attach fail code %d",
-			  __func__, error);
-		if (dp_ipa_is_alt_tx_required(soc))
-			dp_ipa_tx_alt_pool_detach(soc, pdev);
-		dp_tx_ipa_uc_detach(soc, pdev);
-		return error;
-	}
-
-	return QDF_STATUS_SUCCESS;	/* success */
-}
-#else
-int dp_ipa_uc_alt_attach(struct dp_soc *soc, struct dp_pdev *pdev)
-{
-	return QDF_STATUS_SUCCESS;	/* success */
-}
-
-int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
-{
-	int error;
-
-	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
-		return QDF_STATUS_SUCCESS;
-
-	/* TX resource attach */
-	error = dp_tx_ipa_uc_attach(soc, pdev);
-	if (error) {
-		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
-			  "%s: DP IPA UC TX attach fail code %d",
-			  __func__, error);
 		return error;
 	}
 
@@ -1933,7 +1871,6 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 
 	return QDF_STATUS_SUCCESS;	/* success */
 }
-#endif
 #ifdef IPA_WDI3_VLAN_SUPPORT
 /**
  * dp_ipa_rx_alt_ring_resource_setup() - setup IPA 2nd RX ring resources
@@ -4178,7 +4115,7 @@ QDF_STATUS dp_ipa_tx_opt_dp_ctrl_pkt(struct cdp_soc_t *soc_hdl,
 #endif
 #endif /* IPA_OPT_WIFI_DP */
 
-#ifdef IPA_WDS_EASYMESH_FEATURE
+#if defined (IPA_WDS_EASYMESH_FEATURE) || defined (QCA_IPA_LL_TX_FLOW_CONTROL)
 /**
  * dp_peer_get_ref_by_ast() - Returns peer object given the ast
  *                        mac address if ast_entry is active
@@ -4399,6 +4336,9 @@ static bool dp_ipa_rx_intrabss_ucast_fwd(struct dp_soc *soc, qdf_nbuf_t nbuf,
 	struct dp_be_intrabss_params params_out;
 	struct ethhdr *eh;
 	bool status = false;
+
+	if (qdf_unlikely(!src_vdev))
+		return status;
 
 	params_in.da_peer_id = DP_INVALID_PEER_ID;
 	params_in.dest_chip_id =
