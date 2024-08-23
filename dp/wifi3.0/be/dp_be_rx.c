@@ -2300,6 +2300,13 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct dp_soc *replenish_soc;
 	uint8_t chip_id;
 	union hal_wbm_err_info_u wbm_err = { 0 };
+	union dp_rx_desc_list_elem_t
+		*head_reuse[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
+	union dp_rx_desc_list_elem_t
+		*tail_reuse[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { NULL } };
+	uint32_t rx_buf_reuse[WLAN_MAX_MLO_CHIPS][MAX_PDEV_CNT] = { { 0 } };
+	uint8_t is_nbuf_req = 0;
+	bool dp_proto_stats = 0;
 
 	qdf_assert(soc && hal_ring_hdl);
 	hal_soc = soc->hal_soc;
@@ -2398,6 +2405,20 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 			   (wbm_err.info_bit.wbm_err_src ==
 			    HAL_RX_WBM_ERR_SRC_REO));
 
+		/* check if nbuf is required for error processing */
+		dp_rx_err_check_nbuf_req_for_err_process(soc, wbm_err,
+							 &is_nbuf_req,
+							 &dp_proto_stats);
+
+		/*
+		 * For Errors which does not require nbuf to process,
+		 * nbuf will be directly recycled without adding it to
+		 * the nbuf list and the hal desc contents will be copied
+		 * to local memory for stats update in second loop
+		 */
+		dp_rx_err_desc_sync(soc, ring_desc,
+				    is_nbuf_req, dp_proto_stats);
+
 		if (qdf_unlikely(
 			soc->wbm_release_desc_rx_sg_support &&
 			dp_rx_is_sg_formation_required(&wbm_err.info_bit))) {
@@ -2455,13 +2476,18 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 			}
 		} else if (!dp_rx_buffer_pool_refill(soc, nbuf,
 						     rx_desc->pool_id)) {
-			DP_RX_LIST_APPEND(nbuf_head, nbuf_tail, nbuf);
+			DP_RX_ERR_ADD_NBUF_TO_LIST(nbuf_head, nbuf_tail, nbuf,
+						   is_nbuf_req, dp_proto_stats);
 		}
 
-		dp_rx_add_to_free_desc_list
-			(&head[rx_desc->chip_id][rx_desc->pool_id],
-			 &tail[rx_desc->chip_id][rx_desc->pool_id], rx_desc);
-
+		dp_rx_err_add_desc_to_free_list(
+				&head[rx_desc->chip_id][rx_desc->pool_id],
+				&tail[rx_desc->chip_id][rx_desc->pool_id],
+				&head_reuse[rx_desc->chip_id][rx_desc->pool_id],
+				&tail_reuse[rx_desc->chip_id][rx_desc->pool_id],
+				rx_desc,
+				&rx_buf_reuse[rx_desc->chip_id][rx_desc->pool_id],
+				is_nbuf_req, dp_proto_stats);
 		/*
 		 * if continuation bit is set then we have MSDU spread
 		 * across multiple buffers, let us not decrement quota
@@ -2489,13 +2515,25 @@ done:
 
 			rx_desc_pool = &replenish_soc->rx_desc_buf[mac_id];
 
+			*rx_bufs_used += rx_bufs_reaped[chip_id][mac_id];
+
+			dp_rx_update_replenish_count(
+					&rx_bufs_reaped[chip_id][mac_id],
+					&rx_buf_reuse[chip_id][mac_id]);
+
 			dp_rx_buffers_replenish_simple(replenish_soc, mac_id,
 						dp_rxdma_srng,
 						rx_desc_pool,
 						rx_bufs_reaped[chip_id][mac_id],
 						&head[chip_id][mac_id],
 						&tail[chip_id][mac_id]);
-			*rx_bufs_used += rx_bufs_reaped[chip_id][mac_id];
+
+			dp_rx_buffers_replenish_reuse(replenish_soc, mac_id,
+						dp_rxdma_srng, rx_desc_pool,
+						rx_buf_reuse[chip_id][mac_id],
+						&head_reuse[chip_id][mac_id],
+						&tail_reuse[chip_id][mac_id]);
+
 		}
 	}
 	return nbuf_head;
@@ -2854,3 +2892,139 @@ drop_nbuf:
 	dp_rx_nbuf_free(nbuf);
 	return QDF_STATUS_E_FAILURE;
 }
+
+#ifdef DP_RX_ERR_SKB_REUSE
+void dp_rx_err_process_desc_list_be(struct dp_soc *soc)
+{
+	dp_txrx_ref_handle txrx_ref_handle = NULL;
+	struct dp_txrx_peer *txrx_peer;
+	uint32_t msdu_desc_info = 0;
+	uint32_t mpdu_desc_info = 0;
+	uint32_t peer_mdata = 0;
+	uint16_t peer_id = 0, msdu_len = 0;
+	uint8_t link_id = 0, pool_id = 0, i = 0;
+	union hal_wbm_err_info_u wbm_err = { 0 };
+	struct dp_pdev *dp_pdev;
+
+	for (i = 0; i < soc->num_rx_err_desc; i++) {
+		hal_rx_wbm_err_mpdu_msdu_info_get_be(&soc->rx_err_desc[i],
+						     &wbm_err.info,
+						     &msdu_desc_info,
+						     &mpdu_desc_info,
+						     &peer_mdata);
+
+		peer_id = dp_rx_peer_metadata_peer_id_get(soc, peer_mdata);
+		txrx_peer = dp_tgt_txrx_peer_get_ref_by_id(soc, peer_id,
+							   &txrx_ref_handle,
+							   DP_MOD_ID_RX_ERR);
+
+		pool_id = wbm_err.info_bit.pool_id;
+		dp_pdev = dp_get_pdev_for_lmac_id(soc, pool_id);
+
+		if (dp_pdev && dp_pdev->link_peer_stats &&
+		    txrx_peer && txrx_peer->is_mld_peer) {
+			link_id = (dp_rx_peer_metadata_hw_link_id_get_be
+							(peer_mdata) + 1);
+			if (link_id > DP_MAX_MLO_LINKS) {
+				link_id = 0;
+				DP_PEER_PER_PKT_STATS_INC(
+						txrx_peer,
+						rx.inval_link_id_pkt_cnt,
+						1, link_id);
+			}
+		} else {
+			link_id = 0;
+		}
+
+		if (!txrx_peer)
+			dp_info_rl("peer is null peer_id %u err_src %u, "
+				   "REO: push_rsn %u err_code %u, "
+				   "RXDMA: push_rsn %u err_code %u",
+				   peer_id, wbm_err.info_bit.wbm_err_src,
+				   wbm_err.info_bit.reo_psh_rsn,
+				   wbm_err.info_bit.reo_err_code,
+				   wbm_err.info_bit.rxdma_psh_rsn,
+				   wbm_err.info_bit.rxdma_err_code);
+
+		if (wbm_err.info_bit.wbm_err_src == HAL_RX_WBM_ERR_SRC_REO) {
+			if (wbm_err.info_bit.reo_psh_rsn
+					== HAL_RX_WBM_REO_PSH_RSN_ERROR) {
+				DP_STATS_INC(soc,
+					rx.err.reo_error
+					[wbm_err.info_bit.reo_err_code], 1);
+				/* increment @pdev level */
+				if (dp_pdev)
+					DP_STATS_INC(dp_pdev, err.reo_error,
+						     1);
+
+				switch (wbm_err.info_bit.reo_err_code) {
+				case HAL_REO_ERR_REGULAR_FRAME_OOR:
+					DP_STATS_INC(soc,
+						     rx.err.reo_err_oor_drop,
+						     1);
+					if (txrx_peer)
+						DP_PEER_PER_PKT_STATS_INC(
+							txrx_peer,
+							rx.err.oor_err,
+							1, link_id);
+					break;
+				case HAL_REO_ERR_BAR_FRAME_2K_JUMP:
+				case HAL_REO_ERR_BAR_FRAME_OOR:
+					DP_STATS_INC(soc,
+						     rx.err.bar_handle_fail_count, 1);
+					break;
+				case HAL_REO_ERR_PN_CHECK_FAILED:
+				case HAL_REO_ERR_PN_ERROR_HANDLING_FLAG_SET:
+					if (txrx_peer)
+						DP_PEER_PER_PKT_STATS_INC(
+								txrx_peer,
+								rx.err.pn_err,
+								1, link_id);
+					break;
+				default:
+					dp_info_rl("Got pkt with REO ERROR: %d",
+						   wbm_err.info_bit.
+						   reo_err_code);
+				}
+			}
+		} else if (wbm_err.info_bit.wbm_err_src ==
+					HAL_RX_WBM_ERR_SRC_RXDMA) {
+			if (wbm_err.info_bit.rxdma_psh_rsn
+					== HAL_RX_WBM_RXDMA_PSH_RSN_ERROR) {
+				DP_STATS_INC(soc,
+					rx.err.rxdma_error
+					[wbm_err.info_bit.rxdma_err_code], 1);
+				/* increment @pdev level */
+				if (dp_pdev)
+					DP_STATS_INC(dp_pdev,
+						     err.rxdma_error, 1);
+
+				if (wbm_err.info_bit.rxdma_err_code
+					== HAL_RXDMA_MULTICAST_ECHO) {
+					if (txrx_peer) {
+						msdu_len = HAL_RX_GET_MSDU_LEN(msdu_desc_info);
+						DP_PEER_PER_PKT_STATS_INC_PKT(
+								txrx_peer,
+								rx.mec_drop, 1,
+								msdu_len,
+								link_id);
+					}
+				}
+			} else if (wbm_err.info_bit.rxdma_psh_rsn
+					== HAL_RX_WBM_RXDMA_PSH_RSN_FLUSH) {
+				dp_rx_err_err("rxdma push reason %u",
+						wbm_err.info_bit.rxdma_psh_rsn);
+				DP_STATS_INC(soc, rx.err.rx_flush_count, 1);
+			}
+		}
+		if (txrx_peer)
+			dp_txrx_peer_unref_delete(txrx_ref_handle,
+						  DP_MOD_ID_RX_ERR);
+	}
+	soc->num_rx_err_desc = 0;
+}
+#else
+void dp_rx_err_process_desc_list_be(struct dp_soc *soc)
+{
+}
+#endif /* DP_RX_ERR_SKB_REUSE */

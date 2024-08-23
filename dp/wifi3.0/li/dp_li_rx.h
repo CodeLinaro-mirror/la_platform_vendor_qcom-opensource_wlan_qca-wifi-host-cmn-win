@@ -355,4 +355,16 @@ dp_rx_null_q_desc_handle_li(struct dp_soc *soc, qdf_nbuf_t nbuf,
 			    struct dp_txrx_peer *txrx_peer,
 			    bool is_reo_exception,
 			    uint8_t link_id);
+
+/**
+ * dp_rx_err_process_desc_list_li() - Function to process Rx Err Desc
+ * @soc: core DP main context
+ *
+ * Return: None
+ *
+ */
+static inline void
+dp_rx_err_process_desc_list_li(struct dp_soc *soc)
+{
+}
 #endif

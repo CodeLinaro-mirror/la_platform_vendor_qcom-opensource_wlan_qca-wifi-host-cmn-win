@@ -4048,4 +4048,47 @@ dp_rx_buffers_replenish_on_demand(struct cdp_soc_t *cdp_soc,
 	return 0;
 }
 #endif
+
+#ifdef DP_RX_ERR_SKB_REUSE
+static inline QDF_STATUS
+dp_rx_err_desc_alloc_spad_mem(struct dp_soc *soc)
+{
+	uint16_t quota = 0, scale = 0;
+
+	scale = wlan_cfg_get_napi_scale_factor(soc->wlan_cfg_ctx);
+	if (!scale)
+		scale = QCA_NAPI_DEF_SCALE_BIN_SHIFT;
+
+	quota = NAPI_BUDGET_TO_INTERNAL_BUDGET(QCA_NAPI_BUDGET, scale);
+
+	soc->rx_err_desc = qdf_mem_malloc(sizeof(struct hal_rx_err_desc_copy) *
+					  quota);
+	soc->num_rx_err_desc = 0;
+	if (!soc->rx_err_desc)
+		return QDF_STATUS_E_NOMEM;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline void
+dp_rx_err_desc_free_spad_mem(struct dp_soc *soc)
+{
+	if (soc->rx_err_desc) {
+		qdf_mem_free(soc->rx_err_desc);
+		soc->rx_err_desc = NULL;
+		soc->num_rx_err_desc = 0;
+	}
+}
+#else
+static inline QDF_STATUS
+dp_rx_err_desc_alloc_spad_mem(struct dp_soc *soc)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline void
+dp_rx_err_desc_free_spad_mem(struct dp_soc *soc)
+{
+}
+#endif /* DP_RX_ERR_SKB_REUSE */
 #endif /* _DP_RX_H */

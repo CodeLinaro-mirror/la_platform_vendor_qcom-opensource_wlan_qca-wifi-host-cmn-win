@@ -4347,6 +4347,7 @@ static void dp_soc_detach(struct cdp_soc_t *txrx_soc)
 
 	dp_runtime_deinit();
 
+	dp_rx_err_desc_free_spad_mem(soc);
 	dp_free_ipa_rx_alt_refill_buf_ring(soc);
 	dp_free_ipa_rx_refill_buf_ring(soc);
 	dp_soc_unset_qref_debug_list(soc);
@@ -14901,6 +14902,13 @@ dp_soc_attach(struct cdp_ctrl_objmgr_psoc *ctrl_psoc,
 	/* Setup third Rx refill buffer ring */
 	if (dp_setup_ipa_rx_alt_refill_buf_ring(soc)) {
 		dp_init_err("%pK: dp_srng_alloc failed rxrefill3 ring",
+			    soc);
+		goto fail10;
+	}
+
+	/* Alloc Rx Err Desc Scratch pad Memory */
+	if (dp_rx_err_desc_alloc_spad_mem(soc)) {
+		dp_init_err("%pK: dp rx err desc spad mem alloc failure",
 			    soc);
 		goto fail10;
 	}
