@@ -2297,6 +2297,8 @@ struct cdp_throttle_ops {
  * @ipa_rx_buf_smmu_pool_mapping: Create SMMU mapping for Rx
  * @ipa_set_smmu_mapped: Set IPA SMMU mapped value
  * @ipa_get_smmu_mapped: Get IPA SMMU mapped value
+ * @ipa_rx_buf_smmu_mapping: Create SMMU mappings for IPA allocated RX buffers
+ * @ipa_rx_buf_smmu_unmapping: Release SMMU mappings for IPA allocated RX buffers
  * @ipa_rx_wdsext_iface: Forward RX exception packets to wdsext interface
  * @ipa_rx_super_rule_setup: Setup cce super rules based on filter tuple
  * @ipa_tx_super_rule_setup: Setup tx super rules based on filter tuple
@@ -2406,6 +2408,14 @@ struct cdp_ipa_ops {
 	QDF_STATUS (*ipa_set_smmu_mapped)(struct cdp_soc_t *soc_hdl, int val);
 	int (*ipa_get_smmu_mapped)(struct cdp_soc_t *soc_hdl);
 
+	QDF_STATUS (*ipa_rx_buf_smmu_mapping)(struct cdp_soc_t *soc_hdl,
+					      uint8_t pdev_id,
+					      const char *func,
+					      uint32_t line);
+	QDF_STATUS (*ipa_rx_buf_smmu_unmapping)(struct cdp_soc_t *soc_hdl,
+						uint8_t pdev_id,
+						const char *func,
+						uint32_t line);
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	bool (*ipa_rx_wdsext_iface)(struct cdp_soc_t *soc_hdl,
 				    uint8_t peer_id,
