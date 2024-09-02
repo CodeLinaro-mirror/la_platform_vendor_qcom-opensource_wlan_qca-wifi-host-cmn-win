@@ -62,7 +62,7 @@
 
 #define WLAN_CFG_IPA_TX_COMP_RING_SIZE_MIN 512
 #define WLAN_CFG_IPA_TX_COMP_RING_SIZE 1024
-#define WLAN_CFG_IPA_TX_COMP_RING_SIZE_MAX 0x80000
+#define WLAN_CFG_IPA_TX_COMP_RING_SIZE_MAX 0x100000
 
 #ifdef IPA_WDI3_TX_TWO_PIPES
 #ifdef WLAN_MEMORY_OPT
@@ -79,7 +79,7 @@
 #define WLAN_CFG_IPA_TX_ALT_COMP_RING_SIZE_MIN 512
 #endif
 #define WLAN_CFG_IPA_TX_ALT_COMP_RING_SIZE 1024
-#define WLAN_CFG_IPA_TX_ALT_COMP_RING_SIZE_MAX 0x80000
+#define WLAN_CFG_IPA_TX_ALT_COMP_RING_SIZE_MAX 0x100000
 #endif
 
 #define WLAN_CFG_PER_PDEV_TX_RING 0
@@ -1415,6 +1415,10 @@
 	CFG_INI_BOOL("dp_disable_rx_buf_low_threshold", false, \
 		     "Disable Low threshold interrupts for Rx Refill ring")
 
+#define CFG_DP_RXDMA_SCAN_RADIO_REFILL_LT_DISABLE \
+	CFG_INI_BOOL("dp_disable_scan_radio_rx_buf_low_threshold", false, \
+		     "Disable Low threshold interrupts for scan radio Rx Refill ring")
+
 #define CFG_DP_TX_DESC_LIMIT_0 \
 		CFG_INI_UINT("dp_tx_desc_limit_0", \
 		WLAN_CFG_TX_DESC_LIMIT_0_MIN, \
@@ -2342,6 +2346,7 @@
 		CFG(CFG_DP_REO_STATUS_RING) \
 		CFG(CFG_DP_RXDMA_BUF_RING) \
 		CFG(CFG_DP_RXDMA_REFILL_RING) \
+		CFG(CFG_DP_RXDMA_SCAN_RADIO_REFILL_LT_DISABLE) \
 		CFG(CFG_DP_RXDMA_REFILL_LT_DISABLE) \
 		CFG(CFG_DP_TX_DESC_LIMIT_0) \
 		CFG(CFG_DP_TX_DESC_LIMIT_1) \

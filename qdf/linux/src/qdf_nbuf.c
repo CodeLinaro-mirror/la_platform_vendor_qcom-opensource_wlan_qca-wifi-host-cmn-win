@@ -162,17 +162,7 @@ static inline uint8_t __qdf_nbuf_get_ip_offset(uint8_t *data)
 	return QDF_NBUF_TRAC_IP_OFFSET;
 }
 
-/**
- *  __qdf_nbuf_get_ether_type() - Get the ether type
- * @data: Pointer to network data buffer
- *
- * Get the ether type in case of 8021Q and 8021AD tag
- * is present in L2 header, e.g for the returned ether type
- * value, if IPV4 data ether type 0x0800, return 0x0008.
- *
- * Return ether type.
- */
-static inline uint16_t __qdf_nbuf_get_ether_type(uint8_t *data)
+uint16_t __qdf_nbuf_get_ether_type(uint8_t *data)
 {
 	uint16_t ether_type;
 
@@ -188,6 +178,8 @@ static inline uint16_t __qdf_nbuf_get_ether_type(uint8_t *data)
 
 	return ether_type;
 }
+
+qdf_export_symbol(__qdf_nbuf_get_ether_type);
 
 void qdf_nbuf_tx_desc_count_display(void)
 {
@@ -1492,6 +1484,8 @@ __qdf_nbuf_data_get_dhcp_subtype(uint8_t *data)
 	return subtype;
 }
 
+qdf_export_symbol(__qdf_nbuf_data_get_dhcp_subtype);
+
 #define EAPOL_WPA_KEY_INFO_KEY_TYPE BIT(3)
 #define EAPOL_WPA_KEY_INFO_ACK BIT(7)
 #define EAPOL_WPA_KEY_INFO_MIC BIT(8)
@@ -1821,6 +1815,8 @@ __qdf_nbuf_data_get_ipv4_proto(uint8_t *data)
 				QDF_NBUF_TRAC_IPV4_PROTO_TYPE_OFFSET));
 	return proto_type;
 }
+
+qdf_export_symbol(__qdf_nbuf_data_get_ipv4_proto);
 
 uint8_t
 __qdf_nbuf_data_get_ipv6_tc(uint8_t *data)
@@ -2362,6 +2358,8 @@ bool __qdf_nbuf_data_is_dns_query(uint8_t *data)
 	return false;
 }
 
+qdf_export_symbol(__qdf_nbuf_data_is_dns_query);
+
 bool __qdf_nbuf_data_is_dns_response(uint8_t *data)
 {
 	uint16_t op_code;
@@ -2380,6 +2378,8 @@ bool __qdf_nbuf_data_is_dns_response(uint8_t *data)
 	}
 	return false;
 }
+
+qdf_export_symbol(__qdf_nbuf_data_is_dns_response);
 
 bool __qdf_nbuf_data_is_tcp_fin(uint8_t *data)
 {
@@ -2488,6 +2488,8 @@ bool __qdf_nbuf_data_is_icmpv4_req(uint8_t *data)
 	return false;
 }
 
+qdf_export_symbol(__qdf_nbuf_data_is_icmpv4_req);
+
 bool __qdf_nbuf_data_is_icmpv4_rsp(uint8_t *data)
 {
 	uint8_t op_code;
@@ -2499,6 +2501,8 @@ bool __qdf_nbuf_data_is_icmpv4_rsp(uint8_t *data)
 		return true;
 	return false;
 }
+
+qdf_export_symbol(__qdf_nbuf_data_is_icmpv4_rsp);
 
 bool __qdf_nbuf_data_is_icmpv4_redirect(uint8_t *data)
 {
@@ -3981,6 +3985,53 @@ qdf_nbuf_dev_kfree_list_debug(__qdf_nbuf_queue_head_t *nbuf_queue_head,
 }
 
 qdf_export_symbol(qdf_nbuf_dev_kfree_list_debug);
+
+#ifdef QDF_NBUF_GLOBAL_COUNT
+int qdf_nbuf_linearize_debug(qdf_nbuf_t buf, const char *func,
+			     uint32_t line)
+{
+	qdf_nbuf_t ext_list;
+	int num_nbuf;
+
+	if (is_initial_mem_debug_disabled)
+		return __qdf_nbuf_linearize(buf);
+
+	if (qdf_nbuf_get_users(buf) > 1)
+		return -ENOMEM;
+
+	qdf_nbuf_frag_count_dec(buf);
+	qdf_net_buf_debug_release_frag(buf, func, line);
+
+	num_nbuf = 0;
+
+	/*Handle frag_list */
+	ext_list = qdf_nbuf_get_ext_list(buf);
+	while (ext_list) {
+		if (qdf_nbuf_get_users(ext_list) == 1)
+			++num_nbuf;
+		ext_list = qdf_nbuf_queue_next(ext_list);
+	}
+
+	qdf_atomic_sub(num_nbuf, &nbuf_count);
+	return __qdf_nbuf_linearize(buf);
+}
+#else
+int qdf_nbuf_linearize_debug(qdf_nbuf_t buf, const char *func,
+			     uint32_t line)
+{
+	if (is_initial_mem_debug_disabled)
+		return __qdf_nbuf_linearize(buf);
+
+	if (qdf_nbuf_get_users(buf) > 1)
+		return -ENOMEM;
+
+	qdf_nbuf_frag_count_dec(buf);
+	qdf_net_buf_debug_release_frag(buf, func, line);
+
+	return __qdf_nbuf_linearize(buf);
+}
+#endif /* QDF_NBUF_GLOBAL_COUNT */
+qdf_export_symbol(qdf_nbuf_linearize_debug);
 #endif /* NBUF_MEMORY_DEBUG */
 
 #if defined(QCA_DP_NBUF_FAST_PPEDS)
@@ -5268,6 +5319,18 @@ qdf_nbuf_update_radiotap_he_mu_flags(struct mon_rx_status *rx_status,
 
 		rtap_buf[rtap_len] = rx_status->he_RU[3];
 		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_status->he_RU[4];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_status->he_RU[5];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_status->he_RU[6];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_status->he_RU[7];
+		rtap_len += 1;
 	} else {
 		put_unaligned_le16(rx_user_status->he_flags1 |
 				   rx_status->he_flags1, &rtap_buf[rtap_len]);
@@ -5291,6 +5354,22 @@ qdf_nbuf_update_radiotap_he_mu_flags(struct mon_rx_status *rx_status,
 
 		rtap_buf[rtap_len] = rx_user_status->he_RU[3] |
 					rx_status->he_RU[3];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_user_status->he_RU[4] |
+					rx_status->he_RU[4];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_user_status->he_RU[5] |
+					rx_status->he_RU[5];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_user_status->he_RU[6] |
+					rx_status->he_RU[6];
+		rtap_len += 1;
+
+		rtap_buf[rtap_len] = rx_user_status->he_RU[7] |
+					rx_status->he_RU[7];
 		rtap_len += 1;
 		qdf_debug("he_flags %x %x he-RU %x %x %x %x",
 			  rx_user_status->he_flags1,

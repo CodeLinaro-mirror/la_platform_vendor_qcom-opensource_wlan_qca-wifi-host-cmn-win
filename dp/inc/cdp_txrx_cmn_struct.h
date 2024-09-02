@@ -720,7 +720,7 @@ enum cdp_sec_type {
  * @is_tx_sniffer: Indicates if the packet has to be sniffed
  * @is_intrabss_fwd:
  * @ppdu_cookie: 16-bit ppdu cookie that has to be replayed back in completions
- * @is_wds_extended:
+ * @is_wds_extended_mc_bc: Identifier for a MCAST/BCAST packet
  * @is_mlo_mcast: Indicates if mlo_mcast enable or not
  *
  * This structure holds the parameters needed in the exception path of tx
@@ -735,7 +735,7 @@ struct cdp_tx_exception_metadata {
 		is_intrabss_fwd :1;
 	uint16_t ppdu_cookie;
 #ifdef QCA_SUPPORT_WDS_EXTENDED
-	uint8_t is_wds_extended;
+	uint8_t is_wds_extended_mc_bc;
 #endif
 #if defined(WLAN_MCAST_MLO) || defined(WLAN_MCAST_MLO_SAP)
 	uint8_t is_mlo_mcast;
@@ -2693,6 +2693,7 @@ struct cdp_tx_completion_msdu {
  * @ast_index: ast index in multi-user case
  * @tid: TID number
  * @num_msdu: Number of MSDUs in PPDU
+ * @enc_type: Encryption type
  * @tcp_msdu_count: Number of TCP MSDUs in PPDU
  * @udp_msdu_count: Number of UDP MSDUs in PPDU
  * @other_msdu_count: Number of MSDUs other than UDP and TCP MSDUs in PPDU
@@ -2717,6 +2718,7 @@ struct cdp_tx_completion_msdu {
  * @rix: rate index
  * @mpdu_retries: retries of mpdu in rx
  * @rx_time_us: Rx duration
+ * @retried_msdu_count: retries of msdu in rx
  */
 struct cdp_rx_stats_ppdu_user {
 	uint16_t peer_id;
@@ -2733,6 +2735,7 @@ struct cdp_rx_stats_ppdu_user {
 	uint32_t ast_index;
 	uint32_t tid;
 	uint32_t num_msdu;
+	uint8_t enc_type;
 	uint16_t  tcp_msdu_count;
 	uint16_t  udp_msdu_count;
 	uint16_t  other_msdu_count;
@@ -2757,6 +2760,7 @@ struct cdp_rx_stats_ppdu_user {
 	uint32_t rix;
 	uint32_t mpdu_retries;
 	uint16_t rx_time_us;
+	uint16_t retried_msdu_count;
 };
 
 /**

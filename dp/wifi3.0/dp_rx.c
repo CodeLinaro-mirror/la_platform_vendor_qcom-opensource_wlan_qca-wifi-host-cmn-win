@@ -365,14 +365,17 @@ dp_pdev_nbuf_alloc_and_map_replenish(struct dp_soc *dp_soc,
 
 	nbuf_frag_info_t->paddr =
 		qdf_nbuf_get_frag_paddr((nbuf_frag_info_t->virt_addr).nbuf, 0);
-	dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
+
+	dp_audio_smmu_map(dp_soc, (nbuf_frag_info_t->virt_addr).nbuf,
+			  rx_desc_pool->buf_size);
+	ret = dp_ipa_handle_rx_buf_smmu_mapping(dp_soc, (qdf_nbuf_t)(
 					  (nbuf_frag_info_t->virt_addr).nbuf),
 					  rx_desc_pool->buf_size,
 					  true, __func__, __LINE__,
 					  DP_RX_IPA_SMMU_MAP_REPLENISH);
 
-	dp_audio_smmu_map(dp_soc, (nbuf_frag_info_t->virt_addr).nbuf,
-			  rx_desc_pool->buf_size);
+	if (ret != QDF_STATUS_SUCCESS)
+		dp_err("Error Failed to map the buffer");
 
 	ret = dp_check_paddr(dp_soc, &((nbuf_frag_info_t->virt_addr).nbuf),
 			     &nbuf_frag_info_t->paddr,
@@ -3470,12 +3473,6 @@ dp_pdev_rx_buffers_attach(struct dp_soc *dp_soc, uint32_t mac_id,
 			hal_rxdma_buff_addr_info_set(dp_soc->hal_soc ,rxdma_ring_entry, paddr,
 						     desc_list->rx_desc.cookie,
 						     rx_desc_pool->owner);
-			dp_ipa_handle_rx_buf_smmu_mapping(
-						dp_soc, nbuf,
-						rx_desc_pool->buf_size, true,
-						__func__, __LINE__,
-						DP_RX_IPA_SMMU_MAP_BUFF_ATTACH);
-
 			desc_list = next;
 		}
 
@@ -3641,22 +3638,15 @@ dp_rx_pdev_buffers_alloc(struct dp_pdev *pdev)
 	int mac_for_pdev = pdev->lmac_id;
 	struct dp_soc *soc = pdev->soc;
 	struct dp_srng *dp_rxdma_srng;
-	struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx;
 	struct rx_desc_pool *rx_desc_pool;
 	uint32_t rxdma_entries;
 	uint32_t target_type = hal_get_target_type(soc->hal_soc);
 
-	soc_cfg_ctx = soc->wlan_cfg_ctx;
-	wlan_cfg_set_dp_soc_rxdma_scan_radio_refill_ring_size(soc->ctrl_psoc,
-							      soc_cfg_ctx);
 	dp_rxdma_srng = &soc->rx_refill_buf_ring[mac_for_pdev];
 
 	rxdma_entries = dp_get_num_entries(pdev,
 					   dp_rxdma_srng->num_entries,
 					   QDF_BUFF_TYPE_RX);
-	if (soc->scan_radio_support)
-		rxdma_entries = wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_ring_size(soc_cfg_ctx);
-
 	rx_desc_pool = &soc->rx_desc_buf[mac_for_pdev];
 
 	/* Initialize RX buffer pool which will be

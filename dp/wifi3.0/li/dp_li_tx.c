@@ -109,6 +109,8 @@ void dp_tx_process_htt_completion_li(struct dp_soc *soc,
 	htt_handle = (struct htt_soc *)soc->htt_handle;
 	htt_wbm_event_record(htt_handle->htt_logger_handle, tx_status, status);
 
+	dp_update_fw_rsn_cnt(soc, ring_id, tx_status);
+
 	/*
 	 * There can be scenario where WBM consuming descriptor enqueued
 	 * from TQM2WBM first and TQM completion can happen before MEC
@@ -250,7 +252,8 @@ void dp_tx_process_htt_completion_li(struct dp_soc *soc,
 		dp_tx_comp_process_tx_status(soc, tx_desc, &ts, txrx_peer,
 					     ring_id);
 		dp_tx_comp_process_desc(soc, tx_desc, &ts, txrx_peer);
-		dp_tx_comp_free_buf(soc, tx_desc, false);
+		if (tx_desc->flags & DP_TX_DESC_FLAG_COMPLETED_TX)
+			dp_tx_comp_free_buf(soc, tx_desc, false);
 		dp_tx_desc_release(soc, tx_desc, tx_desc->pool_id);
 
 		if (qdf_likely(txrx_peer))
@@ -355,6 +358,33 @@ static inline uint8_t dp_tx_get_rbm_id_li(struct dp_soc *soc,
 	return (ring_id + soc->wbm_sw0_bm_id);
 }
 #endif
+#endif
+
+#ifdef WLAN_TX_PKT_CAPTURE_ENH
+/**
+ * dp_tx_get_override_rbm_id_li() - Get the override RBM ID for tx data.
+ * @soc: DP soc structure pointer
+ * @vdev: DP vdev structure pointer
+ * @ring_id: Transmit Queue/ring_id to be used when XPS is enabled
+ *
+ * Return: HAL ring handle
+ */
+static inline uint8_t dp_tx_get_override_rbm_id_li(struct dp_soc *soc,
+						   struct dp_vdev *vdev,
+						   uint8_t ring_id)
+{
+	if (qdf_unlikely(vdev->is_override_rbm_id))
+		return dp_tx_get_rbm_id_li(soc, vdev->rbm_id);
+
+	return dp_tx_get_rbm_id_li(soc, ring_id);
+}
+#else
+static inline uint8_t dp_tx_get_override_rbm_id_li(struct dp_soc *soc,
+						   struct dp_vdev *vdev,
+						   uint8_t ring_id)
+{
+	return dp_tx_get_rbm_id_li(soc, ring_id);
+}
 #endif
 
 #if defined(CLEAR_SW2TCL_CONSUMED_DESC)
@@ -491,7 +521,7 @@ dp_tx_hw_enqueue_li(struct dp_soc *soc, struct dp_vdev *vdev,
 			tx_exc_metadata->sec_type : vdev->sec_type);
 
 	/* Return Buffer Manager ID */
-	uint8_t bm_id = dp_tx_get_rbm_id_li(soc, ring_id);
+	uint8_t bm_id = dp_tx_get_override_rbm_id_li(soc, vdev, ring_id);
 
 	hal_ring_handle_t hal_ring_hdl = NULL;
 

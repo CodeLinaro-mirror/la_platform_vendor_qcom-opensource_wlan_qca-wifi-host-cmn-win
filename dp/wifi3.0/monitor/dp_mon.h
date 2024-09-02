@@ -70,6 +70,14 @@
 #define IS_LOCAL_PKT_CAPTURE_RUNNING(var, field) 0
 #endif
 
+extern const struct dp_rx_defrag_cipher dp_f_ccmp;
+
+extern const struct dp_rx_defrag_cipher dp_f_tkip;
+
+extern const struct dp_rx_defrag_cipher dp_f_wep;
+
+extern const struct dp_rx_defrag_cipher dp_f_gcmp;
+
 #ifdef QCA_ENHANCED_STATS_SUPPORT
 typedef struct dp_peer_extd_tx_stats dp_mon_peer_tx_stats;
 typedef struct dp_peer_extd_rx_stats dp_mon_peer_rx_stats;
@@ -866,6 +874,9 @@ struct dp_mon_ops {
 				       struct htt_rx_ring_tlv_filter *tlv_filter);
 	void (*rx_enable_fpmo)(uint32_t *msg_word,
 			       struct htt_rx_ring_tlv_filter *tlv_filter);
+	void (*rx_config_packet_type_subtype)(uint32_t *msg_word,
+					      struct htt_rx_ring_tlv_filter *tlv_filter,
+					      uint32_t htt_ring_id);
 #ifndef DISABLE_MON_CONFIG
 	void (*mon_register_intr_ops)(struct dp_soc *soc);
 #endif
@@ -1296,6 +1307,7 @@ struct  dp_mon_pdev {
 #endif
 	/* Monitor FCS capture */
 	bool mon_fcs_cap;
+	uint8_t mu_sniffer_enabled;
 };
 
 struct  dp_mon_vdev {
@@ -1481,6 +1493,16 @@ static inline QDF_STATUS dp_peer_stats_notify(struct dp_pdev *pdev,
 					      struct dp_peer *peer)
 {
 	return QDF_STATUS_SUCCESS;
+}
+#endif
+
+#if defined(QCA_ENHANCED_STATS_SUPPORT)
+uint8_t dp_mon_get_802_11_hdr_length(struct cdp_rx_stats_ppdu_user *ppdu_user);
+#else
+static inline
+uint8_t dp_mon_get_802_11_hdr_length(struct cdp_rx_stats_ppdu_user *ppdu_user)
+{
+	return 0;
 }
 #endif
 
@@ -4215,6 +4237,39 @@ dp_mon_rx_enable_mpdu_logging(struct dp_soc *soc, uint32_t *msg_word,
 }
 
 /**
+ * dp_mon_rx_config_packet_type_subtype() - set packet type subtype
+ * filters
+ * @soc: dp soc handle
+ * @msg_word: msg word
+ * @tlv_filter: rx fing filter config
+ * @htt_ring_id: ring id
+ *
+ * Return: void
+ */
+static inline void
+dp_mon_rx_config_packet_type_subtype(struct dp_soc *soc,
+				     uint32_t *msg_word,
+				     struct htt_rx_ring_tlv_filter *tlv_filter,
+				     uint32_t htt_ring_id)
+{
+	struct dp_mon_soc *mon_soc = soc->monitor_soc;
+	struct dp_mon_ops *monitor_ops;
+
+	if (!mon_soc) {
+		dp_mon_debug("mon soc is NULL");
+		return;
+	}
+
+	monitor_ops = mon_soc->mon_ops;
+	if (!monitor_ops || !monitor_ops->rx_config_packet_type_subtype) {
+		dp_mon_debug("callback not registered");
+		return;
+	}
+
+	monitor_ops->rx_config_packet_type_subtype(msg_word, tlv_filter, htt_ring_id);
+}
+
+/**
  * dp_mon_rx_enable_fpmo() - set fpmo filters
  * @soc: dp soc handle
  * @msg_word: msg word
@@ -5221,4 +5276,16 @@ dp_convert_enc_to_cdp_enc(struct mon_rx_user_status *rx_user_status,
 		  "User: %d TLV enc_type = %d map enc_type = %d direction = %d",
 		  user_idx, idx, encrypt_map[idx], direction);
 }
+
+/**
+ * dp_pdev_set_mu_sniffer() - enable mu_sniffer
+ * @soc_hdl: Datapath soc handle
+ * @pdev_id: id of datapath PDEV handle
+ * @mode: enable/disable value
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+dp_pdev_set_mu_sniffer(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
+		       uint32_t mode);
 #endif /* _DP_MON_H_ */

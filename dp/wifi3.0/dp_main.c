@@ -1641,28 +1641,6 @@ static int dp_srng_calculate_msi_group(struct dp_soc *soc,
 	return QDF_STATUS_SUCCESS;
 }
 
-#if defined(IPA_OFFLOAD) && defined(IPA_WDI3_VLAN_SUPPORT)
-static void
-dp_ipa_vlan_srng_msi_setup(struct hal_srng_params *ring_params, int ring_type,
-			   int ring_num)
-{
-	if (wlan_ipa_is_vlan_enabled()) {
-		if ((ring_type == REO_DST) &&
-		    (ring_num == IPA_ALT_REO_DEST_RING_IDX)) {
-			ring_params->msi_addr = 0;
-			ring_params->msi_data = 0;
-			ring_params->flags &= ~HAL_SRNG_MSI_INTR;
-		}
-	}
-}
-#else
-static inline void
-dp_ipa_vlan_srng_msi_setup(struct hal_srng_params *ring_params, int ring_type,
-			   int ring_num)
-{
-}
-#endif
-
 void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 		       struct hal_srng_params *ring_params,
 		       int ring_type, int ring_num)
@@ -1724,8 +1702,6 @@ void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 	ring_params->msi_data = (reg_msi_grp_num % msi_data_count)
 		+ msi_data_start;
 	ring_params->flags |= HAL_SRNG_MSI_INTR;
-
-	dp_ipa_vlan_srng_msi_setup(ring_params, ring_type, ring_num);
 
 	dp_debug("ring type %u ring_num %u msi->data %u msi_addr %llx",
 		 ring_type, ring_num, ring_params->msi_data,
@@ -1844,6 +1820,7 @@ dp_srng_configure_interrupt_thresholds(struct dp_soc *soc,
 {
 	uint8_t wbm2_sw_rx_rel_ring_id;
 	bool rx_refill_lt_disable;
+	bool scan_radio_rx_refill_lt_disable;
 
 	wbm2_sw_rx_rel_ring_id = wlan_cfg_get_rx_rel_ring_id(soc->wlan_cfg_ctx);
 
@@ -1864,14 +1841,19 @@ dp_srng_configure_interrupt_thresholds(struct dp_soc *soc,
 		rx_refill_lt_disable =
 			wlan_cfg_get_dp_soc_rxdma_refill_lt_disable
 							(soc->wlan_cfg_ctx);
+		scan_radio_rx_refill_lt_disable =
+			wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_lt_disable
+							(soc->wlan_cfg_ctx);
 		ring_params->intr_timer_thres_us =
 			wlan_cfg_get_int_timer_threshold_rx(soc->wlan_cfg_ctx);
 
-		if (!rx_refill_lt_disable) {
+		if ((soc->scan_radio_support && !scan_radio_rx_refill_lt_disable) ||
+		    (!soc->scan_radio_support && !rx_refill_lt_disable)) {
 			ring_params->low_threshold = num_entries >> 3;
 			ring_params->flags |= HAL_SRNG_LOW_THRES_INTR_ENABLE;
 			ring_params->intr_batch_cntr_thres_entries = 0;
 		}
+
 	} else {
 		ring_params->intr_timer_thres_us =
 			wlan_cfg_get_int_timer_threshold_other(soc->wlan_cfg_ctx);
@@ -1975,10 +1957,14 @@ int dp_process_lmac_rings(struct dp_intr *int_ctx, int total_budget)
 	int budget = total_budget;
 	int ring = 0;
 	bool rx_refill_lt_disable;
+	bool scan_radio_rx_refill_lt_disable;
 
 	rx_refill_lt_disable =
 		wlan_cfg_get_dp_soc_rxdma_refill_lt_disable(soc->wlan_cfg_ctx);
 
+	scan_radio_rx_refill_lt_disable =
+		wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_lt_disable
+						(soc->wlan_cfg_ctx);
 	/* Process LMAC interrupts */
 	for  (ring = 0 ; ring < MAX_NUM_LMAC_HW; ring++) {
 		int mac_for_pdev = ring;
@@ -2037,12 +2023,14 @@ int dp_process_lmac_rings(struct dp_intr *int_ctx, int total_budget)
 
 			intr_stats->num_host2rxdma_ring_masks++;
 
-			if (!rx_refill_lt_disable)
+			if ((soc->scan_radio_support && !scan_radio_rx_refill_lt_disable) ||
+			    (!soc->scan_radio_support && !rx_refill_lt_disable)) {
 				dp_rx_buffers_lt_replenish_simple
 							(soc, mac_for_pdev,
 							 rx_refill_buf_ring,
 							 rx_desc_pool,
 							 false);
+			}
 		}
 	}
 
@@ -5033,6 +5021,10 @@ static QDF_STATUS dp_vdev_attach_wifi3(struct cdp_soc_t *cdp_soc,
 	vdev->prev_rx_deliver_tstamp = 0;
 	vdev->skip_sw_tid_classification = DP_TX_HW_DSCP_TID_MAP_VALID;
 	vdev->eapol_over_control_port_disable = 0;
+	vdev->dp_proto_stats = wlan_cfg_get_dp_proto_stats(soc->wlan_cfg_ctx);
+	if (vdev->tx_encap_type == htt_cmn_pkt_type_raw)
+		vdev->dp_proto_stats = 0;
+
 	dp_tx_vdev_traffic_end_indication_attach(vdev);
 
 	dp_vdev_pdev_list_add(soc, pdev, vdev);
@@ -6218,21 +6210,27 @@ QDF_STATUS dp_peer_mlo_setup(
 				mld_peer->vdev, vdev_id,
 				qdf_atomic_read(&mld_peer->vdev->ref_cnt));
 
-			params.old_vdev_id = mld_peer->vdev->vdev_id;
-			params.old_pdev_id = mld_peer->vdev->pdev->pdev_id;
-			params.old_chip_id =
+			if (peer->vdev->opmode != wlan_op_mode_sta) {
+				params.old_vdev_id = mld_peer->vdev->vdev_id;
+				params.old_pdev_id =
+						mld_peer->vdev->pdev->pdev_id;
+				params.old_chip_id =
 				dp_get_chip_id(mld_peer->vdev->pdev->soc);
-			dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
 
-			params.vdev_id = peer->vdev->vdev_id;
-			params.peer_mac = mld_peer->mac_addr.raw;
-			params.chip_id = dp_get_chip_id(soc);
-			params.pdev_id = peer->vdev->pdev->pdev_id;
+				dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
 
-			dp_wdi_event_handler(
+				params.vdev_id = peer->vdev->vdev_id;
+				params.peer_mac = mld_peer->mac_addr.raw;
+				params.chip_id = dp_get_chip_id(soc);
+				params.pdev_id = peer->vdev->pdev->pdev_id;
+
+				dp_wdi_event_handler(
 					WDI_EVENT_PEER_PRIMARY_UMAC_UPDATE,
 					soc, (void *)&params, peer->peer_id,
 					WDI_NO_VAL, params.pdev_id);
+			} else {
+				dp_mld_peer_change_vdev(soc, mld_peer, vdev_id);
+			}
 		}
 
 		/* associate mld and link peer */
@@ -9808,6 +9806,71 @@ static QDF_STATUS dp_txrx_update_vdev_host_stats(struct cdp_soc_t *soc_hdl,
 	return QDF_STATUS_SUCCESS;
 }
 
+#ifdef IPA_OFFLOAD
+/**
+ * dp_txrx_update_peer_stats() - update tx and rx values at peer level for IPA
+ * @peer_stats: destination buffer to copy to
+ *
+ * Return: none
+ */
+static void
+dp_txrx_update_peer_stats(struct cdp_peer_stats *peer_stats)
+{
+	peer_stats->tx.tx_success.num =
+				peer_stats->tx.tx_ucast_success.num;
+	peer_stats->tx.tx_success.bytes =
+				peer_stats->tx.tx_ucast_success.bytes;
+	peer_stats->tx.ucast.num =
+				peer_stats->tx.tx_ucast_total.num;
+	peer_stats->tx.ucast.bytes =
+				peer_stats->tx.tx_ucast_total.bytes;
+
+	if (peer_stats->rx.rx_total.num >=  peer_stats->rx.multicast.num)
+		peer_stats->rx.unicast.num = peer_stats->rx.rx_total.num -
+					peer_stats->rx.multicast.num;
+
+	if (peer_stats->rx.rx_total.bytes >= peer_stats->rx.multicast.bytes)
+		peer_stats->rx.unicast.bytes = peer_stats->rx.rx_total.bytes -
+					peer_stats->rx.multicast.bytes;
+	peer_stats->rx.rx_retries = peer_stats->rx.retried_msdu_count;
+}
+
+/**
+ * dp_txrx_update_vdev_stats()- update tx and rx values at vdev level for IPA
+ * @vdev_stats: destination buffer to copy to
+ *
+ * Return: none
+ */
+static void
+dp_txrx_update_vdev_stats(struct cdp_vdev_stats *vdev_stats)
+{
+	vdev_stats->tx.ucast.num = vdev_stats->tx.tx_ucast_total.num;
+	vdev_stats->tx.ucast.bytes = vdev_stats->tx.tx_ucast_total.bytes;
+	vdev_stats->tx.tx_success.num = vdev_stats->tx.tx_ucast_success.num;
+	vdev_stats->tx.tx_success.bytes = vdev_stats->tx.tx_ucast_success.bytes;
+
+	if (vdev_stats->rx.rx_total.num >= vdev_stats->rx.multicast.num)
+		vdev_stats->rx.unicast.num = vdev_stats->rx.rx_total.num -
+					vdev_stats->rx.multicast.num;
+	if (vdev_stats->rx.rx_total.bytes >=  vdev_stats->rx.multicast.bytes)
+		vdev_stats->rx.unicast.bytes = vdev_stats->rx.rx_total.bytes -
+					vdev_stats->rx.multicast.bytes;
+	vdev_stats->rx.to_stack.num = vdev_stats->rx.rx_total.num;
+	vdev_stats->rx.to_stack.bytes = vdev_stats->rx.rx_total.bytes;
+	vdev_stats->rx.rx_retries = vdev_stats->rx.retried_msdu_count;
+}
+#else
+static void
+dp_txrx_update_peer_stats(struct cdp_peer_stats *peer_stats)
+{
+}
+
+static void
+dp_txrx_update_vdev_stats(struct cdp_vdev_stats *vdev_stats)
+{
+}
+#endif
+
 /**
  * dp_txrx_get_peer_stats_wrapper() - will get cdp_peer_stats
  * @soc: soc handle
@@ -9833,6 +9896,7 @@ dp_txrx_get_peer_stats_wrapper(struct cdp_soc_t *soc,
 
 	dp_get_peer_stats(peer, peer_stats);
 
+	dp_txrx_update_peer_stats(peer_stats);
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
 
 	return QDF_STATUS_SUCCESS;
@@ -10137,6 +10201,7 @@ dp_txrx_get_vdev_stats(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 						    &vdev->stats, DP_XMIT_LINK);
 	}
 
+	dp_txrx_update_vdev_stats(vdev_stats);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 	return QDF_STATUS_SUCCESS;
 }
@@ -12983,13 +13048,6 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 	.txrx_get_per_link_stats = dp_txrx_get_per_link_peer_stats,
 	.txrx_reset_peer_stats = dp_txrx_reset_peer_stats,
 	.txrx_get_pdev_stats = dp_txrx_get_pdev_stats,
-#if defined(IPA_OFFLOAD) && defined(QCA_ENHANCED_STATS_SUPPORT)
-	.txrx_get_peer_stats = dp_ipa_txrx_get_peer_stats,
-	.txrx_get_vdev_stats  = dp_ipa_txrx_get_vdev_stats,
-	.txrx_get_pdev_stats = dp_ipa_txrx_get_pdev_stats,
-	.txrx_get_peer_stats_based_on_peer_type =
-			dp_ipa_txrx_get_peer_stats,
-#endif
 	.txrx_get_ratekbps = dp_txrx_get_ratekbps,
 	.txrx_update_vdev_stats = dp_txrx_update_vdev_host_stats,
 	.txrx_get_peer_delay_stats = dp_txrx_get_peer_delay_stats,
@@ -13784,6 +13842,8 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_rx_buf_smmu_pool_mapping = dp_ipa_rx_buf_pool_smmu_mapping,
 	.ipa_set_smmu_mapped = dp_ipa_set_smmu_mapped,
 	.ipa_get_smmu_mapped = dp_ipa_get_smmu_mapped,
+	.ipa_rx_buf_smmu_mapping = dp_ipa_rx_buf_smmu_mapping,
+	.ipa_rx_buf_smmu_unmapping = dp_ipa_rx_buf_smmu_unmapping,
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	.ipa_rx_wdsext_iface = dp_ipa_rx_wdsext_iface,
 #endif
@@ -14896,6 +14956,9 @@ static QDF_STATUS dp_pdev_srng_alloc(struct dp_pdev *pdev)
 	soc_cfg_ctx = soc->wlan_cfg_ctx;
 
 	ring_size = wlan_cfg_get_dp_soc_rxdma_refill_ring_size(soc_cfg_ctx);
+	if (soc->scan_radio_support)
+		ring_size = wlan_cfg_get_dp_soc_rxdma_scan_radio_refill_ring_size(soc_cfg_ctx);
+
 	if (!soc->features.dmac_cmn_src_rxbuf_ring_enabled) {
 		if (dp_srng_alloc(soc, &soc->rx_refill_buf_ring[pdev->lmac_id],
 				  RXDMA_BUF, ring_size, 0)) {
@@ -15012,8 +15075,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx;
 	int nss_cfg;
 	void *sojourn_buf;
-	uint32_t target_type;
-	bool rx_refill_lt_disable = true;
 
 	struct dp_soc *soc = (struct dp_soc *)txrx_soc;
 	struct dp_pdev *pdev = soc->pdev_list[pdev_id];
@@ -15027,12 +15088,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	 * radio detach execution .i.e. in the absence of any vdev.
 	 */
 	pdev->pdev_deinit = 0;
-
-	/* For Pine scan radio, disable RXDMA refill low threshold status */
-	target_type = hal_get_target_type(soc->hal_soc);
-	if (target_type == TARGET_TYPE_QCN9000 && soc->scan_radio_support)
-		wlan_cfg_set_dp_soc_rxdma_refill_lt_disable(soc_cfg_ctx,
-							    rx_refill_lt_disable);
 
 	if (dp_wdi_event_attach(pdev)) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
@@ -15084,8 +15139,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	if (wlan_cfg_get_dp_soc_dpdk_cfg(soc->ctrl_psoc)) {
 		dp_soc_reset_dpdk_intr_mask(soc);
 	}
-	/* Reset the cpu ring map if radio is NSS offloaded */
-	dp_soc_reset_ipa_vlan_intr_mask(soc);
 
 	TAILQ_INIT(&pdev->vdev_list);
 	qdf_spinlock_create(&pdev->vdev_list_lock);
@@ -15146,14 +15199,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 		dp_init_err("%pK: dp_monitor_pdev_init failed", soc);
 		goto fail4;
 	}
-	/* WAR: for Allocating TX buffer for IPA ALT TX ring as it has to be
-	 * allocated only when 2 radio are supported under 1 SOC in case.
-	 * for non-split case keeping the same approach using macro as
-	 * they have always single PDEV operation.
-	 */
-	if (1 == pdev->pdev_id)
-		if (dp_ipa_uc_alt_attach(soc, pdev) != QDF_STATUS_SUCCESS)
-			dp_init_err("%pK: dp_ipa_uc_alt_attach failed", soc);
 
 	/* initialize sw rx descriptors */
 	dp_rx_pdev_desc_pool_init(pdev);

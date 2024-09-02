@@ -1409,6 +1409,20 @@ struct dp_soc_stats {
 		/* invalid tso segment parameters */
 		uint32_t invld_tso_params;
 #endif
+#if !defined(WLAN_MAX_PDEVS) || (WLAN_MAX_PDEVS != 1)
+		/* Counters for Release Source Module count per ring
+		 * Indices 0-3 indicate the TCL rings
+		 * Index 4 indicates WBM2_SW_PPE_REL_RING_ID */
+		uint32_t rsm_cnt[MAX_TCL_DATA_RINGS][HAL_TX_COMP_RELEASE_SOURCE_MAX];
+		/* Counters for TQM Release Reason count per ring
+		 * Indices 0-3 indicate the TCL rings
+		 * Index 4 indicates WBM2_SW_PPE_REL_RING_ID */
+		uint32_t tqm_rr_cnt[MAX_TCL_DATA_RINGS][HAL_TX_TQM_RR_MAX];
+		/* Counters for FW Release status count per ring
+		 * Indices 0-3 indicate the TCL rings
+		 * Index 4 indicates WBM2_SW_PPE_REL_RING_ID */
+		uint32_t fw_rel_status_cnt[MAX_TCL_DATA_RINGS][HTT_TX_FW2WBM_TX_STATUS_MAX];
+#endif
 	} tx;
 
 	/* SOC level RX stats */
@@ -4591,6 +4605,7 @@ struct dp_vdev {
 	struct dp_tx_latency_config tx_latency_cfg;
 #endif
 	bool eapol_over_control_port_disable;
+	bool dp_proto_stats;
 };
 
 enum {
@@ -5093,6 +5108,7 @@ struct dp_peer_extd_tx_stats {
  * @mcast_3addr_drop:
  * @rx_total: total rx count
  * @inval_link_id_pkt_cnt: Counter to capture Invalid Link Id
+ * @proto: Datapath protocol statistics per-peer
  */
 struct dp_peer_per_pkt_rx_stats {
 	struct cdp_pkt_info rcvd_reo[CDP_MAX_RX_RINGS];
@@ -5135,6 +5151,9 @@ struct dp_peer_per_pkt_rx_stats {
 	struct cdp_pkt_info rx_total;
 #endif
 	uint32_t inval_link_id_pkt_cnt;
+#ifdef QCA_DP_PROTOCOL_STATS
+	struct cdp_rx_proto_stats proto;
+#endif
 };
 
 /**
@@ -5185,7 +5204,9 @@ struct dp_peer_per_pkt_rx_stats {
  * @punc_bw: MSDU count for punctured bw
  * @bar_cnt: Block ACK Request frame count
  * @ndpa_cnt: NDP announcement frame count
+ * @rx_total: total rx count
  * @wme_ac_type_bytes: Wireless Multimedia type Bytes Count
+ * @retried_msdu_count: rx msdu retries count
  */
 struct dp_peer_extd_rx_stats {
 	struct cdp_pkt_type pkt_type[DOT11_MAX];
@@ -5233,7 +5254,9 @@ struct dp_peer_extd_rx_stats {
 #endif
 	uint32_t bar_cnt;
 	uint32_t ndpa_cnt;
+	struct cdp_pkt_info rx_total;
 	uint64_t wme_ac_type_bytes[WME_AC_MAX];
+	uint32_t retried_msdu_count;
 };
 
 /**
@@ -5800,4 +5823,32 @@ void dp_tx_comp_get_prefetched_params_from_hal_desc(
 					void *tx_comp_hal_desc,
 					struct dp_tx_desc_s **r_tx_desc);
 #endif
+/**
+ * dp_tx_update_proto_stats() - Update Tx Protocol Statistics
+ * @vdev: DP vdev handle
+ * @nbuf: Network buffer
+ * @ring_id: Hardware ring ID
+ * @level: Tx update level for stats
+ *
+ * Return: None
+ */
+
+void dp_tx_update_proto_stats(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
+			     uint8_t ring_id, uint8_t level);
+
+/**
+ * dp_rx_update_protocol_stats() - Update Rx Protocol Statistics
+ * @hal_soc: hal soc handle
+ * @txrx_peer: DP txrx Peer handle
+ * @link_id: Link Id on which packet is received
+ * @nbuf: Network buffer
+ * @rx_tlv_hdr: Rx TLV Header
+ * @level: Rx update level for stats
+ *
+ * Return: None
+ */
+void dp_rx_update_protocol_stats(hal_soc_handle_t hal_soc,
+				 struct dp_txrx_peer *txrx_peer,
+				 uint8_t link_id, qdf_nbuf_t nbuf,
+				 uint8_t *rx_tlv_hdr, uint8_t level);
 #endif /* _DP_TYPES_H_ */
