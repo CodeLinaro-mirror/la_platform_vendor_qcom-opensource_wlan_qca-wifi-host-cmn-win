@@ -2386,6 +2386,7 @@ QDF_STATUS mlo_setup_cmd_send_tlv(struct wmi_unified *wmi_handle,
 	partner_links = (uint32_t *)(buf_ptr + WMI_TLV_HDR_SIZE);
 	for (idx = 0; idx < param->num_valid_hw_links; idx++)
 		partner_links[idx] = param->partner_links[idx];
+	cmd->max_num_ml_peers = param->max_num_ml_peers;
 
 	wmi_mtrace(WMI_MLO_SETUP_CMDID, NO_SESSION, 0);
 	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_MLO_SETUP_CMDID);

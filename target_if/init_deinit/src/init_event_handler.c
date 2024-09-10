@@ -994,11 +994,15 @@ void init_deinit_mlo_update_pdev_ready(struct wlan_objmgr_psoc *psoc,
 	 * of wsi remap, it will be done later during
 	 * wsi_remap_mlo_setup
 	 */
-	if (psoc->wsi_remap_fw_up_in_progress)
+	if (psoc->wsi_remap_fw_up_in_progress) {
+		target_if_debug("Skip update_pdev - wsi_remap_fw_up_in_progress");
 		return;
+	}
 
-	if (psoc->wsi_remap_recovery_in_progress)
+	if (psoc->wsi_remap_recovery_in_progress) {
+		target_if_debug("Skip update_pdev - wsi_remap_recovery_in_progress");
 		return;
+	}
 
 	wlan_objmgr_iterate_obj_list(psoc, WLAN_PDEV_OP,
 				     init_deinit_send_ml_link_ready,
@@ -1282,6 +1286,30 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 			target_if_set_pktlog_checksum(pdev, tgt_hdl,
 						      ready_ev.
 						      pktlog_defs_checksum);
+			wlan_objmgr_pdev_release_ref(pdev, WLAN_INIT_DEINIT_ID);
+		}
+	}
+
+	if (ready_ev.max_psoc_num_ml_peers) {
+		for (i = 0; i < num_radios; i++) {
+			pdev = wlan_objmgr_get_pdev_by_id(psoc, i,
+							  WLAN_INIT_DEINIT_ID);
+			if (!pdev) {
+				target_if_err(" PDEV %d is NULL", i);
+				return -EINVAL;
+			}
+			if (QDF_IS_STATUS_ERROR(wlan_pdev_set_max_num_ml_peers(
+						pdev,
+						ready_ev.
+						max_psoc_num_ml_peers))){
+				target_if_err("Error setting max_num_ml_peers for PDEV:%d",
+					      i);
+				return -EINVAL;
+			}
+			target_if_debug("Max ML peers: %d for psoc_id: %d for pdev: %d",
+					pdev->pdev_objmgr.max_num_ml_peers,
+					psoc->soc_objmgr.psoc_id,
+					pdev->pdev_objmgr.wlan_pdev_id);
 			wlan_objmgr_pdev_release_ref(pdev, WLAN_INIT_DEINIT_ID);
 		}
 	}

@@ -14131,6 +14131,7 @@ static QDF_STATUS extract_ready_event_params_tlv(wmi_unified_t wmi_handle,
 	ev_param->pktlog_defs_checksum = ev->pktlog_defs_checksum;
 	ev_param->agile_capability = 1;
 	ev_param->num_max_active_vdevs = ev->num_max_active_vdevs;
+	ev_param->max_psoc_num_ml_peers = ev->max_num_ml_peers;
 
 	return QDF_STATUS_SUCCESS;
 }

@@ -9144,6 +9144,7 @@ struct coex_multi_config {
  *                        from the FW as part of FW ready event and needs
  *                        to be embedded in the pktlog buffer header as version.
  * @num_max_active_vdevs: number of max active virtual devices (VAPs) to
+ * @max_psoc_num_ml_peers: Max ML peer count per PSOC received from target
  *  support
  */
 struct wmi_host_ready_ev_param {
@@ -9156,6 +9157,7 @@ struct wmi_host_ready_ev_param {
 	uint32_t max_ast_index;
 	uint32_t pktlog_defs_checksum;
 	uint32_t num_max_active_vdevs;
+	uint32_t max_psoc_num_ml_peers;
 };
 
 enum bcn_offload_control_param {
