@@ -3990,6 +3990,7 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 
 	dp_rxdma_ring_cleanup(pdev->soc, pdev);
 	dp_ipa_rx_desc_list_deinit(pdev);
+	dp_ipa_uc_detach(pdev->soc, NULL);
 	curr_nbuf = pdev->invalid_peer_head_msdu;
 	while (curr_nbuf) {
 		next_nbuf = qdf_nbuf_next(curr_nbuf);
@@ -15139,6 +15140,9 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	if (wlan_cfg_get_dp_soc_dpdk_cfg(soc->ctrl_psoc)) {
 		dp_soc_reset_dpdk_intr_mask(soc);
 	}
+
+	if (dp_ipa_uc_attach(soc, NULL) != QDF_STATUS_SUCCESS)
+		dp_init_err("%pK: dp_ipa_uc_attach failed", soc);
 
 	TAILQ_INIT(&pdev->vdev_list);
 	qdf_spinlock_create(&pdev->vdev_list_lock);
