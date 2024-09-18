@@ -2469,7 +2469,6 @@ void dp_soc_deinit(void *txrx_soc)
 
 	dp_soc_srng_deinit(soc);
 
-	dp_ipa_uc_detach(soc, NULL);
 	dp_deinit_ipa_rx_alt_refill_buf_ring(soc);
 	dp_deinit_ipa_rx_refill_buf_ring(soc);
 
@@ -3771,9 +3770,6 @@ void *dp_soc_init(struct dp_soc *soc, HTC_HANDLE htc_handle,
 
 	if (dp_ipa_ring_resource_setup(soc))
 		goto fail9;
-
-	if (dp_ipa_uc_attach(soc, NULL) != QDF_STATUS_SUCCESS)
-		dp_init_err("%pK: dp_ipa_uc_attach failed", soc);
 
 	wlan_cfg_set_rx_hash(soc->wlan_cfg_ctx,
 			     cfg_get(soc->ctrl_psoc, CFG_DP_RX_HASH));
