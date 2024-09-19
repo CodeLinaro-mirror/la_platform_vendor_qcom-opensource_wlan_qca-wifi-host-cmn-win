@@ -3968,6 +3968,7 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 	if (pdev->pdev_deinit)
 		return;
 
+	dp_ipa_uc_detach(pdev);
 	dp_tx_me_exit(pdev);
 	dp_rx_pdev_buffers_free(pdev);
 	dp_rx_pdev_desc_pool_deinit(pdev);
@@ -3990,7 +3991,6 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 
 	dp_rxdma_ring_cleanup(pdev->soc, pdev);
 	dp_ipa_rx_desc_list_deinit(pdev);
-	dp_ipa_uc_detach(pdev->soc, NULL);
 	curr_nbuf = pdev->invalid_peer_head_msdu;
 	while (curr_nbuf) {
 		next_nbuf = qdf_nbuf_next(curr_nbuf);
@@ -15141,9 +15141,6 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 		dp_soc_reset_dpdk_intr_mask(soc);
 	}
 
-	if (dp_ipa_uc_attach(soc, NULL) != QDF_STATUS_SUCCESS)
-		dp_init_err("%pK: dp_ipa_uc_attach failed", soc);
-
 	TAILQ_INIT(&pdev->vdev_list);
 	qdf_spinlock_create(&pdev->vdev_list_lock);
 	pdev->vdev_count = 0;
@@ -15210,6 +15207,9 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	dp_ipa_rx_desc_list_init(pdev);
 	/* allocate buffers and replenish the RxDMA ring */
 	dp_rx_pdev_buffers_alloc(pdev);
+
+	if (dp_ipa_uc_attach(pdev) != QDF_STATUS_SUCCESS)
+		dp_init_err("%pK: dp_ipa_uc_attach failed", soc);
 
 	dp_init_tso_stats(pdev);
 	dp_init_link_peer_stats_enabled(pdev);
