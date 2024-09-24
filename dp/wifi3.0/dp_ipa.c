@@ -1662,29 +1662,6 @@ void dp_ipa_opt_wifi_dp_cleanup(struct dp_soc *soc, struct dp_pdev *pdev)
 }
 #endif
 
-int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev)
-{
-	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
-		return QDF_STATUS_SUCCESS;
-
-	/* TX resource detach */
-	dp_tx_ipa_uc_detach(soc, pdev);
-
-	/* Cleanup 2nd TX pipe resources */
-	if (dp_ipa_is_alt_tx_required(soc))
-		dp_ipa_tx_alt_pool_detach(soc, pdev);
-
-	/* RX resource detach */
-	dp_rx_ipa_uc_detach(soc, pdev);
-
-	/* Cleanup 2nd RX pipe resources */
-	dp_rx_alt_ipa_uc_detach(soc, pdev);
-
-	dp_ipa_opt_wifi_dp_cleanup(soc, pdev);
-
-	return QDF_STATUS_SUCCESS;	/* success */
-}
-
 /**
  * dp_tx_ipa_uc_attach() - Allocate autonomy TX resources
  * @soc: data path instance
@@ -1827,9 +1804,86 @@ static int dp_rx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 	return QDF_STATUS_SUCCESS;
 }
 
-int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
+#ifdef QCA_IPA_LL_TX_FLOW_CONTROL
+int dp_ipa_uc_attach(struct dp_pdev *pdev)
 {
 	int error;
+	struct dp_soc *soc = pdev->soc;
+
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+		return QDF_STATUS_SUCCESS;
+
+	/* TX resource attach */
+	if (pdev->pdev_id == 0) {
+		error = dp_tx_ipa_uc_attach(soc, pdev);
+		if (error) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+				  "%s: DP IPA UC TX attach fail code %d",
+				  __func__, error);
+			if (error == -EFAULT)
+				dp_tx_ipa_uc_detach(soc, pdev);
+			return error;
+		}
+	}
+
+	/* Setup 2nd TX pipe */
+	if (pdev->pdev_id == 1) {
+		if (dp_ipa_is_alt_tx_required(soc)) {
+			error = dp_ipa_tx_alt_pool_attach(soc, pdev);
+			if (error) {
+				QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+					  "%s: DP IPA TX pool2 attach fail code %d",
+					  __func__, error);
+				dp_tx_ipa_uc_detach(soc, pdev);
+				return error;
+			}
+		}
+	}
+
+	/* RX resource attach */
+	error = dp_rx_ipa_uc_attach(soc, pdev);
+	if (error) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+			  "%s: DP IPA UC RX attach fail code %d",
+			  __func__, error);
+		if (dp_ipa_is_alt_tx_required(soc))
+			dp_ipa_tx_alt_pool_detach(soc, pdev);
+		dp_tx_ipa_uc_detach(soc, pdev);
+		return error;
+	}
+
+	return QDF_STATUS_SUCCESS;	/* success */
+}
+
+int dp_ipa_uc_detach(struct dp_pdev *pdev)
+{
+	struct dp_soc *soc = pdev->soc;
+
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+		return QDF_STATUS_SUCCESS;
+
+	/* TX resource detach */
+	if (pdev->pdev_id == 0)
+		dp_tx_ipa_uc_detach(soc, pdev);
+
+	/* Cleanup 2nd TX pipe resources */
+	if (pdev->pdev_id == 1)
+		if (dp_ipa_is_alt_tx_required(soc))
+			dp_ipa_tx_alt_pool_detach(soc, pdev);
+
+	/* RX resource detach */
+	dp_rx_ipa_uc_detach(soc, pdev);
+
+	/* Cleanup 2nd RX pipe resources */
+	dp_rx_alt_ipa_uc_detach(soc, pdev);
+
+	return QDF_STATUS_SUCCESS;	/* success */
+}
+#else
+int dp_ipa_uc_attach(struct dp_pdev *pdev)
+{
+	int error;
+	struct dp_soc *soc = pdev->soc;
 
 	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
 		return QDF_STATUS_SUCCESS;
@@ -1871,6 +1925,33 @@ int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 
 	return QDF_STATUS_SUCCESS;	/* success */
 }
+
+int dp_ipa_uc_detach(struct dp_pdev *pdev)
+{
+	struct dp_soc *soc = pdev->soc;
+
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+		return QDF_STATUS_SUCCESS;
+
+	/* TX resource detach */
+	dp_tx_ipa_uc_detach(soc, pdev);
+
+	/* Cleanup 2nd TX pipe resources */
+	if (dp_ipa_is_alt_tx_required(soc))
+		dp_ipa_tx_alt_pool_detach(soc, pdev);
+
+	/* RX resource detach */
+	dp_rx_ipa_uc_detach(soc, pdev);
+
+	/* Cleanup 2nd RX pipe resources */
+	dp_rx_alt_ipa_uc_detach(soc, pdev);
+
+	dp_ipa_opt_wifi_dp_cleanup(soc, pdev);
+
+	return QDF_STATUS_SUCCESS;	/* success */
+}
+#endif
+
 #ifdef IPA_WDI3_VLAN_SUPPORT
 /**
  * dp_ipa_rx_alt_ring_resource_setup() - setup IPA 2nd RX ring resources
@@ -3765,24 +3846,40 @@ QDF_STATUS dp_ipa_set_perf_level(int client, uint32_t max_supported_bw_mbps,
  *
  * Return: true on success, else false
  */
-bool dp_ipa_rx_wdsext_iface(struct cdp_soc_t *soc_hdl, uint8_t peer_id,
-			    qdf_nbuf_t skb)
+bool dp_ipa_rx_wdsext_iface(struct cdp_soc_t *soc_hdl,
+			    qdf_nbuf_t skb, uint8_t *mac_addr)
 {
 	struct dp_txrx_peer *txrx_peer;
-	dp_txrx_ref_handle txrx_ref_handle = NULL;
 	struct dp_soc *dp_soc = cdp_soc_t_to_dp_soc(soc_hdl);
+	struct dp_ast_entry *ast_entry = NULL;
+	struct dp_peer *peer = NULL;
 	bool status = false;
-
-	txrx_peer = dp_tgt_txrx_peer_get_ref_by_id(soc_hdl, peer_id,
-						   &txrx_ref_handle,
-						   DP_MOD_ID_IPA);
-
-	if (qdf_likely(txrx_peer)) {
-		if (dp_rx_deliver_to_stack_ext(dp_soc, txrx_peer->vdev,
-					       txrx_peer, skb))
-			status =  true;
-		dp_txrx_peer_unref_delete(txrx_ref_handle, DP_MOD_ID_IPA);
+ 
+	qdf_spin_lock_bh(&dp_soc->ast_lock);
+	ast_entry = dp_peer_ast_hash_find_soc(dp_soc, mac_addr);
+	if ((!ast_entry) ||
+	    (ast_entry->delete_in_progress && !ast_entry->callback)) {
+		qdf_spin_unlock_bh(&dp_soc->ast_lock);
+		return status;
 	}
+ 
+	peer = dp_peer_get_ref_by_id(dp_soc, ast_entry->peer_id,
+				     DP_MOD_ID_IPA);
+	qdf_spin_unlock_bh(&dp_soc->ast_lock);
+	if (!peer)
+		return status;
+
+	txrx_peer = dp_get_txrx_peer(peer);
+
+	if (!txrx_peer) {
+		dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
+		dp_err("TXRX Peer is NULL!");
+		return status;
+	}
+	if (dp_rx_deliver_to_stack_ext(dp_soc, txrx_peer->vdev, txrx_peer, skb))
+		status = true;
+
+	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
 	return status;
 }
 #endif
