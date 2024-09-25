@@ -3624,6 +3624,26 @@ QDF_STATUS (*send_opm_stats_cmd)(wmi_unified_t wmi_handle, uint8_t pdev_id);
 QDF_STATUS
 (*send_sta_vdev_report_ap_oper_bw_cmd)(wmi_unified_t wmi_handle,
 				       struct wmi_sta_vdev_report_ap_oper_bw_params *param);
+
+QDF_STATUS
+(*send_pdev_pb_mem_ind_cmd)(wmi_unified_t wmi_handle,
+			    struct wmi_host_pdev_pb_dma_buf *buf,
+			    uint8_t mac_id);
+
+QDF_STATUS
+(*extract_power_boost_cap)(wmi_unified_t wmi_handle,
+			   void *evt_buf, uint8_t phy_idx,
+			   struct wlan_psoc_power_boost_capability *param);
+
+QDF_STATUS
+(*extract_pdev_power_boost_event)(wmi_unified_t wmi_handle,
+				  void *evt_buf,
+				  struct wmi_host_pdev_power_boost_ev_params *pb_params);
+
+QDF_STATUS
+(*pdev_power_boost_cmd_send)(wmi_unified_t wmi_handle,
+			     struct wmi_host_pdev_power_boost_cmd_params *pb_cmd_params);
+
 };
 
 /* Forward declaration for psoc*/

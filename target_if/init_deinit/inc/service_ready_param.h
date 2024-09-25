@@ -652,4 +652,15 @@ struct wlan_psoc_host_service_ext2_param {
 	uint32_t num_wr_chain_caps;
 };
 
+/**
+ * struct wlan_psoc_power_boost_capability - PSOC Power boost capability
+ * received in SVC EXT2 event
+ * @phy_id: Phy id
+ * @is_power_boost_enable: Target power boost capability
+ */
+struct wlan_psoc_power_boost_capability {
+	uint32_t phy_id;
+	bool is_power_boost_enable;
+};
+
 #endif /* _SERVICE_READY_PARAM_H_*/

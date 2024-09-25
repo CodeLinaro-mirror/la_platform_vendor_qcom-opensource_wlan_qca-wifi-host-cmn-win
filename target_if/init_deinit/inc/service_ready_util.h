@@ -298,6 +298,22 @@ int init_deinit_populate_phy_reg_cap(struct wlan_objmgr_psoc *psoc,
 int init_deinit_populate_hal_reg_cap_ext2(wmi_unified_t handle, uint8_t *event,
 					  struct tgt_info *info);
 
+/*
+ * init_deinit_populate_power_boost_cap_ext2 - Populate Power Boost cap
+ * from service ready ext2 event.
+ * @handle: WMI handle pointer
+ * @event: event buffer received from FW
+ * @info: tgt_info object
+ *
+ * API to populate Power Boost capabilities from service ready ext2 event.
+ *
+ * Return: zero on successful parsing of physical reg capability or failure flag
+ */
+
+int init_deinit_populate_power_boost_cap_ext2(wmi_unified_t handle,
+					      uint8_t *event,
+					      struct tgt_info *info);
+
 /**
  * init_deinit_populate_mac_phy_cap_ext2() - populate mac phy capabilities from
  * service ready ext2 event

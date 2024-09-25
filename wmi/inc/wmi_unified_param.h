@@ -5612,6 +5612,7 @@ typedef enum {
 #ifdef FEATURE_MGMT_RX_OVER_SRNG
 	wmi_mgmt_srng_reap_eventid,
 #endif
+	wmi_pdev_power_boost_eventid,
 	wmi_events_max,
 } wmi_conv_event_id;
 
@@ -10624,6 +10625,19 @@ struct wmi_host_mu_on_off_params {
 struct wmi_sta_vdev_report_ap_oper_bw_params {
 	uint8_t vdev_id;
 	enum wlan_phymode ap_phymode;
+};
+
+/**
+ * struct wmi_host_pdev_pb_dma_buf - Power boost DMA buffer struct for WMI
+ *
+ * @paddr_aligned_lo: Physical address lower 32-bits
+ * @paddr_aligned_hi: Physical address high 32-bits
+ * @size: DMA buffer size for power boost
+ */
+struct wmi_host_pdev_pb_dma_buf {
+	uint32_t paddr_aligned_lo;
+	uint32_t paddr_aligned_hi;
+	uint32_t size;
 };
 
 #endif /* _WMI_UNIFIED_PARAM_H_ */

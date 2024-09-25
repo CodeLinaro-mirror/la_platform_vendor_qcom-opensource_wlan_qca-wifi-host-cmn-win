@@ -521,6 +521,7 @@ typedef bool (*qdf_irqlocked_func_t)(void *);
  * @QDF_MODULE_ID_RF_PATH_SWITCH: RF path switch Module ID
  * @QDF_MODULE_ID_MGMT_RX_SRNG: MGMR RX over SRNG Module ID
  * @QDF_MODULE_ID_MLRECFG: MLO Reconfiguration
+ * @QDF_MODULE_ID_IQ_INF : IQ Data Inferencing
  * @QDF_MODULE_ID_MAX: Max place holder module ID
  *
  * New module ID needs to be added in qdf trace along with this enum.
@@ -694,6 +695,7 @@ typedef enum {
 	QDF_MODULE_ID_RF_PATH_SWITCH,
 	QDF_MODULE_ID_MGMT_RX_SRNG,
 	QDF_MODULE_ID_MLRECFG,
+	QDF_MODULE_ID_IQ_INF = 167,
 	QDF_MODULE_ID_ANY,
 	QDF_MODULE_ID_MAX,
 } QDF_MODULE_ID;
