@@ -1726,6 +1726,7 @@ enum cdp_rx_enh_capture_peer {
  * @CDP_TX_ENH_CAPTURE_ENABLE_ALL_PEERS: Enable tx capture for all peers
  * @CDP_TX_ENH_CAPTURE_ENDIS_PER_PEER: Enable/disable per peer as necessary
  * @CDP_TX_ENH_PKT_CAP_CUSTOM_CLASSIFY: Enable tx capture for special packets
+ * @CDP_TX_ENH_CAPTURE_NON_DATA_CAPTURE: Enable tx capture for only mgmt packets
  * @CDP_TX_ENH_CAPTURE_MAX: Max value
  */
 enum cdp_tx_enh_capture_mode {
@@ -1733,6 +1734,7 @@ enum cdp_tx_enh_capture_mode {
 	CDP_TX_ENH_CAPTURE_ENABLE_ALL_PEERS,
 	CDP_TX_ENH_CAPTURE_ENDIS_PER_PEER,
 	CDP_TX_ENH_PKT_CAP_CUSTOM_CLASSIFY,
+	CDP_TX_ENH_CAPTURE_NON_DATA_CAPTURE,
 	CDP_TX_ENH_CAPTURE_MAX,
 };
 
