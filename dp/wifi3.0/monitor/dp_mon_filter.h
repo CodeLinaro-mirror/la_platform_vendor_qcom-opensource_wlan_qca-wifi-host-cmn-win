@@ -294,8 +294,10 @@ void dp_mon_filters_reset(struct dp_pdev *pdev);
 /**
  * dp_mon_filter_setup_enhanced_stats() - Setup the enhanced stats filter
  * @pdev: DP pdev handle
+ * @stats_lvl: stats level
  */
-void dp_mon_filter_setup_enhanced_stats(struct dp_pdev *pdev);
+void dp_mon_filter_setup_enhanced_stats(struct dp_pdev *pdev,
+					enum cdp_mon_enh_stats_lvl stats_lvl);
 
 /***
  * dp_mon_filter_reset_enhanced_stats() - Reset the enhanced stats filter

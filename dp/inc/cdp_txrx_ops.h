@@ -1132,8 +1132,10 @@ struct cdp_mon_ops {
 					   enum cdp_mon_reap_source source,
 					   bool enable);
 
-	QDF_STATUS (*txrx_enable_enhanced_stats)(struct cdp_soc_t *soc,
-						 uint8_t pdev_id);
+	QDF_STATUS (*txrx_enable_enhanced_stats)
+			(struct cdp_soc_t *soc,
+			 uint8_t pdev_id,
+			 enum cdp_mon_enh_stats_lvl stats_lvl);
 
 	QDF_STATUS (*txrx_disable_enhanced_stats)(struct cdp_soc_t *soc,
 						  uint8_t pdev_id);

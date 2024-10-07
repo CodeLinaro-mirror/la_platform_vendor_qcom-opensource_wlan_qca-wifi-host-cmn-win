@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,8 +21,11 @@
 /**
  * dp_mon_filter_setup_enhanced_stats_1_0() - Setup the enhanced stats filter
  * @pdev: DP pdev handle
+ * @stats_lvl: stats level
  */
-void dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev);
+void
+dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl);
 
 /**
  * dp_mon_filter_reset_enhanced_stats_1_0() - Reset the enhanced stats filter
@@ -30,7 +33,9 @@ void dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev);
  */
 void dp_mon_filter_reset_enhanced_stats_1_0(struct dp_pdev *pdev);
 #else
-static inline void dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev)
+static inline void
+dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 }
 

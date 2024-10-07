@@ -142,7 +142,9 @@ static QDF_STATUS dp_mon_filter_check_co_exist(struct dp_pdev *pdev)
 #endif
 
 #ifdef QCA_ENHANCED_STATS_SUPPORT
-void dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev)
+void
+dp_mon_filter_setup_enhanced_stats_1_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 	struct dp_mon_filter filter = {0};
 	enum dp_mon_filter_mode mode = DP_MON_FILTER_ENHACHED_STATS_MODE;

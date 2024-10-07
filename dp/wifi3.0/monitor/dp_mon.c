@@ -1885,11 +1885,13 @@ static void dp_mon_tx_enable_enhanced_stats(struct dp_pdev *pdev)
  * dp_enable_enhanced_stats()- API to enable enhanced statistcs
  * @soc: DP_SOC handle
  * @pdev_id: id of DP_PDEV handle
+ * @stats_lvl: stats level
  *
  * Return: QDF_STATUS
  */
 QDF_STATUS
-dp_enable_enhanced_stats(struct cdp_soc_t *soc, uint8_t pdev_id)
+dp_enable_enhanced_stats(struct cdp_soc_t *soc, uint8_t pdev_id,
+			 enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 	struct dp_pdev *pdev = NULL;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
@@ -1915,7 +1917,7 @@ dp_enable_enhanced_stats(struct cdp_soc_t *soc, uint8_t pdev_id)
 	pdev->link_peer_stats = wlan_cfg_is_peer_link_stats_enabled(
 							dp_soc->wlan_cfg_ctx);
 
-	dp_mon_filter_setup_enhanced_stats(pdev);
+	dp_mon_filter_setup_enhanced_stats(pdev, stats_lvl);
 	status = dp_mon_filter_update(pdev);
 	if (status != QDF_STATUS_SUCCESS) {
 		dp_cdp_err("%pK: Failed to set enhanced mode filters", soc);

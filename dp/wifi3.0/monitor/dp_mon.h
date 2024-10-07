@@ -834,7 +834,9 @@ struct dp_mon_ops {
 					   qdf_nbuf_t nbuf,
 					   uint32_t flags);
 #ifdef QCA_ENHANCED_STATS_SUPPORT
-	void (*mon_filter_setup_enhanced_stats)(struct dp_pdev *pdev);
+	void (*mon_filter_setup_enhanced_stats)
+			(struct dp_pdev *pdev,
+			 enum cdp_mon_enh_stats_lvl stats_lvl);
 	void (*mon_filter_reset_enhanced_stats)(struct dp_pdev *pdev);
 	void (*mon_tx_stats_update)(struct dp_mon_peer *mon_peer,
 				    struct cdp_tx_completion_ppdu_user *ppdu);
@@ -4911,11 +4913,13 @@ QDF_STATUS dp_vdev_set_monitor_mode(struct cdp_soc_t *dp_soc,
  * dp_enable_enhanced_stats() - enable enhanced and MLD Link Peer stats
  * @soc: Datapath soc handle
  * @pdev_id: Pdev Id on which stats will get enable
+ * @stats_lvl: stats level
  *
  * Return: status success/failure
  */
 QDF_STATUS
-dp_enable_enhanced_stats(struct cdp_soc_t *soc, uint8_t pdev_id);
+dp_enable_enhanced_stats(struct cdp_soc_t *soc, uint8_t pdev_id,
+			 enum cdp_mon_enh_stats_lvl stats_lvl);
 
 /**
  * dp_disable_enhanced_stats() - disable enhanced and MLD Link Peer stats

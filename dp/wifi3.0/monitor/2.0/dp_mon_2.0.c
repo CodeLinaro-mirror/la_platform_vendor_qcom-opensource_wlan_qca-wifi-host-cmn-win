@@ -1700,7 +1700,9 @@ dp_enable_enhanced_stats_for_each_pdev(struct dp_soc *soc, void *arg,
 	uint8_t i = 0;
 
 	for (i = 0; i < MAX_PDEV_CNT; i++)
-		dp_enable_enhanced_stats(dp_soc_to_cdp_soc_t(soc), i);
+		dp_enable_enhanced_stats(dp_soc_to_cdp_soc_t(soc),
+					 i,
+					 CDP_MON_ENHANCED_STATS_ALL);
 }
 
 QDF_STATUS
@@ -1713,7 +1715,8 @@ dp_enable_enhanced_stats_2_0(struct cdp_soc_t *soc, uint8_t pdev_id)
 
 	/* enable only on one soc if MLD is disabled */
 	if (!be_soc->mlo_enabled || !be_soc->ml_ctxt) {
-		dp_enable_enhanced_stats(soc, pdev_id);
+		dp_enable_enhanced_stats(soc, pdev_id,
+					 CDP_MON_ENHANCED_STATS_ALL);
 		return QDF_STATUS_SUCCESS;
 	}
 

@@ -100,8 +100,11 @@ dp_rx_mon_config_packet_type_subtype(uint32_t *msg_word,
 /**
  * dp_mon_filter_setup_enhanced_stats_2_0() - Setup the enhanced stats filter
  * @pdev: DP pdev handle
+ * @stats_lvl: stats level
  */
-void dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev);
+void
+dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl);
 
 /**
  * dp_mon_filter_reset_enhanced_stats_2_0() - Reset the enhanced stats filter
@@ -110,7 +113,8 @@ void dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev);
 void dp_mon_filter_reset_enhanced_stats_2_0(struct dp_pdev *pdev);
 #else
 static inline void
-dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev)
+dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 }
 
