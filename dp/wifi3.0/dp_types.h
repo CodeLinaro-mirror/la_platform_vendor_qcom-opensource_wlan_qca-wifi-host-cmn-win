@@ -1004,6 +1004,10 @@ struct dp_tx_desc_pool_s {
 #ifdef QCA_DP_OPTIMIZED_TX_DESC
 	struct hal_tx_desc_comp_s *comp;
 #endif
+#ifdef WLAN_SUPPORT_PPEDS
+	uint32_t hot_list_len;
+	struct dp_tx_desc_s *hotlist;
+#endif
 };
 
 /**

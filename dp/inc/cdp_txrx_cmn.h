@@ -195,6 +195,11 @@ typedef void (*ipa_uc_op_cb_type)(uint8_t *op_msg,
  * @spcl_tx_desc_pool_init_cnt: special tx desc pool init cnt
  * @tx_ext_desc_pool_alloc_cnt: extension tx desc pool alloc cnt
  * @tx_ext_desc_pool_init_cnt: extension tx desc pool init cnt
+ * @ppeds_tx_desc: ppeds global pool pointer
+ * @ppeds_tx_cc_ctx: ppeds context for HW cookie conversion
+ * @tx_cookie_ppeds_ctx_alloc_cnt: ppeds tx cookie context alloc count
+ * @tx_desc_ppeds_pool_alloc_cnt: ppeds tx descriptor pool alloc count
+ * @tx_desc_ppeds_pool_init_cnt: ppeds tx descriptor pool init count
  */
 struct dp_global_context {
 	struct dp_rx_fst *fst_ctx;
@@ -213,6 +218,13 @@ struct dp_global_context {
 	int spcl_tx_desc_pool_init_cnt[2];
 	int tx_ext_desc_pool_alloc_cnt;
 	int tx_ext_desc_pool_init_cnt;
+#ifdef WLAN_SUPPORT_PPEDS
+	struct dp_tx_desc_pool_s *ppeds_tx_desc;
+	struct dp_hw_cookie_conversion_t *ppeds_tx_cc_ctx;
+	int tx_cookie_ppeds_ctx_alloc_cnt;
+	int tx_desc_ppeds_pool_alloc_cnt;
+	int tx_desc_ppeds_pool_init_cnt;
+#endif
 };
 
 /**

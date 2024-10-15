@@ -1231,7 +1231,7 @@ QDF_STATUS dp_sawf_tx_enqueue_fail_peer_stats(struct dp_soc *soc,
 #ifdef QCA_DP_OPTIMIZED_TX_DESC
 static inline void
 hal_ppeds_tx_comp_desc_sync_wrapper(void *tx_comp_hal_desc,
-				    struct dp_ppeds_tx_desc_pool_s *tx_desc_pool,
+				    dp_ppeds_tx_desc_pool_ctx *tx_desc_pool,
 				    struct dp_tx_desc_s *tx_desc,
 				    uint16_t comp_index,
 				    bool read_status)
@@ -1243,7 +1243,7 @@ hal_ppeds_tx_comp_desc_sync_wrapper(void *tx_comp_hal_desc,
 
 static inline void
 hal_ppeds_tx_comp_get_status_wrapper(struct dp_soc *soc,
-				     struct dp_ppeds_tx_desc_pool_s *tx_desc_pool,
+				     dp_ppeds_tx_desc_pool_ctx *tx_desc_pool,
 				     struct dp_tx_desc_s *tx_desc,
 				     void *ts, uint16_t comp_index)
 {
@@ -1253,7 +1253,7 @@ hal_ppeds_tx_comp_get_status_wrapper(struct dp_soc *soc,
 #else
 static inline void
 hal_ppeds_tx_comp_desc_sync_wrapper(void *tx_comp_hal_desc,
-				    struct dp_ppeds_tx_desc_pool_s *tx_desc_pool,
+				    dp_ppeds_tx_desc_pool_ctx *tx_desc_pool,
 				    struct dp_tx_desc_s *tx_desc,
 				    uint16_t comp_index,
 				    bool read_status)
@@ -1264,7 +1264,7 @@ hal_ppeds_tx_comp_desc_sync_wrapper(void *tx_comp_hal_desc,
 
 static inline void
 hal_ppeds_tx_comp_get_status_wrapper(struct dp_soc *soc,
-				     struct dp_ppeds_tx_desc_pool_s *tx_desc_pool,
+				     dp_ppeds_tx_desc_pool_ctx *tx_desc_pool,
 				     struct dp_tx_desc_s *tx_desc,
 				     void *ts, uint16_t comp_index)
 {
@@ -1281,11 +1281,9 @@ dp_update_ppeds_tx_comp_stats(struct dp_soc *soc,
 {
 	uint8_t link_id = 0;
 	struct dp_vdev *vdev = NULL;
-	struct dp_soc_be *be_soc = NULL;
-	struct dp_ppeds_tx_desc_pool_s *tx_desc_pool = NULL;
+	dp_ppeds_tx_desc_pool_ctx *tx_desc_pool = NULL;
 
-	be_soc = dp_get_be_soc_from_dp_soc(soc);
-	tx_desc_pool = &be_soc->ppeds_tx_desc;
+	tx_desc_pool = dp_get_ppeds_tx_desc_pool(soc);
 
 	hal_ppeds_tx_comp_get_status_wrapper(soc, tx_desc_pool, desc,
 					     ts, comp_index);
@@ -1376,15 +1374,15 @@ int dp_ppeds_tx_comp_handler(struct dp_soc_be *be_soc, uint32_t quota)
 	struct dp_pdev *pdev = NULL;
 	struct dp_srng *srng;
 	uint16_t comp_index = 0;
-	struct dp_ppeds_tx_desc_pool_s *tx_desc_pool = &be_soc->ppeds_tx_desc;
+	dp_ppeds_tx_desc_pool_ctx *tx_desc_pool;
 	uint8_t tx_comp_stats_ring_id = WBM2_SW_PPE_REL_RING_ID - 2;
-
 
 	if (qdf_unlikely(dp_srng_access_start(NULL, soc, hal_ring_hdl))) {
 		dp_err("HAL RING Access Failed -- %pK", hal_ring_hdl);
 		return 0;
 	}
 
+	tx_desc_pool =  dp_get_ppeds_tx_desc_pool(soc);
 	num_avail_for_reap = hal_srng_dst_num_valid(hal_soc, hal_ring_hdl, 0);
 
 	if (num_avail_for_reap >= quota)
@@ -2019,7 +2017,7 @@ QDF_STATUS dp_tx_desc_pool_init_be(struct dp_soc *soc,
 		tx_desc_pool = dp_get_spcl_tx_desc_pool(soc, pool_id);
 		cc_ctx  = dp_get_spcl_tx_cookie_t(soc, pool_id);
 	} else {
-		tx_desc_pool = dp_get_tx_desc_pool(soc, pool_id);;
+		tx_desc_pool = dp_get_tx_desc_pool(soc, pool_id);
 		cc_ctx  = dp_get_tx_cookie_t(soc, pool_id);
 	}
 	tx_desc = tx_desc_pool->freelist;

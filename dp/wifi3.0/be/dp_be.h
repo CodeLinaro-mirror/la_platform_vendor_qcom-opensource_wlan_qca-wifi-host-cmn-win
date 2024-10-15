@@ -31,6 +31,15 @@
 #include <dp_mon.h>
 #endif
 
+#ifdef WLAN_SUPPORT_PPEDS
+#ifdef QCA_SUPPORT_DP_GLOBAL_CTX
+typedef struct dp_tx_desc_pool_s dp_ppeds_tx_desc_pool_ctx;
+#else
+struct dp_ppeds_tx_desc_pool_s;
+typedef struct dp_ppeds_tx_desc_pool_s dp_ppeds_tx_desc_pool_ctx;
+#endif
+#endif
+
 enum CMEM_MEM_CLIENTS {
 	COOKIE_CONVERSION,
 	FISA_FST,
@@ -381,10 +390,12 @@ struct dp_soc_be {
 	uint32_t dp_ppeds_node_id;
 	qdf_atomic_t borrow_count;
 	int64_t borrow_limit;
+	dp_ppeds_tx_desc_pool_ctx *global_pool;
 	char irq_name[DP_PPE_INTR_MAX][DP_PPE_INTR_STRNG_LEN];
 	struct {
 		struct {
 			uint64_t desc_alloc_failed;
+			uint32_t global_desc_alloc;
 #ifdef GLOBAL_ASSERT_AVOIDANCE
 			uint32_t tx_comp_buf_src;
 			uint32_t tx_comp_desc_null;
@@ -716,6 +727,28 @@ struct dp_hw_cookie_conversion_t *dp_get_spcl_tx_cookie_t(struct dp_soc *soc,
 
 	return &be_soc->tx_cc_ctx[pool_id];
 }
+#endif
+
+#if defined(WLAN_SUPPORT_PPEDS)
+#if defined(QCA_SUPPORT_DP_GLOBAL_CTX)
+static inline
+struct dp_hw_cookie_conversion_t *dp_get_ppeds_cookie_conv_ctx(struct dp_soc *soc)
+{
+	struct dp_global_context *dp_global = NULL;
+
+	dp_global = wlan_objmgr_get_global_ctx();
+
+	return dp_global->ppeds_tx_cc_ctx;
+}
+#else
+static inline
+struct dp_hw_cookie_conversion_t *dp_get_ppeds_cookie_conv_ctx(struct dp_soc *soc)
+{
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	return &be_soc->ppeds_tx_cc_ctx;
+}
+#endif
 #endif
 
 /**
