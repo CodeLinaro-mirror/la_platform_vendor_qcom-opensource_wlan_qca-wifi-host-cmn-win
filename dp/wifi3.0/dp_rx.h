@@ -2745,21 +2745,21 @@ dp_reo_ctx_buf_mapping_unlock(struct dp_soc *soc, uint32_t reo_ring_num)
 
 /**
  * dp_get_num_entries - Get tx,rx num of buffers
- * @pdev: pdev object
+ * @soc: soc handle
+ * @pdev_id: pdev id
  * @num_entries: number of entries in ring
  * @buff_type: buffer type
  */
 #if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_LOW_MEM)
 static inline uint32_t
-dp_get_num_entries(struct dp_pdev *pdev, uint32_t num_entries,
-		   enum qddf_buff_type_tx_rx buff_type)
+dp_get_num_entries(struct dp_soc *soc, uint8_t pdev_id, uint32_t num_entries,
+                   enum qdf_buff_type_tx_rx buff_type)
 {
-	struct dp_soc *soc = pdev->soc;
 	uint32_t num_buff = num_entries;
 
 	if (soc->cdp_soc.ol_ops->pdev_get_num_buff)
 		num_buff =  soc->cdp_soc.ol_ops->pdev_get_num_buff(soc->ctrl_psoc,
-								   pdev->pdev_id,
+								   pdev_id,
 								   buff_type);
 	if (num_buff > num_entries)
 		num_buff = num_entries;
@@ -2767,9 +2767,9 @@ dp_get_num_entries(struct dp_pdev *pdev, uint32_t num_entries,
 	return num_buff;
 }
 #else
-static inline uint32_t dp_get_num_entries(struct dp_pdev *pdev,
-					  uint32_t num_entries,
-					  enum qdf_buff_type_tx_rx buff_type)
+static inline uint32_t
+dp_get_num_entries(struct dp_soc *soc, uint8_t pdev_id, uint32_t num_entries,
+                   enum qdf_buff_type_tx_rx buff_type)
 {
 	return num_entries;
 }
