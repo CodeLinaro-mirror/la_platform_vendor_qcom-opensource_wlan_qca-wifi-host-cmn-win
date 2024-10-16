@@ -739,8 +739,9 @@ void mlo_setup_update_soc_ready(struct wlan_objmgr_psoc *psoc, uint8_t grp_id)
 	setup_info->curr_soc_list[chip_idx] = psoc;
 	mlo_set_soc_list(grp_id, psoc);
 	setup_info->num_soc++;
-	mlo_debug("SoC updated to mld grp %d , chip idx %d num soc %d",
-		  grp_id, chip_idx, setup_info->num_soc);
+
+	mlo_info("SoC updated to mld grp %d , chip idx %d num soc %d",
+		 grp_id, chip_idx, setup_info->num_soc);
 
 	if (setup_info->num_soc != tot_socs)
 		return;
@@ -831,9 +832,10 @@ void mlo_setup_link_ready(struct wlan_objmgr_pdev *pdev, uint8_t grp_id)
 	}
 	setup_info->valid_link_bitmap |= (1 << link_id);
 
-	qdf_info("Pdev updated to Grp id %d mld link %d num_links %d  hw link id %d Valid link bitmap %d",
+	qdf_info("Pdev updated to Grp id %d mld link %d num_links %d hw link id %d Valid bitmap %d tot links %d num soc %d tot soc %d",
 		 grp_id, link_idx, setup_info->num_links,
-		 link_id, setup_info->valid_link_bitmap);
+		 link_id, setup_info->valid_link_bitmap,
+		 setup_info->tot_links, setup_info->num_soc, setup_info->tot_socs);
 
 	qdf_assert_always(link_idx < MAX_MLO_LINKS);
 
@@ -910,7 +912,7 @@ void mlo_link_setup_complete(struct wlan_objmgr_pdev *pdev, uint8_t grp_id)
 		psoc = wlan_pdev_get_psoc(pdev);
 		tx_ops = wlan_psoc_get_lmac_if_txops(psoc);
 
-		mlo_debug("Trigger MLO ready");
+		mlo_info("Trigger MLO ready");
 		if (tx_ops && tx_ops->mops.target_if_mlo_ready) {
 			tx_ops->mops.target_if_mlo_ready(
 					setup_info->pdev_list,
@@ -919,7 +921,7 @@ void mlo_link_setup_complete(struct wlan_objmgr_pdev *pdev, uint8_t grp_id)
 
 		if (wlan_mlo_is_wsi_remap_in_progress(grp_id)) {
 			setup_info->wsi_remap_in_progress = false;
-			mlo_debug("Dynamic WSI remap MLO SETUP done!");
+			mlo_info("Dynamic WSI remap MLO SETUP done!");
 		}
 
 	}
@@ -1187,14 +1189,14 @@ static void mlo_send_teardown_req(struct wlan_objmgr_psoc *psoc,
 			}
 
 			if (tx_ops && tx_ops->mops.target_if_mlo_teardown_req) {
-				mlo_info(
+				qdf_info(
 				"Trigger Teardown with Pdev id: %d Psoc id: %d link idx: %d Umac reset: %d Standby Active: %d",
 				wlan_objmgr_pdev_get_pdev_id(temp_pdev),
 				wlan_psoc_get_id(wlan_pdev_get_psoc(temp_pdev)),
 				link_idx, umac_reset,
 				temp_pdev->standby_active);
 				temp_psoc = wlan_pdev_get_psoc(temp_pdev);
-				mlo_info(
+				qdf_info(
 				"Dynamic WSI Remap: Remap add %d : Remap Remove %d: Remap in progress %d ",
 				temp_psoc->wsi_remap_add,
 				temp_psoc->wsi_remap_remove,
