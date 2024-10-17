@@ -1255,6 +1255,23 @@ struct ttlm_state_sm {
 };
 #endif
 
+#ifdef WLAN_FEATURE_11BE
+/**
+ * enum mlreconfig_operation_type - ML Reconfiguration Operation Types
+ * @MLRECONFIG_OPERATION_TYPE_AP_REMOVAL: AP removal
+ * @MLRECONFIG_OPERATION_TYPE_OPERATION_PARAM_UPDATE: Operation Param Update
+ * @MLRECONFIG_OPERATION_TYPE_ADD_LINK: Setup link addition
+ * @MLRECONFIG_OPERATION_TYPE_DELETE_LINK: Setup link deletion
+ * @MLRECONFIG_OPERATION_TYPE_MAX: Max limit on operation types
+ */
+enum mlreconfig_operation_type {
+	MLRECONFIG_OPERATION_TYPE_AP_REMOVAL = 0,
+	MLRECONFIG_OPERATION_TYPE_OPERATION_PARAM_UPDATE = 1,
+	MLRECONFIG_OPERATION_TYPE_ADD_LINK = 2,
+	MLRECONFIG_OPERATION_TYPE_DELETE_LINK = 3,
+	MLRECONFIG_OPERATION_TYPE_MAX = 4,
+};
+#endif
 /**
  * struct wlan_mlo_peer_context - MLO peer context
  *
@@ -1366,12 +1383,14 @@ struct mlo_probereq_info {
  * @link_mac_addr: Link mac address
  * @is_ap_removal_timer_p: AP removal timer is present or not
  * @ap_removal_timer: number of TBTTs of the AP removal timer
+ * @reconfig_optype: Reconfiguration operation type
  */
 struct ml_rv_partner_link_info {
 	uint8_t link_id;
 	struct qdf_mac_addr link_mac_addr;
 	uint8_t is_ap_removal_timer_p;
 	uint16_t ap_removal_timer;
+	enum mlreconfig_operation_type reconfig_optype;
 };
 
 /**

@@ -1841,7 +1841,7 @@ util_add_mlie_for_prb_rsp_gen(const uint8_t *reportingsta_ie,
 }
 
 /**
- * util_find_bvmlie_persta_prof_for_linkid() - get per sta profile per link id
+ * util_find_mlie_persta_prof_for_linkid() - get per sta profile per link id
  * @req_link_id: link id
  * @linkinfo: the pointer of link info
  * @linkinfo_len: the length of link info
@@ -1862,11 +1862,12 @@ util_add_mlie_for_prb_rsp_gen(const uint8_t *reportingsta_ie,
  * Return: QDF_STATUS
  */
 static QDF_STATUS
-util_find_bvmlie_persta_prof_for_linkid(uint8_t req_link_id,
+util_find_mlie_persta_prof_for_linkid(uint8_t req_link_id,
 					uint8_t *linkinfo,
 					qdf_size_t linkinfo_len,
 					uint8_t **persta_prof_frame,
-					qdf_size_t *persta_prof_len)
+					qdf_size_t *persta_prof_len,
+					enum wlan_ml_variant variant)
 {
 	uint8_t linkid;
 	struct qdf_mac_addr macaddr;
@@ -1975,7 +1976,8 @@ util_find_bvmlie_persta_prof_for_linkid(uint8_t req_link_id,
 		if (subelemid == WLAN_ML_LINFO_SUBELEMID_PERSTAPROFILE) {
 			is_macaddr_valid = false;
 
-			ret = util_parse_bvmlie_perstaprofile_stactrl(linkinfo_currpos +
+			if (variant == WLAN_ML_VARIANT_BASIC) {
+				ret = util_parse_bvmlie_perstaprofile_stactrl(linkinfo_currpos +
 								      sizeof(struct subelem_header),
 								      subelemseqpayloadlen,
 								      &linkid,
@@ -1991,6 +1993,22 @@ util_find_bvmlie_persta_prof_for_linkid(uint8_t req_link_id,
 								      NULL,
 								      NULL,
 								      NULL);
+			} else if (variant == WLAN_ML_VARIANT_RECONFIG) {
+				ret = util_parse_rvmlie_perstaprofile_stactrl(linkinfo_currpos +
+								      sizeof(struct subelem_header),
+								      subelemseqpayloadlen,
+								      &linkid,
+								      NULL,
+								      &is_macaddr_valid,
+								      &macaddr,
+								      NULL,
+								      NULL,
+								      NULL,
+								      false,
+								      NULL,
+								      NULL);
+			}
+
 			if (QDF_IS_STATUS_ERROR(ret))
 				return ret;
 
@@ -2171,7 +2189,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	    (subtype != WLAN_FC0_STYPE_REASSOC_REQ) &&
 	    (subtype != WLAN_FC0_STYPE_ASSOC_RESP) &&
 	    (subtype != WLAN_FC0_STYPE_REASSOC_RESP) &&
-	    (subtype != WLAN_FC0_STYPE_PROBE_RESP)) {
+	    (subtype != WLAN_FC0_STYPE_PROBE_RESP) &&
+	    (subtype != WLAN_FC0_STYPE_ACTION)) {
 		mlo_err("802.11 frame subtype %u is invalid", subtype);
 		return QDF_STATUS_E_INVAL;
 	}
@@ -2206,6 +2225,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 		}
 		qdf_mem_copy(&tsf, frame, WLAN_TIMESTAMP_LEN);
 		tsf = qdf_le64_to_cpu(tsf);
+	} else if (subtype == WLAN_FC0_STYPE_ACTION) {
+		frame_iesection_offset = WLAN_ACTION_IES_OFFSET;
 	} else {
 		/* This is a (re)association response */
 		frame_iesection_offset = WLAN_ASSOC_RSP_IES_OFFSET;
@@ -2273,7 +2294,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	if (QDF_IS_STATUS_ERROR(ret))
 		return ret;
 
-	if (variant != WLAN_ML_VARIANT_BASIC) {
+	if ((variant != WLAN_ML_VARIANT_BASIC) &&
+	       (variant != WLAN_ML_VARIANT_RECONFIG)) {
 		mlo_err_rl("Unexpected variant %u of Multi-Link element.",
 			   variant);
 		return QDF_STATUS_E_PROTO;
@@ -2349,10 +2371,17 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	link_info = NULL;
 	link_info_len = 0;
 
-	ret = util_parse_multi_link_ctrl(mlieseqpayload_copy,
+	if (variant == WLAN_ML_VARIANT_BASIC) {
+		ret = util_parse_multi_link_ctrl(mlieseqpayload_copy,
 					 mlieseqpayloadlen,
 					 &link_info,
 					 &link_info_len);
+	} else if (variant == WLAN_ML_VARIANT_RECONFIG) {
+		ret = util_parse_rv_multi_link_ctrl(mlieseqpayload_copy,
+					 mlieseqpayloadlen,
+					 &link_info,
+					 &link_info_len);
+	}
 	if (QDF_IS_STATUS_ERROR(ret))
 		goto mem_free;
 
@@ -2374,11 +2403,12 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	persta_prof = NULL;
 	persta_prof_bufflen = 0;
 
-	ret = util_find_bvmlie_persta_prof_for_linkid(req_link_id,
+	ret = util_find_mlie_persta_prof_for_linkid(req_link_id,
 						      link_info,
 						      link_info_len,
 						      &persta_prof,
-						      &persta_prof_bufflen);
+						      &persta_prof_bufflen,
+						      variant);
 
 	if (QDF_IS_STATUS_ERROR(ret)) {
 		mlo_err_rl("Per STA profile not found for link id %d",
@@ -2394,7 +2424,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	is_tsfoffset_valid = false;
 
 	/* Parse per-STA profile */
-	ret = util_parse_bvmlie_perstaprofile_stactrl(persta_prof +
+	if (variant == WLAN_ML_VARIANT_BASIC) {
+		ret = util_parse_bvmlie_perstaprofile_stactrl(persta_prof +
 						      sizeof(struct subelem_header),
 						      persta_prof_bufflen,
 						      &linkid,
@@ -2410,6 +2441,23 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 						      &sta_prof_remlen,
 						      NULL,
 						      NULL);
+	} else if (variant == WLAN_ML_VARIANT_RECONFIG) {
+		ret = util_parse_rvmlie_perstaprofile_stactrl(persta_prof +
+						      sizeof(struct subelem_header),
+						      persta_prof_bufflen,
+						      &linkid,
+						      &is_completeprofile,
+						      &is_reportedmacaddr_valid,
+						      &reportedmacaddr,
+						      NULL,
+						      NULL,
+						      NULL,
+						      true,
+						      &sta_prof_currpos,
+						      &sta_prof_remlen);
+	}
+
+
 	if (QDF_IS_STATUS_ERROR(ret))
 		goto mem_free;
 
@@ -2682,6 +2730,39 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 
 		sta_prof_currpos += WLAN_CAPABILITYINFO_LEN;
 		sta_prof_remlen -= WLAN_CAPABILITYINFO_LEN;
+	} else if (subtype == WLAN_FC0_STYPE_ACTION) {
+		mlo_debug("Populating fixed fields for action in link specific frame");
+
+		if (sta_prof_remlen < WLAN_CAPABILITYINFO_LEN) {
+			mlo_err_rl("Remaining length of STA profile %zu octets is less than length of Capability Info %u",
+				   sta_prof_remlen,
+				   WLAN_CAPABILITYINFO_LEN);
+
+			ret = QDF_STATUS_E_PROTO;
+			goto mem_free;
+		}
+
+		/* Capability information is specific to the link. Copy this
+		 * from the STA profile.
+		 */
+
+		if ((link_frame_maxsize - link_frame_currlen) <
+				WLAN_CAPABILITYINFO_LEN) {
+			mlo_err("Insufficient space in link specific frame for Capability Info field. Required: %u octets, available: %zu octets",
+				WLAN_CAPABILITYINFO_LEN,
+				(link_frame_maxsize - link_frame_currlen));
+
+			ret = QDF_STATUS_E_NOMEM;
+			goto mem_free;
+		}
+
+		qdf_mem_copy(link_frame_currpos, sta_prof_currpos,
+			     WLAN_CAPABILITYINFO_LEN);
+		link_frame_currpos += WLAN_CAPABILITYINFO_LEN;
+		link_frame_currlen += WLAN_CAPABILITYINFO_LEN;
+
+		sta_prof_currpos += WLAN_CAPABILITYINFO_LEN;
+		sta_prof_remlen -= WLAN_CAPABILITYINFO_LEN;
 	}
 
 	sta_prof_iesection = sta_prof_currpos;
@@ -2725,7 +2806,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 			ret = QDF_STATUS_E_PROTO;
 			goto mem_free;
 		}
-	} else {
+	} else if ((subtype == WLAN_FC0_STYPE_ASSOC_RESP) ||
+		   (subtype == WLAN_FC0_STYPE_REASSOC_RESP)) {
 		/* This is a (re)association response. Sanity check that the
 		 * SSID element is present neither for the reporting STA nor in
 		 * the STA profile.
@@ -3093,7 +3175,8 @@ QDF_STATUS util_gen_link_reqrsp_cmn(uint8_t *frame, qdf_size_t frame_len,
 	link_frame_hdr = (struct wlan_frame_hdr *)link_frame;
 
 	if ((subtype == WLAN_FC0_STYPE_ASSOC_REQ) ||
-	    (subtype == WLAN_FC0_STYPE_REASSOC_REQ)) {
+	    (subtype == WLAN_FC0_STYPE_REASSOC_REQ) ||
+	    (subtype == WLAN_FC0_STYPE_ACTION)) {
 		qdf_mem_copy(link_frame_hdr->i_addr3, &link_addr,
 			     QDF_MAC_ADDR_SIZE);
 		qdf_mem_copy(link_frame_hdr->i_addr2, reportedmacaddr.bytes,
@@ -3143,6 +3226,21 @@ mem_free:
 	qdf_mem_free(mlieseqpayload_copy);
 	return ret;
 }
+
+QDF_STATUS
+util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
+				   uint8_t link_id,
+				   struct qdf_mac_addr link_addr,
+				   uint8_t *link_frame,
+				   qdf_size_t link_frame_maxsize,
+				   qdf_size_t *link_frame_len)
+{
+	return util_gen_link_reqrsp_cmn(frame, frame_len,
+			WLAN_FC0_STYPE_ACTION,
+			link_id, link_addr, NULL, link_frame,
+			link_frame_maxsize, link_frame_len);
+}
+
 
 QDF_STATUS
 util_gen_link_assoc_req(uint8_t *frame, qdf_size_t frame_len, bool isreassoc,
@@ -4631,6 +4729,51 @@ util_parse_rv_multi_link_ctrl(uint8_t *mlieseqpayload,
 		parsed_payload_len += QDF_MAC_ADDR_SIZE;
 	}
 
+	/* Check if EML cap is present */
+	if (presence_bm & WLAN_ML_RV_CTRL_PBM_EMLCAP_P) {
+		if (mlieseqpayloadlen <
+				(parsed_payload_len +
+				 WLAN_ML_BV_CINFO_EMLCAP_SIZE)) {
+			mlo_err_rl("ML seq payload len %zu insufficient for EML cap size %u after parsed payload len %zu.",
+				   mlieseqpayloadlen,
+				   WLAN_ML_BV_CINFO_EMLCAP_SIZE,
+				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		parsed_payload_len += WLAN_ML_BV_CINFO_EMLCAP_SIZE;
+	}
+
+	/* Check if MLD cap is present */
+	if (presence_bm & WLAN_ML_RV_CTRL_PBM_MLDCAPANDOP_P) {
+		if (mlieseqpayloadlen <
+				(parsed_payload_len +
+				 WLAN_ML_BV_CINFO_MLDCAPANDOP_SIZE)) {
+			mlo_err_rl("ML seq payload len %zu insufficient for MLD cap size %u after parsed payload len %zu.",
+				   mlieseqpayloadlen,
+				   WLAN_ML_BV_CINFO_MLDCAPANDOP_SIZE,
+				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		parsed_payload_len += WLAN_ML_BV_CINFO_MLDCAPANDOP_SIZE;
+	}
+
+	/* Check if Ext MLD CAP OP is present */
+	if (presence_bm & WLAN_ML_RV_CTRL_PBM_EXT_MLDCAPANDOP_P) {
+		if (mlieseqpayloadlen <
+				(parsed_payload_len +
+				 WLAN_ML_BV_CINFO_EXT_MLDCAPANDOP_SIZE)) {
+			mlo_err_rl("ML seq payload len %zu insufficient for Ext MLD CAP OP size %u after parsed payload len %zu.",
+				   mlieseqpayloadlen,
+				   WLAN_ML_BV_CINFO_EXT_MLDCAPANDOP_SIZE,
+				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		parsed_payload_len += WLAN_ML_BV_CINFO_EXT_MLDCAPANDOP_SIZE;
+	}
+
 	/* At present, we only handle MAC address field in common info field.
 	 * To be compatible with future spec updating, if new items are added
 	 * to common info, below log will highlight the spec change.
@@ -4676,10 +4819,15 @@ static QDF_STATUS
 util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 					qdf_size_t subelempayloadlen,
 					uint8_t *linkid,
+					bool *is_complete_profile,
 					bool *is_macaddr_valid,
 					struct qdf_mac_addr *macaddr,
 					bool *is_ap_removal_timer_valid,
-					uint16_t *ap_removal_timer)
+					uint16_t *ap_removal_timer,
+					enum mlreconfig_operation_type *reconfig_optype,
+					bool is_staprof_reqd,
+					uint8_t **staprof,
+					qdf_size_t *staprof_len)
 {
 	qdf_size_t parsed_payload_len = 0, sta_info_len;
 	qdf_size_t parsed_sta_info_len;
@@ -4732,6 +4880,9 @@ util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 	completeprofile = QDF_GET_BITS(stacontrol,
 				WLAN_ML_RV_LINFO_PERSTAPROF_STACTRL_CMPLTPROF_IDX,
 				WLAN_ML_RV_LINFO_PERSTAPROF_STACTRL_CMPLTPROF_BITS);
+
+	if (completeprofile && is_complete_profile)
+		*is_complete_profile = true;
 
 	if (is_macaddr_valid)
 		*is_macaddr_valid = false;
@@ -4817,9 +4968,16 @@ util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 			WLAN_ML_RV_LINFO_PERSTAPROF_STAINFO_APREMOVALTIMER_SIZE;
 		parsed_sta_info_len += WLAN_ML_RV_LINFO_PERSTAPROF_STAINFO_APREMOVALTIMER_SIZE;
 	}
-	/* At present, we only handle link MAC address field and ap removal
-	 * timer tbtt field parsing. To be compatible with future spec
-	 * updating, if new items are added to sta info, below log will
+
+	if (reconfig_optype)
+		*reconfig_optype = QDF_GET_BITS(stacontrol,
+						WLAN_ML_RV_LINFO_PERSTAPROF_STACTRL_RECONFOPTYPE_IDX,
+						WLAN_ML_RV_LINFO_PERSTAPROF_STACTRL_RECONFOPTYPE_BITS);
+
+	/* At present, we only handle link MAC address field, ap removal
+	 * timer tbtt and reconfig operation type field parsing.
+	 * To be compatible with future spec updating,
+	 * if new items are added to sta info, below log will
 	 * highlight the spec change.
 	 */
 	if (sta_info_len != (parsed_payload_len -
@@ -4829,7 +4987,57 @@ util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
 			     parsed_payload_len -
 			     WLAN_ML_RV_LINFO_PERSTAPROF_STACTRL_SIZE);
 
+	/* Note: Some implementation versions of hostapd/wpa_supplicant may
+	 * provide a per-STA profile without STA profile. Let the caller
+	 * indicate whether a STA profile is required to be found. This may be
+	 * revisited as upstreaming progresses.
+	 */
+	if (!is_staprof_reqd)
+		return QDF_STATUS_SUCCESS;
+
+	/* If the value in the STA Info Length subfield is greater than
+	 * expected, then this indicates that the sender has included some
+	 * additional subfield(s) in STA Info that the parsing implementation
+	 * does not yet recognize. This could happen in case the sender
+	 * implements a higher standards draft or a new standard that the
+	 * parsing implementation does not yet implement. In this case, skip
+	 * over these unrecognized subfield(s) after verifying that there is
+	 * sufficient space in the subelement to accommodate the unrecognized
+	 * subfield(s). This is in line with the purpose of the STA Info Length
+	 * subfield.
+	 */
+	if (sta_info_len > parsed_sta_info_len) {
+		if (subelempayloadlen <
+				(parsed_payload_len +
+				 (sta_info_len - parsed_sta_info_len))) {
+			mlo_err_rl("Subelement payload len %zu octets insufficient for unrecognized subfield(s) len %zu octets after parsed payload len %zu octets.",
+				   subelempayloadlen,
+				   sta_info_len - parsed_sta_info_len,
+				   parsed_payload_len);
+			return QDF_STATUS_E_PROTO;
+		}
+
+		mlo_debug_rl("Skipping unrecognized STA Info subfield(s) len %zu octets.",
+			     sta_info_len - parsed_sta_info_len);
+
+		parsed_payload_len += (sta_info_len - parsed_sta_info_len);
+	}
+
+	if (subelempayloadlen == parsed_payload_len) {
+		mlo_err_rl("Subelement payload length %zu == parsed payload length %zu. Unable to get STA profile.",
+			   subelempayloadlen,
+			   parsed_payload_len);
+		return QDF_STATUS_E_PROTO;
+	}
+
+	if (staprof_len)
+		*staprof_len = subelempayloadlen - parsed_payload_len;
+
+	if (staprof)
+		*staprof = subelempayload + parsed_payload_len;
+
 	return QDF_STATUS_SUCCESS;
+
 }
 
 static QDF_STATUS
@@ -4850,6 +5058,7 @@ util_parse_rv_info_from_linkinfo(uint8_t *linkinfo,
 	bool is_macaddr_valid;
 	bool is_ap_removal_timer_valid;
 	uint16_t ap_removal_timer;
+	enum mlreconfig_operation_type reconfig_optype;
 
 	/* This helper function parses probe request info from the per-STA prof
 	 * present (if any) in the Link Info field in the payload of a Multi
@@ -4962,10 +5171,15 @@ util_parse_rv_info_from_linkinfo(uint8_t *linkinfo,
 								      sizeof(struct subelem_header),
 								      subelemseqpayloadlen,
 								      &linkid,
+								      NULL,
 								      &is_macaddr_valid,
 								      &mac_addr,
 								      &is_ap_removal_timer_valid,
-								      &ap_removal_timer);
+								      &ap_removal_timer,
+								      &reconfig_optype,
+								      false,
+								      NULL,
+								      NULL);
 			if (QDF_IS_STATUS_ERROR(ret))
 				return ret;
 			if (reconfig_info->num_links >=
@@ -4984,14 +5198,14 @@ util_parse_rv_info_from_linkinfo(uint8_t *linkinfo,
 
 			if (is_ap_removal_timer_valid)
 				link_info->ap_removal_timer = ap_removal_timer;
-			else
-				mlo_warn_rl("AP removal timer not found in STA Info field of per-STA profile with link ID %u",
-					    linkid);
 
-			mlo_debug("Per-STA Profile Link ID: %u AP removal timer present: %d AP removal timer: %u",
+			link_info->reconfig_optype = reconfig_optype;
+
+			mlo_debug("Per-STA Profile Link ID: %u AP removal timer present: %d AP removal timer: %u Reconfig Operation Type: %u",
 				  link_info->link_id,
 				  link_info->is_ap_removal_timer_p,
-				  link_info->ap_removal_timer);
+				  link_info->ap_removal_timer,
+				  link_info->reconfig_optype);
 
 			reconfig_info->num_links++;
 		}

@@ -37,6 +37,39 @@
 #define MLO_LINKSPECIFIC_PROBE_RESP_FC1 0x00
 
 /**
+ * util_gen_link_specifc_reconfig_req() - Generate link specific reconfig
+ * request
+ * @frame: Pointer to original link reconfig request.
+ * @frame_len: Length of original link reconfig request
+ * @link_id: Link ID for secondary links
+ * @link_addr: Secondary link's MAC address
+ * @link_frame: Generated secondary link specific reconfig request. Note that
+ * this will start from the 802.11 header (unlike the original reconfig
+ * request). This should be ignored in the case of failure.
+ * @link_frame_maxsize: Maximum size of generated secondary link specific
+ * reconfiguration request
+ * @link_frame_len: Pointer to location where populated length of generated
+ * secondary link specific reconfiguration request should be written. This should be
+ * ignored in the case of failure.
+ *
+ * Generate a link specific logically equivalent reconfiguration request for
+ * the secondary link from the link reconfig request containing a Multi-Link
+ * element.
+ * Currently, only two link MLO is supported.
+ *
+ * Return: QDF_STATUS_SUCCESS in the case of success, QDF_STATUS value giving
+ * the reason for error in the case of failure.
+ */
+
+QDF_STATUS
+util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
+				   uint8_t link_id,
+				   struct qdf_mac_addr link_addr,
+				   uint8_t *link_frame,
+				   qdf_size_t link_frame_maxsize,
+				   qdf_size_t *link_frame_len);
+
+/**
  * util_gen_link_assoc_req() - Generate link specific assoc request
  * @frame: Pointer to original association request. This should not contain the
  * 802.11 header, and must start from the fixed fields in the association
@@ -653,7 +686,53 @@ util_get_rvmlie_persta_link_info(uint8_t *mlieseq,
 QDF_STATUS util_get_pav_mlie_link_info(uint8_t *mlieseq,
 				       qdf_size_t mlieseqlen,
 				       struct ml_pa_info *pa_info);
+
+/**
+ * util_parse_rv_multi_link_ctrl() - Parse Reconfig Multi-Link Controls IE
+ *
+ *
+ * Return: QDF_STATUS_SUCCESS in the case of success, QDF_STATUS value giving
+ * the reason for error in the case of failure.
+ */
+static QDF_STATUS
+util_parse_rv_multi_link_ctrl(uint8_t *mlieseqpayload,
+			      qdf_size_t mlieseqpayloadlen,
+			      uint8_t **link_info,
+			      qdf_size_t *link_info_len);
+
+/**
+ * util_parse_rvmlie_perstaprofile_stactrl() - Parse ML Reconfig Per-STA
+ *
+ *
+ * Return: QDF_STATUS_SUCCESS in the case of success, QDF_STATUS value giving
+ * the reason for error in the case of failure.
+ */
+static QDF_STATUS
+util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
+					qdf_size_t subelempayloadlen,
+					uint8_t *linkid,
+					bool *is_complete_profile,
+					bool *is_macaddr_valid,
+					struct qdf_mac_addr *macaddr,
+					bool *is_ap_removal_timer_valid,
+					uint16_t *ap_removal_timer,
+					enum mlreconfig_operation_type *reconfig_optype,
+					bool is_staprof_reqd,
+					uint8_t **staprof,
+					qdf_size_t *staprof_len);
+
 #else
+static inline QDF_STATUS
+util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
+			uint8_t link_id,
+			struct qdf_mac_addr link_addr,
+			uint8_t *link_frame,
+			qdf_size_t link_frame_maxsize,
+			qdf_size_t *link_frame_len)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
 static inline QDF_STATUS
 util_gen_link_assoc_req(uint8_t *frame, qdf_size_t frame_len, bool isreassoc,
 			uint8_t link_id,
@@ -789,6 +868,33 @@ QDF_STATUS util_get_pav_mlie_link_info(uint8_t *mlieseq,
 {
 	return QDF_STATUS_E_NOSUPPORT;
 }
+
+static inline QDF_STATUS
+util_parse_rv_multi_link_ctrl(uint8_t *mlieseqpayload,
+			      qdf_size_t mlieseqpayloadlen,
+			      uint8_t **link_info,
+			      qdf_size_t *link_info_len);
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline QDF_STATUS
+util_parse_rvmlie_perstaprofile_stactrl(uint8_t *subelempayload,
+					qdf_size_t subelempayloadlen,
+					uint8_t *linkid,
+					bool *is_complete_profile,
+					bool *is_macaddr_valid,
+					struct qdf_mac_addr *macaddr,
+					bool *is_ap_removal_timer_valid,
+					uint16_t *ap_removal_timer,
+					enum mlreconfig_operation_type *reconfig_optype,
+					bool is_staprof_reqd,
+					uint8_t **staprof,
+					qdf_size_t *staprof_len);
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
 
 #endif /* WLAN_FEATURE_11BE_MLO */
 #endif /* _WLAN_UTILS_MLO_H_ */
