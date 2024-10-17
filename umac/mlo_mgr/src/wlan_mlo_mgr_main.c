@@ -1468,8 +1468,9 @@ static QDF_STATUS mlo_dev_ctx_deinit(struct wlan_objmgr_vdev *vdev)
 		if (cdp_mlo_dev_ctxt_destroy(wlan_psoc_get_dp_handle(psoc),
 					     (uint8_t *)mld_addr) !=
 					     QDF_STATUS_SUCCESS) {
-			mlo_err("Failed to destroy DP MLO Dev ctxt");
-			QDF_BUG(0);
+			mlo_err("Failed to destroy DP MLO Dev ctxt"
+				 QDF_MAC_ADDR_FMT,
+				 QDF_MAC_ADDR_REF(mld_addr->bytes));
 		}
 
 		tsf_recalculation_lock_destroy(ml_dev);
