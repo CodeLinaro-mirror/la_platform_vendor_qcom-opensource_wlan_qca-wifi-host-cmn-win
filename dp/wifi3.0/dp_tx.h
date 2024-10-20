@@ -850,11 +850,6 @@ void dp_tx_prefetch_hw_sw_nbuf_desc(struct dp_soc *soc,
 				    **last_prefetched_sw_desc,
 				    void *last_hw_desc)
 {
-	if (*last_prefetched_sw_desc) {
-		qdf_prefetch((uint8_t *)(*last_prefetched_sw_desc)->nbuf);
-		qdf_prefetch((uint8_t *)(*last_prefetched_sw_desc)->nbuf + 64);
-	}
-
 	if (qdf_unlikely(last_hw_desc &&
 			 (*last_prefetched_hw_desc == last_hw_desc)))
 		return;
