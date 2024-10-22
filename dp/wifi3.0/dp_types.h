@@ -5995,6 +5995,35 @@ void dp_tx_comp_get_prefetched_params_from_hal_desc(
 void dp_tx_update_proto_stats(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
 			     uint8_t ring_id, uint8_t level);
 
+#ifdef QCA_DP_PROTOCOL_STATS
+/**
+ * dp_tx_update_proto_stats_wrapper() - Wrapper for update Tx Protocol Stats
+ * @vdev: DP vdev handle
+ * @nbuf: Network buffer
+ * @ring_id: Hardware ring ID
+ * @level: Tx update level for stats
+ *
+ * Return: None
+ */
+
+static inline
+void dp_tx_update_proto_stats_wrapper(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
+				      uint8_t ring_id, uint8_t level)
+{
+	if (!vdev->dp_proto_stats ||
+	    qdf_unlikely(qdf_nbuf_is_nonlinear((nbuf))))
+		return;
+
+	dp_tx_update_proto_stats(vdev, nbuf, ring_id, level);
+}
+#else
+static inline
+void dp_tx_update_proto_stats_wrapper(struct dp_vdev *vdev, qdf_nbuf_t nbuf,
+				      uint8_t ring_id, uint8_t level)
+{
+}
+#endif
+
 /**
  * dp_rx_update_protocol_stats() - Update Rx Protocol Statistics
  * @hal_soc: hal soc handle

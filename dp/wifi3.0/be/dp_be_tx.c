@@ -1720,8 +1720,8 @@ dp_tx_hw_enqueue_be(struct dp_soc *soc, struct dp_vdev *vdev,
 	/* Sync cached descriptor with HW */
 	hal_tx_desc_sync(hal_tx_desc_cached, hal_tx_desc, num_desc_bytes);
 
-	dp_tx_update_proto_stats(vdev, tx_desc->nbuf, ring_id,
-				 TX_ENQUEUE_HW);
+	dp_tx_update_proto_stats_wrapper(vdev, tx_desc->nbuf, ring_id,
+					 TX_ENQUEUE_HW);
 
 	coalesce = dp_tx_attempt_coalescing(soc, vdev, tx_desc, tid,
 					    msdu_info, ring_id);
@@ -2201,8 +2201,8 @@ qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	desc_pool_id = qdf_nbuf_get_queue_mapping(nbuf) & DP_TX_QUEUE_MASK;
 
 	pkt_len = qdf_nbuf_headlen(nbuf);
-	dp_tx_update_proto_stats(vdev, nbuf, desc_pool_id,
-				 TX_RECV_FROM_STACK_FP);
+	dp_tx_update_proto_stats_wrapper(vdev, nbuf, desc_pool_id,
+					 TX_RECV_FROM_STACK_FP);
 
 	DP_STATS_INC_PKT(vdev, tx_i[xmit_type].rcvd, 1, pkt_len);
 	DP_STATS_INC(vdev, tx_i[xmit_type].rcvd_in_fast_xmit_flow, 1);
@@ -2316,8 +2316,8 @@ qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	qdf_mem_copy(hal_tx_desc, hal_tx_desc_cached, DP_TX_FAST_DESC_SIZE);
 	qdf_dsb();
 
-	dp_tx_update_proto_stats(vdev, tx_desc->nbuf, desc_pool_id,
-				 TX_ENQUEUE_HW_FP);
+	dp_tx_update_proto_stats_wrapper(vdev, tx_desc->nbuf, desc_pool_id,
+					 TX_ENQUEUE_HW_FP);
 
 	DP_STATS_INC_PKT(vdev, tx_i[xmit_type].processed, 1, tx_desc->length);
 	DP_STATS_INC(soc, tx.tcl_enq[desc_pool_id], 1);
@@ -2366,8 +2366,8 @@ dp_tx_comp_proto_stats_update(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 				DP_MOD_ID_TX_COMP);
 
 		if (vdev) {
-			dp_tx_update_proto_stats(vdev, tx_desc->nbuf,
-					ring_id, TX_COMP);
+			dp_tx_update_proto_stats_wrapper(vdev, tx_desc->nbuf,
+							 ring_id, TX_COMP);
 			dp_vdev_unref_delete(soc, vdev,
 					DP_MOD_ID_TX_COMP);
 		}

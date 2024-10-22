@@ -49,8 +49,12 @@ static bool mem_debug_disabled;
 qdf_declare_param(mem_debug_disabled, bool);
 #endif
 
-#ifdef MEMORY_DEBUG
-static bool is_initial_mem_debug_disabled;
+#if defined(NBUF_FRAG_MEMORY_DEBUG) || defined(QDF_NBUF_FRAG_GLOBAL_COUNT) || \
+    defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT) || \
+    defined(MEMORY_DEBUG)
+bool is_initial_mem_debug_disabled;
+
+qdf_export_symbol(is_initial_mem_debug_disabled);
 #endif
 
 /* Preprocessor Definitions and Constants */
