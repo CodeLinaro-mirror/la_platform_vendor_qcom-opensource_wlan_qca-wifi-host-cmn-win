@@ -444,13 +444,13 @@ void dp_ipa_wdi_opt_dpath_ctrl_notify_flt_delete(struct filter_response
 /**
  * dp_ipa_rx_wdsext_iface() -  Forward RX exception packets to wdsext interface
  * @soc_hdl: data path SoC handle
- * @peer_id: Peer ID to get respective peer
  * @skb: socket buffer
+ * @mac_addr: MAC address
  *
  * Return: bool
  */
-bool dp_ipa_rx_wdsext_iface(struct cdp_soc_t *soc_hdl, uint8_t peer_id,
-			    qdf_nbuf_t skb);
+bool dp_ipa_rx_wdsext_iface(struct cdp_soc_t *soc_hdl, qdf_nbuf_t skb,
+			    uint8_t *mac_addr);
 #endif
 
 /**
@@ -468,8 +468,8 @@ bool dp_ipa_rx_wdsext_iface(struct cdp_soc_t *soc_hdl, uint8_t peer_id,
  */
 bool dp_ipa_rx_intrabss_fwd(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 			    qdf_nbuf_t nbuf, bool *fwd_success);
-int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev);
-int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev);
+int dp_ipa_uc_detach(struct dp_pdev *pdev);
+int dp_ipa_uc_attach(struct dp_pdev *pdev);
 
 /**
  * dp_ipa_ring_resource_setup() - setup IPA ring resources
@@ -742,12 +742,12 @@ bool dp_ipa_is_ring_ipa_tx(struct dp_soc *soc, uint8_t ring_id);
  */
 bool dp_ipa_is_ring_ipa_rx(struct cdp_soc_t *soc_hdl, uint8_t ring_id);
 #else
-static inline int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev)
+static inline int dp_ipa_uc_detach(struct dp_pdev *pdev)
 {
 	return QDF_STATUS_SUCCESS;
 }
 
-static inline int dp_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
+static inline int dp_ipa_uc_attach(struct dp_pdev *pdev)
 {
 	return QDF_STATUS_SUCCESS;
 }
