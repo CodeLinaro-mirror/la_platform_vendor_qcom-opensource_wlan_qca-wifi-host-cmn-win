@@ -395,11 +395,14 @@ QDF_STATUS tgt_vdev_mgr_down_send(
 	}
 
 	opmode = wlan_vdev_mlme_get_opmode(vdev);
-	if (wlan_util_is_vdev_active(pdev, WLAN_VDEV_TARGET_IF_ID) ==
+	if (wlan_util_is_vdev_active(pdev, WLAN_VDEV_TARGET_IF_ID) !=
 						QDF_STATUS_SUCCESS) {
 
-		if (opmode == QDF_SAP_MODE)
-			utils_dfs_cancel_precac_timer(pdev);
+		if (opmode == QDF_SAP_MODE) {
+			mlme_debug("No active vdevs on the radio, send agile stop\n");
+			utils_dfs_agile_sm_deliver_evt(pdev,
+						       DFS_AGILE_SM_EV_AGILE_STOP);
+		}
 	}
 
 	status = txops->vdev_down_send(vdev, param);
