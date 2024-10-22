@@ -10828,3 +10828,77 @@ reg_find_non_punctured_bw(uint16_t bw,  uint16_t in_punc_pattern)
 	return (bw - num_punc_bw * 20);
 }
 #endif
+#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
+				   qdf_freq_t freq,
+				   qdf_freq_t c_freq, qdf_freq_t c_freq2,
+				   uint16_t bw,
+				   enum supported_6g_pwr_types ap_pwr_type,
+				   uint16_t in_punc_pattern)
+{
+	struct hw_blacklisted_channel *hw_blacklisted_channels;
+	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
+	struct hw_disallowed_full_bw_chan *full_bw_chan;
+	struct hw_disallowed_punc_chan *punc_chan;
+	enum reg_6g_ap_type best_ap_pwr_type;
+	uint32_t num_hw_blacklisted_full_bw_chans;
+	uint32_t num_hw_blacklisted_punc_chans;
+	uint32_t i, j;
+
+	static const enum reg_6g_ap_type reg_enum_conv[] = {
+		[REG_AP_LPI] = REG_INDOOR_AP,
+		[REG_AP_SP] = REG_STANDARD_POWER_AP,
+		[REG_AP_VLP] = REG_VERY_LOW_POWER_AP,
+	};
+
+	pdev_priv_obj = reg_get_pdev_obj(pdev);
+	if (!pdev_priv_obj) {
+		reg_err("pdev priv obj is NULL");
+		return false;
+	}
+
+	hw_blacklisted_channels = pdev_priv_obj->hw_blacklisted_channels;
+
+	if (ap_pwr_type == REG_BEST_PWR_MODE) {
+		best_ap_pwr_type = reg_get_best_pwr_mode(pdev, freq, c_freq2, bw, in_punc_pattern);
+	} else {
+		best_ap_pwr_type = reg_enum_conv[ap_pwr_type];
+	}
+
+	full_bw_chan = hw_blacklisted_channels[best_ap_pwr_type].full_bw_chan;
+	punc_chan = hw_blacklisted_channels[best_ap_pwr_type].punc_chan;
+	num_hw_blacklisted_full_bw_chans = hw_blacklisted_channels[best_ap_pwr_type].num_hw_blacklisted_full_bw_chans;
+	num_hw_blacklisted_punc_chans = hw_blacklisted_channels[best_ap_pwr_type].num_hw_blacklisted_punc_chans;
+
+	if (!full_bw_chan || !punc_chan)
+		return false;
+
+	for (i = 0; i < num_hw_blacklisted_full_bw_chans; i++) {
+		if (full_bw_chan[i].max_blocked_bw == bw &&
+		    full_bw_chan[i].blocked_320_center_freq == c_freq2) {
+
+			const struct bonded_channel_freq *bond_freq = reg_get_bonded_chan_entry(freq, bw, c_freq2);
+			if (!bond_freq)
+				continue;
+
+			uint64_t x = (freq - bond_freq->start_freq) / BW_20_MHZ;
+
+			if (full_bw_chan[i].blocked_pri_freq & BIT(x))
+				return true;
+		}
+	}
+
+	for (i = 0; i < num_hw_blacklisted_punc_chans; i++) {
+		uint8_t num_blocked_punc_patterns = punc_chan[i].num_blocked_punc_patterns;
+
+		if (punc_chan[i].center_freq == c_freq && punc_chan[i].bw == bw) {
+			for (j = 0; j < num_blocked_punc_patterns; j++) {
+				if (punc_chan[i].blocked_punc_patterns[j] == in_punc_pattern)
+					return true;
+			}
+		}
+	}
+
+	return false;
+}
+#endif
