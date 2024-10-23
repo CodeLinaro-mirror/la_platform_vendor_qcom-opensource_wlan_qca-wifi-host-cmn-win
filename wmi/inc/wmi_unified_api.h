@@ -5137,7 +5137,7 @@ wmi_unified_pdev_set_mec_timer(struct wmi_unified *wmi_handle,
 			       struct set_mec_timer_params *param);
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * wmi_unified_send_set_mac_addr() - Send VDEV set MAC address command to FW
  * @wmi_handle: WMI handle

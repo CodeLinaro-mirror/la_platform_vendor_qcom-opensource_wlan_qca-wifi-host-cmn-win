@@ -199,6 +199,28 @@ int osif_request_wait_for_response(struct osif_request *request);
  */
 void osif_request_complete(struct osif_request *request);
 
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+/**
+ * osif_request_manager_init() - Initialize the OSIF Request Manager
+ *
+ * This function must be called during system initialization to
+ * initialize the OSIF Request Manager.
+ *
+ * Returns: QDF_STATUS_E_FAILURE if already initialized earlier.
+ * Else returns QDF_STATUS_SUCCESS
+ */
+QDF_STATUS osif_request_manager_init(void);
+
+/**
+ * osif_request_manager_deinit() - Deinitialize the OSIF Request Manager
+ *
+ * This function must be called during system shutdown to deinitialize
+ * the OSIF Request Manager.
+ *
+ * Returns: Always returns QDF_STATUS_SUCCESS
+ */
+QDF_STATUS osif_request_manager_deinit(void);
+#else
 /**
  * osif_request_manager_init() - Initialize the OSIF Request Manager
  *
@@ -218,5 +240,6 @@ void osif_request_manager_init(void);
  * Returns: Nothing
  */
 void osif_request_manager_deinit(void);
+#endif /* ENABLE_CFG80211_BACKPORTS_MLO */
 
 #endif /* __WLAN_OSIF_REQUEST_MANAGER_H__ */

@@ -161,6 +161,31 @@ void osif_request_complete(struct osif_request *request)
 	(void) qdf_event_set(&request->completed);
 }
 
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+QDF_STATUS osif_request_manager_init(void)
+{
+	if (is_initialized)
+		return QDF_STATUS_E_FAILURE;
+
+	qdf_list_create(&requests, MAX_NUM_REQUESTS);
+	qdf_spinlock_create(&spinlock);
+	is_initialized = true;
+	return QDF_STATUS_SUCCESS;
+}
+
+/*
+ * osif_request_manager_deinit implementation note:
+ * It is intentional that we do not destroy the list or the spinlock.
+ * This allows threads to still access the infrastructure even when it
+ * has been deinitialized. Since neither lists nor spinlocks consume
+ * resources this does not result in a resource leak.
+ */
+QDF_STATUS osif_request_manager_deinit(void)
+{
+	is_initialized = false;
+	return QDF_STATUS_SUCCESS;
+}
+#else
 void osif_request_manager_init(void)
 {
 	if (is_initialized)
@@ -182,3 +207,4 @@ void osif_request_manager_deinit(void)
 {
 	is_initialized = false;
 }
+#endif

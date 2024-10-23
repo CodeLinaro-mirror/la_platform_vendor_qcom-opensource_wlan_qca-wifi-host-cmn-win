@@ -4036,7 +4036,7 @@ wmi_unified_pdev_set_mec_timer(struct wmi_unified *wmi_handle,
 }
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS wmi_unified_send_set_mac_addr(struct wmi_unified *wmi_handle,
 					 struct set_mac_addr_params *params)
 {

@@ -3328,7 +3328,7 @@ QDF_STATUS
 			struct wmi_host_inst_rssi_stats_resp *inst_rssi_resp);
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS (*send_set_mac_address_cmd)(wmi_unified_t wmi,
 				       struct set_mac_addr_params *params);
 QDF_STATUS (*extract_update_mac_address_event)(wmi_unified_t wmi_handle,

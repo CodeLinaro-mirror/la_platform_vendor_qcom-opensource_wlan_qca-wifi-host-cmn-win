@@ -618,7 +618,7 @@ struct wlan_lmac_if_mlme_tx_ops {
 						uint32_t *target_type);
 
 #endif
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS (*vdev_send_set_mac_addr)(struct qdf_mac_addr mac_addr,
 				     struct qdf_mac_addr mld_addr,
 				     struct wlan_objmgr_vdev *vdev);
@@ -2896,10 +2896,8 @@ struct wlan_lmac_if_mlme_rx_ops {
 	struct vdev_response_timer *(*psoc_get_vdev_response_timer_info)(
 						struct wlan_objmgr_psoc *psoc,
 						uint8_t vdev_id);
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
 	void (*vdev_mgr_set_mac_addr_response)(struct wlan_objmgr_vdev *vdev,
 					       uint8_t status);
-#endif
 	void (*vdev_mgr_set_max_channel_switch_time)
 		(struct wlan_objmgr_psoc *psoc,
 		 uint32_t *vdev_ids, uint32_t num_vdevs);
