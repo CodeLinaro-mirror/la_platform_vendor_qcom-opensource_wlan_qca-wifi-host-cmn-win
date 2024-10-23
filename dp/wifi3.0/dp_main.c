@@ -10401,8 +10401,8 @@ QDF_STATUS dp_get_per_link_peer_stats(struct dp_peer *peer,
 			link_peer = link_peers_info.link_peers[i];
 			if (qdf_unlikely(!link_peer))
 				continue;
-			dp_get_peer_per_pkt_stats(link_peer, peer_stats);
-			dp_get_peer_extd_stats(link_peer, peer_stats);
+			dp_get_peer_per_pkt_stats(link_peer, &peer_stats[i]);
+			dp_get_peer_extd_stats(link_peer, &peer_stats[i]);
 		}
 		dp_release_link_peers_ref(&link_peers_info,
 					  DP_MOD_ID_GENERIC_STATS);
@@ -13712,6 +13712,7 @@ static struct cdp_scs_ops dp_ops_scs = {
 static struct cdp_fse_ops dp_ops_fse = {
 	.fse_rule_add = dp_rx_sfe_add_flow_entry,
 	.fse_rule_delete = dp_rx_sfe_delete_flow_entry,
+	.fse_rule_dump = dp_rx_flow_dump_hal_fse_entries,
 };
 #endif
 
