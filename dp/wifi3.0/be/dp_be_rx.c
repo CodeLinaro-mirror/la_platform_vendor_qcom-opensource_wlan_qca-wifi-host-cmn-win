@@ -1220,7 +1220,13 @@ dp_rx_desc_pool_init_be_cc(struct dp_soc *soc,
 		rx_desc_elem->rx_desc.pool_id = pool_id;
 		rx_desc_elem->rx_desc.in_use = 0;
 		rx_desc_elem = rx_desc_elem->next;
-
+		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
+			qdf_mem_dma_sync_single_for_device(
+							soc->osdev,
+							page_desc->page_p_addr,
+							qdf_page_size,
+							DMA_FROM_DEVICE);
+		}
 		avail_entry_index = (avail_entry_index + 1) &
 					DP_CC_SPT_PAGE_MAX_ENTRIES_MASK;
 	}
@@ -1277,7 +1283,13 @@ dp_rx_desc_pool_init_be_cc(struct dp_soc *soc,
 		rx_desc_pool->array[i].rx_desc.in_use = 0;
 		rx_desc_pool->array[i].rx_desc.chip_id =
 					dp_mlo_get_chip_id(soc);
-
+		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
+			qdf_mem_dma_sync_single_for_device(
+						soc->osdev,
+						page_desc->page_p_addr,
+						qdf_page_size,
+						DMA_FROM_DEVICE);
+		}
 		avail_entry_index = (avail_entry_index + 1) &
 					DP_CC_SPT_PAGE_MAX_ENTRIES_MASK;
 	}
