@@ -457,6 +457,7 @@ void dp_sawf_config_li(struct dp_soc *soc, uint32_t *hal_tx_desc_cached,
 		       struct dp_tx_msdu_info_s *msdu_info)
 {
 	qdf_nbuf_t nbuf = tx_desc->nbuf;
+	uint16_t peer_id = SAWF_PEER_ID_GET(qdf_nbuf_get_mark(nbuf));
 	uint8_t q_id = 0;
 	uint32_t flow_idx = 0;
 	uint16_t tcl_cmd_num;
@@ -484,7 +485,7 @@ void dp_sawf_config_li(struct dp_soc *soc, uint32_t *hal_tx_desc_cached,
 		*fw_metadata = tcl_cmd_num;
 
 	/* For SAWF, q_id starts from DP_SAWF_Q_MAX */
-	if (!dp_sawf_get_search_index(soc, nbuf, vdev_id,
+	if (!dp_sawf_get_search_index(soc, vdev_id, peer_id,
 				      q_id, &flow_idx))
 		hal_tx_desc_set_to_fw(hal_tx_desc_cached, true);
 
