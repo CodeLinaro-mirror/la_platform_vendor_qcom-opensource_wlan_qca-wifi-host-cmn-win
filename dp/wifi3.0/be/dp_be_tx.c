@@ -1666,8 +1666,14 @@ dp_tx_hw_enqueue_be(struct dp_soc *soc, struct dp_vdev *vdev,
 	hal_tx_desc_set_buf_length(hal_tx_desc_cached, tx_desc->length);
 	hal_tx_desc_set_buf_offset(hal_tx_desc_cached, tx_desc->pkt_offset);
 
-	if (tx_desc->flags & DP_TX_DESC_FLAG_TO_FW)
+	if (tx_desc->flags & DP_TX_DESC_FLAG_TO_FW) {
+		uint8_t xmit_type = qdf_nbuf_get_vdev_xmit_type(tx_desc->nbuf);
 		hal_tx_desc_set_to_fw(hal_tx_desc_cached, 1);
+
+		/* Check exception descriptors */
+		if (dp_tx_exception_limit_check(vdev, xmit_type))
+			return status;
+	}
 
 	/* verify checksum offload configuration*/
 	if ((qdf_nbuf_get_tx_cksum(tx_desc->nbuf) ==
