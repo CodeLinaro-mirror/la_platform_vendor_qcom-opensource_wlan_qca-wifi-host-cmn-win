@@ -6001,6 +6001,8 @@ typedef enum {
 		   PDEV_PARAM_DSTALL_CONSECUTIVE_TX_NO_ACK_THRESHOLD),
 	PDEV_PARAM(pdev_param_mgmt_srng_reap_event_threshold,
 		   PDEV_PARAM_MGMT_SRNG_REAP_EVENT_THRESHOLD),
+	PDEV_PARAM(pdev_param_soft_rx_chain_mask,
+		   PDEV_PARAM_RX_CHAIN_MASK),
 	pdev_param_max,
 } wmi_conv_pdev_params_id;
 
