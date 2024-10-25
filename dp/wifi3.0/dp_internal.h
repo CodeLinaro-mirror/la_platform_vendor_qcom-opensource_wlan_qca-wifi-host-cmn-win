@@ -63,6 +63,12 @@
 #endif
 #endif
 
+#ifdef QCA_DP_SUPP_IO_COHERENCY
+#define DP_DSB
+#else
+#define DP_DSB qdf_dsb();
+#endif /* QCA_DP_SUPP_IO_COHERENCY */
+
 #define DP_MAX_VLAN_IDS 4096
 #define DP_VLAN_UNTAGGED 0
 #define DP_VLAN_TAGGED_MULTICAST 1
@@ -71,6 +77,7 @@
 #ifdef DP_PEER_UNMAP_TRACK
 /* timer expire in unit ms */
 #define DP_PEER_UNMAP_TRACK_TIMEOUT 3000
+
 
 /**
  * struct dp_peer_unmap_track_elem - structure to maintain peer info for
@@ -4466,6 +4473,14 @@ static inline void *dp_srng_dst_get_next(struct dp_soc *dp_soc,
 	return hal_srng_dst_get_next_cached(hal_soc, hal_ring_hdl);
 }
 
+#ifdef QCA_DP_SUPP_IO_COHERENCY
+static inline void *dp_srng_dst_inv_cached_descs(struct dp_soc *dp_soc,
+						 hal_ring_handle_t hal_ring_hdl,
+						 uint32_t num_entries)
+{
+	return NULL;
+}
+#else
 /**
  * dp_srng_dst_inv_cached_descs() - Wrapper function to invalidate cached
  * descriptors
@@ -4484,6 +4499,7 @@ static inline void *dp_srng_dst_inv_cached_descs(struct dp_soc *dp_soc,
 	return hal_srng_dst_inv_cached_descs(hal_soc, hal_ring_hdl,
 					     num_entries);
 }
+#endif /* QCA_DP_SUPP_IO_COHERENCY */
 #else
 static inline void *dp_srng_dst_get_next(struct dp_soc *dp_soc,
 					 hal_ring_handle_t hal_ring_hdl)
@@ -6515,5 +6531,6 @@ dp_rx_flow_invalidate_fse_entry(struct dp_pdev *pdev, struct dp_rx_fse *fse,
  *	   else false.
  */
 bool dp_get_peer_vdev_roaming_in_progress(struct dp_peer *peer);
+
 
 #endif /* #ifndef _DP_INTERNAL_H_ */
