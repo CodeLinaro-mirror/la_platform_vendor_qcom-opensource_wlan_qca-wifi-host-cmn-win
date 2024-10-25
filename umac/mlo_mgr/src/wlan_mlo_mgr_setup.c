@@ -552,6 +552,11 @@ QDF_STATUS mlo_set_3_link_forced_primary_umac(
 		return QDF_STATUS_E_FAILURE;
 
 	for (i = 0; i < 3; i++) {
+		if (!link_vdevs[i]) {
+			mlo_err("link_vdev is Null");
+			return QDF_STATUS_E_FAILURE;
+		}
+
 		psoc = wlan_vdev_get_psoc(link_vdevs[i]);
 		if (!psoc) {
 			mlo_err("psoc is Null");
