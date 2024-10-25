@@ -666,7 +666,7 @@ dp_rx_populate_cdp_indication_ppdu(struct dp_pdev *pdev,
 		mon_ops->mon_rx_populate_ppdu_info(ppdu_info,
 						   cdp_rx_ppdu);
 
-	cdp_rx_ppdu->nf = ppdu_info->rx_status.chan_noise_floor;
+	cdp_rx_ppdu->nf = ppdu_info->rx_status.hw_noise_floor;
 	for (i = 0; i < MAX_CHAIN; i++)
 		cdp_rx_ppdu->per_chain_rssi[i] = ppdu_info->rx_status.rssi[i];
 
@@ -1406,7 +1406,7 @@ dp_rx_populate_cdp_indication_ppdu_undecoded_metadata(struct dp_pdev *pdev,
 	dp_rx_populate_su_evm_details(ppdu_info, cdp_rx_ppdu);
 	cdp_rx_ppdu->rx_antenna = ppdu_info->rx_status.rx_antenna;
 
-	cdp_rx_ppdu->nf = ppdu_info->rx_status.chan_noise_floor;
+	cdp_rx_ppdu->nf = ppdu_info->rx_status.hw_noise_floor;
 	for (chain = 0; chain < MAX_CHAIN; chain++)
 		cdp_rx_ppdu->per_chain_rssi[chain] =
 			ppdu_info->rx_status.rssi[chain];
@@ -1842,8 +1842,8 @@ dp_rx_mon_send_mpdu(struct dp_pdev *pdev, struct dp_mon_mac *mon_mac,
 	mon_mac->ppdu_info.rx_status.ppdu_id =
 			mon_mac->ppdu_info.com_info.ppdu_id;
 	mon_mac->ppdu_info.rx_status.device_id = pdev->soc->device_id;
-	mon_mac->ppdu_info.rx_status.chan_noise_floor =
-			pdev->chan_noise_floor;
+	mon_mac->ppdu_info.rx_status.hw_noise_floor =
+			pdev->hw_noise_floor;
 
 	if (!qdf_nbuf_update_radiotap(&mon_mac->ppdu_info.rx_status, mpdu_buf,
 				      qdf_nbuf_headroom(mpdu_buf))) {
@@ -2171,8 +2171,8 @@ QDF_STATUS dp_rx_mon_deliver(struct dp_soc *soc, uint32_t mac_id,
 		mon_mac->ppdu_info.rx_status.ppdu_id =
 			mon_mac->ppdu_info.com_info.ppdu_id;
 		mon_mac->ppdu_info.rx_status.device_id = soc->device_id;
-		mon_mac->ppdu_info.rx_status.chan_noise_floor =
-			pdev->chan_noise_floor;
+		mon_mac->ppdu_info.rx_status.hw_noise_floor =
+			pdev->hw_noise_floor;
 		dp_handle_tx_capture(soc, pdev, mon_mpdu);
 
 		if (!qdf_nbuf_update_radiotap(&mon_mac->ppdu_info.rx_status,
@@ -2347,14 +2347,19 @@ dp_mon_rx_add_tlv(uint8_t id, uint16_t len, void *value, qdf_nbuf_t mpdu_nbuf)
 }
 
 void
-dp_mon_rx_stats_update_rssi_dbm_params(struct dp_mon_pdev *mon_pdev,
+dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 				       struct hal_rx_ppdu_info *ppdu_info)
 {
-	ppdu_info->rx_status.rssi_offset = mon_pdev->rssi_offsets.rssi_offset;
+	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
+
 	ppdu_info->rx_status.rssi_dbm_conv_support =
 				mon_pdev->rssi_dbm_conv_support;
-	ppdu_info->rx_status.chan_noise_floor =
-		mon_pdev->rssi_offsets.rssi_offset;
+	ppdu_info->rx_status.hw_noise_floor =
+				pdev->hw_noise_floor;
+
+	if (ppdu_info->rx_status.rssi_dbm_conv_support) {
+		ppdu_info->rx_status.rssi_offset = mon_pdev->rssi_offsets.rssi_temp_offset;
+	}
 }
 
 #ifdef WLAN_SUPPORT_CTRL_FRAME_STATS

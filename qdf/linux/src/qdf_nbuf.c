@@ -5844,11 +5844,11 @@ static unsigned int qdf_nbuf_update_radiotap_ampdu_flags(
 #ifdef QCA_RSSI_DB2DBM
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
 (((rx_status)->rssi_dbm_conv_support) ? \
-((rx_status)->rssi_comb + (rx_status)->rssi_offset) :\
-((rx_status)->rssi_comb + (rx_status)->chan_noise_floor))
+((rx_status)->rssi_comb + (rx_status)->rssi_offset + (rx_status)->hw_noise_floor) :\
+((rx_status)->rssi_comb + (rx_status)->hw_noise_floor))
 #else
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
-(rx_status->rssi_comb + rx_status->chan_noise_floor)
+(rx_status->rssi_comb + rx_status->hw_noise_floor)
 #endif
 #endif
 
@@ -5972,7 +5972,7 @@ unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
 
 	/* RX signal noise floor */
 	it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
-	rtap_buf[rtap_len] = (uint8_t)rx_status->chan_noise_floor;
+	rtap_buf[rtap_len] = (uint8_t)rx_status->hw_noise_floor;
 	rtap_len += 1;
 
 	/* IEEE80211_RADIOTAP_ANTENNA   u8      antenna index */

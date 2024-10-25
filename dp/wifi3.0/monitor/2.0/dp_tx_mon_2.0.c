@@ -1539,7 +1539,7 @@ dp_tx_mon_generate_cts_rx_frm(struct dp_pdev *pdev,
 			TXMON_PPDU_COM(ppdu_info, tsft) + sifs + CTS_INTERVAL;
 		TXMON_PPDU_COM(rx_ppdu_info, mcs) =
 			TXMON_PPDU_COM(ppdu_info, mcs);
-		TXMON_PPDU_COM(rx_ppdu_info, chan_noise_floor) =
+		TXMON_PPDU_COM(rx_ppdu_info, hw_noise_floor) =
 			DEFAULT_NOISE_FLOOR;
 		TXMON_PPDU_COM(rx_ppdu_info, frame_control) = frm_ctl;
 		TXMON_PPDU_COM(rx_ppdu_info, bw) =
@@ -1657,7 +1657,7 @@ dp_tx_mon_generate_ack_rx_frm(struct dp_pdev *pdev,
 			TXMON_PPDU_COM(ppdu_info, tsft) + sifs + ACK_INTERVAL;
 		TXMON_PPDU_COM(rx_ppdu_info, rssi_comb) =
 			TXMON_PPDU_HAL(ppdu_info, ack_rssi);
-		TXMON_PPDU_COM(rx_ppdu_info, chan_noise_floor) =
+		TXMON_PPDU_COM(rx_ppdu_info, hw_noise_floor) =
 			DEFAULT_NOISE_FLOOR;
 		TXMON_PPDU_COM(rx_ppdu_info, mcs) =
 			TXMON_PPDU_COM(ppdu_info, mcs);

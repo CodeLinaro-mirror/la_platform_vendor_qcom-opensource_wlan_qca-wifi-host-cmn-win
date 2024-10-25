@@ -383,7 +383,7 @@ typedef __qdf_nbuf_queue_t qdf_nbuf_queue_t;
  * These variables are placeholders for passing information to update_radiotap
  * function.
  * @device_id: Device ID coming from sub-system (PCI, AHB etc..)
- * @chan_noise_floor: Channel Noise Floor for the pdev
+ * @hw_noise_floor: Channel Noise Floor for the pdev
  * @first_data_seq_ctrl: Sequence ctrl field of first data frame
  * @rssi_chain: Rssi chain per nss per bw
  * @tx_retry_cnt: tx retry count
@@ -505,7 +505,7 @@ struct mon_rx_status {
 	uint16_t prev_ppdu_id;
 	uint16_t ppdu_id;
 	uint16_t device_id;
-	int16_t chan_noise_floor;
+	int16_t hw_noise_floor;
 	uint16_t first_data_seq_ctrl;
 	int8_t rssi_chain[8][8];
 	uint8_t  tx_retry_cnt;
