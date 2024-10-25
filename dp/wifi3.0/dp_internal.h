@@ -2305,7 +2305,7 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 
 #define DP_UPDATE_PER_PKT_TX_RX_STATS(_tgtobj, _srcobj) \
 	do { \
-		uint8_t i; \
+		uint8_t i, j; \
 		_tgtobj->tx.ucast.num += _srcobj->tx.ucast.num; \
 		_tgtobj->tx.ucast.bytes += _srcobj->tx.ucast.bytes; \
 		_tgtobj->tx.mcast.num += _srcobj->tx.mcast.num; \
@@ -2344,13 +2344,11 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 			_tgtobj->tx.no_ack_count[i] += \
 					_srcobj->tx.no_ack_count[i];\
 		} \
-		for (i = 0; i < MAX_EAPOL_TX_COMP_STATUS; i++) { \
-			 _tgtobj->tx.eapol_tx_comp_failures[i] += \
-					 _srcobj->tx.eapol_tx_comp_failures[i];\
-		} \
-		for (i = 0; i < MAX_EAPOL_TX_COMP_STATUS; i++) { \
-			_tgtobj->tx.rekey_tx_comp_failures[i] += \
-					_srcobj->tx.rekey_tx_comp_failures[i];\
+		for (i = 0; i < PKT_TYPE_EAPOL_MAX; i++) { \
+			for (j = 0; j < MAX_EAPOL_TX_COMP_STATUS; j++) { \
+				_tgtobj->tx.eapol_tx_comp_status[i][j] += \
+					_srcobj->tx.eapol_tx_comp_status[i][j];\
+			} \
 		} \
 		_tgtobj->rx.multicast.num += _srcobj->rx.multicast.num; \
 		_tgtobj->rx.multicast.bytes += _srcobj->rx.multicast.bytes; \

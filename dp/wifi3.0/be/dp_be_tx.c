@@ -280,8 +280,8 @@ void dp_tx_process_htt_completion_be(struct dp_soc *soc,
 	struct htt_soc *htt_handle;
 	uint8_t vdev_id, eapol_type;
 	uint16_t peer_id;
+	uint8_t link_id = 0;
 	uint8_t xmit_type;
-	bool pairwise;
 
 	tx_status = HTT_TX_WBM_COMPLETION_V3_TX_STATUS_GET(htt_desc[0]);
 	htt_handle = (struct htt_soc *)soc->htt_handle;
@@ -354,16 +354,23 @@ void dp_tx_process_htt_completion_be(struct dp_soc *soc,
 	txrx_peer = dp_txrx_peer_get_ref_by_id(soc, ts.peer_id,
 					       &txrx_ref_handle,
 					       DP_MOD_ID_HTT_COMP);
+
+	ts.ppdu_id = DP_TX_WBM_COMPLETION_V3_SCH_CMD_ID_GET(htt_desc[2]);
+
 	if (qdf_likely(txrx_peer)) {
+		link_id = dp_tx_get_link_id_from_ppdu_id_wrapper(soc, &ts,
+								 txrx_peer,
+								 vdev);
+		if (link_id < 1)
+			link_id = 0;
+
 		if (qdf_unlikely(qdf_nbuf_is_ipv4_eapol_pkt(tx_desc->nbuf))) {
 			eapol_type = qdf_nbuf_get_eapol_subtype(tx_desc->nbuf);
-			pairwise = (eapol_type == QDF_PROTO_EAPOL_G1 ||
-				    eapol_type == QDF_PROTO_EAPOL_G2) ? 0 : 1;
 			dp_tx_update_eapol_comp_status_stats(soc, vdev,
 							     tx_desc->nbuf,
-							     txrx_peer, 0,
+							     txrx_peer, link_id,
 							     tx_status,
-							     pairwise);
+							     eapol_type);
 		}
 		dp_txrx_peer_unref_delete(txrx_ref_handle,
 					  DP_MOD_ID_HTT_COMP);
@@ -383,9 +390,6 @@ void dp_tx_process_htt_completion_be(struct dp_soc *soc,
 		uint8_t transmit_cnt_valid = 0;
 
 		ts.release_src = HAL_TX_COMP_RELEASE_SOURCE_FW;
-		ts.ppdu_id =
-			DP_TX_WBM_COMPLETION_V3_SCH_CMD_ID_GET(
-					htt_desc[2]);
 		ts.ack_frame_rssi =
 			DP_TX_WBM_COMPLETION_V3_ACK_FRAME_RSSI_GET(
 					htt_desc[2]);

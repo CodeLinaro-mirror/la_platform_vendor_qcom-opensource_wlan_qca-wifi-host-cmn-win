@@ -237,6 +237,29 @@
 #endif
 
 #define CDP_HTT_TX_VDEV_STATS_NUM_SPATIAL_STREAMS 4
+
+/**
+ * enum cdp_eapol_type - EAPOL frame types
+ *
+ * @PKT_TYPE_EAPOL_M1: EAPOL M1 Message
+ * @PKT_TYPE_EAPOL_M2: EAPOL M2 Message
+ * @PKT_TYPE_EAPOL_M3: EAPOL M3 Message
+ * @PKT_TYPE_EAPOL_M4: EAPOL M4 Message
+ * @PKT_TYPE_EAPOL_G1: EAPOL G1 Message
+ * @PKT_TYPE_EAPOL_G2: EAPOL G2 Message
+ * @PKT_TYPE_EAPOL_MAX: Maximum value
+ */
+
+enum cdp_eapol_type {
+	PKT_TYPE_EAPOL_M1 = 0,
+	PKT_TYPE_EAPOL_M2,
+	PKT_TYPE_EAPOL_M3,
+	PKT_TYPE_EAPOL_M4,
+	PKT_TYPE_EAPOL_G1,
+	PKT_TYPE_EAPOL_G2,
+	PKT_TYPE_EAPOL_MAX
+};
+
 /**
  * enum cdp_wifi_error_code - Code describing the type of WIFI error detected
  *
@@ -1800,8 +1823,12 @@ struct cdp_rx_err_proto_stats {
  * @tx_ucast_total: Total tx unicast count
  * @tx_ucast_success: Total tx unicast success count
  * @fragment_count: Fragment packet count
- * @eapol_tx_comp_failures: Eapol Tx completion count
- * @rekey_tx_comp_failures: GroupRekey Tx completion count
+ * @eapol_m1_tx_comp_status: EAPOL M1 Tx completion count
+ * @eapol_m2_tx_comp_status: EAPOL M2 Tx completion count
+ * @eapol_m3_tx_comp_status: EAPOL M3 Tx completion count
+ * @eapol_m4_tx_comp_status: EAPOL M4 Tx completion count
+ * @rekey_g1_tx_comp_status: EAPOL G1 Tx completion count
+ * @rekey_g2_tx_comp_status: EAPOL G2 Tx completion count
  * @proto: DP protocol stats
  * @hwtx_delay_tsf : store vdev level ul delay stats when tsf report enabled
  * @hwtx_jitter_tsf : store vdev level ul delay jitter stats when tsf report enabled
@@ -1936,8 +1963,7 @@ struct cdp_tx_stats {
 	struct cdp_pkt_info tx_ucast_total;
 	struct cdp_pkt_info tx_ucast_success;
 	uint32_t fragment_count;
-	uint32_t eapol_tx_comp_failures[MAX_EAPOL_TX_COMP_STATUS];
-	uint32_t rekey_tx_comp_failures[MAX_EAPOL_TX_COMP_STATUS];
+	uint32_t eapol_tx_comp_status[PKT_TYPE_EAPOL_MAX][MAX_EAPOL_TX_COMP_STATUS];
 #ifdef QCA_DP_PROTOCOL_STATS
 	struct cdp_tx_proto_stats proto;
 #endif

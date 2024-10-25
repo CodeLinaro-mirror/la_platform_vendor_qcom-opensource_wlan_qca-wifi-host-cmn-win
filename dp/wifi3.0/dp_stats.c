@@ -444,6 +444,32 @@ const char *delay_jitter_bkt_str[CDP_DELAY_BUCKET_MAX + 1] = {
 #define TID_DELAY_STATS 2	/* Delay stats type */
 #define TID_RX_ERROR_STATS 3	/* Rx Error stats type */
 
+/**
+ * dp_get_eapol_type_name - Get the EAPOL packet type string
+ * @type: EAPOL type - enum cdp_eapol_type
+ *
+ * Return: EAPOL packet type string
+ */
+static inline const char *dp_get_eapol_type_name(enum cdp_eapol_type type)
+{
+	switch (type) {
+	case PKT_TYPE_EAPOL_M1:
+		return "M1";
+	case PKT_TYPE_EAPOL_M2:
+		return "M2";
+	case PKT_TYPE_EAPOL_M3:
+		return "M3";
+	case PKT_TYPE_EAPOL_M4:
+		return "M4";
+	case PKT_TYPE_EAPOL_G1:
+		return "G1";
+	case PKT_TYPE_EAPOL_G2:
+		return "G2";
+	default:
+		return "Invalid";
+	}
+}
+
 #ifdef WLAN_SYSFS_DP_STATS
 void DP_PRINT_STATS(const char *fmt, ...)
 {
@@ -8193,39 +8219,22 @@ void dp_print_peer_stats(struct dp_peer *peer,
 	DP_PRINT_STATS("	Data transmitted in last sec: %d",
 		       peer_stats->tx.tx_data_rate);
 
-	DP_PRINT_STATS("EAPOL Tx comp Success = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_OK]);
+	DP_PRINT_STATS("EAPOL Tx completion stats:");
+	DP_PRINT_STATS("   Success |  Drop  |   TTL  |Reinject|Inspect |"
+		       "Mec notify| VDEVID Mismatch");
 
-	DP_PRINT_STATS("EAPOL Tx comp Failures:");
-	DP_PRINT_STATS("	Fail reason:DROP = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_DROP]);
-	DP_PRINT_STATS("	Fail reason:TTL = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_TTL]);
-	DP_PRINT_STATS("	Fail reason:REINJECT = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_REINJECT]);
-	DP_PRINT_STATS("	Fail reason:INSPECT = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_INSPECT]);
-	DP_PRINT_STATS("	Fail reason:MEC NOTIFY = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY]);
-	DP_PRINT_STATS("	Fail reason:VDEVID MISMATCH = %d",
-		       peer_stats->tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
-
-	DP_PRINT_STATS("Rekey EAPOL Tx comp Success = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_OK]);
-
-	DP_PRINT_STATS("Rekey EAPOL Tx comp Failures:");
-	DP_PRINT_STATS("	Fail reason:DROP = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_DROP]);
-	DP_PRINT_STATS("	Fail reason:TTL = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_TTL]);
-	DP_PRINT_STATS("	Fail reason:REINJECT = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_REINJECT]);
-	DP_PRINT_STATS("	Fail reason:INSPECT = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_INSPECT]);
-	DP_PRINT_STATS("	Fail reason:MEC NOTIFY = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY]);
-	DP_PRINT_STATS("	Fail reason:VDEVID MISMATCH = %d",
-		       peer_stats->tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
+	for (i = 0; i < PKT_TYPE_EAPOL_MAX; i++) {
+		DP_PRINT_STATS(
+		  "%s: %6u | %6u | %6u | %6u | %6u | %8u | %6u",
+		  dp_get_eapol_type_name(i),
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_OK],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_DROP],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_TTL],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_REINJECT],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_INSPECT],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY],
+		  peer_stats->tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
+	}
 
 	if (pdev && pdev->soc->arch_ops.txrx_print_peer_stats)
 		pdev->soc->arch_ops.txrx_print_peer_stats(peer_stats,
@@ -9018,39 +9027,22 @@ dp_print_pdev_tx_stats(struct dp_pdev *pdev)
 
 	dp_monitor_print_pdev_tx_capture_stats(pdev);
 
-	DP_PRINT_STATS("EAPOL Tx comp Success = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_OK]);
+	DP_PRINT_STATS("EAPOL Tx completion stats:");
+	DP_PRINT_STATS("   Success |  Drop  |   TTL  |Reinject|Inspect |"
+		       "Mec notify| VDEVID Mismatch");
 
-	DP_PRINT_STATS("EAPOL Tx comp Failures:");
-	DP_PRINT_STATS("	Fail reason:DROP = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_DROP]);
-	DP_PRINT_STATS("	Fail reason:TTL = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_TTL]);
-	DP_PRINT_STATS("	Fail reason:REINJECT = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_REINJECT]);
-	DP_PRINT_STATS("	Fail reason:INSPECT = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_INSPECT]);
-	DP_PRINT_STATS("	Fail reason:MEC NOTIFY = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY]);
-	DP_PRINT_STATS("	Fail reason:VDEVID MISMATCH = %d",
-		       pdev->stats.tx.eapol_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
-
-	DP_PRINT_STATS("Rekey EAPOL Tx comp Success = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_OK]);
-
-	DP_PRINT_STATS("Rekey EAPOL Tx comp Failures:");
-	DP_PRINT_STATS("	Fail reason:DROP = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_DROP]);
-	DP_PRINT_STATS("	Fail reason:TTL = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_TTL]);
-	DP_PRINT_STATS("	Fail reason:REINJECT = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_REINJECT]);
-	DP_PRINT_STATS("	Fail reason:INSPECT = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_INSPECT]);
-	DP_PRINT_STATS("	Fail reason:MEC NOTIFY = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY]);
-	DP_PRINT_STATS("	Fail reason:VDEVID MISMATCH = %d",
-		       pdev->stats.tx.rekey_tx_comp_failures[HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
+	for (i = 0; i < PKT_TYPE_EAPOL_MAX; i++) {
+		DP_PRINT_STATS(
+		  "%s: %6u | %6u | %6u | %6u | %6u | %8u | %6u",
+		  dp_get_eapol_type_name(i),
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_OK],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_DROP],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_TTL],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_REINJECT],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_INSPECT],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_MEC_NOTIFY],
+		  pdev->stats.tx.eapol_tx_comp_status[i][HTT_TX_FW2WBM_TX_STATUS_VDEVID_MISMATCH]);
+	}
 
 	dp_pdev_print_tx_protocol_stats(pdev);
 }
@@ -9986,7 +9978,7 @@ void dp_get_vdev_stats_for_unmap_peer_legacy(struct dp_vdev *vdev,
 void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 			  struct cdp_vdev_stats *srcobj)
 {
-	uint8_t i;
+	uint8_t i, j;
 	uint8_t pream_type;
 	uint8_t mu_type;
 	struct cdp_pdev_stats *pdev_stats = NULL;
@@ -10157,14 +10149,12 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 	tgtobj->stats.tx.dropped.invalid_rr +=
 				srcobj->tx.dropped.invalid_rr;
 	tgtobj->stats.tx.dropped.age_out += srcobj->tx.dropped.age_out;
-	for (i = 0; i < MAX_EAPOL_TX_COMP_STATUS; i++) {\
-		tgtobj->stats.tx.eapol_tx_comp_failures[i] += \
-				srcobj->tx.eapol_tx_comp_failures[i];\
-	} \
-	for (i = 0; i < MAX_EAPOL_TX_COMP_STATUS; i++) {\
-		tgtobj->stats.tx.rekey_tx_comp_failures[i] += \
-				srcobj->tx.rekey_tx_comp_failures[i];\
-	} \
+	for (i = 0; i < PKT_TYPE_EAPOL_MAX; i++) {
+		for (j = 0; j < MAX_EAPOL_TX_COMP_STATUS; j++) {
+			tgtobj->stats.tx.eapol_tx_comp_status[i][j] +=
+				srcobj->tx.eapol_tx_comp_status[i][j];
+		}
+	}
 	tgtobj->stats.rx.err.mic_err += srcobj->rx.err.mic_err;
 	tgtobj->stats.rx.err.decrypt_err += srcobj->rx.err.decrypt_err;
 	tgtobj->stats.rx.err.fcserr += srcobj->rx.err.fcserr;

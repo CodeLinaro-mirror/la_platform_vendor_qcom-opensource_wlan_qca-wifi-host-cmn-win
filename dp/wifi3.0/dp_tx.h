@@ -67,7 +67,7 @@ void dp_tx_update_eapol_comp_status_stats(struct dp_soc *soc,
 					  qdf_nbuf_t nbuf,
 					  struct dp_txrx_peer *txrx_peer,
 					  uint8_t link_id, uint8_t tx_status,
-					  bool pairwise);
+					  uint8_t eapol_type);
 /*
  * DP_TX_DESC_FLAG_FRAG flags should always be defined to 0x1
  * please do not change this flag's definition

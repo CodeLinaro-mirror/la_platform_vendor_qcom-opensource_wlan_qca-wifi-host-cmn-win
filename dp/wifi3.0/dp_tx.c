@@ -470,7 +470,7 @@ dp_tx_desc_release(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
  * @txrx_peer: dp_txrx_peer handle
  * @link_id: link id
  * @tx_status: Tx completion status received from firmware
- * @pairwise: indicates if frame is pairwise or group rekey frame
+ * @eapol_type: Indicates subtype of eapol frame
  *
  * This function is to add tx completion stats for EAPOL frames
  * and also notify the same to hostapd.
@@ -481,7 +481,7 @@ dp_tx_update_eapol_comp_status_stats(struct dp_soc *soc, struct dp_vdev *vdev,
 				     qdf_nbuf_t nbuf,
 				     struct dp_txrx_peer *txrx_peer,
 				     uint8_t link_id, uint8_t tx_status,
-				     bool pairwise)
+				     uint8_t eapol_type)
 {
 	if (tx_status >= MAX_EAPOL_TX_COMP_STATUS) {
 		dp_tx_err("Invalid Tx status Received");
@@ -492,14 +492,47 @@ dp_tx_update_eapol_comp_status_stats(struct dp_soc *soc, struct dp_vdev *vdev,
 								  nbuf,
 								  vdev->vdev_id,
 								  tx_status);
-	if (pairwise) {
-		DP_PEER_PER_PKT_STATS_INC(txrx_peer,
-					  tx.eapol_tx_comp_failures[tx_status],
-					  1, link_id);
-	} else
-		DP_PEER_PER_PKT_STATS_INC(txrx_peer,
-					  tx.rekey_tx_comp_failures[tx_status],
-					  1, link_id);
+
+	switch (eapol_type) {
+	case QDF_PROTO_EAPOL_M1:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_M1][tx_status],
+			1, link_id);
+		return;
+	case QDF_PROTO_EAPOL_M2:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_M2][tx_status],
+			1, link_id);
+		return;
+	case QDF_PROTO_EAPOL_M3:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_M3][tx_status],
+			1, link_id);
+		return;
+	case QDF_PROTO_EAPOL_M4:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_M4][tx_status],
+			1, link_id);
+		return;
+	case QDF_PROTO_EAPOL_G1:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_G1][tx_status],
+			1, link_id);
+		return;
+	case QDF_PROTO_EAPOL_G2:
+		DP_PEER_PER_PKT_STATS_INC(
+			txrx_peer,
+			tx.eapol_tx_comp_status[PKT_TYPE_EAPOL_G2][tx_status],
+			1, link_id);
+		return;
+	default:
+		return;
+	}
 }
 
 #ifdef IPA_OPT_WIFI_DP_CTRL
