@@ -1723,3 +1723,21 @@ QDF_STATUS target_if_register_regulatory_tx_ops(
 
 	return QDF_STATUS_SUCCESS;
 }
+
+bool
+target_if_reg_is_reg_hw_blacklist_chan_host_supported(struct wlan_objmgr_psoc *psoc)
+{
+	struct wlan_lmac_if_reg_tx_ops *reg_tx_ops;
+	bool reg_hw_blacklisted_chan_supp = false;
+
+	reg_tx_ops = target_if_regulatory_get_tx_ops(psoc);
+	if (!reg_tx_ops) {
+		target_if_err("reg_tx_ops is NULL");
+		return reg_hw_blacklisted_chan_supp;
+	}
+
+	if (reg_tx_ops->reg_hw_blacklist_chan_support)
+		reg_hw_blacklisted_chan_supp = reg_tx_ops->reg_hw_blacklist_chan_support(psoc);
+
+	return reg_hw_blacklisted_chan_supp;
+}

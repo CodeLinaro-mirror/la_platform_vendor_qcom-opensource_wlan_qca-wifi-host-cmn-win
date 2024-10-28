@@ -10621,6 +10621,10 @@ void wmi_copy_resource_config(wmi_unified_t wmi_handle,
 		resource_cfg->host_service_flags,
 		tgt_res_cfg->afc_req_id_check_disable);
 
+	WMI_RSRC_CFG_HOST_SERVICE_FLAG_HOST_SUPPORT_HW_BLACKLIST_CHANNEL_SUPPORT_SET(
+		resource_cfg->host_service_flags,
+		tgt_res_cfg->is_reg_hw_blacklist_chan_supported);
+
 	wmi_copy_afc_deployment_config(resource_cfg, tgt_res_cfg);
 
 	wmi_set_nan_channel_support(resource_cfg);
@@ -25559,6 +25563,8 @@ static void populate_tlv_service(uint32_t *wmi_service)
 				WMI_SERVICE_SPECTRAL_SPUR_BIN_INFO_SUPPORT;
 	wmi_service[wmi_service_sta_mlo_rcfg_support] =
 				WMI_SERVICE_STA_MLO_RCFG_SUPPORT;
+	wmi_service[wmi_service_hw_blacklist_chan_support] =
+			WMI_SERVICE_HW_BLACKLIST_CHAN_SUPPORT;
 }
 
 /**

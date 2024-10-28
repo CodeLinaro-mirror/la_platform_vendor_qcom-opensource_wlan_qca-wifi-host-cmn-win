@@ -227,4 +227,14 @@ target_if_set_regulatory_eirp_preferred_support(struct wlan_objmgr_psoc *psoc)
 	return QDF_STATUS_E_FAILURE;
 }
 #endif
+
+/**
+ * target_if_reg_is_reg_hw_blacklist_chan_host_supported() - Populate if reg hw
+ * blacklist is supported by host.
+ * @psoc: psoc pointer
+ *
+ * Return: True if host supports, false otherwise.
+ */
+bool
+target_if_reg_is_reg_hw_blacklist_chan_host_supported(struct wlan_objmgr_psoc *psoc);
 #endif /* __TARGET_IF_REG_H__ */
