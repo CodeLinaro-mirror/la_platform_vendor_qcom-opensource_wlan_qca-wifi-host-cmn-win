@@ -1073,7 +1073,7 @@ void hif_deconfigure_ext_group_interrupts(struct hif_opaque_softc *hif_ctx)
 	struct hif_softc *scn = HIF_GET_SOFTC(hif_ctx);
 
 	if (!scn || !scn->ext_grp_irq_configured) {
-		hif_err("scn(%pk) is NULL or grp irq not configured", scn);
+		hif_debug("scn(%pk) is NULL or grp irq not configured", scn);
 		return;
 	}
 
