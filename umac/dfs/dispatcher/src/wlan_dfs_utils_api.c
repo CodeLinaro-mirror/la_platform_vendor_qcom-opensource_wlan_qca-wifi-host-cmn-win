@@ -1633,7 +1633,7 @@ QDF_STATUS dfs_init_chan_state_array(struct wlan_objmgr_pdev *pdev)
 	}
 
 	qdf_mem_free(cur_chan_list);
-	qdf_err("channel state array initialized");
+	qdf_debug("channel state array initialized");
 	return QDF_STATUS_SUCCESS;
 }
 
