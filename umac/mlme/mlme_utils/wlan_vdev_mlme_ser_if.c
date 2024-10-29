@@ -100,13 +100,13 @@ wlan_vdev_mlme_ser_stop_bss(struct wlan_serialization_command *cmd)
 
 	if (wlan_serialization_is_cmd_present_in_active_queue(NULL, cmd)) {
 		mlme_debug("Cmd already exist in the active queue");
-		return WLAN_SER_CMD_DENIED_UNSPECIFIED;
+		return WLAN_SER_CMD_ALREADY_EXISTS;
 	}
 
 	ret = wlan_serialization_request(cmd);
 
 	if (stop_cmd_pending && ret == WLAN_SER_CMD_PENDING)
-		return WLAN_SER_CMD_ALREADY_EXISTS;
+		return WLAN_SER_CMD_DENIED_UNSPECIFIED;
 	else
 		return ret;
 }
