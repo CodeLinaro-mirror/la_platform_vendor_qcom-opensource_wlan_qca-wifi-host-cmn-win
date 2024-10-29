@@ -574,6 +574,11 @@ struct sk_buff *__qdf_nbuf_alloc(qdf_device_t osdev, size_t size, int reserve,
 	struct sk_buff *skb;
 	int flags = GFP_KERNEL;
 
+	/* Add 'NET_SKB_PAD' for built-in headroom
+	 * as implemeneted by __netdev_alloc_skb()
+	 */
+	size += NET_SKB_PAD;
+
 	if (align)
 		size += (align - 1);
 
@@ -597,6 +602,7 @@ struct sk_buff *__qdf_nbuf_alloc(qdf_device_t osdev, size_t size, int reserve,
 	__qdf_nbuf_stop_replenish_timer();
 
 skb_alloc:
+	reserve += NET_SKB_PAD;
 	qdf_nbuf_set_defaults(skb, align, reserve);
 
 	return skb;
