@@ -177,9 +177,9 @@ QDF_STATUS qdf_ini_parse(const char *ini_path, void *context,
 		}
 	}
 
-	qdf_info("INI values read: %d", ini_read_count);
 	if (ini_read_count != 0) {
-		qdf_info("INI file parse successful");
+		qdf_info("Parse successful for INI file @ %s INI values read: %d",
+			 ini_path, ini_read_count);
 		status = QDF_STATUS_SUCCESS;
 	} else {
 		qdf_info("INI file parse fail: invalid file format");
@@ -247,16 +247,13 @@ QDF_STATUS qdf_ini_section_parse(const char *ini_path, void *context,
 		}
 	}
 
-	qdf_info("INI values parse successful read: %d from section %s",
-		 ini_read_count, section_name);
+	qdf_info("INI File: %s: Read %d INI values from section %s",
+		 ini_path, ini_read_count, section_name);
 
-	if (ini_read_count != 0) {
-		status = QDF_STATUS_SUCCESS;
-	} else {
-		qdf_debug("INI file parse fail: Section not found %s",
-			  section_name);
-		status = QDF_STATUS_SUCCESS;
-	}
+	if (ini_read_count == 0)
+		qdf_debug("INI file: %s parse fail: Section not found %s",
+			  ini_path, section_name);
+	status = QDF_STATUS_SUCCESS;
 
 	if (qdf_str_eq(QDF_WIFI_MODULE_PARAMS_FILE, ini_path))
 		qdf_module_param_file_free(fbuf);
