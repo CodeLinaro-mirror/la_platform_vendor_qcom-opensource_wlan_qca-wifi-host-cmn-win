@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -259,4 +259,13 @@ dp_mlo_link_peer_hash_find_by_chip_id(struct dp_soc *soc,
 				      uint8_t vdev_id,
 				      uint8_t chip_id,
 				      enum dp_mod_id mod_id);
+
+/*
+ * dp_vdev_mlo_stats_clear_be() - Clear vdev mlo stats be
+ * @vdev: dp_vdev
+ *
+ * Return: none
+ */
+void dp_vdev_mlo_stats_clear_be(struct dp_vdev *vdev);
+
 #endif /* __DP_MLO_H */

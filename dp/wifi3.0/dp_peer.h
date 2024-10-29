@@ -1338,6 +1338,11 @@ QDF_STATUS dp_peer_sawf_stats_ctx_free(struct dp_soc *soc,
 {
 	return QDF_STATUS_SUCCESS;
 }
+
+static inline void
+dp_sawf_peer_stats_reset(struct dp_soc *soc, struct dp_peer *peer)
+{
+}
 #endif
 
 /**

@@ -262,12 +262,28 @@ struct cdp_peer_rate_stats_ctx *dp_mon_peer_get_peerstats_ctx(struct
 
 #ifdef QCA_ENHANCED_STATS_SUPPORT
 /**
+ * dp_mon_pdev_stats_reset() - Clear pdev mon stats
+ * @pdev: dp_pdev
+ *
+ * Return: None
+ */
+void dp_mon_pdev_stats_reset(struct dp_pdev *pdev);
+
+/**
  * dp_mon_peer_reset_stats() - Reset monitor peer stats
  * @peer: Datapath peer handle
  *
  * Return: none
  */
 void dp_mon_peer_reset_stats(struct dp_peer *peer);
+
+/**
+ * dp_mon_peer_tx_capture_stats_reset() - Reset peer mon, tx cap stats
+ * @peer: Datapath peer handle
+ *
+ * Return: none
+ */
+void dp_mon_peer_tx_capture_stats_reset(struct dp_peer *peer);
 
 /**
  * dp_mon_peer_get_stats() - Get monitor peer stats
@@ -306,7 +322,16 @@ void dp_mon_peer_get_tx_ext_stats(struct dp_peer *peer,
 				  struct cdp_telemetry_peer_tx_ext_stats *stats);
 #endif
 #else
+static inline void dp_mon_pdev_stats_reset(struct dp_pdev *pdev)
+{
+}
+
 static inline void dp_mon_peer_reset_stats(struct dp_peer *peer)
+{
+}
+
+static inline void
+void dp_mon_peer_tx_capture_stats_reset(struct dp_peer *peer)
 {
 }
 
@@ -673,7 +698,9 @@ struct dp_mon_ops {
 	QDF_STATUS (*mon_peer_detach)(struct dp_peer *peer);
 	struct cdp_peer_rate_stats_ctx *(*mon_peer_get_peerstats_ctx)(struct
 								dp_peer *peer);
+	void (*mon_pdev_stats_reset)(struct dp_pdev *pdev);
 	void (*mon_peer_reset_stats)(struct dp_peer *peer);
+	void (*mon_peer_tx_capture_stats_reset)(struct dp_peer *peer);
 	void (*mon_peer_get_stats)(struct dp_peer *peer, void *arg,
 				   enum cdp_stat_update_type type);
 	void (*mon_invalid_peer_update_pdev_stats)(struct dp_pdev *pdev);
@@ -2337,6 +2364,31 @@ void dp_monitor_peer_get_stats(struct dp_soc *soc, struct dp_peer *peer,
 	monitor_ops->mon_peer_get_stats(peer, arg, type);
 }
 
+/**
+ * dp_monitor_peer_tx_capture_stats_reset() - Reset peer mon, tx cap stats
+ * @soc: Datapath soc handle
+ * @peer: Datapath peer handle
+ *
+ * Return: none
+ */
+static inline void
+dp_monitor_peer_tx_capture_stats_reset(struct dp_soc *soc, struct dp_peer *peer)
+{
+	struct dp_mon_ops *monitor_ops;
+	struct dp_mon_soc *mon_soc = soc->monitor_soc;
+
+	if (!mon_soc)
+		return;
+
+	monitor_ops = mon_soc->mon_ops;
+	if (!monitor_ops || !monitor_ops->mon_peer_tx_capture_stats_reset) {
+		dp_mon_debug("callback not registered");
+		return;
+	}
+
+	monitor_ops->mon_peer_tx_capture_stats_reset(peer);
+}
+
 #ifdef QCA_PEER_EXT_STATS
 static inline
 void dp_monitor_get_peer_tx_stats(struct dp_soc *soc, struct dp_peer *peer,
@@ -2549,6 +2601,30 @@ dp_monitor_flush_rings(struct dp_soc *soc, struct dp_vdev *vdev)
 	}
 
 	return monitor_ops->mon_flush_rings(soc, vdev);
+}
+
+/**
+ * dp_monitor_pdev_stats_reset() - Clear pdev mon stats
+ * @pdev: dp_pdev
+ *
+ * Return: None
+ */
+static inline void
+dp_monitor_pdev_stats_reset(struct dp_pdev *pdev)
+{
+	struct dp_mon_ops *monitor_ops;
+	struct dp_mon_soc *mon_soc = pdev->soc->monitor_soc;
+
+	if (!mon_soc)
+		return;
+
+	monitor_ops = mon_soc->mon_ops;
+	if (!monitor_ops || !monitor_ops->mon_pdev_stats_reset) {
+		dp_mon_debug("callback not registered");
+		return;
+	}
+
+	monitor_ops->mon_pdev_stats_reset(pdev);
 }
 
 /**

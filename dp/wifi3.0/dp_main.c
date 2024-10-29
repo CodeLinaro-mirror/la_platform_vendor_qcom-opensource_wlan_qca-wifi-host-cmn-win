@@ -253,6 +253,9 @@ static QDF_STATUS dp_umac_reset_handle_post_reset(struct dp_soc *soc);
 static QDF_STATUS dp_umac_reset_handle_post_reset_complete(struct dp_soc *soc);
 #endif
 
+static QDF_STATUS dp_flush_rate_stats_req(struct cdp_soc_t *soc_hdl,
+					  uint8_t pdev_id);
+
 #define MON_VDEV_TIMER_INIT 0x1
 #define MON_VDEV_TIMER_RUNNING 0x2
 
@@ -7887,6 +7890,13 @@ void dp_print_napi_stats(struct dp_soc *soc)
 	hif_print_napi_stats(soc->hif_handle);
 }
 
+static inline void
+dp_vdev_mlo_stats_clr(struct dp_vdev *vdev)
+{
+	if (vdev->pdev->soc->arch_ops.dp_vdev_mlo_stats_clear)
+		vdev->pdev->soc->arch_ops.dp_vdev_mlo_stats_clear(vdev);
+}
+
 /**
  * dp_txrx_host_peer_stats_clr() - Reinitialize the txrx peer stats
  * @soc: Datapath soc
@@ -7910,6 +7920,9 @@ dp_txrx_host_peer_stats_clr(struct dp_soc *soc,
 	/* Clear monitor peer stats */
 	dp_monitor_peer_reset_stats(soc, peer);
 
+	/* Clear Tx capture stats */
+	dp_monitor_peer_tx_capture_stats_reset(soc, peer);
+
 	/* Clear MLD peer stats only when link peer is primary */
 	if (dp_peer_is_primary_link_peer(peer)) {
 		tgt_peer = dp_get_tgt_peer_from_peer(peer);
@@ -7918,6 +7931,7 @@ dp_txrx_host_peer_stats_clr(struct dp_soc *soc,
 			txrx_peer = tgt_peer->txrx_peer;
 			dp_txrx_peer_stats_clr(txrx_peer);
 		}
+		dp_sawf_peer_stats_reset(soc, peer);
 	}
 
 #if defined(FEATURE_PERPKT_INFO) && WDI_EVENT_ENABLE
@@ -8006,6 +8020,10 @@ dp_txrx_host_stats_clr(struct dp_vdev *vdev, struct dp_soc *soc)
 	DP_STATS_CLR(vdev->pdev);
 	DP_STATS_CLR(vdev->pdev->soc);
 
+	dp_flush_rate_stats_req(&soc->cdp_soc, vdev->pdev->pdev_id);
+
+	dp_monitor_pdev_stats_reset(vdev->pdev);
+
 	dp_clear_tx_ppeds_stats(soc);
 	dp_ppeds_clear_ring_util_stats(soc);
 
@@ -8013,6 +8031,7 @@ dp_txrx_host_stats_clr(struct dp_vdev *vdev, struct dp_soc *soc)
 
 	TAILQ_FOREACH(var_vdev, &vdev->pdev->vdev_list, vdev_list_elem) {
 		DP_STATS_CLR(var_vdev);
+		dp_vdev_mlo_stats_clr(var_vdev);
 		dp_vdev_iterate_peer(var_vdev, dp_txrx_host_peer_stats_clr,
 				     NULL, DP_MOD_ID_GENERIC_STATS);
 	}

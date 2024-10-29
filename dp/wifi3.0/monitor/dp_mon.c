@@ -6664,6 +6664,157 @@ void dp_mon_peer_reset_stats(struct dp_peer *peer)
 	DP_STATS_UPD(mon_peer, tx.avg_ack_rssi, CDP_INVALID_SNR);
 }
 
+#ifdef WIFI_MONITOR_SUPPORT
+#if defined(FEATURE_ML_MONITOR_MODE_SUPPORT) || \
+	defined(FEATURE_ML_LOCAL_PKT_CAPTURE)
+static inline void
+dp_mon_pdev_mac_stats_clear(struct dp_mon_pdev *mon_pdev)
+{
+	uint8_t idx;
+
+	for (idx = 0; idx < MAX_NUM_LMAC_HW; idx++) {
+		mon_pdev->mon_mac[idx].rx_mon_stats.dest_ppdu_done = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.dest_mpdu_done = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.dest_mpdu_drop = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.dup_mon_linkdesc_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.dup_mon_buf_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mon_rx_dest_stuck = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.tlv_tag_status_err = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.status_ppdu_drop = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.dest_ppdu_drop = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mon_link_desc_invalid = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mon_rx_desc_invalid = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mon_nbuf_sanity_err = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mpdu_ppdu_id_mismatch_drop = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mpdu_decap_type_invalid = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.rx_hdr_not_received = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.invalid_dma_length = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mpdus_buf_to_stack = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.empty_desc_ppdu = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.total_ppdu_info_enq = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.total_ppdu_info_drop = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.total_ppdu_info_alloc = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.total_ppdu_info_free = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.ppdu_drop_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.mpdu_drop_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.end_of_ppdu_drop_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.tlv_drop_cnt = 0;
+		mon_pdev->mon_mac[idx].rx_mon_stats.rx_hdr_invalid_cnt = 0;
+	}
+}
+#else
+static inline void
+dp_mon_pdev_mac_stats_clear(struct dp_mon_pdev *mon_pdev)
+{
+	mon_pdev->mon_mac.rx_mon_stats.dest_ppdu_done = 0;
+	mon_pdev->mon_mac.rx_mon_stats.dest_mpdu_done = 0;
+	mon_pdev->mon_mac.rx_mon_stats.dest_mpdu_drop = 0;
+	mon_pdev->mon_mac.rx_mon_stats.dup_mon_linkdesc_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.dup_mon_buf_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mon_rx_dest_stuck = 0;
+	mon_pdev->mon_mac.rx_mon_stats.tlv_tag_status_err = 0;
+	mon_pdev->mon_mac.rx_mon_stats.status_ppdu_drop = 0;
+	mon_pdev->mon_mac.rx_mon_stats.dest_ppdu_drop = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mon_link_desc_invalid = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mon_rx_desc_invalid = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mon_nbuf_sanity_err = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mpdu_ppdu_id_mismatch_drop = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mpdu_decap_type_invalid = 0;
+	mon_pdev->mon_mac.rx_mon_stats.rx_hdr_not_received = 0;
+	mon_pdev->mon_mac.rx_mon_stats.invalid_dma_length = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mpdus_buf_to_stack = 0;
+	mon_pdev->mon_mac.rx_mon_stats.empty_desc_ppdu = 0;
+	mon_pdev->mon_mac.rx_mon_stats.total_ppdu_info_enq = 0;
+	mon_pdev->mon_mac.rx_mon_stats.total_ppdu_info_drop = 0;
+	mon_pdev->mon_mac.rx_mon_stats.total_ppdu_info_alloc = 0;
+	mon_pdev->mon_mac.rx_mon_stats.total_ppdu_info_free = 0;
+	mon_pdev->mon_mac.rx_mon_stats.ppdu_drop_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.mpdu_drop_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.end_of_ppdu_drop_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.tlv_drop_cnt = 0;
+	mon_pdev->mon_mac.rx_mon_stats.rx_hdr_invalid_cnt = 0;
+}
+#endif
+
+static inline void
+dp_mon_pdev_stats_clr(struct dp_mon_pdev *monitor_pdev)
+{
+	dp_mon_pdev_mac_stats_clear(monitor_pdev);
+}
+#else
+static inline void
+dp_mon_pdev_stats_clr(struct dp_mon_pdev *monitor_pdev)
+{
+}
+#endif
+
+#if defined(WIFI_MONITOR_SUPPORT) && \
+	defined(WLAN_TX_PKT_CAPTURE_ENH)
+static inline void
+dp_mon_pdev_tx_capture_stats_clr(struct dp_mon_pdev *monitor_pdev)
+{
+	monitor_pdev->tx_capture.ppdu_dropped = 0;
+	monitor_pdev->tx_capture.pend_ppdu_dropped = 0;
+	monitor_pdev->tx_capture.peer_mismatch = 0;
+	monitor_pdev->tx_capture.ppdu_flush_count = 0;
+	monitor_pdev->tx_capture.msdu_threshold_drop = 0;
+}
+#else
+static inline void
+dp_mon_pdev_tx_capture_stats_clr(struct dp_mon_pdev *monitor_pdev)
+{
+}
+#endif
+
+void dp_mon_pdev_stats_reset(struct dp_pdev *pdev)
+{
+	if (!pdev->monitor_pdev) {
+		dp_err("monitor pdev is Null");
+		return;
+	}
+
+	dp_mon_pdev_tx_capture_stats_clr(pdev->monitor_pdev);
+	dp_mon_pdev_stats_clr(pdev->monitor_pdev);
+}
+
+#ifdef WLAN_TX_PKT_CAPTURE_ENH
+#ifdef WLAN_TX_PKT_CAPTURE_ENH_DEBUG
+void dp_mon_peer_tx_capture_debug_stats_clr(struct dp_mon_peer *mon_peer)
+{
+	DP_STATS_CLR(mon_peer->tx_capture);
+}
+#else
+void dp_mon_peer_tx_capture_debug_stats_clr(struct dp_mon_peer *mon_peer)
+{
+}
+#endif
+
+void dp_mon_peer_tx_capture_stats_clr(struct dp_mon_peer *mon_peer)
+{
+	uint8_t idx;
+
+	for (idx = 0; idx < DP_MAX_TIDS; idx++)
+		mon_peer->tx_capture.tx_tid[idx].mpdu_cnt = 0;
+
+	dp_mon_peer_tx_capture_debug_stats_clr(mon_peer);
+}
+#else
+void dp_mon_peer_tx_capture_stats_clr(struct dp_mon_peer *mon_peer)
+{
+}
+#endif
+
+void dp_mon_peer_tx_capture_stats_reset(struct dp_peer *peer)
+{
+	struct dp_mon_peer *mon_peer = NULL;
+
+	mon_peer = peer->monitor_peer;
+	if (!mon_peer)
+		return;
+
+	dp_mon_peer_tx_capture_stats_clr(mon_peer);
+}
+
 void dp_mon_peer_get_stats(struct dp_peer *peer, void *arg,
 			   enum cdp_stat_update_type type)
 {
