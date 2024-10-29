@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -1290,7 +1290,7 @@ void wlan_mlo_vdev_aid_mgr_deinit(struct wlan_mlo_dev_context *ml_dev)
 			n = qdf_atomic_read(&ml_aid_mgr->aid_mgr[i]->ref_cnt);
 			mlo_info("AID mgr ref cnt %d", n);
 		} else {
-			mlo_err("ID %d, doesn't have associated AID mgr", i);
+			mlo_debug("ID %d, doesn't have associated AID mgr", i);
 			continue;
 		}
 		wlan_vdev_aid_mgr_free(ml_aid_mgr->aid_mgr[i]);
