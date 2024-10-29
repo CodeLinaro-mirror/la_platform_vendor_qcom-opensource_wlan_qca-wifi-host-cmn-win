@@ -11823,7 +11823,7 @@ static void *dp_vdev_get_dp_ext_handle(ol_txrx_soc_handle soc_hdl,
  */
 static QDF_STATUS
 dp_vdev_set_dp_ext_handle(ol_txrx_soc_handle soc_hdl, uint8_t vdev_id,
-			  uint16_t size)
+			  uint32_t size)
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
 	struct dp_vdev *vdev = dp_vdev_get_ref_by_id(soc, vdev_id,

@@ -2209,7 +2209,7 @@ cdp_vdev_get_dp_ext_txrx_handle(ol_txrx_soc_handle soc, uint8_t vdev_id)
  */
 static inline QDF_STATUS
 cdp_vdev_set_dp_ext_txrx_handle(ol_txrx_soc_handle soc, uint8_t vdev_id,
-				uint16_t size)
+				uint32_t size)
 {
 	if (!soc || !soc->ops) {
 		dp_cdp_debug("Invalid Instance:");
