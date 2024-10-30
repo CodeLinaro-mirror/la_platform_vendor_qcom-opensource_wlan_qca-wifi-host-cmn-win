@@ -840,6 +840,8 @@ util_scan_get_ml_partner_info(struct scan_cache_entry *scan_entry,
 				scan_entry->ml_info.link_info[i].link_addr;
 		partner_info->partner_link_info[i].link_id =
 				scan_entry->ml_info.link_info[i].link_id;
+		partner_info->partner_link_info[i].chan_freq =
+				scan_entry->ml_info.link_info[i].freq;
 	}
 
 	return QDF_STATUS_SUCCESS;
