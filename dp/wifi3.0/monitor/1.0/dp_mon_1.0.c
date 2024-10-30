@@ -1528,11 +1528,14 @@ struct dp_mon_ops monitor_ops_1_0 = {
 	.mon_peer_detach = dp_mon_peer_detach,
 	.mon_peer_get_peerstats_ctx = dp_mon_peer_get_peerstats_ctx,
 	.mon_peer_reset_stats = dp_mon_peer_reset_stats,
+	.mon_peer_tx_capture_stats_reset =
+				dp_mon_peer_tx_capture_stats_reset,
 	.mon_peer_get_stats = dp_mon_peer_get_stats,
 	.mon_invalid_peer_update_pdev_stats =
 				dp_mon_invalid_peer_update_pdev_stats,
 	.mon_peer_get_stats_param = dp_mon_peer_get_stats_param,
 	.mon_flush_rings = dp_flush_monitor_rings,
+	.mon_pdev_stats_reset = dp_mon_pdev_stats_reset,
 #if defined(DP_CON_MON)
 	.mon_service_rings = dp_service_mon_rings,
 #endif

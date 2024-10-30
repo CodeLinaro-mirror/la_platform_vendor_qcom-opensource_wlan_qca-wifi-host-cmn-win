@@ -2580,6 +2580,7 @@ enum dp_context_type {
  * @dp_mlo_tx_pool_map: TX desc pool map
  * @dp_mlo_tx_pool_unmap: TX desc pool unmap
  * @dp_tx_override_flow_pool_id: flow pool id override
+ * @dp_vdev_mlo_stats_clear: Clear vdev mlo stats
  */
 struct dp_arch_ops {
 	/* INIT/DEINIT Arch Ops */
@@ -2888,6 +2889,7 @@ struct dp_arch_ops {
 				     enum dp_mod_id mod_id);
 	void (*dp_tx_override_flow_pool_id)(struct dp_vdev *vdev,
 					    struct dp_tx_queue *queue);
+	void (*dp_vdev_mlo_stats_clear)(struct dp_vdev *vdev);
 };
 
 /**

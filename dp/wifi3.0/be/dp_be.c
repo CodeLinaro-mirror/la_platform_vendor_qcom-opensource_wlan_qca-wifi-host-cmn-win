@@ -3832,6 +3832,7 @@ dp_initialize_arch_ops_be_mlo_multi_chip(struct dp_arch_ops *arch_ops)
 	arch_ops->mlo_get_chip_id = dp_mlo_get_chip_id;
 	arch_ops->mlo_link_peer_find_hash_find_by_chip_id =
 				dp_mlo_link_peer_hash_find_by_chip_id;
+	arch_ops->dp_vdev_mlo_stats_clear = dp_vdev_mlo_stats_clear_be;
 }
 #else
 static inline void

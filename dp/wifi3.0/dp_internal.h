@@ -534,6 +534,11 @@ void dp_monitor_peer_get_stats(struct dp_soc *soc, struct dp_peer *peer,
 {
 }
 
+static inline void
+dp_monitor_peer_tx_capture_stats_reset(struct dp_soc *soc, struct dp_peer *peer)
+{
+}
+
 #ifdef QCA_PEER_EXT_STATS
 static inline
 void dp_monitor_get_peer_tx_stats(struct dp_soc *soc, struct dp_peer *peer,
@@ -1010,6 +1015,11 @@ dp_monitor_pdev_tx_capture_get_stats(struct dp_soc *soc, struct dp_pdev *pdev,
 				     struct cdp_pdev_tx_capture_stats *stats)
 {
 	return QDF_STATUS_E_FAILURE;
+}
+
+static inline void
+dp_monitor_pdev_stats_reset(struct dp_pdev *pdev)
+{
 }
 
 #ifdef DP_POWER_SAVE

@@ -996,6 +996,18 @@ dp_mlo_link_peer_hash_find_by_chip_id(struct dp_soc *soc,
 
 qdf_export_symbol(dp_mlo_link_peer_hash_find_by_chip_id);
 
+#ifdef WLAN_MLO_MULTI_CHIP
+void dp_vdev_mlo_stats_clear_be(struct dp_vdev *vdev)
+{
+	struct dp_vdev_be *be_vdev = (struct dp_vdev_be *)vdev;
+
+	qdf_mem_zero(&be_vdev->mlo_stats,
+		     sizeof(struct cdp_vdev_stats));
+}
+
+qdf_export_symbol(dp_vdev_mlo_stats_clear_be);
+#endif
+
 void dp_mlo_get_rx_hash_key(struct dp_soc *soc,
 			    struct cdp_lro_hash_config *lro_hash)
 {
