@@ -9291,6 +9291,9 @@ static QDF_STATUS dp_set_pdev_param(struct cdp_soc_t *cdp_soc, uint8_t pdev_id,
 	case CDP_HW_NOISE_FLOOR:
 		pdev->hw_noise_floor = val.cdp_pdev_param_hw_noise_flr;
 		break;
+	case CDP_RSSI_ACCURACY_SUPPORT:
+		pdev->rssi_accuracy_support = val.cdp_rssi_accuracy_support;
+		break;
 	default:
 		return QDF_STATUS_E_INVAL;
 	}

@@ -321,6 +321,16 @@ struct wlan_psoc_host_scan_radio_caps {
 	bool blanking_en;
 };
 
+/*
+ * struct wlan_psoc_host_rssi_accuracy_caps - RSSI accuracy improvement cap
+ * @phy_id: phy id
+ * @rssi_accuracy_enable: indicates rssi accuracy improvement support
+ */
+struct wlan_psoc_host_rssi_accuracy_caps {
+	uint32_t phy_id;
+	bool rssi_accuracy_enable;
+};
+
 /**
  * struct wlan_psoc_host_dbr_ring_caps - Direct buffer rx module ring
  *                                       capability maintained by PSOC

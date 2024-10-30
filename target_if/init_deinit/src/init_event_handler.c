@@ -642,6 +642,13 @@ static int init_deinit_service_ext2_ready_event_handler(ol_scn_t scn_handle,
 			target_if_debug("failed to populate aux_dev cap ext2");
 	}
 
+	err_code = init_deinit_populate_rssi_accuracy_cap_ext2(wmi_handle, event,
+							       info);
+	if (err_code) {
+		target_if_err("failed to populate RSSI accuracy improvement cap ext2");
+		goto exit;
+	}
+
 	if (wmi_service_enabled(wmi_handle,
 				wmi_service_aoa_for_rcc_supported)) {
 		err_code = init_deinit_populate_rcc_aoa_cap_ext2(psoc,

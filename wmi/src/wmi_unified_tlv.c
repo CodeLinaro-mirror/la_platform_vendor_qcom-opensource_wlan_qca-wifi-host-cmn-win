@@ -16382,6 +16382,37 @@ static QDF_STATUS extract_dbr_ring_cap_service_ready_ext2_tlv(
 	return QDF_STATUS_SUCCESS;
 }
 
+static QDF_STATUS extract_rssi_accuracy_cap_service_ready_ext2_tlv(
+			wmi_unified_t wmi_handle,
+			uint8_t *event, uint8_t idx,
+			struct wlan_psoc_host_rssi_accuracy_caps *param)
+{
+	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf;
+	WMI_RSSI_ACCURACY_IMPROVEMENT_CAPABILITIES *rssi_accuracy_caps;
+
+	param_buf = (WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *)event;
+	if (!param_buf)
+		return QDF_STATUS_E_INVAL;
+
+	rssi_accuracy_caps = &param_buf->rssi_accuracy_improvement_capabilities[idx];
+#ifdef RSSI_FW_SUPPORT_PENDING
+	/*
+	 * fw_hdr changes are not checked in yet for addition of
+	 * phy_id__multigain_rssi_accuracy_enable__word32 field.
+	 * Macro check to be removed once changes are checked in.
+	 */
+	param->phy_id = WMI_RSSI_ACCURACY_IMPROVEMENT_CAPABILITIES_PHY_ID_GET(
+			rssi_accuracy_caps->phy_id__multigain_rssi_accuracy_enable__word32);
+	param->rssi_accuracy_enable = WMI_RSSI_ACCURACY_IMPROVEMENT_CAPABILITIES_RSSI_ACCURACY_ENABLE_GET(
+			rssi_accuracy_caps->phy_id__multigain_rssi_accuracy_enable__word32);
+#else
+	param->phy_id = 0;
+	param->rssi_accuracy_enable = 0;
+#endif
+
+	return QDF_STATUS_SUCCESS;
+}
+
 static QDF_STATUS extract_scan_radio_cap_service_ready_ext2_tlv(
 			wmi_unified_t wmi_handle,
 			uint8_t *event, uint8_t idx,
@@ -23135,6 +23166,8 @@ struct wmi_ops tlv_ops =  {
 				extract_dbr_ring_cap_service_ready_ext_tlv,
 	.extract_dbr_ring_cap_service_ready_ext2 =
 				extract_dbr_ring_cap_service_ready_ext2_tlv,
+	.extract_rssi_accuracy_cap_service_ready_ext2 =
+				extract_rssi_accuracy_cap_service_ready_ext2_tlv,
 	.extract_scan_radio_cap_service_ready_ext2 =
 				extract_scan_radio_cap_service_ready_ext2_tlv,
 	.extract_msdu_idx_qtype_map_service_ready_ext2 =

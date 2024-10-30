@@ -1178,6 +1178,44 @@ int init_deinit_populate_hal_reg_cap_ext2(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+int init_deinit_populate_rssi_accuracy_cap_ext2(wmi_unified_t wmi_handle,
+						uint8_t *event,
+						struct tgt_info *info)
+{
+	struct wlan_psoc_host_rssi_accuracy_caps *accuracy_caps= NULL;
+	uint32_t num_phy_reg_cap;
+	uint8_t cap_idx;
+	QDF_STATUS status;
+
+	if (!event) {
+		target_if_err("Invalid event buffer");
+		return -EINVAL;
+	}
+
+	num_phy_reg_cap = info->service_ext_param.num_phy;
+
+	if (!num_phy_reg_cap)
+		return 0;
+	if (num_phy_reg_cap > PSOC_MAX_PHY_REG_CAP) {
+		target_if_err("Invalid num_phy_reg_cap %d", num_phy_reg_cap);
+		return -EINVAL;
+	}
+	target_if_debug("num rssi accuracy radio capabilities = %d",
+			num_phy_reg_cap);
+
+	for (cap_idx = 0; cap_idx < num_phy_reg_cap; cap_idx++) {
+		accuracy_caps = &info->rssi_accuracy_caps[cap_idx];
+		status = wmi_extract_rssi_accuracy_cap_service_ready_ext2(
+				wmi_handle, event, cap_idx, accuracy_caps);
+		if (QDF_IS_STATUS_ERROR(status)) {
+			target_if_err("Extraction of rssi accuracy improvement cap failed");
+			return qdf_status_to_os_return(status);
+		}
+	}
+
+	return 0;
+}
+
 int init_deinit_populate_scan_radio_cap_ext2(wmi_unified_t wmi_handle,
 					     uint8_t *event,
 					     struct tgt_info *info)

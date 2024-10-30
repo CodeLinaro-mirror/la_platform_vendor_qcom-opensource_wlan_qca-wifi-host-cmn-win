@@ -4343,6 +4343,9 @@ struct dp_pdev {
 
 	/* For Checking Pending Firmware Response */
 	bool pending_fw_stats_response;
+
+	/*RSSI accuracy improvement support*/
+	bool rssi_accuracy_support;
 };
 
 struct dp_peer;

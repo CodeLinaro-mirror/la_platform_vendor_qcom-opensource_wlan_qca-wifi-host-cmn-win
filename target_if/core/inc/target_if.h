@@ -213,6 +213,7 @@ struct target_version_info {
  * @aoa_caps: aoa capabilities from target
  * @wr_ltf_caps: WR LTF capabilities from target
  * @wr_chain_caps: WR Chain capabilities from target
+ * @rssi_accuracy_caps: rssi accuracy improvement capabilities
  */
 struct tgt_info {
 	struct host_fw_ver version;
@@ -260,6 +261,8 @@ struct tgt_info {
 	struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_ltf_caps;
 	struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_chain_caps;
 #endif
+	struct wlan_psoc_host_rssi_accuracy_caps
+			rssi_accuracy_caps[PSOC_MAX_PHY_REG_CAP];
 };
 
 /**
@@ -2795,6 +2798,20 @@ static inline uint32_t target_psoc_get_chan_width_switch_num_peers(
 
 	return psoc_info->info.service_ext2_param.chwidth_num_peer_caps;
 }
+
+/**
+ * target_pdev_is_rssi_accuracy_supported() - API to check scan radio
+ * support for the given radio
+ * @pdev: pointer to pdev
+ * @is_rssi_accuracy_supported: pointer to scan radio support flag
+ *
+ * API to check scan radio support for the given radio
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+target_pdev_is_rssi_accuracy_supported(struct wlan_objmgr_pdev *pdev,
+				       bool *is_rssi_accuracy_supported);
 
 /**
  * target_pdev_is_scan_radio_supported() - API to check scan radio

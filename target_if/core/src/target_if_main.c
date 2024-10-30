@@ -897,6 +897,50 @@ bool target_is_tgt_type_qcn7605(uint32_t target_type)
 }
 
 QDF_STATUS
+target_pdev_is_rssi_accuracy_supported(struct wlan_objmgr_pdev *pdev,
+				       bool *is_rssi_accuracy_supported)
+{
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_psoc_host_rssi_accuracy_caps *rssi_accuracy_caps;
+	uint8_t cap_idx;
+	uint32_t num_rssi_accuracy_caps;
+	int32_t phy_id;
+	struct target_psoc_info *tgt_psoc_info;
+	struct target_pdev_info *tgt_pdev;
+
+	if (!is_rssi_accuracy_supported) {
+		target_if_err("input argument is null");
+		return QDF_STATUS_E_INVAL;
+	}
+	*is_rssi_accuracy_supported = false;
+
+	psoc = wlan_pdev_get_psoc(pdev);
+	tgt_psoc_info = wlan_psoc_get_tgt_if_handle(psoc);
+	tgt_pdev = (struct target_pdev_info *)wlan_pdev_get_tgt_if_handle(pdev);
+
+	phy_id = target_pdev_get_phy_idx(tgt_pdev);
+	if (phy_id < 0) {
+		target_if_err("phy_id is invalid");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	rssi_accuracy_caps = tgt_psoc_info->info.rssi_accuracy_caps;
+
+	num_rssi_accuracy_caps =
+		tgt_psoc_info->info.service_ext_param.num_phy;
+
+	for (cap_idx = 0; cap_idx < num_rssi_accuracy_caps; cap_idx++) {
+		if (rssi_accuracy_caps[cap_idx].phy_id == phy_id) {
+			*is_rssi_accuracy_supported =
+				rssi_accuracy_caps[cap_idx].rssi_accuracy_enable;
+			break;
+		}
+	}
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS
 target_pdev_is_scan_radio_supported(struct wlan_objmgr_pdev *pdev,
 				    bool *is_scan_radio_supported)
 {

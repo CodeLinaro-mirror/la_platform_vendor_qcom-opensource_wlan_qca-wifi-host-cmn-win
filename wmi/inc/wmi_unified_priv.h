@@ -2359,6 +2359,11 @@ QDF_STATUS (*extract_dbr_ring_cap_service_ready_ext2)(
 			uint8_t *evt_buf, uint8_t idx,
 			struct wlan_psoc_host_dbr_ring_caps *param);
 
+QDF_STATUS (*extract_rssi_accuracy_cap_service_ready_ext2)(
+			wmi_unified_t wmi_handle,
+			uint8_t *evt_buf, uint8_t idx,
+			struct wlan_psoc_host_rssi_accuracy_caps *param);
+
 QDF_STATUS (*extract_scan_radio_cap_service_ready_ext2)(
 			wmi_unified_t wmi_handle,
 			uint8_t *evt_buf, uint8_t idx,

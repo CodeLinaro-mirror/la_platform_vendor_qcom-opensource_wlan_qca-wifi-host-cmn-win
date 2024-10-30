@@ -1406,6 +1406,7 @@ enum cdp_peer_param_type {
  * @CDP_CONFIG_MON_FCS_CAP: Set FCS monitor capture
  * @CDP_CONFIG_MON_VERSION: SET monitor version
  * @CDP_HW_NOISE_FLOOR: set hw noise floor
+ * @CDP_RSSI_ACCURACY_SUPPORT: RSSI accuracy support capability
  * @CDP_CONFIG_CUST_BEGIN: Customer enum begin
  * @CDP_CONFIG_CUST_END: Customer enum end
  * @CDP_CONFIG_LAST: Last enum
@@ -1448,6 +1449,7 @@ enum cdp_pdev_param_type {
 	CDP_CONFIG_MON_FCS_CAP,
 	CDP_CONFIG_MON_VERSION,
 	CDP_HW_NOISE_FLOOR,
+	CDP_RSSI_ACCURACY_SUPPORT,
 
 	/* Add QCA enums above this */
 	CDP_CONFIG_CUST_BEGIN,
@@ -1567,6 +1569,7 @@ enum cdp_pdev_param_type {
  * @cdp_tx_vdev_nss_support: Vdev Tx NSS report support
  * @pkt_info.peer_id: ID of the peer
  * @pkt_info.pkts: packet count
+ * @cdp_rssi_accuracy_support: RSSI accuracy improvement support
  */
 typedef union cdp_config_param_t {
 	/* peer params */
@@ -1700,6 +1703,7 @@ typedef union cdp_config_param_t {
 		uint16_t peer_id;
 		struct cdp_pkt_info pkts;
 	} pkt_info;
+	bool cdp_rssi_accuracy_support;
 } cdp_config_param_type;
 
 /**

@@ -396,6 +396,21 @@ QDF_STATUS init_deinit_wifi_radar_chain_cap_ext2_free(
 				struct target_psoc_info *tgt_psoc_info);
 
 /**
+ * init_deinit_populate_rssi_accuracy_cap_ext2() - populate RSSI accuracy improvement
+ * capabilities from service ready ext2 event
+ * @handle: WMI handle pointer
+ * @event: event buffer received from FW
+ * @info: tgt_info object
+ *
+ * API to populate RSSI accuracy improvement capability from service ready ext2 event.
+ *
+ * Return: zero on successful population of rssi accuracy capability or failure
+ */
+int init_deinit_populate_rssi_accuracy_cap_ext2(wmi_unified_t wmi_handle,
+						uint8_t *event,
+						struct tgt_info *info);
+
+/**
  * init_deinit_populate_scan_radio_cap_ext2() - populate scan radio capabilities
  * from service ready ext2 event
  * @handle: WMI handle pointer
