@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -403,6 +403,20 @@ void dfs_inc_num_radar(struct wlan_dfs *dfs);
 #else
 static inline void dfs_inc_num_radar(struct wlan_dfs *dfs)
 {
+}
+#endif
+
+#ifdef QCA_DFS_SCAN_RADIO_RADAR
+QDF_STATUS
+dfs_handle_scan_radio_radar(struct wlan_dfs *dfs,
+			    uint16_t *freq_list,
+			    uint8_t num_channels);
+#else
+static inline QDF_STATUS
+dfs_handle_scan_radio_radar(struct wlan_dfs *dfs,
+			    uint16_t *freq_list,
+			    uint8_t num_channels) {
+	return QDF_STATUS_E_FAILURE;
 }
 #endif
 

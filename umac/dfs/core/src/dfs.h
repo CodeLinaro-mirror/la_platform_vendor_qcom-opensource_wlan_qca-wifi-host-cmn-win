@@ -1150,6 +1150,7 @@ struct dfs_punc_unpunc {
  * @dfs_mm_nolinfo:                  DFS NOL list present in persistent memory.
  * @is_retain_nol_cfg_enabled:       Flag to indicate if the config for storing
  *                                   NOL in persistent memory is enabled.
+ * @is_enable_york_dfs:              Enable York DFS feature.
  * @dfs_nol_count:                   How many items?
  * @wlan_dfs_stats:                  DFS related stats.
  * @pulses:                          Pulse history.
@@ -1333,6 +1334,9 @@ struct wlan_dfs {
 	struct dfs_nolelem    *dfs_nol;
 	struct dfsreq_nolinfo *dfs_mm_nolinfo;
 	bool           is_retain_nol_cfg_enabled;
+#ifdef QCA_DFS_SCAN_RADIO_RADAR
+	bool           is_enable_york_dfs;
+#endif
 	int                   dfs_nol_count;
 	struct dfs_stats      wlan_dfs_stats;
 	struct dfs_pulseline  *pulses;
