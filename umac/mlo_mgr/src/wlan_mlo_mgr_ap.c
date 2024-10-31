@@ -520,6 +520,7 @@ void mlo_ap_get_partner_vdev_list_from_mld(
 static QDF_STATUS mlo_ap_vdev_is_start_resp_rcvd(struct wlan_objmgr_vdev *vdev)
 {
 	enum wlan_vdev_state state;
+	enum wlan_vdev_state substate;
 
 	if (!vdev) {
 		mlme_err("vdev is null");
@@ -530,9 +531,12 @@ static QDF_STATUS mlo_ap_vdev_is_start_resp_rcvd(struct wlan_objmgr_vdev *vdev)
 		return QDF_STATUS_E_FAILURE;
 
 	state = wlan_vdev_mlme_get_state(vdev);
+	substate = wlan_vdev_mlme_get_substate(vdev);
+
 	if ((state == WLAN_VDEV_S_UP) ||
 	    (state == WLAN_VDEV_S_DFS_CAC_WAIT) ||
-	    (state == WLAN_VDEV_S_SUSPEND))
+	    ((state == WLAN_VDEV_S_SUSPEND) &&
+	    (substate != WLAN_VDEV_SS_SUSPEND_SUSPEND_DOWN)))
 		return QDF_STATUS_SUCCESS;
 
 	return QDF_STATUS_E_FAILURE;
