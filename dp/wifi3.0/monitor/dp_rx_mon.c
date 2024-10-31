@@ -2360,6 +2360,21 @@ dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 	if (ppdu_info->rx_status.rssi_dbm_conv_support) {
 		/*Add temp offset received as part of rssi_offset*/
 		ppdu_info->rx_status.rssi_offset = mon_pdev->rssi_offsets.rssi_temp_offset;
+
+		/* Add xlna offset.
+		 * As stated by FW, xlna_bypass_offset is to be added only when the received snr (rss_comb)
+		 * is greater than the xlna_bypass_threshold
+		 */
+		if (ppdu_info->rx_status.rssi_comb >
+				mon_pdev->rssi_offsets.xlna_bypass_threshold) {
+			ppdu_info->rx_status.rssi_offset += mon_pdev->rssi_offsets.xlna_bypass_offset;
+		}
+
+		/*
+		 * Add different offsets to SNR + bw_offset received from TLV.
+		 * This final SNR with all offsets is sent to apps and wdi events
+		 */
+		ppdu_info->rx_status.rssi_comb += ppdu_info->rx_status.rssi_offset;
 	}
 
 	/*
