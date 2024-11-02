@@ -4316,12 +4316,6 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		nbuf = dp_tx_send_msdu_single(vdev, nbuf, &msdu_info,
 					      DP_INVALID_PEER, NULL);
 	} else {
-		/*
-		 * Check exception descriptors
-		 */
-		if (dp_tx_exception_limit_check(vdev, xmit_type))
-			goto fail;
-
 		/*  Single linear frame */
 		/*
 		 * If nbuf is a simple linear frame, use send_single function to
