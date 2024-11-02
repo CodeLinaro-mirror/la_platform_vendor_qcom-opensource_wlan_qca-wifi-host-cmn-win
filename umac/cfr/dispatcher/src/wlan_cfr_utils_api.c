@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -164,7 +165,7 @@ QDF_STATUS cfr_deinitialize_pdev(struct wlan_objmgr_pdev *pdev)
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 
 	if (wlan_cfr_is_feature_disabled(pdev)) {
-		cfr_err("cfr is disabled");
+		cfr_debug("cfr is disabled");
 		return QDF_STATUS_COMP_DISABLED;
 	}
 
