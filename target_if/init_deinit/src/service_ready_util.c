@@ -579,6 +579,138 @@ exit:
 }
 #endif
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+int init_deinit_populate_wifi_radar_ltf_cap_ext2(struct wlan_objmgr_psoc *psoc,
+						 wmi_unified_t handle,
+						 uint8_t *event,
+						 struct tgt_info *info)
+{
+	struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *param;
+	QDF_STATUS status = QDF_STATUS_E_FAILURE;
+	uint32_t idx = 0, num_wr_ltf_caps;
+
+	num_wr_ltf_caps = info->service_ext2_param.num_wr_ltf_caps;
+
+	info->wr_ltf_caps = qdf_mem_malloc(
+		(sizeof(struct wlan_psoc_host_wifi_radar_ltf_caps_ext2)) * num_wr_ltf_caps);
+
+	if (!info->wr_ltf_caps) {
+		target_if_err("Mem alloc for wifi radar ltf caps failed");
+		return -EINVAL;
+	}
+
+	for (idx = 0; idx < num_wr_ltf_caps; idx++) {
+		param = &info->wr_ltf_caps[idx];
+		status = wmi_extract_wifi_radar_ltf_caps_service_ready_ext2(
+					handle, event, idx,
+					param);
+
+		if (QDF_IS_STATUS_ERROR(status)) {
+			target_if_err("Extraction of wifi radar ltf caps failed");
+			goto free_and_return;
+		}
+	}
+
+	return 0;
+
+free_and_return:
+	qdf_mem_free(info->wr_ltf_caps);
+	info->wr_ltf_caps = NULL;
+
+	return qdf_status_to_os_return(status);
+}
+
+QDF_STATUS init_deinit_wifi_radar_ltf_cap_ext2_free(
+					struct target_psoc_info *tgt_psoc_info)
+{
+	qdf_mem_free(tgt_psoc_info->info.wr_ltf_caps);
+	tgt_psoc_info->info.wr_ltf_caps = NULL;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+int init_deinit_populate_wifi_radar_chain_cap_ext2(
+						   struct wlan_objmgr_psoc *psoc,
+						   wmi_unified_t handle,
+						   uint8_t *event,
+						   struct tgt_info *info)
+{
+	struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *param;
+	QDF_STATUS status = QDF_STATUS_E_FAILURE;
+	uint32_t idx = 0, num_wr_chain_caps;
+
+	num_wr_chain_caps = info->service_ext2_param.num_wr_chain_caps;
+	info->wr_chain_caps = qdf_mem_malloc(
+		(sizeof(struct wlan_psoc_host_wifi_radar_chain_caps_ext2)) * num_wr_chain_caps);
+
+	if (!info->wr_chain_caps) {
+		target_if_err("Mem alloc for wifi radar chain caps failed");
+		return -EINVAL;
+	}
+
+	for (idx = 0; idx < num_wr_chain_caps; idx++) {
+		param = &info->wr_chain_caps[idx];
+		status = wmi_extract_wifi_radar_chain_caps_service_ready_ext2(
+					handle, event, idx,
+					param);
+
+		if (QDF_IS_STATUS_ERROR(status)) {
+			target_if_err("Extraction of wifi radar chain caps failed");
+			goto free_and_return;
+		}
+	}
+
+	return 0;
+
+free_and_return:
+	qdf_mem_free(info->wr_chain_caps);
+	info->wr_chain_caps = NULL;
+
+	return qdf_status_to_os_return(status);
+}
+
+QDF_STATUS init_deinit_wifi_radar_chain_cap_ext2_free(
+					struct target_psoc_info *tgt_psoc_info)
+{
+	qdf_mem_free(tgt_psoc_info->info.wr_chain_caps);
+	tgt_psoc_info->info.wr_chain_caps = NULL;
+
+	return QDF_STATUS_SUCCESS;
+}
+#else
+int init_deinit_populate_wifi_radar_ltf_cap_ext2(struct wlan_objmgr_psoc *psoc,
+						 wmi_unified_t handle,
+						 uint8_t *event,
+						 struct tgt_info *info)
+{
+	return 0;
+}
+
+QDF_STATUS init_deinit_wifi_radar_ltf_cap_ext2_free(
+					struct target_psoc_info *tgt_psoc_info)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+int init_deinit_populate_wifi_radar_chain_cap_ext2(
+						   struct wlan_objmgr_psoc *psoc,
+						   wmi_unified_t handle,
+						   uint8_t *event,
+						   struct tgt_info *info)
+{
+	return 0;
+}
+
+QDF_STATUS init_deinit_wifi_radar_chain_cap_ext2_free(
+					struct target_psoc_info *tgt_psoc_info)
+{
+	return QDF_STATUS_SUCCESS;
+}
+#endif
+
+qdf_export_symbol(init_deinit_wifi_radar_ltf_cap_ext2_free);
+qdf_export_symbol(init_deinit_wifi_radar_chain_cap_ext2_free);
+
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 int init_deinit_populate_rcc_aoa_cap_ext2(struct wlan_objmgr_psoc *psoc,
 					  wmi_unified_t handle,

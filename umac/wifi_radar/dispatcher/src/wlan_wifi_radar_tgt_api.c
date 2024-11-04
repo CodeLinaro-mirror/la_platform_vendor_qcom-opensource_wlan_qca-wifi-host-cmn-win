@@ -180,9 +180,19 @@ int tgt_wifi_radar_validate_chainmask(struct pdev_wifi_radar *pwr,
 		return 0;
 	}
 
-	if (num_chains(rx_chainmask) >= HOST_MAX_CHAINS) {
-		wifi_radar_err("no of rx chains exceeds %d", HOST_MAX_CHAINS);
+	if (num_chains(rx_chainmask) > pwr->max_num_rx_chain) {
+		wifi_radar_err("no of rx chains exceeds %d", pwr->max_num_rx_chain);
 		return 0;
+	}
+
+	if (pwr->best_isolated_chain_pair_sel) {
+		if (((txchain_pos != 0) &&
+		     qdf_test_bit((txchain_pos - 1), (unsigned long *)(&rx_chainmask))) ||
+		    ((txchain_pos != (HOST_MAX_CHAINS - 1)) &&
+		     qdf_test_bit((txchain_pos + 1), (unsigned long *)(&rx_chainmask)))) {
+			wifi_radar_err("Invalid rx chains - cannot be adjacent to tx chain");
+			return 0;
+		}
 	}
 
 	qdf_spin_lock_bh(&pwr->cal_status_lock);

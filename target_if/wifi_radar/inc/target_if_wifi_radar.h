@@ -30,6 +30,7 @@
 #define MAX_NUM_LTF_TX 255
 #define MAX_NUM_SKIP_LTF_RX 21
 #define MAX_NUM_LTF_ACCUMULATION 7
+#define DEFAULT_ISOLATED_CHAIN_PAIR_BIT 0
 
 struct wifi_radar_ucode_header {
 	uint32_t  ucode_header_tag :8,

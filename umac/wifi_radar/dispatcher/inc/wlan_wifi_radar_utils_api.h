@@ -153,6 +153,8 @@ struct psoc_wifi_radar {
  * @max_num_ltf_tx: target specific max allowed num_ltf_tx
  * @max_num_skip_ltf_rx: target specific max allowed num_skip_ltf_rx
  * @max_num_ltf_accumulation: target specific max allowed num_ltf_accumulation.
+ * @max_num_rx_chain: target specific max allowed rx chains
+ * @best_isolated_chain_pair_sel: target specific best_isolated_chain_pair_sel
  * @header_lock: Lock to protect the access to headers
  * @header_lock_initialized: Check header lock initialized or not
  */
@@ -179,6 +181,8 @@ struct pdev_wifi_radar {
 	uint32_t max_num_ltf_tx;
 	uint32_t max_num_skip_ltf_rx;
 	uint32_t max_num_ltf_accumulation;
+	uint32_t max_num_rx_chain;
+	uint32_t best_isolated_chain_pair_sel;
 	qdf_spinlock_t header_lock;
 	bool header_lock_initialized;
 };

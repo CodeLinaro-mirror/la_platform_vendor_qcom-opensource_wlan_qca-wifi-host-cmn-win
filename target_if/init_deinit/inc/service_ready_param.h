@@ -386,6 +386,34 @@ struct wlan_psoc_host_rcc_enh_aoa_caps_ext2 {
 };
 #endif /* WLAN_RCC_ENHANCED_AOA_SUPPORT */
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+/*
+ * struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 - WR LTF capabilities
+ * @pdev_id: Pdev ID for capabilities
+ * @ltf_max_num_tx: Max supported LTF TX
+ * @ltf_max_expo_num_rx: Exponent number for max supported LTF RX
+ * @ltf_max_num_initial_skip_rx: Max number of initial skip LTF RX
+ */
+struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 {
+	uint8_t pdev_id;
+	uint32_t ltf_max_num_tx;
+	uint32_t ltf_max_expo_num_rx;
+	uint32_t ltf_max_num_initial_skip_rx;
+};
+
+/*
+ * struct wlan_psoc_host_wifi_radar_chain_caps_ext2 - WR Chain capabilities
+ * @pdev_id: Pdev ID for capabilities
+ * @max_num_rx_chain: Max number of RX chains supported
+ * @best_isolated_chain_pair_sel: If adjacent chains needs to be blocked for RX
+ */
+struct wlan_psoc_host_wifi_radar_chain_caps_ext2 {
+	uint8_t pdev_id;
+	uint32_t max_num_rx_chain;
+	uint32_t best_isolated_chain_pair_sel;
+};
+#endif
+
 /**
  * struct wlan_psoc_host_chainmask_capabilities - chain mask capabilities list
  * @supports_chan_width_20: channel width 20 support for this chain mask.
@@ -562,6 +590,8 @@ struct wlan_psoc_host_service_ext_param {
  * @sar_flag: SAR flag info
  * @fw_support_opt_dp_ctrl: FW support OPT_DP_CTRL
  * @tx_vdev_nss_support: FW supports Vdev Tx NSS report
+ * @num_wr_ltf_caps: Pdevs for which wifi radar ltf caps are sent
+ * @num_wr_chain_caps: Pdevs for which wifi radar chain caps are sent
  */
 struct wlan_psoc_host_service_ext2_param {
 	uint8_t reg_db_version_major;
@@ -608,6 +638,8 @@ struct wlan_psoc_host_service_ext2_param {
 	uint32_t sar_flag;
 	bool fw_support_opt_dp_ctrl;
 	bool tx_vdev_nss_support;
+	uint32_t num_wr_ltf_caps;
+	uint32_t num_wr_chain_caps;
 };
 
 #endif /* _SERVICE_READY_PARAM_H_*/

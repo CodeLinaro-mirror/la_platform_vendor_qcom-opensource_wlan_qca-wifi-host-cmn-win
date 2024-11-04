@@ -374,6 +374,10 @@ QDF_STATUS wifi_radar_init_pdev(struct wlan_objmgr_psoc *psoc,
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	struct pdev_wifi_radar *pwr;
 	struct psoc_wifi_radar *wr_sc;
+	struct target_psoc_info *tgt_psoc_info;
+	struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_ltf_caps;
+	struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_chain_caps;
+	uint8_t pdev_id, i, num_wr_ltf_caps, num_wr_chain_caps;
 
 	if (!pdev) {
 		wifi_radar_err("PDEV is NULL!");
@@ -412,16 +416,57 @@ QDF_STATUS wifi_radar_init_pdev(struct wlan_objmgr_psoc *psoc,
 		return status;
 	}
 
+	tgt_psoc_info = wlan_psoc_get_tgt_if_handle(psoc);
+	if (!tgt_psoc_info) {
+		wifi_radar_err("target_psoc_info is null");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
 	pwr->is_wifi_radar_capable = 1;
 	pwr->subbuf_size = STREAMFS_WIFI_RADAR_MAX_SUBBUF;
 	pwr->num_subbufs = STREAMFS_WIFI_RADAR_NUM_SUBBUF;
 	pwr->max_num_ltf_tx = MAX_NUM_LTF_TX;
 	pwr->max_num_skip_ltf_rx = MAX_NUM_SKIP_LTF_RX;
 	pwr->max_num_ltf_accumulation = MAX_NUM_LTF_ACCUMULATION;
+	pwr->max_num_rx_chain = HOST_MAX_CHAINS;
+	pwr->best_isolated_chain_pair_sel = DEFAULT_ISOLATED_CHAIN_PAIR_BIT;
 	qdf_spinlock_create(&pwr->cal_status_lock);
 	pwr->cal_status_lock_initialized = true;
 	qdf_spinlock_create(&pwr->header_lock);
 	pwr->header_lock_initialized = true;
+
+	pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
+	if (pdev_id < 0) {
+		wifi_radar_err("pdev_id is invalid");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	wr_ltf_caps = tgt_psoc_info->info.wr_ltf_caps;
+	wr_chain_caps = tgt_psoc_info->info.wr_chain_caps;
+	if (!wr_ltf_caps || !wr_chain_caps) {
+		wifi_radar_info("No wifi radar capabilities advertised");
+		return QDF_STATUS_SUCCESS;
+	}
+
+	num_wr_ltf_caps = target_psoc_get_num_wr_ltf_caps(tgt_psoc_info);
+	for (i = 0; i < num_wr_ltf_caps; i++) {
+		if (wr_ltf_caps[i].pdev_id == pdev_id) {
+			pwr->max_num_ltf_tx = wr_ltf_caps[i].ltf_max_num_tx;
+			pwr->max_num_skip_ltf_rx =
+					wr_ltf_caps[i].ltf_max_num_initial_skip_rx;
+			pwr->max_num_ltf_accumulation =
+					wr_ltf_caps[i].ltf_max_expo_num_rx;
+		}
+	}
+
+	num_wr_chain_caps = target_psoc_get_num_wr_chain_caps(tgt_psoc_info);
+	for (i = 0; i < num_wr_chain_caps; i++) {
+		if (wr_chain_caps[i].pdev_id == pdev_id) {
+			pwr->max_num_rx_chain = wr_chain_caps[i].max_num_rx_chain;
+			pwr->best_isolated_chain_pair_sel =
+					wr_chain_caps[i].best_isolated_chain_pair_sel;
+		}
+	}
 
 	return status;
 }

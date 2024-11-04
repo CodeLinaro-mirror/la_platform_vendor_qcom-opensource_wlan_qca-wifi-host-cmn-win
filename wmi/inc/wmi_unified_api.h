@@ -4041,6 +4041,37 @@ QDF_STATUS wmi_extract_spectral_scaling_params_service_ready_ext(
 			uint8_t *evt_buf, uint8_t idx,
 			struct wlan_psoc_host_spectral_scaling_params *param);
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+/**
+ * wmi_extract_wifi_radar_ltf_caps_service_ready_ext2: Extract WR LTF capability
+ *                                                     through extended service
+ *                                                     ready event
+ * @wmi_handle: WMI handle
+ * @evt_buf: Event buffer
+ * @wr_cap: Pointer to WR LTF cap
+ *
+ * Return: QDF status of operation
+ */
+QDF_STATUS wmi_extract_wifi_radar_ltf_caps_service_ready_ext2(
+			wmi_unified_t wmi_handle, uint8_t *evt_buf, uint8_t idx,
+			struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_cap);
+
+/**
+ * wmi_extract_wifi_radar_chain_caps_service_ready_ext2: Extract WR Chain
+ *                                                       capability through
+ *                                                       extended service
+ *                                                       ready event
+ * @wmi_handle: WMI handle
+ * @evt_buf: Event buffer
+ * @wr_cap: Pointer to WR Chain cap
+ *
+ * Return: QDF status of operation
+ */
+QDF_STATUS wmi_extract_wifi_radar_chain_caps_service_ready_ext2(
+			wmi_unified_t wmi_handle, uint8_t *evt_buf, uint8_t idx,
+			struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_cap);
+#endif
+
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 /**
  * wmi_extract_aoa_caps_service_ready_ext2: Extract AoA capabilities received
