@@ -487,6 +487,8 @@ static const uint32_t pdev_param_tlv[] = {
 		  PDEV_PARAM_DISABLE_LPI_ANT_OPTIMIZATION),
 	PARAM_MAP(pdev_param_soft_rx_chain_mask,
 		  PDEV_PARAM_RX_CHAIN_MASK),
+	PARAM_MAP(pdev_param_enable_scan_radio_dfs,
+		  PDEV_PARAM_ENABLE_SCAN_RADIO_DFS),
 };
 
 /* Populate vdev_param array whose index is host param, value is target param */

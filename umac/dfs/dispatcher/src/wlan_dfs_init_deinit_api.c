@@ -555,6 +555,8 @@ QDF_STATUS wlan_dfs_pdev_obj_create_notification(struct wlan_objmgr_pdev *pdev,
 		dfs->is_retain_nol_cfg_enabled = false;
 	}
 
+	dfs_set_enable_york_dfs(dfs);
+
 	if (dfs_attach(dfs) == 1) {
 		dfs_err(dfs, WLAN_DEBUG_DFS_ALWAYS,  "dfs_attch failed");
 		dfs_destroy_object(dfs);

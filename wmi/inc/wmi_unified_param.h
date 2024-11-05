@@ -6003,6 +6003,8 @@ typedef enum {
 		   PDEV_PARAM_MGMT_SRNG_REAP_EVENT_THRESHOLD),
 	PDEV_PARAM(pdev_param_soft_rx_chain_mask,
 		   PDEV_PARAM_RX_CHAIN_MASK),
+	PDEV_PARAM(pdev_param_enable_scan_radio_dfs,
+		   PDEV_PARAM_ENABLE_SCAN_RADIO_DFS),
 	pdev_param_max,
 } wmi_conv_pdev_params_id;
 

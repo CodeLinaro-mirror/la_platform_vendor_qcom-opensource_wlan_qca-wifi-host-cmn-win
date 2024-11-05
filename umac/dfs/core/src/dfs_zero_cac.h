@@ -1606,6 +1606,21 @@ bool dfs_is_ignore_radar_for_punctured_chans(struct wlan_dfs *dfs,
 }
 #endif /* DFS_BW_PUNCTURE */
 
+#ifdef QCA_DFS_SCAN_RADIO_RADAR
+/**
+ * dfs_set_enable_york_dfs() - Config is_enable_york_dfs in the dfs object
+ * @dfs: Pointer to wlan_dfs.
+ *
+ * Return: Nothing.
+ */
+void dfs_set_enable_york_dfs(struct wlan_dfs *dfs);
+#else
+static inline
+void dfs_set_enable_york_dfs(struct wlan_dfs *dfs)
+{
+}
+#endif
+
 /* dfs_is_pcac_on_weather_channel_for_freq() - Given a channel number, find if
  * it's a weather radar channel.
  * @dfs: Pointer to WLAN_DFS structure.

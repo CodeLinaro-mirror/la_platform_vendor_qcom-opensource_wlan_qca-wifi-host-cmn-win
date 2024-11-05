@@ -1128,6 +1128,17 @@ dfs_process_radar_ind_on_home_chan(struct wlan_dfs *dfs,
 							freq_list,
 							freq_center);
 
+	/* For Scan radio, send DFS events to userspace and avoid mitigation
+	 * logic such as changing the channel and adding the channel to NOL
+	 * list.
+	 */
+	if (dfs_handle_scan_radio_radar(dfs, freq_list, num_channels) ==
+					QDF_STATUS_SUCCESS) {
+		dfs_reset_bangradar(dfs);
+		status = QDF_STATUS_SUCCESS;
+		goto exit;
+	}
+
 	if (!dfs->dfs_use_nol) {
 		if (!dfs->dfs_is_offload_enabled)
 			dfs_disable_radar_and_flush_pulses(dfs);

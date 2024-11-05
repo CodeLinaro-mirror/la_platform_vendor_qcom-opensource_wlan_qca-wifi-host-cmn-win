@@ -1327,6 +1327,7 @@ struct wlan_lmac_if_afc_tx_ops {
  * @dfs_check_mode_switch_state:        Find if HW mode switch is in progress.
  * @dfs_get_persistent_nol_status:      Check if config for storing NOL in
  *                                      persistent memory is enabled.
+ * @dfs_get_enable_york_dfs:            Enable York DFS feature.
  */
 
 struct wlan_lmac_if_dfs_tx_ops {
@@ -1387,6 +1388,8 @@ struct wlan_lmac_if_dfs_tx_ops {
 			struct wlan_objmgr_pdev *pdev,
 			bool *is_hw_mode_switch_in_progress);
 	bool (*dfs_get_persistent_nol_status)(
+			struct wlan_objmgr_pdev *pdev);
+	bool (*dfs_get_enable_york_dfs)(
 			struct wlan_objmgr_pdev *pdev);
 };
 
