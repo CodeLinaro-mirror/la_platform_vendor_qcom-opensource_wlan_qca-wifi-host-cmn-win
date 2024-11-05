@@ -130,10 +130,21 @@ static inline bool __qdf_bitmap_empty(unsigned long *addr,
 	return bitmap_empty(addr, nbits);
 }
 
+static inline void __qdf_bitmap_zero(unsigned long *addr, unsigned long nbits)
+{
+	bitmap_zero(addr, nbits);
+}
+
 static inline int __qdf_bitmap_and(unsigned long *dst, unsigned long *src1,
 				   unsigned long *src2, unsigned long nbits)
 {
 	return bitmap_and(dst, src1, src2, nbits);
+}
+
+static inline void __qdf_bitmap_or(unsigned long *dst, unsigned long *src1,
+				   unsigned long *src2, unsigned long nbits)
+{
+	bitmap_or(dst, src1, src2, nbits);
 }
 
 /**
