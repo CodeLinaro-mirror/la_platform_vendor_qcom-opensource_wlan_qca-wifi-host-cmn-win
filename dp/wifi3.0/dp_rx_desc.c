@@ -487,7 +487,12 @@ uint16_t dp_rx_get_free_desc_list(struct dp_soc *soc, uint32_t pool_id,
 				union dp_rx_desc_list_elem_t **desc_list,
 				union dp_rx_desc_list_elem_t **tail)
 {
-	uint16_t count;
+	uint16_t count = 0;
+
+	if (!num_descs) {
+		dp_err("RX Desc requested is zero");
+		return count;
+	}
 
 	qdf_spin_lock_bh(&rx_desc_pool->lock);
 
