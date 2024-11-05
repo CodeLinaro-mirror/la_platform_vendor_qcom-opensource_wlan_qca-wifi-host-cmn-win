@@ -266,4 +266,13 @@ const char *wlan_sm_get_state_name(struct wlan_sm *sm, uint8_t state);
  */
 void wlan_sm_reset(struct wlan_sm *sm, uint8_t init_state);
 
+/**
+ * wlan_sm_get_name() - API to get state machine's name
+ * @sm: state machine handle
+ *
+ * Gets the name of the state machine
+ *
+ * Return: name of the state machine
+ */
+const char *wlan_sm_get_name(struct wlan_sm *sm);
 #endif
