@@ -79,7 +79,6 @@ static int32_t wlan_mlo_aid_idx_update(uint16_t start_idx, uint16_t end_idx,
 		return ((int32_t)curr_idx - 1);
 
 	mlo_err("AID index is out of sync");
-	QDF_BUG(0);
 	return 0;
 }
 
