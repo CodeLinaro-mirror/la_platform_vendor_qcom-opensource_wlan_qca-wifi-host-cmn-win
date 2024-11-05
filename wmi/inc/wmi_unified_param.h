@@ -1407,6 +1407,9 @@ struct wmi_host_link_bss_params {
  * @mlo_bridge_peer: indicate if it is bridge peer
  * @link_switch_in_progress: Flag to indicate FW MLO peer assoc params are sent
  *                           for the peer due to link switch
+ * @mlo_link_add: Indicates addition of a link to an ML peer
+ * @mlo_link_del: Indicates deletion of a link from an ML peer
+ * @mlo_link_reconfig: Indicates that ML peer is undergoing reconfiguration
  * @unused: spare bits
  * @mld_mac: MLD mac address
  * @logical_link_index: Unique index for links of the mlo. Starts with Zero
@@ -1442,7 +1445,10 @@ struct peer_assoc_mlo_params {
 		 nstr_bitmap_size:1,
 		 mlo_bridge_peer:1,
 		 link_switch_in_progress:1,
-		 unused:19;
+		 mlo_link_add:1,
+		 mlo_link_del:1,
+		 mlo_link_reconfig:1,
+		 unused:16;
 	uint8_t mld_mac[QDF_MAC_ADDR_SIZE];
 	uint32_t logical_link_index;
 	uint32_t ml_peer_id;
@@ -1478,6 +1484,8 @@ struct peer_assoc_mlo_params {
  * @emlmr_support: indicate if eMLMR supported
  * @msd_cap_support: indicate if MSD supported
  * @mlo_bridge_peer: indicate if peer is bridge peer
+ * @mlo_link_add: Indicates addition of a link to an ML peer
+ * @mlo_link_del: Indicates deletion of a link from an ML peer
  * @unused: spare bits
  * @logical_link_index: Unique index for links of the mlo. Starts with Zero
  * @link_id: AP Link Id
@@ -1498,7 +1506,9 @@ struct ml_partner_info {
 		 emlmr_support:1,
 		 msd_cap_support:1,
 		 mlo_bridge_peer:1,
-		 unused:22;
+		 mlo_link_add:1,
+		 mlo_link_del:1,
+		 unused:20;
 	uint32_t logical_link_index;
 	uint32_t link_id;
 	struct qdf_mac_addr bssid;
