@@ -87,6 +87,9 @@
 
 #define NUM_OF_DWORDS_BUFFER_ADDR_INFO 2
 
+#define NUM_OF_DWORDS_WBM2SW_COMP_RING_RX 8
+#define HAL_RX_ERR_DESC_LEN_IN_BYTES (NUM_OF_DWORDS_WBM2SW_COMP_RING_RX * 4)
+
 /* HAL_RX_NON_QOS_TID = NON_QOS_TID which is 16 */
 #define HAL_RX_NON_QOS_TID 16
 
@@ -156,6 +159,14 @@ struct hal_wbm_err_desc_info {
 union hal_wbm_err_info_u {
 	struct hal_wbm_err_desc_info info_bit;
 	uint32_t info;
+};
+
+/**
+ * struct hal_rx_err_desc_copy - Structure to hold HAL Rx Desc for error ring
+ * @desc: Desc content
+ */
+struct hal_rx_err_desc_copy {
+	uint32_t desc[NUM_OF_DWORDS_WBM2SW_COMP_RING_RX];
 };
 
 /**
@@ -495,6 +506,10 @@ enum hal_rx_mpdu_desc_flags {
 		HAL_RX_MSDU_DESC_INFO_MSDU_LENGTH_OFFSET)),	\
 		HAL_RX_MSDU_DESC_INFO_MSDU_LENGTH_MASK,		\
 		HAL_RX_MSDU_DESC_INFO_MSDU_LENGTH_LSB))
+
+#define HAL_RX_GET_MSDU_LEN(msdu_desc_info)				\
+	(((msdu_desc_info) & HAL_RX_MSDU_DESC_INFO_MSDU_LENGTH_MASK) >>	\
+	 HAL_RX_MSDU_DESC_INFO_MSDU_LENGTH_LSB)
 
 static inline uint32_t
 hal_rx_msdu_flags_get(hal_soc_handle_t hal_soc_hdl,

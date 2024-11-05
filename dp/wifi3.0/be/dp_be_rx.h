@@ -216,6 +216,11 @@ dp_rx_peer_metadata_lmac_id_get_be(uint32_t peer_metadata)
 	return HTT_RX_PEER_META_DATA_V1_LMAC_ID_GET(peer_metadata);
 }
 
+static inline uint8_t
+dp_rx_peer_metadata_hw_link_id_get_be(uint32_t peer_metadata)
+{
+	return HTT_RX_PEER_META_DATA_V1B_HW_LINK_ID_GET(peer_metadata);
+}
 
 #ifdef WLAN_FEATURE_NEAR_FULL_IRQ
 /**
@@ -1112,4 +1117,225 @@ dp_get_soc_by_chip_id_be(struct dp_soc *soc, uint8_t chip_id)
 	return soc;
 }
 #endif
+
+#ifdef DP_RX_ERR_SKB_REUSE
+/**
+ * dp_rx_err_check_nbuf_req_for_err_process() - API to check if the error
+ *                                              requires nbuf to process
+ * @soc: Handle to DP Soc structure
+ * @wbm_err: WBM error details
+ * @is_nbuf_req: Flag to check if nbuf is required to process this error
+ * @dp_proto_stats: DP protocol stats flag
+ *
+ * Return: None
+ */
+static inline void
+dp_rx_err_check_nbuf_req_for_err_process(struct dp_soc *soc,
+					 union hal_wbm_err_info_u wbm_err,
+					 uint8_t *is_nbuf_req,
+					 bool *dp_proto_stats)
+{
+	*dp_proto_stats = wlan_cfg_get_dp_proto_stats(soc->wlan_cfg_ctx);
+
+	if (wbm_err.info_bit.wbm_err_src == HAL_RX_WBM_ERR_SRC_REO) {
+		if (wbm_err.info_bit.reo_psh_rsn
+			== HAL_RX_WBM_REO_PSH_RSN_ERROR) {
+			if ((wbm_err.info_bit.reo_err_code
+				== HAL_REO_ERR_QUEUE_DESC_ADDR_0) ||
+			    (wbm_err.info_bit.reo_err_code
+				== HAL_REO_ERR_REGULAR_FRAME_2K_JUMP)) {
+				*is_nbuf_req = 1;
+				return;
+			}
+		} else if (wbm_err.info_bit.reo_psh_rsn
+				== HAL_RX_WBM_REO_PSH_RSN_ROUTE) {
+				*is_nbuf_req = 1;
+				return;
+		}
+	}
+	if (wbm_err.info_bit.wbm_err_src == HAL_RX_WBM_ERR_SRC_RXDMA) {
+		if (wbm_err.info_bit.rxdma_psh_rsn
+			== HAL_RX_WBM_RXDMA_PSH_RSN_ERROR) {
+			switch (wbm_err.info_bit.rxdma_err_code) {
+			case HAL_RXDMA_ERR_UNENCRYPTED:
+			case HAL_RXDMA_ERR_WIFI_PARSE:
+			case HAL_RXDMA_ERR_TKIP_MIC:
+			case HAL_RXDMA_ERR_DECRYPT:
+			case HAL_RXDMA_AMSDU_ADDR_MISMATCH:
+			case HAL_RXDMA_UNAUTHORIZED_WDS:
+				*is_nbuf_req = 1;
+				return;
+			}
+		} else if (wbm_err.info_bit.rxdma_psh_rsn
+				== HAL_RX_WBM_RXDMA_PSH_RSN_ROUTE) {
+				*is_nbuf_req = 1;
+				return;
+		}
+	}
+	*is_nbuf_req = 0;
+}
+
+static inline void
+dp_rx_add_to_reuse_free_desc_list(union dp_rx_desc_list_elem_t **head,
+				  union dp_rx_desc_list_elem_t **tail,
+				  struct dp_rx_desc *new, const char *func_name)
+{
+	qdf_assert(head && new);
+
+	dp_rx_desc_update_dbg_info(new, func_name, RX_DESC_IN_FREELIST);
+
+	new->reuse_nbuf = new->nbuf;
+	new->has_reuse_nbuf = true;
+	new->nbuf = NULL;
+
+	((union dp_rx_desc_list_elem_t *)new)->next = *head;
+	*head = (union dp_rx_desc_list_elem_t *)new;
+	/* reset tail if head->next is NULL */
+	if (!*tail || !(*head)->next)
+		*tail = *head;
+}
+
+/**
+ * dp_rx_err_add_desc_to_free_list() - API to add desc to free list
+ *
+ * @head: Head pointer to the free list
+ * @tail: Tail pointer to the free list
+ * @head_reuse: Head Pointer to the free reuse list
+ * @tail_reuse: Tail Pointer to the free reuse list
+ * @rx_desc: Rx Desc
+ * @rx_buf_reuse: Number of Rx Desc in reuse list
+ * @is_nbuf_req: Flag to check if nbuf is required to process this error
+ * @dp_proto_stats: DP protocol stats flag
+ *
+ * Return: None
+ */
+static inline void
+dp_rx_err_add_desc_to_free_list(union dp_rx_desc_list_elem_t **head,
+				union dp_rx_desc_list_elem_t **tail,
+				union dp_rx_desc_list_elem_t **head_reuse,
+				union dp_rx_desc_list_elem_t **tail_reuse,
+				struct dp_rx_desc *rx_desc,
+				uint32_t *rx_buf_reuse,
+				uint8_t is_nbuf_req, bool dp_proto_stats)
+{
+	if (is_nbuf_req || dp_proto_stats) {
+		dp_rx_add_to_free_desc_list(head, tail, rx_desc);
+	} else {
+		dp_rx_add_to_reuse_free_desc_list(head_reuse, tail_reuse,
+						  rx_desc, __func__);
+		(*rx_buf_reuse)++;
+	}
+}
+
+/**
+ * dp_rx_update_replenish_count() - API to update number of replenish buffers
+ *
+ * @num_buf_reaped: Number of buffers reaped
+ * @num_buf_reuse: Number of buffers that can be reused
+ *
+ * Return: None
+ */
+static inline void
+dp_rx_update_replenish_count(uint32_t *num_buf_reaped, uint32_t *num_buf_reuse)
+{
+	*num_buf_reaped = *num_buf_reaped - *num_buf_reuse;
+}
+
+/**
+ * dp_rx_err_desc_sync() - API to copy Desc contents to Local memory
+ *
+ * @soc: Handle to DP Soc structure
+ * @ring_desc: Rx desc
+ * @is_nbuf_req: Flag to check if nbuf is required to process this error
+ * @dp_proto_stats: DP protocol stats flag
+ *
+ * Return: None
+ */
+static inline void
+dp_rx_err_desc_sync(struct dp_soc *soc, hal_ring_desc_t ring_desc,
+		    uint8_t is_nbuf_req, bool dp_proto_stats)
+{
+	if (!is_nbuf_req && !dp_proto_stats) {
+		qdf_mem_copy(&soc->rx_err_desc[soc->num_rx_err_desc],
+			     ring_desc,
+			     HAL_RX_ERR_DESC_LEN_IN_BYTES);
+		soc->num_rx_err_desc++;
+	}
+}
+
+static inline void
+dp_rx_buffers_replenish_reuse(struct dp_soc *soc, uint32_t mac_id,
+			      struct dp_srng *rxdma_srng,
+			      struct rx_desc_pool *rx_desc_pool,
+			      uint32_t num_req_buffers,
+			      union dp_rx_desc_list_elem_t **desc_list,
+			      union dp_rx_desc_list_elem_t **tail)
+{
+	if (desc_list) {
+		dp_rx_comp2refill_replenish(soc, mac_id, rxdma_srng,
+					    rx_desc_pool, num_req_buffers,
+					    desc_list, tail);
+	}
+}
+
+#define DP_RX_ERR_ADD_NBUF_TO_LIST(head, tail, elem, nbuf_req, proto_stats) \
+	do {								    \
+		if ((nbuf_req) || (proto_stats))			    \
+			DP_RX_LIST_APPEND(head, tail, elem);		    \
+	} while (0)
+
+#else
+#define DP_RX_ERR_ADD_NBUF_TO_LIST(head, tail, elem, nbuf_req, proto_stats) \
+	DP_RX_LIST_APPEND(head, tail, elem)
+
+static inline void
+dp_rx_err_check_nbuf_req_for_err_process(struct dp_soc *soc,
+					 union hal_wbm_err_info_u wbm_err,
+					 uint8_t *is_nbuf_req,
+					 bool *dp_proto_stats)
+{
+}
+
+static inline void
+dp_rx_err_add_desc_to_free_list(union dp_rx_desc_list_elem_t **head,
+				union dp_rx_desc_list_elem_t **tail,
+				union dp_rx_desc_list_elem_t **head_reuse,
+				union dp_rx_desc_list_elem_t **tail_reuse,
+				struct dp_rx_desc *rx_desc,
+				uint32_t *rx_buf_dir_repl,
+				uint8_t is_nbuf_req, bool dp_proto_stats)
+{
+	dp_rx_add_to_free_desc_list(head, tail, rx_desc);
+}
+
+static inline void
+dp_rx_update_replenish_count(uint32_t *num_buf_reaped, uint32_t *num_buf_reuse)
+{
+}
+
+static inline void
+dp_rx_err_desc_sync(struct dp_soc *soc, hal_ring_desc_t ring_desc,
+		    uint8_t is_nbuf_req, bool dp_proto_stats)
+{
+}
+
+static inline void
+dp_rx_buffers_replenish_reuse(struct dp_soc *soc, uint32_t mac_id,
+			      struct dp_srng *rxdma_srng,
+			      struct rx_desc_pool *rx_desc_pool,
+			      uint32_t num_req_buffers,
+			      union dp_rx_desc_list_elem_t **desc_list,
+			      union dp_rx_desc_list_elem_t **tail)
+{
+}
+#endif /* DP_RX_ERR_SKB_REUSE */
+
+/**
+ * dp_rx_err_process_desc_list_be() - Function to Process Rx Err Descriptors
+ *                                    and update the stats based on errors
+ * @soc: core DP main context
+ *
+ * Return: None
+ */
+void dp_rx_err_process_desc_list_be(struct dp_soc *soc);
 #endif

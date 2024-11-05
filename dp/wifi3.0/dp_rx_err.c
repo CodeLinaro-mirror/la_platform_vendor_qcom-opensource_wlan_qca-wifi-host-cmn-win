@@ -2679,6 +2679,19 @@ dp_rx_err_update_protocol_stats_wrapper(struct dp_soc *soc,
 }
 #endif /* QCA_DP_PROTOCOL_STATS */
 
+#ifdef DP_RX_ERR_SKB_REUSE
+static inline void
+dp_rx_err_process_desc_list(struct dp_soc *soc)
+{
+	soc->arch_ops.dp_rx_err_process_desc_list(soc);
+}
+#else
+static inline void
+dp_rx_err_process_desc_list(struct dp_soc *soc)
+{
+}
+#endif /* DP_RX_ERR_SKB_REUSE */
+
 uint32_t
 dp_rx_wbm_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 		      hal_ring_handle_t hal_ring_hdl, uint32_t quota)
@@ -3046,6 +3059,8 @@ dp_rx_wbm_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 
 		nbuf = next;
 	}
+	dp_rx_err_process_desc_list(soc);
+
 	return rx_bufs_used; /* Assume no scale factor for now */
 }
 

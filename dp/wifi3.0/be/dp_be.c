@@ -4053,6 +4053,7 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 	arch_ops->dp_rx_intrabss_get_params = dp_rx_intrabss_get_params_be;
 	arch_ops->dp_rx_intrabss_get_mcbc_params =
 					dp_rx_intrabss_get_mcbc_params_be;
+	arch_ops->dp_rx_err_process_desc_list = dp_rx_err_process_desc_list_be;
 #endif
 	arch_ops->txrx_get_context_size = dp_get_context_size_be;
 #ifdef WIFI_MONITOR_SUPPORT

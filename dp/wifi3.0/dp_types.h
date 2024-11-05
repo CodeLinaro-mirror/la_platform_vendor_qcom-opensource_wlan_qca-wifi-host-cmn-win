@@ -2560,6 +2560,7 @@ enum dp_context_type {
  * @txrx_srng_init: Init txrx srng
  * @dp_get_vdev_stats_for_unmap_peer: Get vdev stats pointer for unmap peer
  * @dp_get_interface_stats: Get interface stats
+ * @dp_rx_err_process_desc_list: Rx Error Process Desc list
  * @dp_rx_intrabss_mlo_mcbc_fwd: Intrabss MLO multicast broadcast forwarding
  * @dp_rx_intrabss_get_mcbc_params: Get intrabss multicast soc and vdev id param
  * @dp_rx_intrabss_get_params: Get Intrabss parameters to forward the packets
@@ -2865,6 +2866,7 @@ struct dp_arch_ops {
 					     uint8_t vdev_id,
 					     void *buf,
 					     bool is_aggregate);
+	void (*dp_rx_err_process_desc_list)(struct dp_soc *soc);
 #ifdef WLAN_SUPPORT_PPEDS
 	void (*txrx_soc_ppeds_interrupt_stop)(struct dp_soc *soc);
 	void (*txrx_soc_ppeds_interrupt_start)(struct dp_soc *soc);
@@ -3751,6 +3753,10 @@ struct dp_soc {
 
 #ifdef DP_FEATURE_RX_BUFFER_RECYCLE
 	struct dp_rx_page_pool rx_pp[MAX_RXDESC_POOLS];
+#endif
+#ifdef DP_RX_ERR_SKB_REUSE
+	struct hal_rx_err_desc_copy *rx_err_desc;
+	uint32_t num_rx_err_desc;
 #endif
 };
 
