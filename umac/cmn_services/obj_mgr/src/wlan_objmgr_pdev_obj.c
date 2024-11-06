@@ -1101,6 +1101,8 @@ struct wlan_objmgr_vdev *wlan_objmgr_get_vdev_by_macaddr_from_pdev_debug(
 
 	return NULL;
 }
+
+qdf_export_symbol(wlan_objmgr_get_vdev_by_macaddr_from_pdev_debug);
 #else
 struct wlan_objmgr_vdev *wlan_objmgr_get_vdev_by_macaddr_from_pdev(
 		struct wlan_objmgr_pdev *pdev, const uint8_t *macaddr,
