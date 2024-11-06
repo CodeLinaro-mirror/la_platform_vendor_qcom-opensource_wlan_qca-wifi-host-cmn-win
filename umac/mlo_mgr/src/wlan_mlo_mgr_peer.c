@@ -970,6 +970,7 @@ static QDF_STATUS mlo_peer_attach_link_peer(
 				 (struct qdf_mac_addr *)&link_peer->macaddr[0]);
 
 		peer_entry->link_ix = wlan_vdev_get_link_id(vdev);
+		link_peer->link_ix = peer_entry->link_ix;
 		pdev = wlan_vdev_get_pdev(wlan_peer_get_vdev(link_peer));
 		peer_entry->hw_link_id = wlan_mlo_get_pdev_hw_link_id(pdev);
 

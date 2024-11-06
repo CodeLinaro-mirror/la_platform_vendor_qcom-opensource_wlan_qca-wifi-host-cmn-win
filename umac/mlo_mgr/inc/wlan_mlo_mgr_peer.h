@@ -748,6 +748,26 @@ static inline void wlan_peer_clear_mlo(struct wlan_objmgr_peer *peer)
 }
 
 /**
+ * peer_get_link() - API to get MLO protocol link ID from peer
+ * @peer: PEER object
+ *
+ * API to get MLO protocol link ID from peer data structure.
+ *
+ * Return: MLO protocol link ID for peers which are participating in MLO.
+ * WLAN_LINK_ID_INVALID for legacy peers.
+ */
+static inline int peer_get_link(struct wlan_objmgr_peer *peer)
+{
+	if (!peer)
+		return WLAN_LINK_ID_INVALID;
+
+	if (!wlan_peer_is_mlo(peer))
+		return WLAN_LINK_ID_INVALID;
+
+	return peer->link_ix;
+}
+
+/**
  * wlan_peer_is_assoc_rejected() - check whether peer is assoc rejected
  * @peer: link peer object
  *
