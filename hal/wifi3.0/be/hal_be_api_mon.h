@@ -3954,6 +3954,8 @@ hal_rx_status_get_tlv_info_generic_be(void *rx_tlv_hdr, void *ppduinfo,
 
 		ppdu_info->rx_status.bw = hal->ops->hal_rx_get_tlv(rx_tlv);
 		ppdu_info->rx_status.he_re = 0;
+		ppdu_info->rx_status.rssi_region_offset =
+				hal_rx_phy_legacy_get_rssi_region_offset(hal_soc_hdl, rx_tlv);
 
 		reception_type = HAL_RX_GET(rx_tlv, HAL_PHYRX_RSSI_LEGACY,
 					    RECEPTION_TYPE);

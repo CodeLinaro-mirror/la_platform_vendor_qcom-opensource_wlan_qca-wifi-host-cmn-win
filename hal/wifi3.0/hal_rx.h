@@ -3242,6 +3242,22 @@ hal_rx_phy_legacy_get_rssi(hal_soc_handle_t hal_soc_hdl, uint8_t *buf)
 }
 
 /**
+ * hal_rx_phy_legacy_get_rssi_region_offset() - API to get RSSI region offset
+ *                                              from TLV
+ * @hal_soc_hdl: HAL soc handle
+ * @buf: pointer to the start of WIFIPHYRX_RSSI_LEGACY_E TLV
+ *
+ * Return: value of RSSI region offset
+ */
+static inline int8_t
+hal_rx_phy_legacy_get_rssi_region_offset(hal_soc_handle_t hal_soc_hdl, uint8_t *buf)
+{
+	struct hal_soc *hal_soc = (struct hal_soc *)hal_soc_hdl;
+
+	return hal_soc->ops->hal_rx_phy_legacy_get_rssi_region_offset(buf);
+}
+
+/**
  * hal_get_tsf_time() - Get tsf time
  * @hal_soc_hdl: HAL soc handle
  * @tsf_id:

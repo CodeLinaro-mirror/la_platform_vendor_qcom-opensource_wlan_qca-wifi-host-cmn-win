@@ -2366,9 +2366,14 @@ dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 	ppdu_info->rx_status.hw_noise_floor =
 				pdev->hw_noise_floor;
 
+	/* Add rssi region offset for accuracy improvement*/
+	if (pdev->rssi_accuracy_support) {
+		ppdu_info->rx_status.rssi_offset = ppdu_info->rx_status.rssi_region_offset;
+	}
+
 	if (ppdu_info->rx_status.rssi_dbm_conv_support) {
 		/*Add temp offset received as part of rssi_offset*/
-		ppdu_info->rx_status.rssi_offset = mon_pdev->rssi_offsets.rssi_temp_offset;
+		ppdu_info->rx_status.rssi_offset += mon_pdev->rssi_offsets.rssi_temp_offset;
 
 		/* Add xlna offset.
 		 * As stated by FW, xlna_bypass_offset is to be added only when the received snr (rss_comb)

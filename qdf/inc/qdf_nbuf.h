@@ -423,6 +423,7 @@ typedef __qdf_nbuf_queue_t qdf_nbuf_queue_t;
  * radiotap header will use userinfo from this structure.
  * @mon_fcs_cap: monitor fcs capture
  * @snr_with_offsets: rssi_comb with other offsets added
+ * @rssi_region_offset: RSSI region offset
  */
 struct mon_rx_status {
 	uint64_t tsft;
@@ -549,6 +550,7 @@ struct mon_rx_status {
 	bool rssi_dbm_conv_support;
 	bool mon_fcs_cap;
 	int8_t snr_with_offsets;
+	int8_t rssi_region_offset;
 };
 
 /**

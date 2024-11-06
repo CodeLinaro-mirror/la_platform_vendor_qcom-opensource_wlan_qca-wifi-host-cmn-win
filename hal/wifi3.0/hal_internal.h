@@ -1162,6 +1162,7 @@ struct hal_hw_txrx_ops {
 						   struct mon_rx_status *rs);
 	uint8_t (*hal_rx_get_tlv)(void *rx_tlv);
 	int8_t (*hal_rx_phy_legacy_get_rssi)(uint8_t *rx_tlv);
+	int8_t (*hal_rx_phy_legacy_get_rssi_region_offset)(uint8_t *rx_tlv);
 
 	void (*hal_rx_proc_phyrx_other_receive_info_tlv)(void *rx_tlv_hdr,
 							void *ppdu_info_handle);
