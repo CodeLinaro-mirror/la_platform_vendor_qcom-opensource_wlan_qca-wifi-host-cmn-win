@@ -25,6 +25,7 @@
 #include <qdf_list.h>
 #include <qdf_atomic.h>
 #include <qdf_nbuf.h>
+#include <qdf_event.h>
 #include <wlan_cmn_ieee80211.h>
 #include <wlan_cmn.h>
 #include <wlan_objmgr_global_obj.h>
@@ -36,6 +37,7 @@
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
 #include "cfg_mlme_generic.h"
 #endif
+#include <wlan_crypto_global_def.h>
 
 /* MAX MLO dev support */
 #ifndef WLAN_UMAC_MLO_MAX_VDEVS
@@ -1165,6 +1167,179 @@ enum mlo_peer_state {
 	ML_PEER_DISCONN_INITIATED,
 };
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+enum mlrecfg_op_type {
+	MLRECFG_DEL_LINK_OP,
+	MLRECFG_ADD_LINK_OP,
+	MLRECFG_OP_MAX,
+	MLRECFG_OP_INVALID,
+};
+
+struct recfg_op {
+	enum mlrecfg_op_type op_type;
+	int link;
+	struct qdf_mac_addr link_mac;
+	uint16_t status;
+};
+
+struct mlrecfg_op_cont {
+	int total_num_ops;
+	struct recfg_op op[MAX_MLO_LINK_PEERS];
+	struct recfg_op *link_to_op_map[MAX_MLO_LINK_ID + 1];
+};
+
+struct recfg_os {
+	enum mlrecfg_op_type op_type;
+	int link;
+	uint16_t status_code;
+};
+
+struct mlrecfg_os_cont {
+	int size;
+	struct recfg_os os[MAX_MLO_LINK_PEERS];
+	struct recfg_os *link_to_os_map[MAX_MLO_LINK_ID + 1];
+};
+
+enum recfg_state {
+	RECFG_S_INIT,
+	RECFG_S_HANDLE_REQ,
+	RECFG_S_CHECK_KEY_INSTALL,
+	RECFG_S_DO_KEY_INSTALL,
+	RECFG_S_RESP_AND_KEY_INSTALL_COMPL,
+	RECFG_S_PLINK_RESELECTION,
+	RECFG_S_CHECK_AUTHORIZE,
+	RECFG_S_DO_AUTHORIZE,
+	RECFG_S_CHECK_PEER_DEL,
+	RECFG_S_DO_PEER_DEL,
+	RECFG_S_COMPL,
+	RECFG_S_MAX,
+	RECFG_SS_DEFAULT,
+	RECFG_SS_VALIDATION,
+	RECFG_SS_DECLINE,
+	RECFG_SS_PROCESSING,
+	RECFG_SS_DECISION_MAKING,
+	RECFG_SS_PEER_ASSOC,
+	RECFG_SS_MAX,
+};
+
+enum recfg_ev {
+	RECFG_EV_NEW_REQ,
+	RECFG_EV_HANDLE_NEW_REQ,
+	RECFG_EV_START_VALIDATION,
+	RECFG_EV_VALIDATION_SUCCESS,
+	RECFG_EV_VALIDATION_FAILURE,
+	RECFG_EV_DECLINE_REQ,
+	RECFG_EV_START_PROCESSING,
+	RECFG_EV_ADD_LINK_STA_CMD,
+	RECFG_EV_DEL_LINK_STA_CMD,
+	RECFG_EV_PEER_CREATE_SUCCESS,
+	RECFG_EV_PEER_CREATE_FAILURE,
+	RECFG_EV_PEER_CREATE_TIMEOUT,
+	RECFG_EV_DRV_OP_RESP,
+	RECFG_EV_TGT_OP_RESP,
+	RECFG_EV_APP_OP_RESP,
+	RECFG_EV_DRV_PROCESSING_COMPL,
+	RECFG_EV_TGT_PROCESSING_COMPL,
+	RECFG_EV_APP_PROCESSING_COMPL,
+	RECFG_EV_PROCESSING_COMPL,
+	RECFG_EV_APP_RESP_FRAME,
+	RECFG_EV_START_DECISION_MAKING,
+	RECFG_EV_DECISION_MAKING_COMPL,
+	RECFG_EV_DISPATCH_PEER_ASSOC_CMD,
+	RECFG_EV_PEER_ASSOC_SUCCESS,
+	RECFG_EV_PEER_ASSOC_FAILURE,
+	RECFG_EV_PEER_ASSOC_TIMEOUT,
+	RECFG_EV_CHECK_KEY_INSTALL_REQUIRED,
+	RECFG_EV_DISPATCH_KEY_INSTALL_CMD,
+	RECFG_EV_KEY_INSTALL_SUCCESS,
+	RECFG_EV_KEY_INSTALL_FAILURE,
+	RECFG_EV_KEY_INSTALL_TIMEOUT,
+	RECFG_EV_KEY_INSTALL_COMPL,
+	RECFG_EV_DISPATCH_RESP_FRAME,
+	RECFG_EV_RESP_TX_COMPL_SUCCESS,
+	RECFG_EV_RESP_TX_COMPL_FAILURE,
+	RECFG_EV_RESP_TX_COMPL,
+	RECFG_EV_RESP_AND_KEY_INSTALL_COMPL,
+	RECFG_EV_START_PLINK_RESELECTION,
+	RECFG_EV_RESELECT_CUR_PLINK,
+	RECFG_EV_PLINK_MIGRATION_SUCCESS,
+	RECFG_EV_PLINK_MIGRATION_FAILURE,
+	RECFG_EV_SKIP_PLINK_RESELECTION,
+	RECFG_EV_PLINK_RESELECTION_COMPL,
+	RECFG_EV_CHECK_AUTHORIZE_REQUIRED,
+	RECFG_EV_DISPATCH_AUTHORIZE_CMD,
+	RECFG_EV_AUTHORIZE_COMPL,
+	RECFG_EV_CHECK_PEER_DEL_REQUIRED,
+	RECFG_EV_DISPATCH_PEER_DEL_CMD,
+	RECFG_EV_PEER_DEL_SUCCESS,
+	RECFG_EV_PEER_DEL_FAILURE,
+	RECFG_EV_PEER_DEL_TIMEOUT,
+	RECFG_EV_PEER_DEL_COMPL,
+	RECFG_EV_DRV_OP_COMPL,
+	RECFG_EV_CHECK_APP_OP_COMPL,
+	RECFG_EV_APP_OP_COMPL_SUCCESS,
+	RECFG_EV_APP_OP_COMPL_TIMEOUT,
+	RECFG_EV_APP_OP_COMPL,
+	RECFG_EV_COMPL,
+	RECFG_EV_WAIT_FOR_NEW_REQ,
+};
+
+struct key_cache {
+	bool valid;
+	struct wlan_crypto_req_key key;
+};
+
+struct recfg_sm {
+	qdf_spinlock_t sm_lock;
+	struct wlan_sm *sm;
+	enum recfg_state state;
+	enum recfg_state substate;
+	struct req *active_req;
+	qdf_bitmap(peer_assoc_resp_pending, MAX_MLO_LINK_ID + 1);
+	qdf_bitmap(key_install_resp_pending, MAX_MLO_LINK_ID + 1);
+	qdf_bitmap(peer_del_resp_pending, MAX_MLO_LINK_ID + 1);
+	qdf_bitmap(tgt_op_resp_pending, MAX_MLO_LINK_ID + 1);
+	struct mlrecfg_os_cont tgt_os_cont;
+	qdf_bitmap(drv_op_resp_pending, MAX_MLO_LINK_ID + 1);
+	struct mlrecfg_os_cont drv_os_cont;
+	qdf_bitmap(app_op_resp_pending, MAX_MLO_LINK_ID + 1);
+	struct mlrecfg_os_cont app_os_cont;
+	qdf_event_t link_create_compl[MAX_MLO_LINK_ID + 1];
+	void *app_resp_frame;
+	uint16_t app_resp_frame_len;
+	bool resp_tx_compl_pending;
+	struct mlrecfg_os_cont comb_os_cont;
+	struct key_cache ptk_cache;
+	qdf_bitmap(app_op_compl_pending, MAX_MLO_LINK_ID + 1);
+};
+
+struct recfg_cb {
+	QDF_STATUS(*resp_ready)(void *arg, uint8_t req_id,
+				void *app_resp_frame,
+				uint16_t app_resp_frame_len);
+	QDF_STATUS(*compl)(void *arg, uint8_t req_id);
+	void *arg;
+};
+
+struct recfg_mgr {
+	struct recfg_sm sm;
+	struct wlan_mlo_peer_context *mlpeer;
+	struct recfg_cb cb;
+	bool cb_registered;
+};
+
+/* Forward declaration */
+struct requestor;
+struct responder;
+
+struct mlrecfg_ctx {
+	struct requestor *remote_requestor;
+	struct responder *local_responder;
+	struct recfg_mgr *recfg_mgr;
+	bool done;
+};
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
+
 /**
  * struct mlpeer_auth_params - Deferred Auth params
  * @vdev_id:  VDEV ID
@@ -1347,6 +1522,7 @@ struct mlreconfig_setup_links_action {
  * @ref_cnt: Reference counter to avoid use after free
  * @ml_dev: MLO dev context
  * @mlpeer_state: MLO peer state
+ * @recfg_ctx: MLO setup link reconfiguration context
  * @avg_link_rssi: avg RSSI of ML peer
  * @is_nawds_ml_peer: flag to indicate if ml_peer is NAWDS configured
  * @nawds_config: eack link peer's NAWDS configuration
@@ -1388,6 +1564,9 @@ struct wlan_mlo_peer_context {
 	uint8_t primary_umac_psoc_id;
 	qdf_atomic_t ref_cnt;
 	struct wlan_mlo_dev_context *ml_dev;
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	struct mlrecfg_ctx recfg_ctx;
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 	enum mlo_peer_state mlpeer_state;
 	int8_t avg_link_rssi;
 #ifdef UMAC_SUPPORT_MLNAWDS
