@@ -209,4 +209,17 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_entry(
 			struct wlan_objmgr_pdev *pdev,
 			qdf_nbuf_t buf,
 			struct mgmt_rx_event_params *mgmt_rx_params);
+
+/**
+ * tgt_mgmt_txrx_get_frm_type() - gets mgmt frm type
+ * @mgmt_subtype: mgmt subtype
+ * @mpdu_data_ptr: pointer to mpdu data
+ *
+ * This function returns mgmt frame type of the frame
+ * based on the mgmt subtype.
+ *
+ * Return: mgmt frame type
+ */
+enum mgmt_frame_type
+tgt_mgmt_txrx_get_frm_type(uint8_t mgmt_subtype, uint8_t *mpdu_data_ptr);
 #endif
