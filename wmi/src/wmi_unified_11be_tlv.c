@@ -2611,7 +2611,7 @@ QDF_STATUS extract_mgmt_rx_ml_cu_params_tlv(wmi_unified_t wmi_handle,
 	 */
 	num_bpcc_bufp = param_tlvs->num_bpcc_bufp;
 	if (param_tlvs->num_bpcc_bufp > sizeof(cu_params->vdev_bpcc)) {
-		wmi_err("Invalid num_bpcc_bufp:%u", num_bpcc_bufp);
+		wmi_debug("Invalid num_bpcc_bufp:%u", num_bpcc_bufp);
 		return QDF_STATUS_E_INVAL;
 	}
 	qdf_mem_copy(cu_params->vdev_bpcc, param_tlvs->bpcc_bufp,
@@ -2675,7 +2675,7 @@ QDF_STATUS extract_mgmt_rx_ml_cu_params_tlv(wmi_unified_t wmi_handle,
 	 */
 	num_bpcc_bufp = param_tlvs->num_bpcc_bufp;
 	if (param_tlvs->num_bpcc_bufp > sizeof(cu_params->vdev_bpcc)) {
-		wmi_err("Invalid num_bpcc_bufp:%u", num_bpcc_bufp);
+		wmi_debug("Invalid num_bpcc_bufp:%u", num_bpcc_bufp);
 		return QDF_STATUS_E_INVAL;
 	}
 	qdf_mem_copy(cu_params->vdev_bpcc, param_tlvs->bpcc_bufp,
