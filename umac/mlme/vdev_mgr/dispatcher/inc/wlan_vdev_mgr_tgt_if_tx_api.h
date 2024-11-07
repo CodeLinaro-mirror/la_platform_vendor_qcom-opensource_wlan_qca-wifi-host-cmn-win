@@ -315,7 +315,7 @@ QDF_STATUS
 tgt_vdev_mgr_peer_delete_all_send(struct wlan_objmgr_vdev *vdev,
 				  struct peer_delete_all_params *param);
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * tgt_vdev_mgr_send_set_mac_addr() - Send set MAC address command to FW
  * @mac_addr: VDEV MAC address
@@ -330,6 +330,9 @@ QDF_STATUS tgt_vdev_mgr_send_set_mac_addr(struct qdf_mac_addr mac_addr,
 					  struct qdf_mac_addr mld_addr,
 					  struct wlan_objmgr_vdev *vdev);
 
+#endif
+
+#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
 /**
  * tgt_vdev_mgr_cdp_vdev_attach() - API to send CDP VDEV attach
  * @mlme_obj: pointer to vdev_mlme_obj

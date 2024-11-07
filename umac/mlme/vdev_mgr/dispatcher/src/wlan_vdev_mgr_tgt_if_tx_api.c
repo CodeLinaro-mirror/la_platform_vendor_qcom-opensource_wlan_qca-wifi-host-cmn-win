@@ -796,7 +796,9 @@ QDF_STATUS tgt_vdev_mgr_cdp_vdev_detach(struct vdev_mlme_obj *mlme_obj)
 
 	return QDF_STATUS_E_INVAL;
 }
+#endif
 
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS tgt_vdev_mgr_send_set_mac_addr(struct qdf_mac_addr mac_addr,
 					  struct qdf_mac_addr mld_addr,
 					  struct wlan_objmgr_vdev *vdev)

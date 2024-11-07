@@ -5521,7 +5521,7 @@ typedef enum {
 #endif
 	wmi_pdev_fips_extend_event_id,
 	wmi_roam_frame_event_id,
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	wmi_vdev_update_mac_addr_conf_eventid,
 #endif
 #ifdef WLAN_FEATURE_11BE_MLO
@@ -10385,7 +10385,7 @@ struct set_mec_timer_params {
 };
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * struct set_mac_addr_params - Set MAC address command parameter
  * @vdev_id: vdev id

@@ -251,7 +251,7 @@ static inline uint32_t vdev_mgr_fetch_ratecode(struct vdev_mlme_obj *mlme_obj)
 }
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * vdev_mgr_send_set_mac_addr() - Send set MAC address command to FW
  * @mac_addr: VDEV MAC address

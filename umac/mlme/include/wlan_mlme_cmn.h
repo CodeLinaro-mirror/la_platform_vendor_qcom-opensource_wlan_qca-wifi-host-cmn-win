@@ -173,7 +173,7 @@ struct mlme_cm_ops {
  *                                            complete to osif
  */
 struct mlme_vdev_mgr_ops {
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	QDF_STATUS (*mlme_vdev_mgr_set_mac_addr_response)(uint8_t vdev_id,
 							  uint8_t resp_status);
 #endif
@@ -408,7 +408,7 @@ struct mlme_ext_ops {
 				struct wlan_cm_vdev_reassoc_req *req);
 	QDF_STATUS (*mlme_psoc_ext_hdl_enable)(struct wlan_objmgr_psoc *psoc);
 	QDF_STATUS (*mlme_psoc_ext_hdl_disable)(struct wlan_objmgr_psoc *psoc);
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	QDF_STATUS (*mlme_vdev_send_set_mac_addr)(
 						struct qdf_mac_addr mac_addr,
 						struct qdf_mac_addr mld_addr,
@@ -1147,7 +1147,7 @@ bool mlme_max_chan_switch_is_set(struct wlan_objmgr_psoc *psoc);
  */
 void mlme_send_scan_done_complete_cb(uint8_t vdev_id);
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * mlme_vdev_ops_send_set_mac_address() - Send set MAC address request to FW
  * @mac_addr: VDEV MAC address

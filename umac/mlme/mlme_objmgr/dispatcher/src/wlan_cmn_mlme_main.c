@@ -755,7 +755,7 @@ void mlme_set_osif_vdev_mgr_cb(
 	glbl_vdev_mgr_ops_cb = mlme_vdev_mgr_osif_ops;
 }
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS mlme_vdev_ops_send_set_mac_address(struct qdf_mac_addr mac_addr,
 					      struct qdf_mac_addr mld_addr,
 					      struct wlan_objmgr_vdev *vdev)

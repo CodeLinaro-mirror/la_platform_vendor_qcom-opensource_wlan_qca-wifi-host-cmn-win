@@ -1107,14 +1107,16 @@ QDF_STATUS vdev_mgr_peer_delete_all_send(struct vdev_mlme_obj *mlme_obj)
 	return status;
 }
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS vdev_mgr_send_set_mac_addr(struct qdf_mac_addr mac_addr,
 				      struct qdf_mac_addr mld_addr,
 				      struct wlan_objmgr_vdev *vdev)
 {
 	return tgt_vdev_mgr_send_set_mac_addr(mac_addr, mld_addr, vdev);
 }
+#endif
 
+#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
 QDF_STATUS vdev_mgr_cdp_vdev_attach(struct vdev_mlme_obj *mlme_obj)
 {
 	return tgt_vdev_mgr_cdp_vdev_attach(mlme_obj);

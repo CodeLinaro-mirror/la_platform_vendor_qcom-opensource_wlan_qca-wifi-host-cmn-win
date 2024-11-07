@@ -95,6 +95,11 @@
 #include <wlan_wifi_radar_utils_api.h>
 #endif
 
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+#include <wlan_osif_request_manager.h>
+#include <osif_vdev_mgr_util.h>
+#endif
+
 /**
  * DOC: This file provides various init/deinit trigger point for new
  * components.
@@ -1208,6 +1213,11 @@ QDF_STATUS dispatcher_init(void)
 	if (QDF_STATUS_SUCCESS != dispatcher_coap_init())
 		goto coap_init_fail;
 
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+	if (QDF_STATUS_SUCCESS != osif_request_manager_init())
+		goto osif_request_manager_init_fail;
+#endif
+
 	/*
 	 * scheduler INIT has to be the last as each component's
 	 * initialization has to happen first and then at the end
@@ -1219,6 +1229,10 @@ QDF_STATUS dispatcher_init(void)
 	return QDF_STATUS_SUCCESS;
 
 scheduler_init_fail:
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+	osif_request_manager_deinit();
+osif_request_manager_init_fail:
+#endif
 	dispatcher_coap_deinit();
 coap_init_fail:
 	dispatcher_twt_deinit();
@@ -1291,6 +1305,11 @@ QDF_STATUS dispatcher_deinit(void)
 	QDF_STATUS status;
 
 	QDF_BUG(QDF_STATUS_SUCCESS == scheduler_deinit());
+
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+	osif_vdev_mgr_reset_legacy_cb();
+	QDF_BUG(QDF_STATUS_SUCCESS == osif_request_manager_deinit());
+#endif
 
 	QDF_BUG(QDF_STATUS_SUCCESS == dispatcher_coap_deinit());
 

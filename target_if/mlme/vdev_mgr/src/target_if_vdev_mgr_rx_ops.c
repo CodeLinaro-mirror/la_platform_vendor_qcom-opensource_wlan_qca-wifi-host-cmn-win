@@ -104,12 +104,36 @@ target_if_vdev_mgr_mac_addr_rsp_timeout(struct wlan_objmgr_psoc *psoc,
 	rx_ops->vdev_mgr_set_mac_addr_response(vdev, -EAGAIN);
 	wlan_objmgr_vdev_release_ref(vdev, WLAN_VDEV_TARGET_IF_ID);
 }
-#else
+#elif defined(ENABLE_CFG80211_BACKPORTS_MLO)
 static inline void
 target_if_vdev_mgr_mac_addr_rsp_timeout(struct wlan_objmgr_psoc *psoc,
 					struct vdev_response_timer *vdev_rsp,
 					uint8_t vdev_id)
 {
+	uint16_t rsp_pos;
+	struct wlan_objmgr_vdev *vdev;
+	enum qdf_hang_reason recovery_reason;
+	struct wlan_lmac_if_mlme_rx_ops *rx_ops;
+
+	rx_ops = target_if_vdev_mgr_get_rx_ops(psoc);
+	if (!rx_ops) {
+		mlme_err("No Rx Ops");
+		return;
+	}
+
+	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, vdev_id,
+						    WLAN_VDEV_TARGET_IF_ID);
+	if (!vdev) {
+		mlme_err("Invalid vdev %d", vdev_id);
+		return;
+	}
+
+	rsp_pos = UPDATE_MAC_ADDR_RESPONSE_BIT;
+	recovery_reason = QDF_VDEV_MAC_ADDR_UPDATE_RESPONSE_TIMED_OUT;
+	target_if_vdev_mgr_rsp_timer_stop(psoc, vdev_rsp, rsp_pos);
+	target_if_vdev_mgr_handle_recovery(psoc, vdev_id,
+					   recovery_reason, rsp_pos);
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_VDEV_TARGET_IF_ID);
 }
 #endif
 
@@ -1138,6 +1162,93 @@ out:
 	wlan_objmgr_vdev_release_ref(vdev, WLAN_VDEV_TARGET_IF_ID);
 	return ret;
 }
+#elif defined(ENABLE_CFG80211_BACKPORTS_MLO)
+/**
+ * target_if_update_macaddr_conf_evt_handler() - Set MAC address confirmation
+ *                                               event handler
+ * @scn: Pointer to scn structure
+ * @event_buff: event data
+ * @len: length
+ *
+ * Response handler for set MAC address request command.
+ *
+ * Return: 0 for success or error code
+ */
+static int target_if_update_macaddr_conf_evt_handler(ol_scn_t scn,
+						     uint8_t *event_buff,
+						     uint32_t len)
+{
+	int8_t ret;
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_objmgr_vdev *vdev;
+	struct wmi_unified *wmi_handle;
+	uint8_t vdev_id, resp_status;
+	QDF_STATUS status;
+	struct wlan_lmac_if_mlme_rx_ops *rx_ops;
+	struct vdev_response_timer *vdev_rsp;
+
+	if (!event_buff) {
+		qdf_err("Received NULL event ptr from FW");
+		return -EINVAL;
+	}
+
+	psoc = target_if_get_psoc_from_scn_hdl(scn);
+	if (!psoc) {
+		qdf_err("PSOC is NULL");
+		return -EINVAL;
+	}
+
+	wmi_handle = get_wmi_unified_hdl_from_psoc(psoc);
+	if (!wmi_handle) {
+		qdf_err("wmi_handle is null");
+		return -EINVAL;
+	}
+
+	status = wmi_extract_update_mac_address_event(wmi_handle, event_buff,
+						      &vdev_id, &resp_status);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		qdf_err("Failed to extract update MAC address event");
+		return -EINVAL;
+	}
+
+	rx_ops = target_if_vdev_mgr_get_rx_ops(psoc);
+	if (!rx_ops || !rx_ops->vdev_mgr_set_mac_addr_response) {
+		qdf_err("No Rx Ops");
+		return -EINVAL;
+	}
+
+	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, vdev_id,
+						    WLAN_VDEV_TARGET_IF_ID);
+	if (!vdev) {
+		qdf_err("VDEV NULL");
+		return -EINVAL;
+	}
+
+	vdev_rsp = rx_ops->psoc_get_vdev_response_timer_info(psoc, vdev_id);
+	if (!vdev_rsp) {
+		qdf_err("vdev response timer is null VDEV_%d PSOC_%d",
+			 vdev_id, wlan_psoc_get_id(psoc));
+		ret = -EINVAL;
+		goto out;
+	}
+
+	status =
+		target_if_vdev_mgr_rsp_timer_stop(psoc, vdev_rsp,
+						  UPDATE_MAC_ADDR_RESPONSE_BIT);
+
+	ret = qdf_status_to_os_return(status);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		qdf_err("PSOC_%d VDEV_%d: VDE MGR RSP Timer stop failed",
+			 wlan_psoc_get_id(psoc), vdev_id);
+		goto out;
+	}
+
+	rx_ops->vdev_mgr_set_mac_addr_response(vdev, resp_status);
+out:
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_VDEV_TARGET_IF_ID);
+	return ret;
+}
+#endif
 
 static inline void
 target_if_register_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
@@ -1153,17 +1264,6 @@ target_if_unregister_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
 	wmi_unified_unregister_event_handler(
 			wmi_handle, wmi_vdev_update_mac_addr_conf_eventid);
 }
-#else
-static inline void
-target_if_register_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
-{
-}
-
-static inline void
-target_if_unregister_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
-{
-}
-#endif
 
 #ifdef WLAN_FEATURE_11BE_MLO
 /**

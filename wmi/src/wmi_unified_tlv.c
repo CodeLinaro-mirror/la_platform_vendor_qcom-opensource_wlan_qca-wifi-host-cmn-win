@@ -22211,7 +22211,7 @@ send_set_halphy_cal_tlv(wmi_unified_t wmi_handle,
 	return ret;
 }
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * send_set_mac_address_cmd_tlv() - send set MAC address command to fw
  * @wmi: wmi handle
@@ -22241,7 +22241,7 @@ send_set_mac_address_cmd_tlv(wmi_unified_t wmi,
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->mac_addr.bytes, &cmd->vdev_macaddr);
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->mld_addr.bytes, &cmd->mld_macaddr);
 
-	wmi_debug("vdev %d mac_addr " QDF_MAC_ADDR_FMT " mld_addr "
+	wmi_err("vdev %d mac_addr " QDF_MAC_ADDR_FMT " mld_addr "
 		  QDF_MAC_ADDR_FMT, cmd->vdev_id,
 		  QDF_MAC_ADDR_REF(params->mac_addr.bytes),
 		  QDF_MAC_ADDR_REF(params->mld_addr.bytes));
@@ -22278,6 +22278,7 @@ static QDF_STATUS extract_update_mac_address_event_tlv(
 
 	*vdev_id = event->vdev_id;
 	*status = event->status;
+	wmi_err("vdev_id: %d status: %d\n", event->vdev_id, event->status);
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -23282,7 +23283,7 @@ struct wmi_ops tlv_ops =  {
 	.send_roam_set_param_cmd = send_roam_set_param_cmd_tlv,
 #endif /* WLAN_FEATURE_ROAM_OFFLOAD */
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	.send_set_mac_address_cmd = send_set_mac_address_cmd_tlv,
 	.extract_update_mac_address_event =
 					extract_update_mac_address_event_tlv,
@@ -23827,7 +23828,7 @@ static void populate_tlv_events_id(WMI_EVT_ID *event_ids)
 	populate_tlv_events_id_mlo(event_ids);
 	event_ids[wmi_roam_frame_event_id] =
 				WMI_ROAM_FRAME_EVENTID;
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	event_ids[wmi_vdev_update_mac_addr_conf_eventid] =
 			WMI_VDEV_UPDATE_MAC_ADDR_CONF_EVENTID;
 #endif

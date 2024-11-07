@@ -381,6 +381,9 @@ struct wlan_objmgr_vdev_mlme {
 	uint8_t  macaddr[QDF_MAC_ADDR_SIZE];
 	uint8_t  mldaddr[QDF_MAC_ADDR_SIZE];
 	uint8_t  linkaddr[QDF_MAC_ADDR_SIZE];
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+	void *set_mac_addr_req_ctx;
+#endif
 #ifdef WLAN_FEATURE_11BE_MLO
 	bool epcs_enable;
 	uint8_t  mlo_link_id;
@@ -1075,6 +1078,14 @@ static inline uint8_t *wlan_vdev_mlme_get_mataddr(struct wlan_objmgr_vdev *vdev)
 	/* This API is invoked with lock acquired, do not add log prints */
 	return vdev->vdev_mlme.mataddr;
 }
+
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+static inline void wlan_vdev_set_mac_addr_req_ctx(struct wlan_objmgr_vdev *vdev,
+						  void *req_ctx)
+{
+	vdev->vdev_mlme.set_mac_addr_req_ctx = req_ctx;
+}
+#endif
 
 /**
  * wlan_vdev_get_id() - get vdev id

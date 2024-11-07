@@ -215,7 +215,7 @@ QDF_STATUS wlan_mlme_psoc_enable(struct wlan_objmgr_psoc *psoc);
  */
 QDF_STATUS wlan_mlme_psoc_disable(struct wlan_objmgr_psoc *psoc);
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * wlan_vdev_mlme_send_set_mac_addr() - Send set MAC address command to FW
  * @mac_addr: VDEV MAC address
@@ -227,7 +227,9 @@ QDF_STATUS wlan_mlme_psoc_disable(struct wlan_objmgr_psoc *psoc);
 QDF_STATUS wlan_vdev_mlme_send_set_mac_addr(struct qdf_mac_addr mac_addr,
 					    struct qdf_mac_addr mld_addr,
 					    struct wlan_objmgr_vdev *vdev);
+#endif
 
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 /**
  * wlan_vdev_mlme_notify_set_mac_addr_response() - Notify FW set mac address
  * response.

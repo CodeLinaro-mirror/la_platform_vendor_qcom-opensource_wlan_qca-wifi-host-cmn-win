@@ -1418,7 +1418,64 @@ send_req:
 
 	return wmi_unified_send_set_mac_addr(wmi_handle, &params);
 }
+#elif defined(ENABLE_CFG80211_BACKPORTS_MLO)
+static QDF_STATUS
+target_if_vdev_mgr_set_mac_address_send(struct qdf_mac_addr mac_addr,
+					struct qdf_mac_addr mld_addr,
+					struct wlan_objmgr_vdev *vdev)
+{
+	QDF_STATUS status;
+	struct wlan_objmgr_psoc *psoc;
+	struct vdev_response_timer *vdev_rsp;
+	struct wlan_lmac_if_mlme_rx_ops *rx_ops;
+	struct set_mac_addr_params params = {0};
+	struct wmi_unified *wmi_handle;
+	uint8_t vdev_id = wlan_vdev_get_id(vdev);
 
+	wmi_handle = target_if_vdev_mgr_wmi_handle_get(vdev);
+	if (!wmi_handle) {
+		mlme_err("Failed to get WMI handle!");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	psoc = wlan_vdev_get_psoc(vdev);
+	if (!psoc) {
+		mlme_err("PSOC NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	rx_ops = target_if_vdev_mgr_get_rx_ops(psoc);
+	if (!rx_ops || !rx_ops->psoc_get_vdev_response_timer_info) {
+		mlme_err("VDEV_%d: PSOC_%d No Rx Ops", vdev_id,
+			 wlan_psoc_get_id(psoc));
+		return QDF_STATUS_E_INVAL;
+	}
+
+	vdev_rsp = rx_ops->psoc_get_vdev_response_timer_info(psoc, vdev_id);
+	if (!vdev_rsp) {
+		mlme_err("VDEV_%d: PSOC_%d No vdev rsp timer", vdev_id,
+			 wlan_psoc_get_id(psoc));
+		return QDF_STATUS_E_INVAL;
+	}
+
+	vdev_rsp->expire_time = WLAN_SET_MAC_ADDR_TIMEOUT;
+	status = target_if_vdev_mgr_rsp_timer_start(psoc, vdev_rsp,
+						    UPDATE_MAC_ADDR_RESPONSE_BIT);
+
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlme_err("Start VDEV response timer failed");
+		return status;
+	}
+
+	params.vdev_id = vdev_id;
+	params.mac_addr = mac_addr;
+	params.mld_addr = mld_addr;
+
+	return wmi_unified_send_set_mac_addr(wmi_handle, &params);
+}
+#endif
+
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 static void target_if_vdev_register_set_mac_address(
 		struct wlan_lmac_if_mlme_tx_ops *mlme_tx_ops)
 {

@@ -333,14 +333,16 @@ QDF_STATUS wlan_vdev_mlme_deinit(void)
 	return QDF_STATUS_SUCCESS;
 }
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 QDF_STATUS wlan_vdev_mlme_send_set_mac_addr(struct qdf_mac_addr mac_addr,
 					    struct qdf_mac_addr mld_addr,
 					    struct wlan_objmgr_vdev *vdev)
 {
 	return mlme_vdev_ops_send_set_mac_address(mac_addr, mld_addr, vdev);
 }
+#endif
 
+#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
 void wlan_vdev_mlme_notify_set_mac_addr_response(struct wlan_objmgr_vdev *vdev,
 						 uint8_t resp_status)
 {
@@ -354,6 +356,13 @@ void wlan_vdev_mlme_notify_set_mac_addr_response(struct wlan_objmgr_vdev *vdev,
 		return;
 	}
 
+	mlme_vdev_mgr_notify_set_mac_addr_response(wlan_vdev_get_id(vdev),
+						   resp_status);
+}
+#elif defined(ENABLE_CFG80211_BACKPORTS_MLO)
+void wlan_vdev_mlme_notify_set_mac_addr_response(struct wlan_objmgr_vdev *vdev,
+						 uint8_t resp_status)
+{
 	mlme_vdev_mgr_notify_set_mac_addr_response(wlan_vdev_get_id(vdev),
 						   resp_status);
 }

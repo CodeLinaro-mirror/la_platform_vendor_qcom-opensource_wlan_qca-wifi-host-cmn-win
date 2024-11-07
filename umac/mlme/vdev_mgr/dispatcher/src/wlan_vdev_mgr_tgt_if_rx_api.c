@@ -268,7 +268,7 @@ tgt_psoc_reg_wakelock_info_rx_op(struct wlan_lmac_if_mlme_rx_ops
 }
 #endif
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 static inline void tgt_vdev_mgr_reg_set_mac_address_response(
 				struct wlan_lmac_if_mlme_rx_ops *mlme_rx_ops)
 {

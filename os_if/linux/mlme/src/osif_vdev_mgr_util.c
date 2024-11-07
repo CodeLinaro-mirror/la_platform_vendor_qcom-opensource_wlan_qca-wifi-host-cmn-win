@@ -26,7 +26,13 @@
 
 static struct osif_vdev_mgr_ops *osif_vdev_mgr_legacy_ops;
 
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#ifdef ENABLE_CFG80211_BACKPORTS_MLO
+struct osif_vdev_mgr_ops osif_vdev_mgrlegacy_ops = {
+	.osif_vdev_mgr_set_mac_addr_response = osif_set_mac_addr_event_cb,
+};
+#endif
+
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 static QDF_STATUS osif_vdev_mgr_set_mac_addr_response(uint8_t vdev_id,
 						      uint8_t resp_status)
 {
@@ -56,7 +62,7 @@ struct wireless_dev *osif_vdev_mgr_get_p2p_wdev(void)
 }
 
 static struct mlme_vdev_mgr_ops vdev_mgr_ops = {
-#ifdef WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 	.mlme_vdev_mgr_set_mac_addr_response =
 					osif_vdev_mgr_set_mac_addr_response,
 #endif
