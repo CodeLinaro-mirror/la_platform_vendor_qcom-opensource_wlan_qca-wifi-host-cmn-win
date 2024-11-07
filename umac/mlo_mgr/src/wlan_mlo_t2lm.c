@@ -1711,7 +1711,7 @@ QDF_STATUS wlan_mlo_parse_t2lm_ie(
 					     &t2lm_info,
 					     sizeof(struct wlan_t2lm_info));
 			} else {
-				t2lm_err("Failed to parse the T2LM IE");
+				t2lm_debug("Failed to parse the T2LM IE");
 				return retval;
 			}
 			ie += ext_ie_hdr->ie_len + sizeof(struct ie_header);
