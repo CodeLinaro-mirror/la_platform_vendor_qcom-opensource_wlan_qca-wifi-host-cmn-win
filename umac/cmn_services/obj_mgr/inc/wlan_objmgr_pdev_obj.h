@@ -211,6 +211,7 @@ struct wlan_beacon_process {
  * @wlan_peer_count:   Peer count
  * @max_peer_count:    Max Peer count
  * @temp_peer_count:   Temporary peer count
+ * @max_num_ml_peers:  Max ML Peer Count
  * @max_monitor_vdev_count: Max monitor vdev count
  * @max_bridge_vdev_count: Max bridge vdev count
  * @wlan_psoc:         back pointer to PSOC, its attached to
@@ -229,6 +230,7 @@ struct wlan_objmgr_pdev_objmgr {
 	uint16_t wlan_peer_count;
 	uint16_t max_peer_count;
 	uint16_t temp_peer_count;
+	uint32_t max_num_ml_peers;
 	uint8_t max_monitor_vdev_count;
 	uint8_t max_bridge_vdev_count;
 	struct wlan_objmgr_psoc *wlan_psoc;
@@ -931,6 +933,42 @@ static inline uint8_t wlan_pdev_get_max_vdev_count(
 					struct wlan_objmgr_pdev *pdev)
 {
 	return pdev->pdev_objmgr.max_vdev_count;
+}
+
+/**
+ * wlan_pdev_set_max_num_ml_peers() - Set PDEV Max ML Peers from PSOC Cap
+ * @pdev: PDEV Object
+ * @max_psoc_num_ml_peers: Max number of ML Peers for the PSOC
+ *
+ * API to set Maximum Number of ML peers to PDEV
+ *
+ * Return: Success on successful assignment of max ML peers to PDEV
+ */
+static inline
+QDF_STATUS wlan_pdev_set_max_num_ml_peers(struct wlan_objmgr_pdev *pdev,
+					  uint32_t max_psoc_num_ml_peers)
+{
+	pdev->pdev_objmgr.max_num_ml_peers = max_psoc_num_ml_peers;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * wlan_pdev_get_max_num_ml_peers() - Get PDEV Max ML Peer count
+ * @pdev: PDEV Object
+ *
+ * API to get Max PDEV ML Peer Count
+ *
+ * Return: @max_num_ml_peers: Max ML peer count
+ */
+static inline uint32_t wlan_pdev_get_max_num_ml_peers(
+					struct wlan_objmgr_pdev *pdev)
+{
+	struct wlan_objmgr_pdev_objmgr *pdev_objmgr = NULL;
+
+	pdev_objmgr = &pdev->pdev_objmgr;
+
+	return pdev_objmgr->max_num_ml_peers;
 }
 
 /**

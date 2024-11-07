@@ -29,12 +29,14 @@
  * @pdev_id: pdev id of radio on which this command is sent
  * @num_valid_hw_links: Num of valid links in partner_links array
  * @partner_links[MAX_LINK_IN_MLO]: Partner link IDs
+ * @max_num_ml_peers: Max ML peer count for the MLD
  */
 struct wmi_mlo_setup_params {
 	uint32_t mld_grp_id;
 	uint32_t pdev_id;
 	uint8_t num_valid_hw_links;
 	uint32_t partner_links[MAX_LINK_IN_MLO];
+	uint32_t max_num_ml_peers;
 };
 
 /** struct wmi_mlo_ready_params - MLO ready command params

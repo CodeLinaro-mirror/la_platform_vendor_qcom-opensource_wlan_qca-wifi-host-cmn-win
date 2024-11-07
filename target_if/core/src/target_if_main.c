@@ -1209,6 +1209,7 @@ static QDF_STATUS target_if_mlo_setup_send(struct wlan_objmgr_pdev *pdev,
 	wmi_unified_t wmi_handle;
 	struct wmi_mlo_setup_params params = {0};
 	uint8_t idx, num_valid_links = 0;
+	uint32_t max_num_ml_peers = 0;
 
 	wmi_handle = lmac_get_pdev_wmi_handle(pdev);
 	if (!wmi_handle)
@@ -1217,14 +1218,41 @@ static QDF_STATUS target_if_mlo_setup_send(struct wlan_objmgr_pdev *pdev,
 	params.mld_grp_id = grp_id;
 	params.pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
 
-	for (idx = 0; idx < num_links; idx++) {
-		if (pdev == pdev_list[idx])
-			continue;
-
-		params.partner_links[num_valid_links] =
-			target_if_pdev_get_hw_link_id(pdev_list[idx]);
-		num_valid_links++;
+	if (params.pdev_id >= num_links || !pdev_list[params.pdev_id]) {
+		qdf_err("Invalid pdev_id or pdev_list entry is NULL\n");
+		return QDF_STATUS_E_INVAL;
 	}
+
+	max_num_ml_peers = wlan_pdev_get_max_num_ml_peers(
+						pdev_list[params.pdev_id]);
+
+	target_if_err("Max Num ML Peers for Current PDEV: %d",
+		      max_num_ml_peers);
+
+	for (idx = 0; idx < num_links; idx++) {
+		if (!pdev_list[idx]) {
+			qdf_err("PDEV is NULL for idx: %d", idx);
+			return QDF_STATUS_E_INVAL;
+		}
+
+		if (pdev != pdev_list[idx]) {
+			params.partner_links[num_valid_links] =
+				target_if_pdev_get_hw_link_id(pdev_list[idx]);
+			num_valid_links++;
+		}
+
+		/* Assign minimum value of max peer count across partner
+		 * links
+		 */
+		if (max_num_ml_peers > wlan_pdev_get_max_num_ml_peers(
+							pdev_list[idx])) {
+			max_num_ml_peers = wlan_pdev_get_max_num_ml_peers(
+							pdev_list[idx]);
+			target_if_debug("pdev_id: %d, max_num_ml_peers: %d",
+					idx, max_num_ml_peers);
+		}
+	}
+	params.max_num_ml_peers = max_num_ml_peers;
 	params.num_valid_hw_links = num_valid_links;
 
 	return wmi_mlo_setup_cmd_send(wmi_handle, &params);
