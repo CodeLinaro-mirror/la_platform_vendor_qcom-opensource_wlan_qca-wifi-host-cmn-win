@@ -188,6 +188,26 @@
 
 #define STREAMFS_NUM_SUBBUF_QCA5332 255
 
+/* Max 4 users in MU case for QCA5424 */
+#define QCA5424_CFR_MU_USERS 4
+
+#define QCA5424_MAX_HEADER_LENGTH_WORDS 22
+
+#define QCA5424_MAX_DATA_LENGTH_BYTES 8192
+
+/* Max size :
+ * sizeof(csi_cfr_header) + 88 bytes(cfr header) + 8192 bytes(cfr payload)
+ * where cfr_header size = rtt upload header len + freeze_tlv len +
+ *                         uplink user setup info + alignment/reserved bytes
+ *                       = 16bytes + 32bytes + (8bytes * 4users) + 8bytes
+ */
+#define STREAMFS_MAX_SUBBUF_QCA5424 \
+	(sizeof(struct csi_cfr_header) + \
+	 (QCA5424_MAX_HEADER_LENGTH_WORDS * 4) + \
+	QCA5424_MAX_DATA_LENGTH_BYTES)
+
+#define STREAMFS_NUM_SUBBUF_QCA5424 255
+
 /* enum macrx_freeze_tlv_version: Reported by uCode in enh_dma_header
  * MACRX_FREEZE_TLV_VERSION_1: Single MU UL user info reported by MAC.
  * This is used in Cypress/HastingsPrime chips. Corresponding structures are
