@@ -1373,6 +1373,12 @@ dp_print_peer_info(struct dp_soc *soc, struct dp_peer *peer, void *arg)
 		       txrx_peer->wds_enabled,
 		       dp_monitor_is_tx_cap_enabled(peer),
 		       dp_monitor_is_rx_cap_enabled(peer));
+
+#ifdef QCA_MULTIPASS_SUPPORT
+	DP_PRINT_STATS("vlanID = %d Group keyix = %d", txrx_peer->vlan_id,
+		       (peer->vdev && peer->vdev->iv_vlan_map) ?
+		       peer->vdev->iv_vlan_map[txrx_peer->vlan_id] : 0);
+#endif
 }
 
 /**
@@ -1387,6 +1393,34 @@ static void dp_print_peer_table(struct dp_vdev *vdev)
 	dp_vdev_iterate_peer(vdev, dp_print_peer_info, NULL,
 			     DP_MOD_ID_GENERIC_STATS);
 }
+
+/**
+ * dp_print_vlan_group_idx_table() - Dump vlan- group idx table
+ * @vdev: Datapath Vdev handle
+ *
+ * Return: void
+ */
+#ifdef QCA_MULTIPASS_SUPPORT
+static void dp_print_vlan_group_idx_table(struct dp_vdev *vdev)
+{
+	int i = 0;
+
+	if (!vdev->iv_vlan_map)
+		return;
+
+	DP_PRINT_STATS("Dumping MPSK vlan ID : Group key IDX table");
+	for (i = 0; i < DP_MAX_VLAN_IDS; i++) {
+		if (vdev->iv_vlan_map[i]) {
+			DP_PRINT_STATS(" vlanID = %d Group keyix = %d",
+				       i, vdev->iv_vlan_map[i]);
+		}
+	}
+}
+#else
+
+static void dp_print_vlan_group_idx_table(struct dp_vdev *vdev) {}
+
+#endif
 
 #ifdef DP_MEM_PRE_ALLOC
 
@@ -8580,6 +8614,7 @@ dp_print_host_stats(struct dp_vdev *vdev,
 		if (soc->arch_ops.dp_mlo_print_ptnr_info)
 			soc->arch_ops.dp_mlo_print_ptnr_info(vdev);
 		dp_print_wds_hash_table(pdev->soc);
+		dp_print_vlan_group_idx_table(vdev);
 		break;
 	case TXRX_SRNG_PTR_STATS:
 		dp_print_ring_stats(pdev);
