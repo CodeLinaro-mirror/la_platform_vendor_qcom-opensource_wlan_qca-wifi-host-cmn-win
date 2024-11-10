@@ -933,6 +933,10 @@ static void mlo_peer_free(struct wlan_mlo_peer_context *ml_peer)
 	mlo_peer_free_aid(ml_dev, ml_peer);
 	mlo_peer_free_primary_umac(ml_dev, ml_peer);
 	wlan_ptqm_peer_migrate_ctx_free(ml_peer);
+	if (ml_peer->assoc_wbuf) {
+		qdf_nbuf_free(ml_peer->assoc_wbuf);
+		ml_peer->assoc_wbuf = NULL;
+	}
 	qdf_mem_free(ml_peer);
 }
 
@@ -1738,6 +1742,7 @@ QDF_STATUS wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 		ml_peer->migrate_primary_umac_psoc_id =
 						ML_PRIMARY_UMAC_ID_INVAL;
 		ml_peer->primary_umac_migration_in_progress = false;
+		ml_peer->assoc_wbuf = NULL;
 
 		ml_peer->mlo_peer_id = mlo_ap_ml_peerid_alloc();
 		if (ml_peer->mlo_peer_id == MLO_INVALID_PEER_ID) {

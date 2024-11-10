@@ -1311,6 +1311,7 @@ enum mlreconfig_operation_type {
  * @ttlm_sm: TTLM state machine
  * @ttlm_request_timer: TTLM request timer
  * @peer_ptqm_migrate_ctx: PTQM migration peer context
+ * @assoc_wbuf: Cached link specific association request
  */
 struct wlan_mlo_peer_context {
 	qdf_list_node_t peer_node;
@@ -1361,6 +1362,7 @@ struct wlan_mlo_peer_context {
 #ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
 	struct ptqm_migrate_peer_context *peer_ptqm_migrate_ctx;
 #endif
+	qdf_nbuf_t assoc_wbuf;
 };
 
 /**

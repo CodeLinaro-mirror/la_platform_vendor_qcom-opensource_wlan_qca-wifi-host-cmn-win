@@ -3227,20 +3227,160 @@ mem_free:
 	return ret;
 }
 
+static QDF_STATUS
+util_append_ie_reconfig_req(enum element_ie eid,
+			    uint8_t *dest_frame,
+			    qdf_size_t dest_frame_maxsize,
+			    qdf_size_t *dest_frame_len,
+			    uint8_t *src_frame,
+			    qdf_size_t src_frame_len)
+{
+	/* Helper API to an append IE missing to reconfig request frame (dest
+	 * frame) from cached assoc request buffer (src frame)
+	 */
+
+	/* Pointer to the IE section that occurs after the fixed fields in the
+	 * original src frame.
+	 */
+	uint8_t *frame_iesection;
+	/* Offset to the start of the IE section in the original src frame.
+	 */
+	qdf_size_t frame_iesection_offset;
+	/* Total length of the IE section in the original src frame.
+	 */
+	qdf_size_t frame_iesection_len;
+	/* Current position in the destination frame being to which IE is
+	 * appended.
+	 */
+	uint8_t *dest_frame_currpos;
+	/* Current length of the destination frame
+	 */
+	qdf_size_t dest_frame_currlen;
+
+	/* Pointer to IE for reporting STA */
+	const uint8_t *reportingsta_ie;
+	/* Total size of IE for reporting STA, inclusive of the element header
+	 */
+	qdf_size_t reportingsta_ie_size;
+	QDF_STATUS ret;
+
+	/* To do: Add cases if other subtype frames would be used*/
+	frame_iesection_offset = WLAN_ASSOC_REQ_IES_OFFSET;
+
+	if (src_frame_len < frame_iesection_offset) {
+		mlo_err("Frame length %zu is smaller than the IE section offset %zu",
+			src_frame_len, frame_iesection_offset);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	frame_iesection_len = src_frame_len - frame_iesection_offset;
+
+	if (frame_iesection_len == 0) {
+		mlo_err("No space left in frame for IE section");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	frame_iesection = src_frame + frame_iesection_offset;
+
+	reportingsta_ie = util_find_eid(eid, frame_iesection,
+					frame_iesection_len);
+
+	if (!reportingsta_ie) {
+		mlo_err_rl("IE element not found in src frame.");
+		return QDF_STATUS_E_PROTO;
+	}
+
+	ret = util_validate_reportingsta_ie(reportingsta_ie, frame_iesection,
+					    frame_iesection_len);
+
+	if (QDF_IS_STATUS_ERROR(ret))
+		return QDF_STATUS_E_INVAL;
+
+	reportingsta_ie_size = reportingsta_ie[TAG_LEN_POS] + MIN_IE_LEN;
+
+	dest_frame_currlen = *dest_frame_len;
+	dest_frame_currpos = dest_frame + dest_frame_currlen;
+	if ((dest_frame_maxsize - dest_frame_currlen) <
+			reportingsta_ie_size) {
+		mlo_err("Insufficient space in destination frame for appending IE %u field. Required: %zu octets, available: %zu octets",
+			eid,
+			reportingsta_ie_size,
+			(dest_frame_maxsize - dest_frame_currlen));
+
+		return QDF_STATUS_E_NOMEM;
+	}
+
+	qdf_mem_copy(dest_frame_currpos, reportingsta_ie,
+		     reportingsta_ie_size);
+	dest_frame_currpos += reportingsta_ie_size;
+	dest_frame_currlen += reportingsta_ie_size;
+
+	*dest_frame_len = dest_frame_currlen;
+	return QDF_STATUS_SUCCESS;
+}
+
 QDF_STATUS
 util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
 				   uint8_t link_id,
 				   struct qdf_mac_addr link_addr,
 				   uint8_t *link_frame,
 				   qdf_size_t link_frame_maxsize,
-				   qdf_size_t *link_frame_len)
+				   qdf_size_t *link_frame_len,
+				   uint8_t *assoc_frame,
+				   qdf_size_t assoc_frame_len)
 {
-	return util_gen_link_reqrsp_cmn(frame, frame_len,
-			WLAN_FC0_STYPE_ACTION,
-			link_id, link_addr, NULL, link_frame,
-			link_frame_maxsize, link_frame_len);
-}
+	QDF_STATUS status;
 
+	status = util_gen_link_reqrsp_cmn(frame, frame_len,
+					  WLAN_FC0_STYPE_ACTION,
+					  link_id, link_addr, NULL, link_frame,
+					  link_frame_maxsize, link_frame_len);
+
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_err("Failure to generate link specific assoc req");
+		return status;
+	}
+
+	/* Append IEs missing from action frame from cached assoc request
+	 * buffer to generate link specific assoc request
+	 */
+	status = util_append_ie_reconfig_req(WLAN_ELEMID_SSID,
+					     link_frame,
+					     link_frame_maxsize,
+					     link_frame_len,
+					     assoc_frame,
+					     assoc_frame_len);
+
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_err("Failure to append SSID to link specific assoc req");
+		return status;
+	}
+
+	status = util_append_ie_reconfig_req(WLAN_ELEMID_RSN,
+					     link_frame,
+					     link_frame_maxsize,
+					     link_frame_len,
+					     assoc_frame,
+					     assoc_frame_len);
+
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_err("Failure to append RSN IE to link specific assoc req");
+		return status;
+	}
+
+	status = util_append_ie_reconfig_req(WLAN_ELEMID_RSNXE,
+					     link_frame,
+					     link_frame_maxsize,
+					     link_frame_len,
+					     assoc_frame,
+					     assoc_frame_len);
+
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_err("Failure to append RSNXE IE to link specific assoc req");
+		return status;
+	}
+	return QDF_STATUS_SUCCESS;
+}
 
 QDF_STATUS
 util_gen_link_assoc_req(uint8_t *frame, qdf_size_t frame_len, bool isreassoc,
