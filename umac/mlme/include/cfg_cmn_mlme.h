@@ -128,10 +128,38 @@
 	CFG_VALUE_OR_DEFAULT, \
 	"MLO reconfig reassoc is supported by target")
 
+/*
+ * <ini>
+ * mlme_link_reconfig_supported- Flag for Setup Link Reconfiguration
+ * supported
+ * @Min: false
+ * @Max: true
+ * @Default: false
+ *
+ * This flag when set to true enables Add/Delete a link to the ML Setup
+ * of a non-AP MLD and support for recommendation for ML reconfiguration
+ * to the ML setup of a non-AP MLD
+ *
+ * Related: None
+ *
+ * Supported Feature: 11be MLO Reconfig
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_MLME_MLO_LINK_RECONFIG_SUPPORTED CFG_INI_UINT( \
+	"mlme_mlo_link_reconfig_supported",\
+	0, 1, 0, \
+	CFG_VALUE_OR_DEFAULT, \
+	"Link reconfiguration to the setup links supported")
+
+
 #define CFG_CMN_MLME_ALL \
 	CFG(CFG_MLME_MAX_CHAN_SWITCH_IE_ENABLE) \
 	CFG(CFG_MLME_11BE_TARGET_CAPAB) \
 	CFG(CFG_MLME_MLO_RECONFIG_REASSOC_ENABLE) \
+	CFG(CFG_MLME_MLO_LINK_RECONFIG_SUPPORTED) \
 	CFG_MLME_11BE_ALL
 
 #endif /* __CFG_CMN_MLME_H */

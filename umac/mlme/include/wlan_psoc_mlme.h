@@ -77,9 +77,11 @@ struct psoc_phy_config {
 /**
  * struct psoc_mlo_config - psoc mlo config
  * @reconfig_reassoc_en: If reassoc on ML reconfig AP addition is enabled
+ * @link_reconfig_supported: If link reconfiguration is supported
  */
 struct psoc_mlo_config {
-	uint8_t reconfig_reassoc_en;
+	uint8_t reconfig_reassoc_en:1,
+		link_reconfig_supported:1;
 };
 
 /**
