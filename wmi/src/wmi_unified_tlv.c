@@ -2138,6 +2138,19 @@ static QDF_STATUS send_peer_param_cmd_tlv(wmi_unified_t wmi,
 	return 0;
 }
 
+#ifdef WLAN_FEATURE_VBSS
+static void set_vdev_up_flag(wmi_vdev_up_cmd_fixed_param *cmd,
+			     struct vdev_up_params *params)
+{
+	cmd->flags = params->flags;
+}
+#else
+static void set_vdev_up_flag(wmi_vdev_up_cmd_fixed_param *cmd,
+			     struct vdev_up_params *params)
+{
+}
+#endif /* WLAN_FEATURE_VBSS */
+
 /**
  * send_vdev_up_cmd_tlv() - send vdev up command in fw
  * @wmi: wmi handle
@@ -2172,6 +2185,7 @@ static QDF_STATUS send_vdev_up_cmd_tlv(wmi_unified_t wmi,
 	cmd->vdev_assoc_id = params->assoc_id;
 	cmd->profile_idx = params->profile_idx;
 	cmd->profile_num = params->profile_num;
+	set_vdev_up_flag(cmd, params);
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->trans_bssid, &cmd->trans_bssid);
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid, &cmd->vdev_bssid);
 	wmi_mtrace(WMI_VDEV_UP_CMDID, cmd->vdev_id, 0);

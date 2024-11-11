@@ -170,6 +170,10 @@
 #define WLAN_VDEV_FEXT2_20TU_PRB_RESP       0x00000008
 	/* STA VDEV is TDLS link type */
 #define WLAN_VDEV_FEXT2_MLO_STA_TDLS        0x00000010
+	/* VBSS Vap */
+#define WLAN_VDEV_FEXT2_VBSS                0x00000020
+	/* Passive VBSS Vap */
+#define WLAN_VDEV_FEXT2_VBSS_PASSIVE        0x00000040
 
 /* VDEV OP flags  */
   /* if the vap destroyed by user */
