@@ -541,7 +541,7 @@ QDF_STATUS dp_rx_mon_ppdu_info_cache_create(struct dp_pdev *pdev)
 			qdf_mem_zero(ppdu_info, sizeof(struct hal_rx_ppdu_info));
 			TAILQ_INSERT_TAIL(&mon_pdev_be->rx_mon_free_queue,
 					  ppdu_info,
-					  ppdu_free_list_elem);
+					  ppdu_list_elem);
 			mon_pdev_be->total_free_elem++;
 		}
 	}
@@ -560,10 +560,10 @@ void dp_rx_mon_ppdu_info_cache_destroy(struct dp_pdev *pdev)
 	qdf_spin_lock(&mon_pdev_be->ppdu_info_lock);
 	TAILQ_FOREACH_SAFE(ppdu_info,
 			   &mon_pdev_be->rx_mon_free_queue,
-			   ppdu_free_list_elem,
+			   ppdu_list_elem,
 			   temp_ppdu_info) {
 		TAILQ_REMOVE(&mon_pdev_be->rx_mon_free_queue,
-			     ppdu_info, ppdu_free_list_elem);
+			     ppdu_info, ppdu_list_elem);
 		if (ppdu_info) {
 			mon_pdev_be->total_free_elem--;
 			qdf_kmem_cache_free(mon_pdev_be->ppdu_info_cache,
@@ -1177,10 +1177,10 @@ dp_rx_mon_get_ppdu_info(struct dp_pdev *pdev)
 	qdf_spin_lock_bh(&mon_pdev_be->ppdu_info_lock);
 	TAILQ_FOREACH_SAFE(ppdu_info,
 			   &mon_pdev_be->rx_mon_free_queue,
-			   ppdu_free_list_elem,
+			   ppdu_list_elem,
 			   temp_ppdu_info) {
 		TAILQ_REMOVE(&mon_pdev_be->rx_mon_free_queue,
-			     ppdu_info, ppdu_free_list_elem);
+			     ppdu_info, ppdu_list_elem);
 
 		if (ppdu_info) {
 			mon_pdev_be->total_free_elem--;
@@ -1203,7 +1203,7 @@ __dp_rx_mon_free_ppdu_info(struct dp_mon_pdev *mon_pdev,
 	if (ppdu_info) {
 		qdf_mem_zero(ppdu_info, sizeof(struct hal_rx_ppdu_info));
 		TAILQ_INSERT_TAIL(&mon_pdev_be->rx_mon_free_queue, ppdu_info,
-				  ppdu_free_list_elem);
+				  ppdu_list_elem);
 		mon_pdev_be->total_free_elem++;
 	}
 	qdf_spin_unlock_bh(&mon_pdev_be->ppdu_info_lock);

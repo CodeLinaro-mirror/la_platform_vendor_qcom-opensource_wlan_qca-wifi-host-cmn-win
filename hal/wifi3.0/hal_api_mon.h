@@ -1322,8 +1322,6 @@ struct hal_rx_ppdu_info {
 	qdf_nbuf_queue_t mpdu_q[HAL_MAX_UL_MU_USERS];
 	 /* ppdu info list element */
 	TAILQ_ENTRY(hal_rx_ppdu_info) ppdu_list_elem;
-	 /* ppdu info free list element */
-	TAILQ_ENTRY(hal_rx_ppdu_info) ppdu_free_list_elem;
 	/* placeholder to track if RX_HDR is received */
 	uint8_t rx_hdr_rcvd[HAL_MAX_UL_MU_USERS];
 #endif
