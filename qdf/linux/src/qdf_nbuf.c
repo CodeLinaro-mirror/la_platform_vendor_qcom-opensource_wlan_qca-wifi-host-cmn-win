@@ -138,10 +138,6 @@ static uint32_t nbuf_tx_data[QDF_NBUF_TX_PKT_STATE_MAX];
 static qdf_atomic_t nbuf_count;
 #endif
 
-#if defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT)
-static bool is_initial_mem_debug_disabled;
-#endif
-
 /**
  *  __qdf_nbuf_get_ip_offset() - Get IPV4/V6 header offset
  * @data: Pointer to network data buffer
@@ -837,20 +833,6 @@ __qdf_nbuf_page_pool_alloc(qdf_device_t osdev, size_t size, int reserve,
 
 qdf_export_symbol(__qdf_nbuf_page_pool_alloc);
 
-#ifdef QCA_DP_TX_NBUF_LIST_FREE
-void
-__qdf_nbuf_dev_kfree_list(__qdf_nbuf_queue_head_t *nbuf_queue_head)
-{
-	dev_kfree_skb_list_fast(nbuf_queue_head);
-}
-#else
-void
-__qdf_nbuf_dev_kfree_list(__qdf_nbuf_queue_head_t *nbuf_queue_head)
-{
-}
-#endif
-
-qdf_export_symbol(__qdf_nbuf_dev_kfree_list);
 
 #ifdef NBUF_MEMORY_DEBUG
 struct qdf_nbuf_event {
@@ -4060,12 +4042,6 @@ qdf_nbuf_dev_kfree_list_debug(__qdf_nbuf_queue_head_t *nbuf_queue_head,
 			      const char *func, uint32_t line)
 {
 	qdf_nbuf_t  buf;
-
-	if (qdf_nbuf_queue_empty(nbuf_queue_head))
-		return;
-
-	if (is_initial_mem_debug_disabled)
-		return __qdf_nbuf_dev_kfree_list(nbuf_queue_head);
 
 	while ((buf = qdf_nbuf_queue_head_dequeue(nbuf_queue_head)) != NULL)
 		qdf_nbuf_free_debug(buf, func, line);

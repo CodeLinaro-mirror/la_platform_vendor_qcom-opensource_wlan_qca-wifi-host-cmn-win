@@ -242,6 +242,10 @@ enum wsc_op_code {
 
 #define EHT_USER_INFO_LEN 4
 
+#if defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT)
+extern bool is_initial_mem_debug_disabled;
+#endif
+
 /**
  * typedef qdf_nbuf_queue_t - Platform independent packet queue abstraction
  */
@@ -2558,12 +2562,26 @@ qdf_nbuf_unshare_debug(qdf_nbuf_t buf, const char *func_name,
  * Return: None
  */
 #define qdf_nbuf_dev_kfree_list(buf) \
-	qdf_nbuf_dev_kfree_list_debug(buf, __func__, __LINE__)
+	qdf_nbuf_dev_kfree_list_debug_wrapper(buf, __func__, __LINE__)
 
 void
 qdf_nbuf_dev_kfree_list_debug(qdf_nbuf_queue_head_t *nbuf_queue_head,
 			      const char *func_name,
 			      uint32_t line_num);
+
+static inline void
+qdf_nbuf_dev_kfree_list_debug_wrapper(qdf_nbuf_queue_head_t *nbuf_queue_head,
+				      const char *func_name,
+				      uint32_t line_num)
+{
+	if (qdf_nbuf_queue_empty(nbuf_queue_head))
+		return;
+
+	if (is_initial_mem_debug_disabled)
+		return __qdf_nbuf_dev_kfree_list(nbuf_queue_head);
+
+	qdf_nbuf_dev_kfree_list_debug(nbuf_queue_head, func_name, line_num);
+}
 
 #define qdf_nbuf_page_frag_alloc(d, s, r, a, p) \
 	qdf_nbuf_page_frag_alloc_debug(d, s, r, a, p, __func__, __LINE__)

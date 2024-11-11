@@ -4205,8 +4205,9 @@ dp_tx_send_exception(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
-	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
-				 TX_EXCEPTION);
+	dp_tx_update_proto_stats_wrapper(vdev, nbuf,
+					 msdu_info.tx_queue.desc_pool_id,
+					 TX_EXCEPTION);
 
 	if (qdf_unlikely(!dp_check_exc_metadata(tx_exc_metadata))) {
 		dp_tx_err("Invalid parameters in exception path");
@@ -4610,8 +4611,9 @@ qdf_nbuf_t dp_tx_send(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	dp_tx_override_flow_pool_id(soc, vdev, &msdu_info);
 
-	dp_tx_update_proto_stats(vdev, nbuf, msdu_info.tx_queue.desc_pool_id,
-				 TX_RECV_FROM_STACK);
+	dp_tx_update_proto_stats_wrapper(vdev, nbuf,
+					 msdu_info.tx_queue.desc_pool_id,
+					 TX_RECV_FROM_STACK);
 
 
 	dp_tx_get_driver_ingress_ts(vdev, &msdu_info, nbuf);

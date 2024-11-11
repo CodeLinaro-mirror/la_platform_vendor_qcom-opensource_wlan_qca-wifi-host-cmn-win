@@ -3702,6 +3702,7 @@ static inline void __qdf_nbuf_kfree(struct sk_buff *skb)
 	kfree_skb(skb);
 }
 
+#ifdef QCA_DP_TX_NBUF_LIST_FREE
 /**
  * __qdf_nbuf_dev_kfree_list() - Free nbuf list using dev based os call
  * @nbuf_queue_head: Pointer to nbuf queue head
@@ -3710,8 +3711,18 @@ static inline void __qdf_nbuf_kfree(struct sk_buff *skb)
  *
  * Return: None
  */
-void
-__qdf_nbuf_dev_kfree_list(__qdf_nbuf_queue_head_t *nbuf_queue_head);
+
+static inline void
+__qdf_nbuf_dev_kfree_list(__qdf_nbuf_queue_head_t *nbuf_queue_head)
+{
+	dev_kfree_skb_list_fast(nbuf_queue_head);
+}
+#else
+static inline void
+__qdf_nbuf_dev_kfree_list(__qdf_nbuf_queue_head_t *nbuf_queue_head)
+{
+}
+#endif
 
 /**
  * __qdf_nbuf_dev_queue_head() - queue a buffer using dev at the list head
