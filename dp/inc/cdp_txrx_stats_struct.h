@@ -1428,6 +1428,8 @@ enum cdp_peer_stats_type {
 	cdp_peer_rx_snr,
 	cdp_peer_rx_avg_rate,
 	cdp_peer_tx_avg_rate,
+	cdp_peer_rx_snr_with_offsets,
+	cdp_peer_rx_avg_snr_with_offsets,
 	/* Add enum for peer extd stats before this */
 	cdp_peer_extd_stats_max,
 	cdp_peer_stats_max = cdp_peer_extd_stats_max,
@@ -1459,6 +1461,8 @@ typedef union cdp_peer_stats_buf {
 	uint32_t rx_flags;
 	uint32_t rx_avg_snr;
 	uint32_t rx_snr;
+	uint32_t rx_avg_snr_with_offsets;
+	uint32_t rx_snr_with_offsets;
 } cdp_peer_stats_param_t; /* Max union size 16 bytes */
 
 /**
@@ -2414,6 +2418,8 @@ struct cdp_peer_tid_stats {
  * @avg_ack_rssi: Average RSSI of the acks received
  * @free_buff: free tx descriptor count
  * @rx_avg_snr: Avg Rx SNR
+ * @peer_snr_with_offsets: Current SNR of peer with all offsets compensated.
+ * @rx_avg_snr_with_offsets: Avg SNR with offsets compensated
  */
 struct cdp_interface_peer_stats {
 	uint8_t  peer_mac[QDF_MAC_ADDR_SIZE];
@@ -2431,6 +2437,8 @@ struct cdp_interface_peer_stats {
 	uint32_t avg_ack_rssi;
 	uint32_t free_buff;
 	uint32_t rx_avg_snr;
+	uint32_t peer_snr_with_offsets;
+	uint32_t rx_avg_snr_with_offsets;
 };
 
 /**

@@ -9747,6 +9747,12 @@ QDF_STATUS dp_txrx_get_peer_extd_stats_param(struct dp_peer *peer,
 	case cdp_peer_rx_snr:
 		buf->rx_snr = peer_stats->rx.snr;
 		break;
+	case cdp_peer_rx_avg_snr_with_offsets:
+		buf->rx_avg_snr_with_offsets = peer_stats->rx.avg_snr_with_offsets;
+		break;
+	case cdp_peer_rx_snr_with_offsets:
+		buf->rx_snr_with_offsets = peer_stats->rx.snr_with_offsets;
+		break;
 	default:
 		ret = QDF_STATUS_E_FAILURE;
 		break;

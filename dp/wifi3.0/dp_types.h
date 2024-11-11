@@ -5354,6 +5354,8 @@ struct dp_peer_per_pkt_rx_stats {
  * @rx_snr_measured_time: Time at which snr is measured
  * @snr: SNR of received signal
  * @last_snr: Previous snr
+ * @snr_with_offsets: SNR compensated with all offsets
+ * @avg_snr_with_offsets: Avg SNR compensated with all offsets
  * @nss_info: NSS 1,2, ...8
  * @mcs_info: MCS index
  * @bw_info: Bandwidth
@@ -5408,6 +5410,8 @@ struct dp_peer_extd_rx_stats {
 	unsigned long rx_snr_measured_time;
 	uint8_t snr;
 	uint8_t last_snr;
+	uint8_t snr_with_offsets;
+	uint32_t avg_snr_with_offsets;
 
 	uint32_t nss_info:4,
 		 mcs_info:4,

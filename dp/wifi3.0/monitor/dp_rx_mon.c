@@ -641,6 +641,7 @@ dp_rx_populate_cdp_indication_ppdu(struct dp_pdev *pdev,
 	cdp_rx_ppdu->u.ltf_size = (ppdu_info->rx_status.he_data5 >>
 				   QDF_MON_STATUS_HE_LTF_SIZE_SHIFT) & 0x3;
 	cdp_rx_ppdu->rssi = ppdu_info->rx_status.rssi_comb;
+	cdp_rx_ppdu->snr_with_offsets = ppdu_info->rx_status.snr_with_offsets;
 	cdp_rx_ppdu->timestamp = ppdu_info->rx_status.tsft;
 	cdp_rx_ppdu->channel = ppdu_info->rx_status.chan_num;
 	cdp_rx_ppdu->beamformed = ppdu_info->rx_status.beamformed;
@@ -1029,6 +1030,7 @@ static void dp_rx_stats_update(struct dp_pdev *pdev,
 			byte_count = byte_count - mpdu_overhead;
 
 		DP_STATS_UPD(mon_peer, rx.snr, ppdu->rssi);
+		DP_STATS_UPD(mon_peer, rx.snr_with_offsets, ppdu->snr_with_offsets);
 		DP_STATS_INC(mon_peer, rx.retried_msdu_count,
 			     ppdu_user->retried_msdu_count);
 
@@ -1038,6 +1040,13 @@ static void dp_rx_stats_update(struct dp_pdev *pdev,
 		else
 			CDP_SNR_UPDATE_AVG(mon_peer->stats.rx.avg_snr,
 					   mon_peer->stats.rx.snr);
+
+		if (qdf_unlikely(mon_peer->stats.rx.avg_snr_with_offsets == CDP_INVALID_SNR))
+			mon_peer->stats.rx.avg_snr_with_offsets =
+				CDP_SNR_IN(mon_peer->stats.rx.snr_with_offsets);
+		else
+			CDP_SNR_UPDATE_AVG(mon_peer->stats.rx.avg_snr_with_offsets,
+					   mon_peer->stats.rx.snr_with_offsets);
 
 		if (ppdu_type == HAL_RX_TYPE_SU) {
 			if (nss) {
@@ -2369,12 +2378,6 @@ dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 				mon_pdev->rssi_offsets.xlna_bypass_threshold) {
 			ppdu_info->rx_status.rssi_offset += mon_pdev->rssi_offsets.xlna_bypass_offset;
 		}
-
-		/*
-		 * Add different offsets to SNR + bw_offset received from TLV.
-		 * This final SNR with all offsets is sent to apps and wdi events
-		 */
-		ppdu_info->rx_status.rssi_comb += ppdu_info->rx_status.rssi_offset;
 	}
 
 	/*
@@ -2385,6 +2388,13 @@ dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 	 */
 	ppdu_info->rx_status.rssi_comb +=
 		dp_mon_get_bw_offset(ppdu_info->rx_status.bw);
+
+	/*
+	 * Update snr_with_offsets to store SNR recevied compensated
+	 * with all the offset for better accuracy.
+	 */
+	ppdu_info->rx_status.snr_with_offsets = ppdu_info->rx_status.rssi_comb +
+						ppdu_info->rx_status.rssi_offset;
 }
 
 #ifdef WLAN_SUPPORT_CTRL_FRAME_STATS

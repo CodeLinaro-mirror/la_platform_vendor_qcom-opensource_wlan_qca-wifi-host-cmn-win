@@ -1616,6 +1616,7 @@ QDF_STATUS dp_peer_stats_notify(struct dp_pdev *dp_pdev, struct dp_peer *peer)
 					mon_peer_stats->tx.last_tx_rate;
 		peer_stats_intf.peer_tx_rate = mon_peer_stats->tx.tx_rate;
 		peer_stats_intf.peer_rssi = mon_peer_stats->rx.snr;
+		peer_stats_intf.peer_snr_with_offsets = mon_peer_stats->rx.snr_with_offsets;
 		peer_stats_intf.ack_rssi = mon_peer_stats->tx.last_ack_rssi;
 		peer_stats_intf.avg_ack_rssi = CDP_SNR_OUT(mon_peer_stats->tx.avg_ack_rssi);
 		dp_peer_get_tx_rx_stats(peer, &peer_stats_intf);
@@ -2772,6 +2773,7 @@ void dp_send_stats_event(struct dp_pdev *pdev, struct dp_peer *peer,
 
 	mon_peer->stats.rx.rx_snr_measured_time = qdf_system_ticks();
 	peer_stats_intf.rx_avg_snr = mon_peer->stats.rx.avg_snr;
+	peer_stats_intf.rx_avg_snr_with_offsets = mon_peer->stats.rx.avg_snr_with_offsets;
 
 	txrx_peer = dp_get_txrx_peer(peer);
 	if (qdf_likely(txrx_peer)) {
@@ -6598,6 +6600,7 @@ QDF_STATUS dp_mon_peer_attach(struct dp_peer *peer)
 
 	DP_STATS_INIT(mon_peer);
 	DP_STATS_UPD(mon_peer, rx.avg_snr, CDP_INVALID_SNR);
+	DP_STATS_UPD(mon_peer, rx.avg_snr_with_offsets, CDP_INVALID_SNR);
 	DP_STATS_UPD(mon_peer, tx.avg_ack_rssi, CDP_INVALID_SNR);
 
 	dp_mon_peer_attach_notify(peer);
@@ -6661,6 +6664,7 @@ void dp_mon_peer_reset_stats(struct dp_peer *peer)
 
 	DP_STATS_CLR(mon_peer);
 	DP_STATS_UPD(mon_peer, rx.avg_snr, CDP_INVALID_SNR);
+	DP_STATS_UPD(mon_peer, rx.avg_snr_with_offsets, CDP_INVALID_SNR);
 	DP_STATS_UPD(mon_peer, tx.avg_ack_rssi, CDP_INVALID_SNR);
 }
 
