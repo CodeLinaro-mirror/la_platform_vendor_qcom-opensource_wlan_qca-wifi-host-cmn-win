@@ -2805,7 +2805,7 @@ void wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
 {
 	uint8_t i = 0, len = rsnxe[1];
 
-	for (; len > 0 ; len--) {
+	for (; len > 0 && i < sizeof(crypto_params->rsnx_caps); len--) {
 		((uint8_t *)(&crypto_params->rsnx_caps))[i] = rsnxe[2 + i];
 		i++;
 	}
