@@ -1510,6 +1510,21 @@ void dfs_handle_nol_puncture(struct wlan_dfs *dfs, qdf_freq_t nolfreq);
  */
 bool dfs_is_ignore_radar_for_punctured_chans(struct wlan_dfs *dfs,
 					     uint16_t dfs_curr_radar_bitmap);
+
+/**
+ * dfs_get_event_for_punctured_chan() - Get the event for punctured channel
+ * based on the DFS Puncture state machine.
+ * @dfs:                       Pointer to wlan_dfs.
+ * @freq:                      Frequency of the sub-channel.
+ * @event:                     Event for the punctured sub-channel.
+ *
+ * Return: Nothing.
+ */
+void
+dfs_get_event_for_punctured_chan(struct wlan_dfs *dfs,
+				 qdf_freq_t freq,
+				 enum WLAN_DFS_EVENTS *event);
+
 #else
 static inline
 void dfs_create_punc_sm(struct wlan_dfs *dfs)
