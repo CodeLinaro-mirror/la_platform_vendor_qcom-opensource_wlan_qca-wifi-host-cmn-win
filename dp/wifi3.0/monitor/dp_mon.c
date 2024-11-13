@@ -7684,3 +7684,33 @@ QDF_STATUS dp_rx_mon_config_fcs_cap(struct dp_pdev *pdev, uint8_t value)
 
 	return QDF_STATUS_SUCCESS;
 }
+
+uint8_t dp_mon_get_bw_offset(enum ieee80211_cwm_width ni_chwidth)
+{
+	uint8_t bw_offset = 0;
+
+	switch (ni_chwidth) {
+	case CMN_BW_20MHZ:
+		bw_offset = PKT_BW_GAIN_20MHZ;
+		break;
+	case CMN_BW_40MHZ:
+		bw_offset = PKT_BW_GAIN_40MHZ;
+		break;
+	case CMN_BW_80MHZ:
+		bw_offset = PKT_BW_GAIN_80MHZ;
+		break;
+	case CMN_BW_160MHZ:
+	case CMN_BW_80_80MHZ:
+		bw_offset = PKT_BW_GAIN_160MHZ;
+		break;
+#ifdef WLAN_FEATURE_11BE
+	case CMN_BW_320MHZ:
+		bw_offset = PKT_BW_GAIN_320MHZ;
+		break;
+#endif
+	default:
+		break;
+	}
+
+	return bw_offset;
+}

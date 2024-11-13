@@ -2358,8 +2358,18 @@ dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 				pdev->hw_noise_floor;
 
 	if (ppdu_info->rx_status.rssi_dbm_conv_support) {
+		/*Add temp offset received as part of rssi_offset*/
 		ppdu_info->rx_status.rssi_offset = mon_pdev->rssi_offsets.rssi_temp_offset;
 	}
+
+	/*
+	 * Update rssi_comb with bw_offset corresponding
+	 * to bw on which pkt is received.
+	 * This is to be done irrespective of rssi_dbm_conv_support
+	 * enabled or not
+	 */
+	ppdu_info->rx_status.rssi_comb +=
+		dp_mon_get_bw_offset(ppdu_info->rx_status.bw);
 }
 
 #ifdef WLAN_SUPPORT_CTRL_FRAME_STATS

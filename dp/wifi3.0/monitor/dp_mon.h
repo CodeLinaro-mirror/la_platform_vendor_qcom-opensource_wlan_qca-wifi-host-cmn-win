@@ -5424,4 +5424,12 @@ dp_convert_enc_to_cdp_enc(struct mon_rx_user_status *rx_user_status,
 QDF_STATUS
 dp_pdev_set_mu_sniffer(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 		       uint32_t mode);
+
+/**
+ * dp_mon_get_bw_offset() - Get BW offset from channel width
+ * @ni_chwidth: channel width of the node
+ *
+ * Return: Bandwidth offset derived from channel width
+ */
+uint8_t dp_mon_get_bw_offset(enum ieee80211_cwm_width ni_chwidth);
 #endif /* _DP_MON_H_ */
