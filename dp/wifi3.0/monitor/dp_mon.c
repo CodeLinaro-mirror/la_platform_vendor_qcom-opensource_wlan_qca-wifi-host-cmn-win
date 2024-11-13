@@ -7267,9 +7267,6 @@ dp_mon_pdev_params_rssi_dbm_conv(struct cdp_soc_t *cdp_soc,
 					conv_params.xlna_bypass_threshold;
 		mon_pdev->rssi_offsets.xbar_config = conv_params.xbar_config;
 		mon_pdev->rssi_offsets.min_nf_dbm = min_nf;
-		mon_pdev->rssi_offsets.rssi_offset =
-					mon_pdev->rssi_offsets.min_nf_dbm +
-				     mon_pdev->rssi_offsets.rssi_temp_offset;
 	}
 	return QDF_STATUS_SUCCESS;
 }

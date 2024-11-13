@@ -1405,6 +1405,7 @@ enum cdp_peer_param_type {
  * @CDP_CONFIG_DELAY_STATS: set/get delay stats
  * @CDP_CONFIG_MON_FCS_CAP: Set FCS monitor capture
  * @CDP_CONFIG_MON_VERSION: SET monitor version
+ * @CDP_HW_NOISE_FLOOR: set hw noise floor
  * @CDP_CONFIG_CUST_BEGIN: Customer enum begin
  * @CDP_CONFIG_CUST_END: Customer enum end
  * @CDP_CONFIG_LAST: Last enum
@@ -1446,6 +1447,7 @@ enum cdp_pdev_param_type {
 	CDP_CONFIG_DELAY_STATS,
 	CDP_CONFIG_MON_FCS_CAP,
 	CDP_CONFIG_MON_VERSION,
+	CDP_HW_NOISE_FLOOR,
 
 	/* Add QCA enums above this */
 	CDP_CONFIG_CUST_BEGIN,
@@ -1522,6 +1524,7 @@ enum cdp_pdev_param_type {
  * @cdp_pdev_param_atf_stats_enable: ATF stats enable
  * @cdp_pdev_param_config_special_vap: Configure Special vap
  * @cdp_pdev_param_isolation : set isolation mode
+ * @cdp_pdev_param_hw_noise_flr: hw noise floor (BDF NF)
  *
  * @cdp_psoc_param_en_rate_stats: set rate stats enable/disable
  * @cdp_psoc_param_en_nss_cfg: set nss cfg
@@ -1640,6 +1643,7 @@ typedef union cdp_config_param_t {
 	bool cdp_pdev_param_reset_scan_spcl_vap_stats_enable;
 	bool cdp_pdev_param_enhanced_stats_enable;
 	bool cdp_pdev_param_isolation;
+	int16_t cdp_pdev_param_hw_noise_flr;
 
 	/* psoc params */
 	bool cdp_psoc_param_en_rate_stats;

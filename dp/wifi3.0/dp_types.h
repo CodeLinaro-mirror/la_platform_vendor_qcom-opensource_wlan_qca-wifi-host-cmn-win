@@ -4205,6 +4205,8 @@ struct dp_pdev {
 	bool first_nbuf;
 	/* Current noise-floor reading for the pdev channel */
 	int16_t chan_noise_floor;
+	/* Current hw noise-floor (BDF NF) reading for the pdev channel */
+	int16_t hw_noise_floor;
 
 	/*
 	 * For multiradio device, this flag indicates if

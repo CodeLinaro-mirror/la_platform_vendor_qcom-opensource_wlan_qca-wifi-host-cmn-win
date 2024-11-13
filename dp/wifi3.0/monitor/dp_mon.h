@@ -1111,8 +1111,6 @@ struct dp_rx_mon_rssi_offset {
 	uint32_t xbar_config;
 	/* min noise floor in active chains per channel */
 	int8_t min_nf_dbm;
-	/* this value is sum of temp_oofset + min_nf*/
-	int32_t rssi_offset;
 };
 
 struct dp_ring_ppdu_id_tracker {

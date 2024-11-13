@@ -2349,7 +2349,7 @@ dp_rx_mon_process_status_tlv(struct dp_pdev *pdev)
 		}
 	}
 
-	dp_mon_rx_stats_update_rssi_dbm_params(mon_pdev, ppdu_info);
+	dp_mon_rx_stats_update_rssi_dbm_params(pdev, ppdu_info);
 	if (work_done) {
 		mon_mac->rx_mon_stats.mon_rx_bufs_replenished_dest +=
 			work_done;

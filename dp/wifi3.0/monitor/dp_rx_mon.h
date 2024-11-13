@@ -815,13 +815,13 @@ uint32_t dp_mon_rx_add_tlv(uint8_t id, uint16_t len, void *value,
 /**
  * dp_mon_rx_stats_update_rssi_dbm_params() - update rssi calibration
  *                                      parameters in rx stats
- * @mon_pdev: monitor pdev
+ * @pdev: dp pdev
  * @ppdu_info: Structure for rx ppdu info
  *
  * Return: none
  */
 void
-dp_mon_rx_stats_update_rssi_dbm_params(struct dp_mon_pdev *mon_pdev,
+dp_mon_rx_stats_update_rssi_dbm_params(struct dp_pdev *pdev,
 				       struct hal_rx_ppdu_info *ppdu_info);
 
 #ifdef WLAN_FEATURE_LOCAL_PKT_CAPTURE
