@@ -2196,6 +2196,7 @@ struct cdp_rx_stats {
  * @dropped.drop_ingress: Packets dropped during Umac reset
  * @dropped.invalid_peer_id_in_exc_path:
  * @dropped.tx_mcast_drop:
+ * @dropped.osif_tx_drop: TX packet drops in OSIF layer
  * @mesh: mesh packet information
  * @mesh.exception_fw: packets sent to fw
  * @mesh.completion_fw: packets completions received from fw
@@ -2263,6 +2264,7 @@ struct cdp_tx_ingress_stats {
 		uint32_t invalid_peer_id_in_exc_path;
 		uint32_t tx_mcast_drop;
 		uint32_t fw2wbm_tx_drop;
+		uint32_t osif_tx_drop;
 	} dropped;
 
 	struct {

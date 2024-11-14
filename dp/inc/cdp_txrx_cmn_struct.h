@@ -1494,6 +1494,7 @@ enum cdp_pdev_param_type {
  * @cdp_vdev_param_mon_freq: set monitor frequency
  * @cdp_vdev_param_monitor_chan: monitor channel
  * @cdp_vdev_paran_wds_ext_ap_bridge: enable/disable ap_bridge for wds_ext peers
+ * @cdp_vdev_param_osif_tx_drop: Vap level TX drops in OSIF layer
  *
  * @cdp_pdev_param_dbg_snf: Enable debug sniffer feature
  * @cdp_pdev_param_bpr_enable: Enable bcast probe feature
@@ -1610,6 +1611,7 @@ typedef union cdp_config_param_t {
 	qdf_freq_t cdp_vdev_param_mon_freq;
 	int cdp_vdev_param_monitor_chan;
 	bool cdp_vdev_paran_wds_ext_ap_bridge;
+	uint32_t cdp_vdev_param_osif_tx_drop;
 
 	/* pdev params */
 	bool cdp_pdev_param_cptr_latcy;
@@ -1799,6 +1801,7 @@ enum cdp_pdev_bpr_param {
  * @CDP_MONITOR_CHANNEL: monitor channel
  * @CDP_MONITOR_FREQUENCY: monitor frequency
  * @CDP_EAPOL_OVER_CONTROL_PORT_DISABLE: Disable eapol over control port
+ * @CDP_OSIF_TX_DROP: Vap level TX drops in OSIF layer
  */
 enum cdp_vdev_param_type {
 	CDP_ENABLE_NAWDS,
@@ -1854,6 +1857,7 @@ enum cdp_vdev_param_type {
 	CDP_MONITOR_CHANNEL,
 	CDP_MONITOR_FREQUENCY,
 	CDP_EAPOL_OVER_CONTROL_PORT_DISABLE,
+	CDP_OSIF_TX_DROP,
 };
 
 /**
