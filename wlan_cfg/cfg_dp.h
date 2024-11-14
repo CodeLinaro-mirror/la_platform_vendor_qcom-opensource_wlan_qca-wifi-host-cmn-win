@@ -1765,6 +1765,10 @@
 		CFG_INI_BOOL("full_mon_mode", \
 		false, "Full Monitor mode support")
 
+#define CFG_DP_RING_UTIL_STATS_ENABLE \
+		CFG_INI_BOOL("ring_util_stats_enable", false, \
+		"Enablement of ring util stats")
+
 #define CFG_DP_REO_RINGS_MAP \
 		CFG_INI_UINT("dp_reo_rings_map", \
 		WLAN_CFG_NUM_REO_RINGS_MAP_MIN, \
@@ -2514,6 +2518,7 @@
 		CFG(CFG_DP_RXDMA_MONITOR_RX_DROP_THRESHOLD) \
 		CFG(CFG_DP_PKTLOG_BUFFER_SIZE) \
 		CFG(CFG_DP_FULL_MON_MODE) \
+		CFG(CFG_DP_RING_UTIL_STATS_ENABLE)\
 		CFG(CFG_DP_REO_RINGS_MAP) \
 		CFG(CFG_DP_PEER_EXT_STATS) \
 		CFG_DP_STATS_MAX_WINDOW \

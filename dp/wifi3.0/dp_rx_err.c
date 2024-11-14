@@ -2143,6 +2143,7 @@ dp_rx_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct hal_buf_info hbi;
 	struct dp_pdev *dp_pdev;
 	struct dp_srng *dp_rxdma_srng;
+	struct dp_srng *srng;
 	struct rx_desc_pool *rx_desc_pool;
 	void *link_desc_va;
 	struct hal_rx_msdu_list msdu_list; /* MSDU's per MPDU */
@@ -2181,6 +2182,15 @@ more_data:
 		dp_rx_err_err("%pK: HAL RING Access Failed -- %pK", soc,
 			      hal_ring_hdl);
 		goto done;
+	}
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->reo_exception_ring;
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     REO_EXCEPTION,
+					     &srng->stats);
 	}
 
 	while (qdf_likely(quota-- && (ring_desc =

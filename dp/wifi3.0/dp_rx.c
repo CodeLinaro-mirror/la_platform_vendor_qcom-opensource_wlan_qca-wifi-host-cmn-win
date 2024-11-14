@@ -571,6 +571,11 @@ __dp_rx_buffers_no_map_replenish(struct dp_soc *soc, uint32_t mac_id,
 	nbuf = nbuf_head;
 	hal_srng_access_start(soc->hal_soc, rxdma_srng);
 
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx)))
+		hal_update_ring_util(soc->hal_soc, rxdma_srng, RXDMA_BUF,
+				     &dp_rxdma_srng->stats);
+
 	for (count = 0; count < num_req_buffers; count++) {
 		next = (*desc_list)->next;
 		nbuf_next = nbuf->next;

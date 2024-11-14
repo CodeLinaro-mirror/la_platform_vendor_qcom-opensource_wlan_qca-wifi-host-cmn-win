@@ -2485,6 +2485,7 @@ uint32_t dp_tx_comp_handler_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct dp_tx_desc_s *tail_desc = NULL;
 	struct dp_tx_desc_s *fast_head_desc = NULL;
 	struct dp_tx_desc_s *fast_tail_desc = NULL;
+	struct dp_srng *srng;
 	uint32_t num_processed = 0;
 	uint32_t fast_desc_count = 0;
 	uint32_t count;
@@ -2527,6 +2528,15 @@ more_data:
 
 	/* get tx_desc pool from first sw desc */
 	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->tx_comp_ring[ring_id];
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     WBM2SW_RELEASE,
+					     &srng->stats);
+	}
 
 	/* Find head descriptor from completion ring */
 	while (qdf_likely(num_avail_for_reap--)) {
