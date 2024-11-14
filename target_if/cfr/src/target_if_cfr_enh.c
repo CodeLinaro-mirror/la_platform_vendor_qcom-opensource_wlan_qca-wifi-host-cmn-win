@@ -847,12 +847,24 @@ bool target_if_cfr_get_11be_support_flag(uint8_t pdev_id,
 
 	return false;
 }
+
+static inline
+uint16_t target_if_cfr_fetch_puncture_bitmap(struct wlan_channel *bss_chan)
+{
+	return bss_chan->puncture_bitmap;
+}
 #else
 static inline
 bool target_if_cfr_get_11be_support_flag(uint8_t pdev_id,
 					 struct target_psoc_info *tgt_hdl)
 {
 	return false;
+}
+
+static inline
+uint16_t target_if_cfr_fetch_puncture_bitmap(struct wlan_channel *bss_chan)
+{
+	return 0;
 }
 #endif
 
@@ -1317,6 +1329,11 @@ void target_if_cfr_rx_tlv_process(struct wlan_objmgr_pdev *pdev, void *nbuf)
 				     QDF_MAC_ADDR_SIZE);
 		}
 	}
+
+	if (supports_11be)
+		meta->puncture_bitmap =
+			target_if_cfr_fetch_puncture_bitmap(bss_chan);
+
 	status = correlate_and_relay_enh(pdev, cookie, lut,
 					 CORRELATE_TX_EV_MODULE_ID);
 	if (status == STATUS_STREAM_AND_RELEASE) {
@@ -1940,6 +1957,9 @@ target_if_peer_capture_event(ol_scn_t sc, uint8_t *data, uint32_t datalen)
 	struct wlan_lmac_if_cfr_rx_ops *cfr_rx_ops = NULL;
 	struct wlan_lmac_if_rx_ops *rx_ops;
 	uint32_t target_type;
+	bool supports_11be;
+	uint8_t pdev_id;
+	struct target_psoc_info *tgt_hdl;
 
 	if (!sc || !data) {
 		cfr_err("sc or data is null");
@@ -2013,6 +2033,14 @@ target_if_peer_capture_event(ol_scn_t sc, uint8_t *data, uint32_t datalen)
 		goto relref;
 	}
 
+	tgt_hdl = wlan_psoc_get_tgt_if_handle(psoc);
+	if (qdf_unlikely(!tgt_hdl)) {
+		cfr_err("tgt_hdl is NULL");
+		goto relref;
+	}
+
+	pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
+	supports_11be = target_if_cfr_get_11be_support_flag(pdev_id, tgt_hdl);
 	target_type = target_if_cfr_get_target_type(psoc);
 
 	if (tx_evt_param.status & PEER_CFR_CAPTURE_EVT_PS_STATUS_MASK) {
@@ -2131,6 +2159,10 @@ target_if_peer_capture_event(ol_scn_t sc, uint8_t *data, uint32_t datalen)
 	header->u.meta_enh.rx_start_ts = tx_evt_param.rx_start_ts;
 	header->u.meta_enh.mcs_rate    = tx_evt_param.mcs_rate;
 	header->u.meta_enh.gi_type     = tx_evt_param.gi_type;
+
+	if (supports_11be)
+		header->u.meta_enh.puncture_bitmap =
+			target_if_cfr_fetch_puncture_bitmap(bss_chan);
 
 	status = correlate_and_relay_enh(pdev, cookie, lut,
 					 CORRELATE_TX_EV_MODULE_ID);

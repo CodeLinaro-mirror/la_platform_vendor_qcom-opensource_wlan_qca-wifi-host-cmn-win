@@ -405,13 +405,14 @@ void target_if_cfr_fill_header(struct csi_cfr_header *hdr,
 		hdr->cmn.chip_type = CFR_CAPTURE_RADIO_ALDER;
 	} else {
 		if ((target_type == TARGET_TYPE_QCN9000) ||
-		    (target_type == TARGET_TYPE_QCN9160) ||
-		    (target_type == TARGET_TYPE_QCA5424) ||
-		    (target_type == TARGET_TYPE_QCN9224))
+		    (target_type == TARGET_TYPE_QCN9160))
 			hdr->cmn.cfr_metadata_version = CFR_META_VERSION_9;
 		else if (target_type == TARGET_TYPE_QCA5332 ||
+			 target_type == TARGET_TYPE_QCN9224 ||
 			 target_type == TARGET_TYPE_QCN6432 ||
-			 target_type == TARGET_TYPE_QCA6490 ||
+			 target_type == TARGET_TYPE_QCA5424)
+			hdr->cmn.cfr_metadata_version = CFR_META_VERSION_10;
+		else if (target_type == TARGET_TYPE_QCA6490 ||
 			 target_type == TARGET_TYPE_QCA6750 ||
 			 target_type == TARGET_TYPE_KIWI ||
 			 target_type == TARGET_TYPE_MANGO ||
