@@ -1654,6 +1654,30 @@ qdf_dsb(void)
 	__qdf_dsb();
 }
 
+#ifdef QCA_DP_SUPP_IO_COHERENCY
+static inline
+void qdf_nbuf_dma_inv_range_no_dsb_wrapper(void *buf_start, void *buf_end)
+{
+}
+
+static inline
+void qdf_nbuf_dma_inv_range_wrapper(void *buf_start, void *buf_end)
+{
+}
+#else
+static inline
+void qdf_nbuf_dma_inv_range_no_dsb_wrapper(void *buf_start, void *buf_end)
+{
+	qdf_nbuf_dma_inv_range_no_dsb(buf_start, buf_end);
+}
+
+static inline
+void qdf_nbuf_dma_inv_range_wrapper(void *buf_start, void *buf_end)
+{
+	qdf_nbuf_dma_inv_range(buf_start, buf_end);
+}
+#endif /* QCA_DP_SUPP_IO_COHERENCY */
+
 static inline int qdf_nbuf_get_num_frags(qdf_nbuf_t buf)
 {
 	return __qdf_nbuf_get_num_frags(buf);
