@@ -913,4 +913,21 @@ wlan_ptqm_peer_migrate_ctx_free(struct wlan_mlo_peer_context *ml_peer)
  */
 bool
 wlan_mlo_is_csa_allow(struct wlan_objmgr_vdev *vdev, uint16_t csa_freq);
+
+/**
+ * mldev_get_mld_mac - Get MLD MAC address from MLD object
+ * @mldev: MLD object
+ *
+ * API to get MLD MAC address from the MLD object.
+ *
+ * Return: Pointer to the MLD MAC address or NULL
+ */
+static inline struct qdf_mac_addr *
+mldev_get_mld_mac(struct wlan_mlo_dev_context *mldev)
+{
+	if (!mldev)
+		return NULL;
+
+	return &mldev->mld_addr;
+}
 #endif

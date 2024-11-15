@@ -58,6 +58,23 @@ struct wlan_mlo_peer_context *mlo_get_mlpeer(
 				const struct qdf_mac_addr *ml_addr);
 
 /**
+ * mlpeer_get_mld_mac - Get MLD MAC address from ML peer
+ * @mlpeer: ML peer object
+ *
+ * API to get MLD MAC address from the ML peer object.
+ *
+ * Return: Pointer to the MLD MAC address or NULL
+ */
+static inline struct qdf_mac_addr *
+mlpeer_get_mld_mac(struct wlan_mlo_peer_context *mlpeer)
+{
+	if (!mlpeer)
+		return NULL;
+
+	return &mlpeer->peer_mld_addr;
+}
+
+/**
  * mlo_peer_attach - Attaches the peer by updating the MLO peer context with
  * the new link information
  *
