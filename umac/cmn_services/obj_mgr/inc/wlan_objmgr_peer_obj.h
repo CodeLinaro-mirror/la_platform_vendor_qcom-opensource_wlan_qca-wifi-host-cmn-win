@@ -1155,6 +1155,24 @@ static inline bool wlan_peer_mlme_is_assoc_peer(
 {
 	return peer->peer_mlme.assoc_peer;
 }
+
+/**
+ * peer_get_mlpeer() - Get ML peer from peer
+ * @peer: PEER object
+ *
+ * API to get ML peer from peer.
+ *
+ * Return: Pointer to ML Peer object for peers which are participating in MLO.
+ * NULL for legacy peers.
+ */
+static inline struct wlan_mlo_peer_context *
+peer_get_mlpeer(struct wlan_objmgr_peer *peer)
+{
+	if (!peer)
+		return NULL;
+
+	return peer->mlo_peer_ctx;
+}
 #else
 
 static inline uint8_t *wlan_peer_mlme_get_mldaddr(struct wlan_objmgr_peer *peer)
@@ -1177,6 +1195,12 @@ static inline bool wlan_peer_mlme_is_assoc_peer(
 				struct wlan_objmgr_peer *peer)
 {
 	return true;
+}
+
+static inline struct wlan_mlo_peer_context *
+peer_get_mlpeer(struct wlan_objmgr_peer *peer)
+{
+	return NULL;
 }
 #endif
 
