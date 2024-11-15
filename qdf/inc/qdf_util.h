@@ -262,6 +262,15 @@ typedef __qdf_page_t qdf_page_t;
 #define qdf_bitmap_empty(addr, nbits)    __qdf_bitmap_empty(addr, nbits)
 
 /**
+ * qdf_bitmap_zero() - Clear all bits in the bitmap
+ * @addr: Address buffer pointer
+ * @nbits: Number of bits
+ *
+ * Return: void
+ */
+#define qdf_bitmap_zero(addr, nbits)    __qdf_bitmap_zero(addr, nbits)
+
+/**
  * qdf_bitmap_and() - AND operation on the bitmap
  * @dst: Destination buffer pointer
  * @src1: First source buffer pointer
@@ -272,6 +281,18 @@ typedef __qdf_page_t qdf_page_t;
  */
 #define qdf_bitmap_and(dst, src1, src2, nbits) \
 		__qdf_bitmap_and(dst, src1, src2, nbits)
+
+/**
+ * qdf_bitmap_or() - OR operation on the bitmap
+ * @dst: Destination buffer pointer
+ * @src1: First source buffer pointer
+ * @src2: Second source buffer pointer
+ * @nbits: Number of bits
+ *
+ * Return: Bitwise or of src1 and src2 in dst
+ */
+#define qdf_bitmap_or(dst, src1, src2, nbits) \
+		__qdf_bitmap_or(dst, src1, src2, nbits)
 
 #define qdf_wait_queue_interruptible(wait_queue, condition) \
 		__qdf_wait_queue_interruptible(wait_queue, condition)
