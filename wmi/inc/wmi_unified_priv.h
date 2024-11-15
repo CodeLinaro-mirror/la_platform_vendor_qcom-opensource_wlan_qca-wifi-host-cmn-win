@@ -1533,6 +1533,11 @@ QDF_STATUS (*extract_pdev_rssi_dbm_conv_ev_param)(wmi_unified_t wmi_handle,
 QDF_STATUS (*extract_peer_sta_kickout_ev)(wmi_unified_t wmi_handle,
 		void *evt_buf, wmi_host_peer_sta_kickout_event *ev);
 
+QDF_STATUS(*extract_peer_assoc_response_event)
+			(wmi_unified_t wmi_hdl,
+			 void *evt_buf,
+			 struct wmi_host_peer_assoc_response_event *param);
+
 QDF_STATUS (*extract_peer_create_response_event)(
 			wmi_unified_t wmi_handle,
 			void *evt_buf,
