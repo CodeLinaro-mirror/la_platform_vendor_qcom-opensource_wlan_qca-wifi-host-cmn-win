@@ -968,18 +968,8 @@ mgmt_txrx_get_action_frm_subtype(uint8_t *mpdu_data_ptr)
 	return frm_type;
 }
 
-/**
- * mgmt_txrx_get_frm_type() - gets mgmt frm type
- * @mgmt_subtype: mgmt subtype
- * @mpdu_data_ptr: pointer to mpdu data
- *
- * This function returns mgmt frame type of the frame
- * based on the mgmt subtype.
- *
- * Return: mgmt frame type
- */
-static enum mgmt_frame_type
-mgmt_txrx_get_frm_type(uint8_t mgmt_subtype, uint8_t *mpdu_data_ptr)
+enum mgmt_frame_type
+tgt_mgmt_txrx_get_frm_type(uint8_t mgmt_subtype, uint8_t *mpdu_data_ptr)
 {
 	enum mgmt_frame_type frm_type;
 
@@ -1198,7 +1188,7 @@ void mgmt_txrx_frame_hex_dump(void *frame_data, int frame_len, bool is_tx)
 	/* mpdu_data_ptr is pointer to action header */
 	mpdu_data_ptr = (uint8_t *)frame_data + sizeof(struct ieee80211_frame);
 
-	frm_type = mgmt_txrx_get_frm_type(mgmt_subtype, mpdu_data_ptr);
+	frm_type = tgt_mgmt_txrx_get_frm_type(mgmt_subtype, mpdu_data_ptr);
 	mgmttxrx_nofl_debug("%s MGMT: %s(%d) seq %d len %d:",
 			    is_tx ? "TX" : "RX",
 			    mgmt_txrx_get_frm_type_string(frm_type), frm_type,
@@ -1487,7 +1477,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 	}
 
 	if (mgmt_type == IEEE80211_FC0_TYPE_MGT) {
-		frm_type = mgmt_txrx_get_frm_type(mgmt_subtype, mpdu_data_ptr);
+		frm_type = tgt_mgmt_txrx_get_frm_type(mgmt_subtype,
+						      mpdu_data_ptr);
 		if (frm_type == MGMT_FRM_UNSPECIFIED) {
 			mgmt_txrx_debug_rl(
 			"Unspecified mgmt frame type fc: %x %x", wh->i_fc[0],
