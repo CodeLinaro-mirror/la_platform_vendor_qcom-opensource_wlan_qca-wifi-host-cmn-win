@@ -3391,6 +3391,7 @@ struct category_name_info g_qdf_category_name[MAX_SUPPORTED_CATEGORY] = {
 	[QDF_MODULE_ID_TELEMETRY_AGENT] = {"TELEMETRY_AGENT"},
 	[QDF_MODULE_ID_RF_PATH_SWITCH] = {"Dynamic RF Path Switch"},
 	[QDF_MODULE_ID_MGMT_RX_SRNG] = {"MGMT_RX_SRNG"},
+	[QDF_MODULE_ID_MLRECFG] = {"MLRECFG"},
 	[QDF_MODULE_ID_ANY] = {"ANY"},
 };
 qdf_export_symbol(g_qdf_category_name);
@@ -3970,6 +3971,7 @@ static void set_default_trace_levels(struct category_info *cinfo)
 		[QDF_MODULE_ID_TELEMETRY_AGENT] = QDF_TRACE_LEVEL_ERROR,
 		[QDF_MODULE_ID_RF_PATH_SWITCH] = QDF_TRACE_LEVEL_INFO,
 		[QDF_MODULE_ID_MGMT_RX_SRNG] = QDF_TRACE_LEVEL_INFO,
+		[QDF_MODULE_ID_MLRECFG] = QDF_TRACE_LEVEL_ERROR,
 		[QDF_MODULE_ID_ANY] = QDF_TRACE_LEVEL_INFO,
 	};
 
