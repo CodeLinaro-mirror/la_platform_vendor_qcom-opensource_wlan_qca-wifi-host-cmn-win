@@ -318,6 +318,11 @@ const char *wlan_sm_get_state_name(struct wlan_sm *sm, uint8_t state)
 	return sm->state_info[state].name;
 }
 
+const char *wlan_sm_get_name(struct wlan_sm *sm)
+{
+	return sm->name;
+}
+
 const char *wlan_sm_get_current_state_name(struct wlan_sm *sm)
 {
 	return sm->state_info[sm->cur_state].name;
