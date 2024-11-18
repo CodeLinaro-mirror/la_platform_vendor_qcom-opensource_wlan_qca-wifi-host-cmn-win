@@ -2176,106 +2176,6 @@ QDF_STATUS dp_tx_compute_tx_delay_be(struct dp_soc *soc,
 	return dp_mlo_compute_hw_delay_us(soc, vdev, ts, delay_us);
 }
 
-#ifdef QCA_DP_SUPP_IO_COHERENCY
-static inline
-void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
-			     uint32_t *hal_tx_desc, struct dp_vdev *vdev,
-			     qdf_nbuf_t nbuf, uint8_t *tid, uint8_t *sawf_tid)
-{
-	hal_tx_desc[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc[1] = tx_desc->id <<
-		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
-
-	/* bank_id */
-	hal_tx_desc[2] = vdev->bank_id << TCL_DATA_CMD_BANK_ID_LSB;
-	hal_tx_desc[3] = vdev->htt_tcl_metadata <<
-		TCL_DATA_CMD_TCL_CMD_NUMBER_LSB;
-
-	hal_tx_desc[4] = tx_desc->length;
-	/* l3 and l4 checksum enable */
-	if (nbuf->ip_summed == CHECKSUM_PARTIAL)
-		hal_tx_desc[4] |= DP_TX_L3_L4_CSUM_ENABLE <<
-			TCL_DATA_CMD_IPV4_CHECKSUM_EN_LSB;
-
-	hal_tx_desc[5] = vdev->lmac_id << TCL_DATA_CMD_PMAC_ID_LSB;
-	hal_tx_desc[5] |= vdev->vdev_id << TCL_DATA_CMD_VDEV_ID_LSB;
-
-	if (qdf_unlikely(dp_sawf_tag_valid_get(nbuf))) {
-		*sawf_tid = dp_sawf_config_fast_send_be(soc, hal_tx_desc,
-						       tx_desc);
-		if (*sawf_tid != HTT_TX_EXT_TID_INVALID)
-			*tid = *sawf_tid;
-	}
-
-	if (*tid != HTT_TX_EXT_TID_INVALID) {
-		hal_tx_desc[5] |= (*tid) << TCL_DATA_CMD_HLOS_TID_LSB;
-		hal_tx_desc[5] |= 1 << TCL_DATA_CMD_HLOS_TID_OVERWRITE_LSB;
-	}
-
-	if (vdev->opmode == wlan_op_mode_sta)
-		hal_tx_desc[6] = vdev->bss_ast_idx |
-			((vdev->bss_ast_hash & 0xF) <<
-			 TCL_DATA_CMD_CACHE_SET_NUM_LSB);
-}
-
-static inline
-qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
-				 struct dp_tx_desc_s *tx_desc,
-				 qdf_nbuf_t nbuf)
-{
-	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
-}
-#else
-static inline
-void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
-			     uint32_t *hal_tx_desc, struct dp_vdev *vdev,
-			     qdf_nbuf_t nbuf, uint8_t *tid, uint8_t *sawf_tid)
-{
-	uint8_t cached_desc[HAL_TX_DESC_LEN_BYTES] = { 0 };
-	uint32_t *hal_tx_desc_cached;
-
-	hal_tx_desc_cached = (void *)cached_desc;
-	hal_tx_desc_cached[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc_cached[1] = tx_desc->id <<
-		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
-
-	/* bank_id */
-	hal_tx_desc_cached[2] = vdev->bank_id << TCL_DATA_CMD_BANK_ID_LSB;
-	hal_tx_desc_cached[3] = vdev->htt_tcl_metadata <<
-		TCL_DATA_CMD_TCL_CMD_NUMBER_LSB;
-
-	hal_tx_desc_cached[4] = tx_desc->length;
-	/* l3 and l4 checksum enable */
-	if (nbuf->ip_summed == CHECKSUM_PARTIAL)
-		hal_tx_desc_cached[4] |= DP_TX_L3_L4_CSUM_ENABLE <<
-			TCL_DATA_CMD_IPV4_CHECKSUM_EN_LSB;
-
-	hal_tx_desc_cached[5] = vdev->lmac_id << TCL_DATA_CMD_PMAC_ID_LSB;
-	hal_tx_desc_cached[5] |= vdev->vdev_id << TCL_DATA_CMD_VDEV_ID_LSB;
-
-	if (qdf_unlikely(dp_sawf_tag_valid_get(nbuf))) {
-		*sawf_tid = dp_sawf_config_fast_send_be(soc, hal_tx_desc_cached,
-						       tx_desc);
-		if (*sawf_tid != HTT_TX_EXT_TID_INVALID)
-			*tid = *sawf_tid;
-	}
-
-	if (*tid != HTT_TX_EXT_TID_INVALID) {
-		hal_tx_desc_cached[5] |= (*tid) << TCL_DATA_CMD_HLOS_TID_LSB;
-		hal_tx_desc_cached[5] |=
-				1 << TCL_DATA_CMD_HLOS_TID_OVERWRITE_LSB;
-	}
-
-	if (vdev->opmode == wlan_op_mode_sta)
-		hal_tx_desc_cached[6] = vdev->bss_ast_idx |
-			((vdev->bss_ast_hash & 0xF) <<
-			 TCL_DATA_CMD_CACHE_SET_NUM_LSB);
-
-	/* Sync cached descriptor with HW */
-	qdf_mem_copy(hal_tx_desc, hal_tx_desc_cached, DP_TX_FAST_DESC_SIZE);
-	qdf_dsb();
-}
-
 static inline
 qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 				 struct dp_tx_desc_s *tx_desc,
@@ -2286,7 +2186,6 @@ qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
-#endif /* QCA_DP_SUPP_IO_COHERENCY */
 
 static inline
 void dp_tx_nbuf_unmap_be(struct dp_soc *soc,
@@ -2306,7 +2205,9 @@ qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 	uint16_t pkt_len;
 	qdf_dma_addr_t paddr;
 	QDF_STATUS status = QDF_STATUS_E_RESOURCES;
+	uint8_t cached_desc[HAL_TX_DESC_LEN_BYTES] = { 0 };
 	hal_ring_handle_t hal_ring_hdl = NULL;
+	uint32_t *hal_tx_desc_cached;
 	void *hal_tx_desc;
 	uint8_t tid = HTT_TX_EXT_TID_INVALID;
 	uint8_t xmit_type = qdf_nbuf_get_vdev_xmit_type(nbuf);
@@ -2378,6 +2279,42 @@ qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	tx_desc->dma_addr = paddr;
 
+	hal_tx_desc_cached = (void *)cached_desc;
+	hal_tx_desc_cached[0] = (uint32_t)tx_desc->dma_addr;
+	hal_tx_desc_cached[1] = tx_desc->id <<
+		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
+
+	/* bank_id */
+	hal_tx_desc_cached[2] = vdev->bank_id << TCL_DATA_CMD_BANK_ID_LSB;
+	hal_tx_desc_cached[3] = vdev->htt_tcl_metadata <<
+		TCL_DATA_CMD_TCL_CMD_NUMBER_LSB;
+
+	hal_tx_desc_cached[4] = tx_desc->length;
+	/* l3 and l4 checksum enable */
+	if (nbuf->ip_summed == CHECKSUM_PARTIAL)
+		hal_tx_desc_cached[4] |= DP_TX_L3_L4_CSUM_ENABLE <<
+			TCL_DATA_CMD_IPV4_CHECKSUM_EN_LSB;
+
+	hal_tx_desc_cached[5] = vdev->lmac_id << TCL_DATA_CMD_PMAC_ID_LSB;
+	hal_tx_desc_cached[5] |= vdev->vdev_id << TCL_DATA_CMD_VDEV_ID_LSB;
+
+	if (qdf_unlikely(dp_sawf_tag_valid_get(nbuf))) {
+		sawf_tid = dp_sawf_config_fast_send_be(soc, hal_tx_desc_cached,
+						       tx_desc);
+		if (sawf_tid != HTT_TX_EXT_TID_INVALID)
+			tid = sawf_tid;
+	}
+
+	if (tid != HTT_TX_EXT_TID_INVALID) {
+		hal_tx_desc_cached[5] |= tid << TCL_DATA_CMD_HLOS_TID_LSB;
+		hal_tx_desc_cached[5] |= 1 << TCL_DATA_CMD_HLOS_TID_OVERWRITE_LSB;
+	}
+
+	if (vdev->opmode == wlan_op_mode_sta)
+		hal_tx_desc_cached[6] = vdev->bss_ast_idx |
+			((vdev->bss_ast_hash & 0xF) <<
+			 TCL_DATA_CMD_CACHE_SET_NUM_LSB);
+
 	hal_ring_hdl = dp_tx_get_hal_ring_hdl(soc, desc_pool_id);
 
 	if (qdf_unlikely(dp_tx_hal_ring_access_start(soc, hal_ring_hdl))) {
@@ -2397,8 +2334,9 @@ qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 
 	tx_desc->flags |= DP_TX_DESC_FLAG_QUEUED_TX;
 
-	dp_tx_populate_hal_desc(soc, tx_desc, hal_tx_desc, vdev, nbuf,
-				&tid, &sawf_tid);
+	/* Sync cached descriptor with HW */
+	qdf_mem_copy(hal_tx_desc, hal_tx_desc_cached, DP_TX_FAST_DESC_SIZE);
+	qdf_dsb();
 
 	dp_tx_update_proto_stats_wrapper(vdev, tx_desc->nbuf, desc_pool_id,
 					 TX_ENQUEUE_HW_FP);
