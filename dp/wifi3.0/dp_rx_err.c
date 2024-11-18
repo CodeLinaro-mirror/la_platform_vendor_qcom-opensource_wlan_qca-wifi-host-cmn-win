@@ -2581,10 +2581,10 @@ void dp_rx_err_tlv_invalidate(struct dp_soc *soc,
 	 * of buffer in case of SFE forward. We need to invalidate
 	 * the TLV headers after writing to this location
 	 */
-	qdf_nbuf_dma_inv_range_no_dsb_wrapper((void *)nbuf->data,
-					      (void *)(nbuf->data +
-					      soc->rx_pkt_tlv_size +
-					      L3_HEADER_PAD));
+	qdf_nbuf_dma_inv_range_no_dsb((void *)nbuf->data,
+				      (void *)(nbuf->data +
+					       soc->rx_pkt_tlv_size +
+					       L3_HEADER_PAD));
 }
 #else
 void dp_rx_err_tlv_invalidate(struct dp_soc *soc,

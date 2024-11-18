@@ -708,7 +708,7 @@ refill_opt_dp_ctrl:
 	}
 done:
 	dp_rx_srng_access_end(int_ctx, soc, hal_ring_hdl);
-	DP_DSB;
+	qdf_dsb();
 
 	dp_rx_per_core_stats_update(soc, reo_ring_num, num_rx_bufs_reaped);
 

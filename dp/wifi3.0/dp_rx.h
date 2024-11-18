@@ -2994,8 +2994,8 @@ qdf_dma_addr_t dp_rx_nbuf_sync_no_dsb(struct dp_soc *dp_soc,
 				      qdf_nbuf_t nbuf,
 				      uint32_t buf_size)
 {
-	qdf_nbuf_dma_inv_range_no_dsb_wrapper((void *)nbuf->data,
-					      (void *)(nbuf->data + buf_size));
+	qdf_nbuf_dma_inv_range_no_dsb((void *)nbuf->data,
+				      (void *)(nbuf->data + buf_size));
 
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
@@ -3010,9 +3010,8 @@ qdf_dma_addr_t dp_rx_nbuf_sync_no_dsb(struct dp_soc *dp_soc,
 		return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 
 	if (unlikely(!nbuf->fast_recycled)) {
-		qdf_nbuf_dma_inv_range_no_dsb_wrapper(
-					(void *)nbuf->data,
-					(void *)(nbuf->data + buf_size));
+		qdf_nbuf_dma_inv_range_no_dsb((void *)nbuf->data,
+					      (void *)(nbuf->data + buf_size));
 	}
 
 	DP_STATS_INC(dp_soc, rx.fast_recycled, 1);
@@ -3027,8 +3026,8 @@ qdf_dma_addr_t dp_rx_nbuf_sync(struct dp_soc *dp_soc,
 			       qdf_nbuf_t nbuf,
 			       uint32_t buf_size)
 {
-	qdf_nbuf_dma_inv_range_wrapper((void *)nbuf->data,
-				       (void *)(nbuf->data + buf_size));
+	qdf_nbuf_dma_inv_range((void *)nbuf->data,
+			       (void *)(nbuf->data + buf_size));
 
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
@@ -3045,9 +3044,8 @@ void dp_rx_nbuf_unmap(struct dp_soc *soc,
 	rx_desc_pool = &soc->rx_desc_buf[rx_desc->pool_id];
 	nbuf = rx_desc->nbuf;
 
-	qdf_nbuf_dma_inv_range_no_dsb_wrapper(
-				(void *)nbuf->data,
-				(void *)(nbuf->data + rx_desc_pool->buf_size));
+	qdf_nbuf_dma_inv_range_no_dsb((void *)nbuf->data,
+			       (void *)(nbuf->data + rx_desc_pool->buf_size));
 }
 
 static inline
@@ -3055,9 +3053,8 @@ void dp_rx_nbuf_unmap_pool(struct dp_soc *soc,
 			   struct rx_desc_pool *rx_desc_pool,
 			   qdf_nbuf_t nbuf)
 {
-	qdf_nbuf_dma_inv_range_wrapper(
-				(void *)nbuf->data,
-				(void *)(nbuf->data + rx_desc_pool->buf_size));
+	qdf_nbuf_dma_inv_range((void *)nbuf->data,
+			       (void *)(nbuf->data + rx_desc_pool->buf_size));
 }
 
 #else

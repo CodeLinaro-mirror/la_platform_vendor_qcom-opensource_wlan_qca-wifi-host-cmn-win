@@ -497,7 +497,7 @@ __dp_rx_buffers_no_map_lt_replenish(struct dp_soc *soc, uint32_t mac_id,
 
 		desc_list = next;
 	}
-	DP_DSB;
+	qdf_dsb();
 	hal_srng_access_end(soc->hal_soc, rxdma_srng);
 
 	/* No need to count the number of bytes received during replenish.
@@ -566,7 +566,7 @@ __dp_rx_buffers_no_map_replenish(struct dp_soc *soc, uint32_t mac_id,
 				  nbuf_tail,
 				  nbuf);
 	}
-	DP_DSB;
+	qdf_dsb();
 
 	nbuf = nbuf_head;
 	hal_srng_access_start(soc->hal_soc, rxdma_srng);
@@ -810,7 +810,7 @@ QDF_STATUS __dp_pdev_rx_buffers_no_map_attach(struct dp_soc *soc,
 
 		desc_list = next;
 	}
-	DP_DSB;
+	qdf_dsb();
 	hal_srng_access_end(soc->hal_soc, rxdma_srng);
 
 	/* No need to count the number of bytes received during replenish.
