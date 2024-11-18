@@ -5804,6 +5804,10 @@ struct dp_rx_fst {
 	uint16_t ipv4_fse_cnt;
 	/* number of IPv6 flows inserted */
 	uint16_t ipv6_fse_cnt;
+	/* number of FSE flows created */
+	uint16_t fse_flow_create_cnt;
+	/* number of FSE flows deleted */
+	uint16_t fse_flow_del_cnt;
 	/* lock to prevent concurrent table access */
 	qdf_spinlock_t fst_lock;
 

@@ -9083,6 +9083,10 @@ static inline void dp_rx_basic_fst_stats(struct dp_pdev *pdev)
 			       pdev->soc->rx_fst->ipv4_fse_cnt);
 		DP_PRINT_STATS("\tNo of IPv6 Flow entries inserted = %d",
 			       pdev->soc->rx_fst->ipv6_fse_cnt);
+		DP_PRINT_STATS("\tNo of Flow entries created = %d",
+			       pdev->soc->rx_fst->fse_flow_create_cnt);
+		DP_PRINT_STATS("\tNo of Flow entries destroyed = %d",
+			       pdev->soc->rx_fst->fse_flow_del_cnt);
 	}
 }
 #else
