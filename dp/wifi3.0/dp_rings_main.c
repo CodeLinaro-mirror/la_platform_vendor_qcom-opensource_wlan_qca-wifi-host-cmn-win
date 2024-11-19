@@ -70,6 +70,11 @@
 #define INIT_RX_HW_STATS_LOCK(_soc)  /* no op */
 #define DEINIT_RX_HW_STATS_LOCK(_soc) /* no op */
 #endif
+#ifdef CONFIG_IO_COHERENCY
+#define DP_SRNG_ALLOC_CACHED 1
+#else
+#define DP_SRNG_ALLOC_CACHED 0
+#endif /* CONFIG_IO_COHERENCY */
 
 static QDF_STATUS dp_init_tx_ring_pair_by_index(struct dp_soc *soc,
 						uint8_t index);
@@ -2235,7 +2240,7 @@ static QDF_STATUS dp_alloc_tx_ring_pair_by_index(struct dp_soc *soc,
 	dp_ipa_get_tx_ring_size(index, &tx_ring_size, soc_cfg_ctx);
 
 	if (dp_srng_alloc(soc, &soc->tcl_data_ring[index], TCL_DATA,
-			  tx_ring_size, cached)) {
+			  tx_ring_size, DP_SRNG_ALLOC_CACHED)) {
 		dp_err("dp_srng_alloc failed for tcl_data_ring");
 		goto fail1;
 	}
