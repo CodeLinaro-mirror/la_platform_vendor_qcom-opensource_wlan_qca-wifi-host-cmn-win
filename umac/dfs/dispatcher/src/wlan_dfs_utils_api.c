@@ -232,6 +232,36 @@ utils_dfs_deliver_cac_state_events_for_prevchan(struct wlan_objmgr_pdev *pdev)
 	return QDF_STATUS_SUCCESS;
 }
 
+#if defined(WLAN_FEATURE_11BE) && defined(QCA_DFS_BW_PUNCTURE)
+QDF_STATUS
+utils_dfs_get_event_for_punctured_chan(struct wlan_objmgr_pdev *pdev,
+				       qdf_freq_t freq,
+				       enum WLAN_DFS_EVENTS *event)
+{
+	struct wlan_dfs *dfs;
+
+	dfs = wlan_pdev_get_dfs_obj(pdev);
+	if (!dfs)
+		return  QDF_STATUS_E_FAILURE;
+
+	if (dfs->dfs_use_puncture)
+		dfs_get_event_for_punctured_chan(dfs, freq, event);
+	else
+		dfs_debug(dfs, WLAN_DEBUG_DFS_PUNCTURING,
+			  "Puncture is not enabled, return");
+
+	return QDF_STATUS_SUCCESS;
+}
+#else
+QDF_STATUS
+utils_dfs_get_event_for_punctured_chan(struct wlan_objmgr_pdev *pdev,
+				       qdf_freq_t freq,
+				       enum WLAN_DFS_EVENTS *event)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+#endif
+
 QDF_STATUS utils_dfs_cac_stop(struct wlan_objmgr_pdev *pdev)
 {
 	struct wlan_dfs *dfs;

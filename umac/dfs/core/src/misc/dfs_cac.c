@@ -329,8 +329,21 @@ void dfs_send_dfs_events_for_chan(struct wlan_dfs *dfs,
 	for (i = 0; i < nchannels; i++) {
 		enum WLAN_DFS_EVENTS curr_event = event;
 
-		if (wlan_reg_is_nol_for_freq(dfs->dfs_pdev_obj, freq_list[i]))
+		if (!wlan_reg_is_dfs_for_freq(dfs->dfs_pdev_obj,
+					      freq_list[i])) {
+			dfs_debug(dfs, WLAN_DEBUG_DFS,
+				  "Channel %d is not DFS, skip",
+				  freq_list[i]);
+			continue;
+		}
+
+		if (wlan_reg_is_nol_for_freq(dfs->dfs_pdev_obj,
+					     freq_list[i])) {
+			dfs_debug(dfs, WLAN_DEBUG_DFS,
+				  "Channel %d is in NOL", freq_list[i]);
 			curr_event = WLAN_EV_NOL_STARTED;
+		}
+
 		utils_dfs_deliver_event(dfs->dfs_pdev_obj,
 					freq_list[i],
 					curr_event);
