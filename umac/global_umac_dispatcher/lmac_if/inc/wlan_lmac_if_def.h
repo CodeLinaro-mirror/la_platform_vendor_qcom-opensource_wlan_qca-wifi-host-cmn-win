@@ -2903,7 +2903,8 @@ struct wlan_lmac_if_mlme_rx_ops {
 					       uint8_t status);
 	void (*vdev_mgr_set_max_channel_switch_time)
 		(struct wlan_objmgr_psoc *psoc,
-		 uint32_t *vdev_ids, uint32_t num_vdevs);
+		 uint32_t *vdev_ids, uint32_t num_vdevs,
+		 uint32_t num_beaconing_vdevs);
 #ifdef WLAN_FEATURE_11BE_MLO
 	QDF_STATUS (*vdev_mgr_quiet_offload)(
 			struct wlan_objmgr_psoc *psoc,
