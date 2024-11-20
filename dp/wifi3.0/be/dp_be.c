@@ -613,19 +613,12 @@ QDF_STATUS
 dp_hw_cookie_conversion_deinit(struct dp_soc_be *be_soc,
 			       struct dp_hw_cookie_conversion_t *cc_ctx)
 {
-	struct dp_soc *soc = DP_SOC_BE_GET_SOC(be_soc);
 	uint32_t ppt_index;
 	struct dp_spt_page_desc *spt_desc;
 	int i = 0;
 
 	spt_desc = cc_ctx->page_desc_base;
 	while (i < cc_ctx->total_page_num) {
-		/* reset PA in CMEM to NULL */
-		dp_hw_cc_cmem_write(soc->hal_soc,
-				    (cc_ctx->cmem_offset + be_soc->cc_cmem_base
-				     + (i * DP_CC_PPT_ENTRY_SIZE_4K_ALIGNED)),
-				    0);
-
 		ppt_index = spt_desc[i].ppt_index;
 		be_soc->page_desc_base[ppt_index].page_v_addr = NULL;
 		i++;
