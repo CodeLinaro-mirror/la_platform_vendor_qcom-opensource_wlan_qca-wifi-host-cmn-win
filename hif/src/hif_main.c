@@ -2810,6 +2810,46 @@ int hif_get_bandwidth_level(struct hif_opaque_softc *hif_handle)
 qdf_export_symbol(hif_get_bandwidth_level);
 
 #ifdef DP_MEM_PRE_ALLOC
+#ifdef CONFIG_IO_COHERENCY
+void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
+					 qdf_size_t size,
+					 qdf_dma_addr_t *paddr,
+					 uint32_t ring_type,
+					 uint8_t *is_mem_prealloc)
+{
+	struct device *dev = scn->qdf_dev->dev;
+	void *vaddr = NULL;
+	struct hif_driver_state_callbacks *cbk =
+				hif_get_callbacks_handle(scn);
+	struct platform_device *pdev = NULL;
+
+	*is_mem_prealloc = false;
+	if (cbk && cbk->prealloc_get_consistent_mem_unaligned) {
+		vaddr = cbk->prealloc_get_consistent_mem_unaligned(size,
+								   paddr,
+								   ring_type);
+		if (vaddr) {
+			*is_mem_prealloc = true;
+			goto end;
+		}
+	}
+
+	pdev = pld_get_plat_dev_by_bus_dev(dev);
+	if (pdev)
+		if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
+			dev = &pdev->dev;
+	vaddr = qdf_mem_alloc_consistent(scn->qdf_dev,
+					 dev,
+					 size,
+					 paddr);
+end:
+	dp_info("%s va_unaligned %pK pa_unaligned %pK size %d ring_type %d",
+		*is_mem_prealloc ? "pre-alloc" : "dynamic-alloc", vaddr,
+		(void *)*paddr, (int)size, ring_type);
+
+	return vaddr;
+}
+#else
 void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 					 qdf_size_t size,
 					 qdf_dma_addr_t *paddr,
@@ -2842,6 +2882,7 @@ end:
 
 	return vaddr;
 }
+#endif
 
 void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
 				       qdf_size_t size,
