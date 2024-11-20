@@ -1394,10 +1394,11 @@ void dfs_punc_sm_stop(struct wlan_dfs *dfs,
 /**
  * dfs_punc_sm_create() - Create DFS puncture state machine.
  * @dfs_punc:             Pointer to DFS puncture state machine object.
+ * @indx:                 Index of DFS puncture state machine.
  *
  * Return: Success if SM is created.
  */
-QDF_STATUS dfs_punc_sm_create(struct dfs_punc_obj *dfs_punc);
+QDF_STATUS dfs_punc_sm_create(struct dfs_punc_obj *dfs_punc, uint8_t indx);
 
 /**
  * dfs_punc_sm_destroy() - Destroy DFS puncture state machine.
@@ -1549,7 +1550,7 @@ void dfs_punc_sm_stop(struct wlan_dfs *dfs,
 }
 
 static inline
-QDF_STATUS dfs_punc_sm_create(struct dfs_punc_obj *dfs_punc)
+QDF_STATUS dfs_punc_sm_create(struct dfs_punc_obj *dfs_punc, uint8_t indx)
 {
 	return QDF_STATUS_E_FAILURE;
 }

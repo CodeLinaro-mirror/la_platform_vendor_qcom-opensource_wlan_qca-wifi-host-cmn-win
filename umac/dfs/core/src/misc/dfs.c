@@ -782,6 +782,8 @@ dfs_set_cur_chan_punc_pattern(struct wlan_dfs *dfs,
 			      uint16_t dfs_ch_punc_pattern)
 {
 	dfs->dfs_curchan->dfs_ch_punc_pattern = dfs_ch_punc_pattern;
+	dfs_info(dfs, WLAN_DEBUG_DFS_ALWAYS,
+		 "Puncture pattern 0x%x", dfs_ch_punc_pattern);
 }
 #else
 static inline void
@@ -840,6 +842,11 @@ void dfs_set_current_channel_for_freq(struct wlan_dfs *dfs,
 	dfs->dfs_curchan->dfs_ch_mhz_freq_seg1 = dfs_chan_mhz_freq_seg1;
 	dfs->dfs_curchan->dfs_ch_mhz_freq_seg2 = dfs_chan_mhz_freq_seg2;
 	dfs_set_cur_chan_punc_pattern(dfs, dfs_ch_punc_pattern);
+
+	dfs_info(dfs, WLAN_DEBUG_DFS_ALWAYS,
+		 "dfs_curchan updated to freq %d, flags 0x%llx",
+		 dfs->dfs_curchan->dfs_ch_freq,
+		 dfs->dfs_curchan->dfs_ch_flags);
 
 	if (is_channel_updated)
 		*is_channel_updated = true;
