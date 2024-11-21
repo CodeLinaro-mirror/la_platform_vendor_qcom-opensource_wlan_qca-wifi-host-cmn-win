@@ -599,7 +599,7 @@ struct cdp_cmn_ops {
 					     uint8_t vdev_id);
 	QDF_STATUS (*set_vdev_dp_ext_txrx_handle)(struct cdp_soc_t *soc,
 						  uint8_t vdev_id,
-						  uint16_t size);
+						  uint32_t size);
 
 	void *(*get_soc_dp_txrx_handle)(struct cdp_soc *soc_handle);
 	void (*set_soc_dp_txrx_handle)(struct cdp_soc *soc_handle,
