@@ -305,6 +305,7 @@ typedef void (*wlan_objmgr_peer_phymode_change_notify_handler)(
  * @WLAN_COEX_ID:               COEX reference id
  * @WLAN_WIFI_RADAR_ID:         WiFi radar reference id
  * @WLAN_MLRECFG_ID             MLO Reconfiguration
+ * @WLAN_MLME_MLO_ID            MLME object manager operations MLO VAP reference id
  * @WLAN_REF_ID_MAX:            Max id used to generate ref count tracking array
  */
  /* New value added to the enum must also be reflected in function
@@ -421,6 +422,7 @@ typedef enum {
 	WLAN_COEX_ID          = 106,
 	WLAN_WIFI_RADAR_ID    = 107,
 	WLAN_MLRECFG_ID       = 108,
+	WLAN_MLME_MLO_ID      = 109,
 	WLAN_REF_ID_MAX,
 } wlan_objmgr_ref_dbgid;
 
