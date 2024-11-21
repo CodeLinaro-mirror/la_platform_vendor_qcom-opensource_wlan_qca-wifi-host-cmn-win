@@ -586,9 +586,6 @@ static void ttlm_subst_sta_inprogress_entry(void *ctx)
 {
 	struct wlan_mlo_peer_context *ml_peer = ctx;
 
-	if (ttlm_get_state(ml_peer) != WLAN_TTLM_S_INPROGRESS)
-		QDF_BUG(0);
-
 	ttlm_set_substate(ml_peer, WLAN_TTLM_SS_STA_INPROGRESS);
 }
 
@@ -828,9 +825,6 @@ static void ttlm_subst_ap_action_inprogress_entry(void *ctx)
 {
 	struct wlan_mlo_peer_context *ml_peer = ctx;
 
-	if (ttlm_get_state(ml_peer) != WLAN_TTLM_S_INPROGRESS)
-		QDF_BUG(0);
-
 	ttlm_set_substate(ml_peer, WLAN_TTLM_SS_AP_ACTION_INPROGRESS);
 }
 
@@ -899,9 +893,6 @@ static void ttlm_subst_ap_beacon_inprogress_entry(void *ctx)
 {
 	struct wlan_mlo_peer_context *ml_peer = ctx;
 
-	if (ttlm_get_state(ml_peer) != WLAN_TTLM_S_INPROGRESS)
-		QDF_BUG(0);
-
 	ttlm_set_substate(ml_peer, WLAN_TTLM_SS_AP_BEACON_INPROGRESS);
 }
 
@@ -956,9 +947,6 @@ static bool ttlm_subst_ap_beacon_inprogress_event(void *ctx, uint16_t event,
 static void ttlm_subst_ap_btm_inprogress_entry(void *ctx)
 {
 	struct wlan_mlo_peer_context *ml_peer = ctx;
-
-	if (ttlm_get_state(ml_peer) != WLAN_TTLM_S_INPROGRESS)
-		QDF_BUG(0);
 
 	ttlm_set_substate(ml_peer, WLAN_TTLM_SS_AP_BTM_INPROGRESS);
 }
@@ -1068,9 +1056,6 @@ static bool ttlm_subst_ap_btm_inprogress_event(void *ctx, uint16_t event,
 static void ttlm_subst_teardown_inprogress_entry(void *ctx)
 {
 	struct wlan_mlo_peer_context *ml_peer = ctx;
-
-	if (ttlm_get_state(ml_peer) != WLAN_TTLM_S_INPROGRESS)
-		QDF_BUG(0);
 
 	ttlm_set_substate(ml_peer, WLAN_TTLM_SS_TEARDOWN_INPROGRESS);
 }
