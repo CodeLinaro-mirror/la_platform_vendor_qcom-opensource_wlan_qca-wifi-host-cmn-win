@@ -2079,6 +2079,9 @@ struct subelem_header {
 #define EHTOP_RX_MCS_NSS_MAP_BITS                      4
 #define EHTOP_TX_MCS_NSS_MAP_IDX                       4
 #define EHTOP_TX_MCS_NSS_MAP_BITS                      4
+#define EHTOP_INFO_MAX_LEN			       11
+#define EHTOP_INFO_CONTROL_IDX			       7
+#define EHTOP_INFO_CFREQ0_IDX			       9
 
 #define MAX_EHT_MCS_NSS_MAP_LEN 9
 
