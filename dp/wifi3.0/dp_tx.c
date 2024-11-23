@@ -2289,6 +2289,21 @@ qdf_dma_addr_t dp_tx_rmnet_nbuf_map(struct dp_tx_msdu_info_s *msdu_info,
 }
 #endif
 
+#if defined(CONFIG_IO_COHERENCY)
+static inline
+qdf_dma_addr_t dp_tx_nbuf_map(struct dp_vdev *vdev,
+			      struct dp_tx_desc_s *tx_desc,
+			      qdf_nbuf_t nbuf)
+{
+	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
+}
+
+static inline
+void dp_tx_nbuf_unmap(struct dp_soc *soc,
+		      struct dp_tx_desc_s *desc)
+{
+}
+#else
 #if defined(QCA_DP_TX_NBUF_NO_MAP_UNMAP) && !defined(BUILD_X86)
 static inline
 qdf_dma_addr_t dp_tx_nbuf_map(struct dp_vdev *vdev,
@@ -2328,6 +2343,7 @@ void dp_tx_nbuf_unmap(struct dp_soc *soc,
 	return dp_tx_nbuf_unmap_regular(soc, desc);
 }
 #endif
+#endif /* CONFIG_IO_COHERENCY */
 
 #if defined(WLAN_TX_PKT_CAPTURE_ENH) || defined(FEATURE_PERPKT_INFO)
 static inline
