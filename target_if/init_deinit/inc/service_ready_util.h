@@ -340,6 +340,62 @@ QDF_STATUS init_deinit_rcc_aoa_cap_ext2_free(
 				struct target_psoc_info *tgt_psoc_info);
 
 /**
+ * init_deinit_populate_wifi_radar_ltf_cap_ext2() - Populate WR LTF
+ * capabilities from service ready ext2 event
+ * @psoc: PSOC object
+ * @handle: WMI handle pointer
+ * @event: event buffer received from FW
+ * @info: tgt_info object
+ *
+ * API to populate WR LTF capability from service ready ext2 event.
+ *
+ * Return: zero on successful population of WR LTF capability or failure
+ */
+int init_deinit_populate_wifi_radar_ltf_cap_ext2(
+				struct wlan_objmgr_psoc *psoc,
+				wmi_unified_t handle, uint8_t *event,
+				struct tgt_info *info);
+
+/**
+ * init_deinit_wifi_radar_ltf_cap_ext2_free() - free WR LTF capability
+ * @tgt_psoc_info: target psoc info object
+ *
+ * API to free WR LTF capability
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS init_deinit_wifi_radar_ltf_cap_ext2_free(
+				struct target_psoc_info *tgt_psoc_info);
+
+/**
+ * init_deinit_populate_wifi_radar_chain_cap_ext2() - Populate WR LTF
+ * capabilities from service ready ext2 event
+ * @psoc: PSOC object
+ * @handle: WMI handle pointer
+ * @event: event buffer received from FW
+ * @info: tgt_info object
+ *
+ * API to populate WR Chain capability from service ready ext2 event.
+ *
+ *  Return: zero on successful population of WR chain capability or failure
+ */
+int init_deinit_populate_wifi_radar_chain_cap_ext2(
+				struct wlan_objmgr_psoc *psoc,
+				wmi_unified_t handle, uint8_t *event,
+				struct tgt_info *info);
+
+/**
+ * init_deinit_wifi_radar_chain_cap_ext2_free() - free WR chain capability
+ * @tgt_psoc_info: target psoc info object
+ *
+ * API to free WR Chain capability
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS init_deinit_wifi_radar_chain_cap_ext2_free(
+				struct target_psoc_info *tgt_psoc_info);
+
+/**
  * init_deinit_populate_scan_radio_cap_ext2() - populate scan radio capabilities
  * from service ready ext2 event
  * @handle: WMI handle pointer

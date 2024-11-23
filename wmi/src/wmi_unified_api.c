@@ -2931,6 +2931,30 @@ QDF_STATUS wmi_extract_spectral_scaling_params_service_ready_ext(
 	return QDF_STATUS_E_FAILURE;
 }
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+QDF_STATUS wmi_extract_wifi_radar_ltf_caps_service_ready_ext2(
+			wmi_unified_t wmi_handle, uint8_t *evt_buf, uint8_t idx,
+			struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_cap)
+{
+	if (wmi_handle->ops->extract_wifi_radar_ltf_caps_service_ready_ext2)
+		return wmi_handle->ops->extract_wifi_radar_ltf_caps_service_ready_ext2
+				(wmi_handle, evt_buf, idx, wr_cap);
+
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS wmi_extract_wifi_radar_chain_caps_service_ready_ext2(
+			wmi_unified_t wmi_handle, uint8_t *evt_buf, uint8_t idx,
+			struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_cap)
+{
+	if (wmi_handle->ops->extract_wifi_radar_chain_caps_service_ready_ext2)
+		return wmi_handle->ops->extract_wifi_radar_chain_caps_service_ready_ext2
+				(wmi_handle, evt_buf, idx, wr_cap);
+
+	return QDF_STATUS_E_FAILURE;
+}
+#endif
+
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 QDF_STATUS wmi_extract_aoa_caps_service_ready_ext2(
 			wmi_unified_t wmi_handle, uint8_t *evt_buf,

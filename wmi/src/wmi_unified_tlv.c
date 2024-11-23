@@ -6222,6 +6222,81 @@ extract_csa_ie_received_ev_params_tlv(wmi_unified_t wmi_handle,
 	return QDF_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+static QDF_STATUS
+extract_wifi_radar_ltf_caps_tlv(struct wmi_unified *wmi_handle,
+				uint8_t *event,
+				uint8_t idx,
+				struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_cap)
+{
+	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf;
+	wmi_wifi_radar_ltf_length_capabilities *ltf_caps;
+
+	param_buf = (WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		wmi_err("NULL param buf");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	ltf_caps = param_buf->wr_ltf_caps;
+	if (!ltf_caps) {
+		wmi_debug("NULL wr_ltf_caps param");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	if (ltf_caps->ltf_cap1_word32) {
+		wr_cap->pdev_id = wmi_handle->ops->convert_pdev_id_target_to_host(wmi_handle, WMI_WIFI_RADAR_LTF_LENGTH_CAPABILITIES_PDEV_ID_GET(ltf_caps->ltf_cap1_word32));
+		wr_cap->ltf_max_num_tx = WMI_WIFI_RADAR_LTF_LENGTH_CAPABILITIES_LTF_MAX_NUM_TX_GET(ltf_caps->ltf_cap1_word32);
+	}
+	if (ltf_caps->ltf_cap2_word32) {
+		wr_cap->ltf_max_expo_num_rx = WMI_WIFI_RADAR_LTF_LENGTH_CAPABILITIES_LTF_MAX_EXPO_NUM_RX_GET(ltf_caps->ltf_cap2_word32);
+		wr_cap->ltf_max_num_initial_skip_rx = WMI_WIFI_RADAR_LTF_LENGTH_CAPABILITIES_LTF_MAX_NUM_INITIAL_SKIP_RX_GET(ltf_caps->ltf_cap2_word32);
+	}
+
+	wmi_debug("Wifi radar caps received: pdev_id %d ltf_max_num_tx %d ltf_max_expo_num_rx %d ltf_max_num_initial_skip_rx %d",
+		  wr_cap->pdev_id,
+		  wr_cap->ltf_max_num_tx,
+		  wr_cap->ltf_max_expo_num_rx,
+		  wr_cap->ltf_max_num_initial_skip_rx);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static QDF_STATUS
+extract_wifi_radar_chain_caps_tlv(struct wmi_unified *wmi_handle,
+				  uint8_t *event,
+				  uint8_t idx,
+				  struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_cap)
+{
+	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf;
+	wmi_wifi_radar_chain_capabilities *chain_caps;
+
+	param_buf = (WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		wmi_err("NULL param buf");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	chain_caps = param_buf->wr_chain_caps;
+	if (!chain_caps) {
+		wmi_debug("No wr_chain_caps param");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	if (chain_caps->chain_cap1_word32) {
+		wr_cap->pdev_id = wmi_handle->ops->convert_pdev_id_target_to_host(wmi_handle, WMI_WIFI_RADAR_CHAIN_CAPABILITIES_PDEV_ID_GET(chain_caps->chain_cap1_word32));
+		wr_cap->max_num_rx_chain = WMI_WIFI_RADAR_CHAIN_CAPABILITIES_MAX_NUM_RX_CHAIN_GET(chain_caps->chain_cap1_word32);
+		wr_cap->best_isolated_chain_pair_sel = WMI_WIFI_RADAR_CHAIN_CAPABILITIES_BEST_ISOLATED_CHAIN_PAIR_SEL_GET(chain_caps->chain_cap1_word32);
+	}
+
+	wmi_debug("Wifi radar chain caps received: pdev_id %d max_num_rx_chain %d best_isolated_chain_pair_sel %d",
+		  wr_cap->pdev_id, wr_cap->max_num_rx_chain,
+		  wr_cap->best_isolated_chain_pair_sel);
+
+	return QDF_STATUS_SUCCESS;
+}
+#endif
+
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 static void
 populate_per_band_aoa_caps(struct wlan_psoc_host_rcc_enh_aoa_caps_ext2 *aoa_cap,
@@ -15626,6 +15701,8 @@ extract_service_ready_ext2_tlv(wmi_unified_t wmi_handle, uint8_t *event,
 	extract_num_max_mlo_link(ev, param);
 
 	param->num_aux_dev_caps = param_buf->num_aux_dev_caps;
+	param->num_wr_ltf_caps = param_buf->num_wr_ltf_caps;
+	param->num_wr_chain_caps = param_buf->num_wr_chain_caps;
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -23354,6 +23431,12 @@ struct wmi_ops tlv_ops =  {
 	.send_opm_stats_cmd = send_opm_stats_cmd_tlv,
 #endif
 	.send_sta_vdev_report_ap_oper_bw_cmd = send_sta_vdev_report_ap_oper_bw_cmd_tlv,
+#ifdef WLAN_WIFI_RADAR_ENABLE
+	.extract_wifi_radar_ltf_caps_service_ready_ext2 =
+				extract_wifi_radar_ltf_caps_tlv,
+	.extract_wifi_radar_chain_caps_service_ready_ext2 =
+				extract_wifi_radar_chain_caps_tlv,
+#endif
 };
 
 #ifdef WLAN_FEATURE_11BE_MLO

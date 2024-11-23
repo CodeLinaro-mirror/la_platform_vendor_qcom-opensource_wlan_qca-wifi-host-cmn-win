@@ -211,6 +211,8 @@ struct target_version_info {
  * @health_mon_param: health monitor params
  * @aux_dev_caps: aux device capability
  * @aoa_caps: aoa capabilities from target
+ * @wr_ltf_caps: WR LTF capabilities from target
+ * @wr_chain_caps: WR Chain capabilities from target
  */
 struct tgt_info {
 	struct host_fw_ver version;
@@ -254,6 +256,10 @@ struct tgt_info {
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 	struct wlan_psoc_host_rcc_enh_aoa_caps_ext2 *aoa_caps;
 #endif /* WLAN_RCC_ENHANCED_AOA_SUPPORT */
+#ifdef WLAN_WIFI_RADAR_ENABLE
+	struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_ltf_caps;
+	struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_chain_caps;
+#endif
 };
 
 /**
@@ -1513,6 +1519,40 @@ static inline uint32_t target_psoc_get_num_dbr_ring_caps
 		return psoc_info->info.service_ext_param.num_dbr_ring_caps;
 
 	return psoc_info->info.service_ext2_param.num_dbr_ring_caps;
+}
+
+/**
+ * target_psoc_get_num_wr_ltf_caps() - get no of pdevs for wr ltf caps
+ * @psoc_info:  pointer to structure target_psoc_info
+ *
+ * API to get num_wr_ltf_caps
+ *
+ * Return: no of pdevs for wr_ltf_caps
+ */
+static inline uint32_t target_psoc_get_num_wr_ltf_caps
+		(struct target_psoc_info *psoc_info)
+{
+	if (!psoc_info)
+		return 0;
+
+	return psoc_info->info.service_ext2_param.num_wr_ltf_caps;
+}
+
+/**
+ * target_psoc_get_num_wr_chain_caps() - get no of pdevs for wr chain caps
+ * @psoc_info:  pointer to structure target_psoc_info
+ *
+ * API to get num_wr_chain_caps
+ *
+ * Return: no of pdevs for wr_chain_caps
+ */
+static inline uint32_t target_psoc_get_num_wr_chain_caps
+		(struct target_psoc_info *psoc_info)
+{
+	if (!psoc_info)
+		return 0;
+
+	return psoc_info->info.service_ext2_param.num_wr_chain_caps;
 }
 
 /**

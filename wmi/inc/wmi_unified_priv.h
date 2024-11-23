@@ -3530,6 +3530,16 @@ QDF_STATUS (*extract_aux_dev_cap_service_ready_ext2)(
 			uint8_t *evt_buf, uint8_t idx,
 			struct wlan_psoc_host_aux_dev_caps *param);
 
+#ifdef WLAN_WIFI_RADAR_ENABLE
+QDF_STATUS (*extract_wifi_radar_ltf_caps_service_ready_ext2)
+		(struct wmi_unified *wmi_handle, uint8_t *buf, uint8_t idx,
+		 struct wlan_psoc_host_wifi_radar_ltf_caps_ext2 *wr_cap);
+
+QDF_STATUS (*extract_wifi_radar_chain_caps_service_ready_ext2)
+		(struct wmi_unified *wmi_handle, uint8_t *buf, uint8_t idx,
+		 struct wlan_psoc_host_wifi_radar_chain_caps_ext2 *wr_cap);
+#endif
+
 #ifdef WLAN_RCC_ENHANCED_AOA_SUPPORT
 QDF_STATUS (*extract_aoa_caps_service_ready_ext2)
 		(struct wmi_unified *wmi_handle, uint8_t *buf,
