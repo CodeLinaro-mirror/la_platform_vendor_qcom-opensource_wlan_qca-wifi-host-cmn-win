@@ -3120,7 +3120,8 @@ static int dp_rxdma_ring_alloc(struct dp_soc *soc, struct dp_pdev *pdev)
 	    soc->features.dmac_cmn_src_rxbuf_ring_enabled) {
 		for (i = 0; i < max_mac_rings; i++) {
 			if (dp_srng_alloc(soc, &pdev->rx_mac_buf_ring[i],
-					  RXDMA_BUF, ring_size, 0)) {
+					  RXDMA_BUF, ring_size,
+					  DP_SRNG_ALLOC_CACHED)) {
 				dp_init_err("%pK: failed rx mac ring setup",
 					    soc);
 				return QDF_STATUS_E_FAILURE;
