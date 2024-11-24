@@ -209,11 +209,21 @@ osif_cm_indicate_disconnect(struct wlan_objmgr_vdev *vdev,
 {
 	struct net_device *netdev = dev;
 	struct wlan_objmgr_vdev *anchor_vdev;
+	struct qdf_mac_addr *mld_addr;
 
+	mld_addr = (struct qdf_mac_addr *)wlan_vdev_mlme_get_mldaddr(vdev);
 	if (!wlan_vdev_mlme_is_mlo_vdev(vdev) || (link_id != -1)) {
-		osif_cm_indicate_disconnect_result(
-				netdev, reason, ie, ie_len,
-				locally_generated, link_id, gfp);
+		if (!qdf_is_macaddr_zero(mld_addr)) {
+			/* SLO/MLO Downgrade case  */
+			netdev = osif_cm_get_mld_netdev(vdev);
+			osif_cm_indicate_disconnect_result(
+					netdev, reason, ie, ie_len,
+					locally_generated, link_id, gfp);
+		} else {
+			osif_cm_indicate_disconnect_result(
+					netdev, reason, ie, ie_len,
+					locally_generated, link_id, gfp);
+		}
 		return;
 	}
 

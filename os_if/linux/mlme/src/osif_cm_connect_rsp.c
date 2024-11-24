@@ -995,9 +995,21 @@ void osif_copy_connected_info(struct cfg80211_connect_resp_params *conn_rsp,
 			      struct cfg80211_bss *bss,
 			      struct wlan_objmgr_vdev *vdev)
 {
+	struct qdf_mac_addr *mld_addr = NULL;
+	struct wlan_objmgr_pdev *pdev;
+	uint16_t hw_link_id;
+
 	if (wlan_vdev_mlme_is_mlo_vdev(vdev)) {
 		qdf_debug("MLO vdev fill everything in mlo fill params");
 		return;
+	}
+
+	mld_addr = (struct qdf_mac_addr *)wlan_vdev_mlme_get_mldaddr(vdev);
+	if (!qdf_is_macaddr_zero(mld_addr)) {
+		/* SLO/MLO downgrade case. */
+		pdev = wlan_vdev_get_pdev(vdev);
+		hw_link_id = wlan_mlo_get_pdev_hw_link_id(pdev);
+		conn_rsp->fallback_valid_links |= BIT(hw_link_id);
 	}
 
 	conn_rsp->links[0].bssid = rsp->bssid.bytes;
