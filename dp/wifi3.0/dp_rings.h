@@ -26,6 +26,12 @@
 #include <dp_mon.h>
 #endif
 
+#ifdef CONFIG_IO_COHERENCY
+#define DP_SRNG_ALLOC_CACHED 1
+#else
+#define DP_SRNG_ALLOC_CACHED 0
+#endif /* CONFIG_IO_COHERENCY */
+
 #ifdef WLAN_FEATURE_DP_EVENT_HISTORY
 static inline bool dp_is_mon_mask_valid(struct dp_soc *soc,
 					struct dp_intr *intr_ctx)

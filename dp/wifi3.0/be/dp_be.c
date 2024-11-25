@@ -2582,14 +2582,14 @@ static QDF_STATUS dp_soc_ppeds_srng_alloc(struct dp_soc *soc)
 	entries = wlan_cfg_get_dp_soc_reo2ppe_ring_size(soc_cfg_ctx);
 
 	if (dp_srng_alloc(soc, &be_soc->reo2ppe_ring, REO2PPE,
-			  entries, 0)) {
+			  entries, DP_SRNG_ALLOC_CACHED)) {
 		dp_err("%pK: dp_srng_alloc failed for reo2ppe", soc);
 		goto fail;
 	}
 
 	entries = wlan_cfg_get_dp_soc_ppe2tcl_ring_size(soc_cfg_ctx);
 	if (dp_srng_alloc(soc, &be_soc->ppe2tcl_ring, PPE2TCL,
-			  entries, 0)) {
+			  entries, DP_SRNG_ALLOC_CACHED)) {
 		dp_err("%pK: dp_srng_alloc failed for ppe2tcl_ring", soc);
 		goto fail;
 	}
