@@ -252,6 +252,7 @@ util_scan_get_phymode_11be(struct wlan_objmgr_pdev *pdev,
 {
 	struct wlan_ie_ehtops *eht_ops;
 	uint8_t width;
+	enum wlan_phymode original_phymode = phymode;
 
 	eht_ops = (struct wlan_ie_ehtops *)util_scan_entry_ehtop(scan_params);
 	if (!util_scan_entry_ehtcap(scan_params) || !eht_ops)
@@ -259,29 +260,33 @@ util_scan_get_phymode_11be(struct wlan_objmgr_pdev *pdev,
 
 	if (QDF_GET_BITS(eht_ops->ehtop_param,
 			 EHTOP_INFO_PRESENT_IDX, EHTOP_INFO_PRESENT_BITS)) {
-		width = QDF_GET_BITS(eht_ops->control,
-				     EHTOP_INFO_CHAN_WIDTH_IDX,
-				     EHTOP_INFO_CHAN_WIDTH_BITS);
-		switch (width) {
-		case WLAN_EHT_CHWIDTH_20:
-			phymode = WLAN_PHYMODE_11BEA_EHT20;
-			break;
-		case WLAN_EHT_CHWIDTH_40:
-			phymode = WLAN_PHYMODE_11BEA_EHT40;
-			break;
-		case WLAN_EHT_CHWIDTH_80:
-			phymode = WLAN_PHYMODE_11BEA_EHT80;
-			break;
-		case WLAN_EHT_CHWIDTH_160:
-			phymode = WLAN_PHYMODE_11BEA_EHT160;
-			break;
-		case WLAN_EHT_CHWIDTH_320:
-			phymode = WLAN_PHYMODE_11BEA_EHT320;
-			break;
-		default:
-			scm_debug("Invalid eht_ops width: %d", width);
-			phymode = WLAN_PHYMODE_11BEA_EHT20;
-			break;
+		if (eht_ops->elem_len >= EHTOP_INFO_CONTROL_IDX) {
+			width = QDF_GET_BITS(eht_ops->control,
+					     EHTOP_INFO_CHAN_WIDTH_IDX,
+					     EHTOP_INFO_CHAN_WIDTH_BITS);
+			switch (width) {
+			case WLAN_EHT_CHWIDTH_20:
+				phymode = WLAN_PHYMODE_11BEA_EHT20;
+				break;
+			case WLAN_EHT_CHWIDTH_40:
+				phymode = WLAN_PHYMODE_11BEA_EHT40;
+				break;
+			case WLAN_EHT_CHWIDTH_80:
+				phymode = WLAN_PHYMODE_11BEA_EHT80;
+				break;
+			case WLAN_EHT_CHWIDTH_160:
+				phymode = WLAN_PHYMODE_11BEA_EHT160;
+				break;
+			case WLAN_EHT_CHWIDTH_320:
+				phymode = WLAN_PHYMODE_11BEA_EHT320;
+				break;
+			default:
+				scm_debug("Invalid eht_ops width: %d", width);
+				phymode = WLAN_PHYMODE_11BEA_EHT20;
+				break;
+			}
+		} else {
+			return original_phymode;
 		}
 	} else {
 		switch (phymode) {
@@ -310,25 +315,33 @@ util_scan_get_phymode_11be(struct wlan_objmgr_pdev *pdev,
 
 	if (QDF_GET_BITS(eht_ops->ehtop_param,
 			 EHTOP_INFO_PRESENT_IDX, EHTOP_INFO_PRESENT_BITS)) {
-		scan_params->channel.cfreq0 =
-			wlan_reg_chan_band_to_freq(pdev,
-						   eht_ops->ccfs0,
-						   band_mask);
-		scan_params->channel.cfreq1 =
-			wlan_reg_chan_band_to_freq(pdev,
-						   eht_ops->ccfs1,
-						   band_mask);
+		if (eht_ops->elem_len >= EHTOP_INFO_CFREQ0_IDX) {
+			scan_params->channel.cfreq0 =
+				wlan_reg_chan_band_to_freq(pdev,
+							   eht_ops->ccfs0,
+							   band_mask);
+			scan_params->channel.cfreq1 =
+				wlan_reg_chan_band_to_freq(pdev,
+							   eht_ops->ccfs1,
+							   band_mask);
+		} else {
+			return original_phymode;
+		}
 	}
 
 	if (QDF_GET_BITS(eht_ops->ehtop_param,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_IDX,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_BITS)) {
-		scan_params->channel.puncture_bitmap =
-			QDF_GET_BITS(eht_ops->disabled_sub_chan_bitmap[0],
-				     0, 8);
-		scan_params->channel.puncture_bitmap |=
-			QDF_GET_BITS(eht_ops->disabled_sub_chan_bitmap[1],
-				     0, 8) << 8;
+		if (eht_ops->elem_len >= EHTOP_INFO_MAX_LEN) {
+			scan_params->channel.puncture_bitmap =
+			    QDF_GET_BITS(eht_ops->disabled_sub_chan_bitmap[0],
+					 0, 8);
+			scan_params->channel.puncture_bitmap |=
+			    QDF_GET_BITS(eht_ops->disabled_sub_chan_bitmap[1],
+					 0, 8) << 8;
+		} else {
+			return original_phymode;
+		}
 	} else {
 		scan_params->channel.puncture_bitmap = 0;
 	}
