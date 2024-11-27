@@ -16395,20 +16395,15 @@ static QDF_STATUS extract_rssi_accuracy_cap_service_ready_ext2_tlv(
 		return QDF_STATUS_E_INVAL;
 
 	rssi_accuracy_caps = &param_buf->rssi_accuracy_improvement_capabilities[idx];
-#ifdef RSSI_FW_SUPPORT_PENDING
-	/*
-	 * fw_hdr changes are not checked in yet for addition of
-	 * phy_id__multigain_rssi_accuracy_enable__word32 field.
-	 * Macro check to be removed once changes are checked in.
-	 */
+	if (!rssi_accuracy_caps) {
+		wmi_debug("RSSI accuracy improvement capabilities is NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
 	param->phy_id = WMI_RSSI_ACCURACY_IMPROVEMENT_CAPABILITIES_PHY_ID_GET(
 			rssi_accuracy_caps->phy_id__multigain_rssi_accuracy_enable__word32);
 	param->rssi_accuracy_enable = WMI_RSSI_ACCURACY_IMPROVEMENT_CAPABILITIES_RSSI_ACCURACY_ENABLE_GET(
 			rssi_accuracy_caps->phy_id__multigain_rssi_accuracy_enable__word32);
-#else
-	param->phy_id = 0;
-	param->rssi_accuracy_enable = 0;
-#endif
 
 	return QDF_STATUS_SUCCESS;
 }
