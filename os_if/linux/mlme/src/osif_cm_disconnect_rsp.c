@@ -438,9 +438,11 @@ QDF_STATUS osif_disconnect_handler(struct wlan_objmgr_vdev *vdev,
 	/* Send driver disconnect Reason */
 	osif_cm_indicate_qca_reason(osif_priv, qca_reason);
 
+#ifndef ENABLE_CFG80211_BACKPORTS_MLO
 	/* If disconnect due to ML Reconfig, fill link id */
 	if (rsp->req.req.reason_code == REASON_HOST_TRIGGERED_LINK_DELETE)
 		link_id = wlan_vdev_get_link_id(vdev);
+#endif
 
 	osif_cm_disconnect_comp_ind(vdev, rsp, OSIF_PRE_USERSPACE_UPDATE);
 	osif_cm_indicate_disconnect(vdev, osif_priv->wdev->netdev,
