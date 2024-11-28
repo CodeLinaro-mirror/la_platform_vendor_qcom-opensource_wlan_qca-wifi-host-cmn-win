@@ -275,6 +275,12 @@ typedef void dp_ptnr_soc_iter_func(struct dp_soc *ptnr_soc, void *arg,
 #define RX_SIDE 0
 #define TX_SIDE 1
 
+#ifdef CONFIG_IO_COHERENCY
+#define DP_SRNG_ALLOC_CACHED 1
+#else
+#define DP_SRNG_ALLOC_CACHED 0
+#endif /* CONFIG_IO_COHERENCY */
+
 /**
  * enum dp_pkt_xmit_type - The type of ingress stats are being referred
  *
