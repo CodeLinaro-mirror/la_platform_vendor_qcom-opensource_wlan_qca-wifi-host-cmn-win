@@ -70,11 +70,6 @@
 #define INIT_RX_HW_STATS_LOCK(_soc)  /* no op */
 #define DEINIT_RX_HW_STATS_LOCK(_soc) /* no op */
 #endif
-#ifdef CONFIG_IO_COHERENCY
-#define DP_SRNG_ALLOC_CACHED 1
-#else
-#define DP_SRNG_ALLOC_CACHED 0
-#endif /* CONFIG_IO_COHERENCY */
 
 static QDF_STATUS dp_init_tx_ring_pair_by_index(struct dp_soc *soc,
 						uint8_t index);
