@@ -561,12 +561,14 @@ struct cdp_lite_mon_filter_config {
  * @action: add/del
  * @vdev_id: peer vdev id
  * @mac: peer mac
+ * @is_vbss_peer: VBSS peer or not
  */
 struct cdp_lite_mon_peer_config {
 	uint8_t direction;
 	uint8_t action;
 	uint8_t vdev_id;
 	uint8_t mac[QDF_MAC_ADDR_SIZE];
+	bool is_vbss_peer;
 };
 
 /**

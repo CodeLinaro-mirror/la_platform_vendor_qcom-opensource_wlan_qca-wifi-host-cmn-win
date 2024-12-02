@@ -1145,7 +1145,7 @@ struct cdp_mon_ops {
 	int
 		(*txrx_update_filter_neighbour_peers)(
 				struct cdp_soc_t *soc, uint8_t vdev_id,
-				uint32_t cmd, uint8_t *macaddr);
+				uint32_t cmd, uint8_t *macaddr, bool is_vbss_peer);
 
 #ifdef ATH_SUPPORT_NAC_RSSI
 	QDF_STATUS (*txrx_vdev_config_for_nac_rssi)(struct cdp_soc_t *cdp_soc,
