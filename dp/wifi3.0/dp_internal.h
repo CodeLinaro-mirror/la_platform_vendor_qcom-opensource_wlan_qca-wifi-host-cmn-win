@@ -2701,6 +2701,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 				_srcobj->tx_i[idx].mcast_en.dropped_self_mac; \
 			_tgtobj->tx_i.mcast_en.dropped_send_fail += \
 				_srcobj->tx_i[idx].mcast_en.dropped_send_fail; \
+			_tgtobj->tx_i.mcast_en.dropped_no_desc += \
+				_srcobj->tx_i[idx].mcast_en.dropped_no_desc; \
 			_tgtobj->tx_i.mcast_en.ucast += \
 				_srcobj->tx_i[idx].mcast_en.ucast; \
 			_tgtobj->tx_i.mcast_en.fail_seg_alloc += \

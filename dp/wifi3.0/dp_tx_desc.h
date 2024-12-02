@@ -1547,6 +1547,8 @@ void dp_tso_num_seg_free(struct dp_soc *soc,
 }
 #endif
 
+#define MAX_NUM_EXTRA_ME_BUF 32768
+
 /**
  * dp_tx_me_alloc_buf() - Alloc descriptor from me pool
  * @pdev: DP_PDEV handle for datapath
@@ -1562,6 +1564,17 @@ dp_tx_me_alloc_buf(struct dp_pdev *pdev)
 		buf = pdev->me_buf.freelist;
 		pdev->me_buf.freelist = pdev->me_buf.freelist->next;
 		pdev->me_buf.buf_in_use++;
+	} else if (pdev->me_buf.num_me_extra_buf < MAX_NUM_EXTRA_ME_BUF) {
+		buf = (struct dp_tx_me_buf_t *)
+		      qdf_mem_malloc(sizeof(struct dp_tx_me_buf_t));
+		if (!buf) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+				  "Error allocating extra buffers");
+			qdf_spin_unlock_bh(&pdev->tx_mutex);
+			return NULL;
+		}
+		pdev->me_buf.num_me_extra_buf++;
+		buf->not_from_pool = true;
 	} else {
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 				"Error allocating memory in pool");
@@ -1598,9 +1611,14 @@ dp_tx_me_free_buf(struct dp_pdev *pdev, struct dp_tx_me_buf_t *buf)
 		buf->paddr_macbuf = 0;
 	}
 	qdf_spin_lock_bh(&pdev->tx_mutex);
-	buf->next = pdev->me_buf.freelist;
-	pdev->me_buf.freelist = buf;
-	pdev->me_buf.buf_in_use--;
+	if (buf->not_from_pool) {
+		pdev->me_buf.num_me_extra_buf--;
+		qdf_mem_free(buf);
+	} else {
+		buf->next = pdev->me_buf.freelist;
+		pdev->me_buf.freelist = buf;
+		pdev->me_buf.buf_in_use--;
+	}
 	qdf_spin_unlock_bh(&pdev->tx_mutex);
 }
 #endif /* DP_TX_DESC_H */
