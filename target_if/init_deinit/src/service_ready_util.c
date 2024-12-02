@@ -1216,6 +1216,50 @@ int init_deinit_populate_rssi_accuracy_cap_ext2(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+int init_deinit_populate_power_boost_cap_ext2(wmi_unified_t wmi_handle,
+						uint8_t *event,
+						struct tgt_info *info)
+{
+	struct wlan_psoc_power_boost_capability
+		pb_cap[PSOC_MAX_PHY_REG_CAP] = {{0} };
+	struct wlan_objmgr_psoc *psoc;
+	uint32_t num_phy_reg_cap;
+	uint8_t phy_idx;
+	QDF_STATUS status = QDF_STATUS_SUCCESS;
+
+	if (!event) {
+		target_if_err("event buffer is null");
+		return -EINVAL;
+	}
+
+	psoc = target_if_get_psoc_from_scn_hdl(wmi_handle->scn_handle);
+	if (!psoc) {
+		target_if_err("psoc is null");
+		return -EINVAL;
+	}
+
+	num_phy_reg_cap = info->service_ext_param.num_phy;
+	if (num_phy_reg_cap > PSOC_MAX_PHY_REG_CAP) {
+		target_if_err("Invalid num_phy_reg_cap %d", num_phy_reg_cap);
+		return -EINVAL;
+	}
+
+	for (phy_idx = 0; phy_idx < num_phy_reg_cap; phy_idx++) {
+		status = wmi_extract_power_boost_capability(
+				wmi_handle, event, phy_idx, &pb_cap[phy_idx]);
+		if (QDF_IS_STATUS_ERROR(status)) {
+			target_if_err("failed to parse power_boost cap ext2");
+			return qdf_status_to_os_return(status);
+		}
+	}
+
+	memcpy(info->psoc_pb_cap, pb_cap,
+		num_phy_reg_cap * sizeof(struct wlan_psoc_power_boost_capability));
+
+	return 0;
+
+}
+
 int init_deinit_populate_scan_radio_cap_ext2(wmi_unified_t wmi_handle,
 					     uint8_t *event,
 					     struct tgt_info *info)

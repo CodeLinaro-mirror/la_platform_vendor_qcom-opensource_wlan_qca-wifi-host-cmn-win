@@ -592,6 +592,14 @@ static int init_deinit_service_ext2_ready_event_handler(ol_scn_t scn_handle,
 		goto exit;
 	}
 
+	err_code = init_deinit_populate_power_boost_cap_ext2(wmi_handle, event,
+							     info);
+
+	if (err_code) {
+		target_if_err("failed to populate power boost cap ext2");
+		goto exit;
+	}
+
 	err_code = init_deinit_populate_mac_phy_cap_ext2(wmi_handle, event,
 							 info);
 	if (err_code) {

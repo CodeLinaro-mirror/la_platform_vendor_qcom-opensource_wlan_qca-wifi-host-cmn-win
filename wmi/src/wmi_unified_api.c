@@ -4348,3 +4348,49 @@ wmi_unified_send_sta_vdev_report_ap_oper_bw_cmd(wmi_unified_t wmi_handle,
 									    param);
 	return QDF_STATUS_E_FAILURE;
 }
+
+QDF_STATUS
+wmi_unified_pdev_pb_mem_ind_send(wmi_unified_t wmi_handle,
+				 struct wmi_host_pdev_pb_dma_buf *buf,
+				 uint8_t mac_id)
+{
+	if (wmi_handle->ops->send_pdev_pb_mem_ind_cmd)
+		return wmi_handle->ops->send_pdev_pb_mem_ind_cmd(wmi_handle,
+				   buf, mac_id);
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS
+wmi_extract_power_boost_capability(wmi_unified_t wmi_handle, void *evt_buf,
+				   uint8_t phy_idx,
+				   struct wlan_psoc_power_boost_capability *param)
+{
+	if (wmi_handle->ops->extract_power_boost_cap)
+		return wmi_handle->ops->extract_power_boost_cap(wmi_handle,
+								evt_buf,
+								phy_idx, param);
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS
+wmi_extract_pdev_power_boost_ev_params(wmi_unified_t wmi_handle, uint8_t *buf,
+				       struct wmi_host_pdev_power_boost_ev_params *pb_params)
+{
+	if (wmi_handle->ops->extract_pdev_power_boost_event)
+		return wmi_handle->ops->extract_pdev_power_boost_event(
+								wmi_handle,
+								buf,
+								pb_params);
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS
+wmi_pdev_power_boost_cmd_send(wmi_unified_t wmi_handle,
+			      struct wmi_host_pdev_power_boost_cmd_params *pb_cmd_params)
+{
+	if (wmi_handle->ops->pdev_power_boost_cmd_send)
+		return wmi_handle->ops->pdev_power_boost_cmd_send(
+								  wmi_handle,
+								  pb_cmd_params);
+	return QDF_STATUS_E_FAILURE;
+}

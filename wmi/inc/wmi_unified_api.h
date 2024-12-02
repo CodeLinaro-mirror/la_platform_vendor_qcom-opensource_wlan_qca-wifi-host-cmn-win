@@ -1334,6 +1334,20 @@ wmi_unified_pdev_param_send(wmi_unified_t wmi_handle,
 			    uint8_t mac_id);
 
 /**
+ * wmi_unified_pdev_pb_mem_ind_send() - Send Powerboost Command
+ * @wmi_handle: wmi handle
+ * @buf: pointer to DMA buffer
+ * @mac_id: radio context
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failures,
+ *         errno on failure
+ */
+QDF_STATUS
+wmi_unified_pdev_pb_mem_ind_send(wmi_unified_t wmi_handle,
+				 struct wmi_host_pdev_pb_dma_buf *buf,
+				 uint8_t mac_id);
+
+/**
  * wmi_unified_fd_tmpl_send_cmd() - WMI FILS Discovery send function
  * @wmi_handle: handle to WMI.
  * @param: pointer to hold FILS Discovery send cmd parameter
@@ -5447,5 +5461,46 @@ QDF_STATUS
 wmi_unified_send_sta_vdev_report_ap_oper_bw_cmd(
 					wmi_unified_t wmi_handle,
 					struct wmi_sta_vdev_report_ap_oper_bw_params *param);
+
+/**
+ * wmi_extract_power_boost_capability - Extract power boost capability from
+ * service ready EXT2 event
+ * @wmi_handle: Handle to WMI
+ * @evt_buf: Event buffer
+ * @phy_idx: Phy index
+ * @param: pointer to psoc power boost capability params
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_extract_power_boost_capability(wmi_unified_t wmi_handle, void *evt_buf,
+				   uint8_t phy_idx,
+				   struct wlan_psoc_power_boost_capability *param);
+
+/**
+ * wmi_extract_pdev_power_boost_ev_params - WMI to extract power boost event
+ * from FW
+ *
+ * @wmi_handle: Handle to WMI
+ * @buf: Event buffer
+ * @pb_params: Pointer to power boost event params
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_extract_pdev_power_boost_ev_params(wmi_unified_t wmi_handle, uint8_t *buf,
+					struct wmi_host_pdev_power_boost_ev_params *pb_params);
+
+/**
+ * wmi_pdev_power_boost_cmd_send - WMI to send power boost command to FW
+ *
+ * @wmi_handle: Handle to WMI
+ * @pb_cmd_params: Pointer to power boost command params
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_pdev_power_boost_cmd_send(wmi_unified_t wmi_handle,
+				struct wmi_host_pdev_power_boost_cmd_params *pb_cmd_params);
 
 #endif /* _WMI_UNIFIED_API_H_ */

@@ -214,6 +214,7 @@ struct target_version_info {
  * @wr_ltf_caps: WR LTF capabilities from target
  * @wr_chain_caps: WR Chain capabilities from target
  * @rssi_accuracy_caps: rssi accuracy improvement capabilities
+ * @psoc_pb_cap: Power boost capability from target
  */
 struct tgt_info {
 	struct host_fw_ver version;
@@ -263,6 +264,8 @@ struct tgt_info {
 #endif
 	struct wlan_psoc_host_rssi_accuracy_caps
 			rssi_accuracy_caps[PSOC_MAX_PHY_REG_CAP];
+	struct wlan_psoc_power_boost_capability
+			psoc_pb_cap[PSOC_MAX_PHY_REG_CAP];
 };
 
 /**
