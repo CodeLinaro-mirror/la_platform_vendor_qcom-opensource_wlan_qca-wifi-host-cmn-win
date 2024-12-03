@@ -2747,6 +2747,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 				_srcobj->tx_i[idx].dropped.tx_mcast_drop; \
 			_tgtobj->tx_i.dropped.fw2wbm_tx_drop += \
 				_srcobj->tx_i[idx].dropped.fw2wbm_tx_drop; \
+			_tgtobj->tx_i.dropped.osif_tx_drop += \
+				_srcobj->tx_i[idx].dropped.osif_tx_drop; \
 			_tgtobj->tx_i.dropped.dropped_pkt.bytes += \
 				_srcobj->tx_i[idx].dropped.dropped_pkt.bytes; \
 			_tgtobj->tx_i.mesh.exception_fw += \
@@ -2773,7 +2775,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 			_tgtobj->tx_i.dropped.headroom_insufficient + \
 			_tgtobj->tx_i.dropped.invalid_peer_id_in_exc_path + \
 			_tgtobj->tx_i.dropped.tx_mcast_drop + \
-			_tgtobj->tx_i.dropped.fw2wbm_tx_drop; \
+			_tgtobj->tx_i.dropped.fw2wbm_tx_drop + \
+			_tgtobj->tx_i.dropped.osif_tx_drop; \
 		DP_UPDATE_RX_INGRESS_STATS(_tgtobj, _srcobj); \
 	} while (0)
 
@@ -2900,6 +2903,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 				_srcobj->tx_i[idx].dropped.tx_mcast_drop; \
 			_tgtobj->tx_i[idx].dropped.fw2wbm_tx_drop += \
 				_srcobj->tx_i[idx].dropped.fw2wbm_tx_drop; \
+			_tgtobj->tx_i[idx].dropped.osif_tx_drop += \
+				_srcobj->tx_i[idx].dropped.osif_tx_drop; \
 			_tgtobj->tx_i[idx].dropped.dropped_pkt.bytes += \
 				_srcobj->tx_i[idx].dropped.dropped_pkt.bytes; \
 			_tgtobj->tx_i[idx].mesh.exception_fw += \
@@ -2925,7 +2930,8 @@ void dp_update_vdev_stats_on_peer_unmap(struct dp_vdev *vdev,
 				_tgtobj->tx_i[idx].dropped.headroom_insufficient + \
 				_tgtobj->tx_i[idx].dropped.invalid_peer_id_in_exc_path + \
 				_tgtobj->tx_i[idx].dropped.tx_mcast_drop + \
-				_tgtobj->tx_i[idx].dropped.fw2wbm_tx_drop; \
+				_tgtobj->tx_i[idx].dropped.fw2wbm_tx_drop + \
+				_tgtobj->tx_i[idx].dropped.osif_tx_drop; \
 		} \
 		DP_UPDATE_RX_INGRESS_STATS(_tgtobj, _srcobj); \
 	} while (0)

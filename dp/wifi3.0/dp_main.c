@@ -7515,6 +7515,20 @@ void dp_vdev_set_hlos_tid_override(struct dp_vdev *vdev, uint32_t val)
 }
 
 /**
+ * dp_vdev_stats_osif_tx_drop() - Increment osif_tx_drop counter
+ * @vdev: vdev handle
+ * @val: Increase in value
+ *
+ * Return: void
+ */
+static
+void dp_vdev_stats_osif_tx_drop(struct dp_vdev *vdev, uint32_t val)
+{
+	dp_cdp_info("%pK: val %d", vdev->pdev->soc, val);
+	vdev->stats.tx_i->dropped.osif_tx_drop += val;
+}
+
+/**
  * dp_vdev_get_hlos_tid_override() - to get hlos tid override flag
  * @vdev_hdl: virtual device object
  *
@@ -9707,6 +9721,10 @@ dp_set_vdev_param(struct cdp_soc_t *cdp_soc, uint8_t vdev_id,
 			   vdev, vdev->vdev_id);
 		vdev->eapol_over_control_port_disable =
 				val.cdp_eapol_over_control_port_disable;
+		break;
+	case CDP_OSIF_TX_DROP:
+		dp_vdev_stats_osif_tx_drop(vdev,
+					   val.cdp_vdev_param_osif_tx_drop);
 		break;
 	default:
 		break;
