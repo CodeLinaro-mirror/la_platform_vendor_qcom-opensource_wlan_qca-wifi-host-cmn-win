@@ -298,6 +298,35 @@ static inline void qdf_mem_unmap_page(qdf_device_t osdev, qdf_dma_addr_t paddr,
 	__qdf_mem_unmap_page(osdev, paddr, nbytes, dir);
 }
 
+#if defined(CONFIG_IO_COHERENCY)
+static inline QDF_STATUS qdf_mem_map_page_wrapper(qdf_device_t osdev, qdf_frag_t buf,
+						  qdf_dma_dir_t dir, size_t nbytes,
+						  qdf_dma_addr_t *phy_addr)
+{
+	*phy_addr = (qdf_dma_addr_t)qdf_mem_virt_to_phys(buf);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline void qdf_mem_unmap_page_wrapper(qdf_device_t osdev, qdf_dma_addr_t paddr,
+					      size_t nbytes, qdf_dma_dir_t dir)
+{
+}
+#else
+static inline QDF_STATUS qdf_mem_map_page_wrapper(qdf_device_t osdev, qdf_frag_t buf,
+						  qdf_dma_dir_t dir, size_t nbytes,
+						  qdf_dma_addr_t *phy_addr)
+{
+	return qdf_mem_map_page(osdev, buf, dir, nbytes, phy_addr);
+}
+
+static inline void qdf_mem_unmap_page_wrapper(qdf_device_t osdev, qdf_dma_addr_t paddr,
+					      size_t nbytes, qdf_dma_dir_t dir)
+{
+	qdf_mem_unmap_page(osdev, paddr, nbytes, dir);
+}
+#endif
+
 /*
  * qdf_frag_cache_drain() - Drain page frag cache
  *

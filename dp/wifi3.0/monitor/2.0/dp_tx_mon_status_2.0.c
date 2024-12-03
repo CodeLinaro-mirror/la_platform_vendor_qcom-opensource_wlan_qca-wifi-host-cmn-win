@@ -89,10 +89,10 @@ dp_tx_mon_status_free_packet_buf(struct dp_pdev *pdev,
 				qdf_assert_always(0);
 
 			if (!mon_desc->unmapped) {
-				qdf_mem_unmap_page(pdev->soc->osdev,
-						   (qdf_dma_addr_t)mon_desc->paddr,
-						   DP_MON_DATA_BUFFER_SIZE,
-						   QDF_DMA_FROM_DEVICE);
+				qdf_mem_unmap_page_wrapper(pdev->soc->osdev,
+							   (qdf_dma_addr_t)mon_desc->paddr,
+							   DP_MON_DATA_BUFFER_SIZE,
+							   QDF_DMA_FROM_DEVICE);
 				mon_desc->unmapped = 1;
 			}
 
@@ -1465,10 +1465,10 @@ dp_tx_mon_update_ppdu_info_status(struct dp_pdev *pdev,
 			qdf_assert_always(0);
 		}
 		if (!mon_desc->unmapped) {
-			qdf_mem_unmap_page(pdev->soc->osdev,
-					   (qdf_dma_addr_t)mon_desc->paddr,
-					   DP_MON_DATA_BUFFER_SIZE,
-					   QDF_DMA_FROM_DEVICE);
+			qdf_mem_unmap_page_wrapper(pdev->soc->osdev,
+						   (qdf_dma_addr_t)mon_desc->paddr,
+						   DP_MON_DATA_BUFFER_SIZE,
+						   QDF_DMA_FROM_DEVICE);
 			mon_desc->unmapped = 1;
 		}
 

@@ -115,11 +115,11 @@ dp_mon_frag_alloc_and_map(struct dp_soc *dp_soc,
 		return QDF_STATUS_E_NOMEM;
 	}
 
-	ret = qdf_mem_map_page(dp_soc->osdev,
-			       mon_desc->buf_addr,
-			       QDF_DMA_FROM_DEVICE,
-			       mon_desc_pool->buf_size,
-			       &mon_desc->paddr);
+	ret = qdf_mem_map_page_wrapper(dp_soc->osdev,
+				       mon_desc->buf_addr,
+				       QDF_DMA_FROM_DEVICE,
+				       mon_desc_pool->buf_size,
+				       &mon_desc->paddr);
 
 	if (qdf_unlikely(QDF_IS_STATUS_ERROR(ret))) {
 		qdf_frag_free(mon_desc->buf_addr);
@@ -845,9 +845,9 @@ void dp_mon_pool_frag_unmap_and_free(struct dp_soc *soc,
 			paddr = mon_desc_pool->array[desc_id].mon_desc.paddr;
 
 			if (!(mon_desc_pool->array[desc_id].mon_desc.unmapped)) {
-				qdf_mem_unmap_page(soc->osdev, paddr,
-						   mon_desc_pool->buf_size,
-						   QDF_DMA_FROM_DEVICE);
+				qdf_mem_unmap_page_wrapper(soc->osdev, paddr,
+							   mon_desc_pool->buf_size,
+							   QDF_DMA_FROM_DEVICE);
 				mon_desc_pool->array[desc_id].mon_desc.unmapped = 1;
 				mon_desc_pool->array[desc_id].mon_desc.cookie = desc_id;
 			}

@@ -211,9 +211,9 @@ dp_tx_mon_srng_process_2_0(struct dp_soc *soc, struct dp_intr *int_ctx,
 		}
 
 		if (!mon_desc->unmapped) {
-			qdf_mem_unmap_page(soc->osdev, mon_desc->paddr,
-					   DP_MON_DATA_BUFFER_SIZE,
-					   QDF_DMA_FROM_DEVICE);
+			qdf_mem_unmap_page_wrapper(soc->osdev, mon_desc->paddr,
+						   DP_MON_DATA_BUFFER_SIZE,
+						   QDF_DMA_FROM_DEVICE);
 			mon_desc->unmapped = 1;
 		}
 
