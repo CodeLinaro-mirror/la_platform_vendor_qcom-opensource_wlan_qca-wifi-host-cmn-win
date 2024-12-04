@@ -3007,7 +3007,10 @@ uint16_t dp_gen_ml_peer_id(struct dp_soc *soc, uint16_t peer_id)
 #ifdef WLAN_MLO_MULTI_CHIP
 static void dp_rx_mlo_update_ast_idx(struct dp_vdev *vdev, uint16_t hw_peer_id,
 				     uint16_t ast_hash)
-{ }
+{
+	/* updated the ast index in vp mapping table */
+	dp_tx_cfg_astidx_cache_mapping_wrapper(vdev->pdev->soc, NULL, vdev);
+}
 #else
 static void dp_rx_mlo_update_ast_idx(struct dp_vdev *vdev, uint16_t hw_peer_id,
 				     uint16_t ast_hash)
