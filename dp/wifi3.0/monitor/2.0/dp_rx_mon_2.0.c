@@ -892,10 +892,10 @@ dp_rx_mon_handle_mon_buf_addr(struct dp_pdev *pdev,
 	qdf_assert_always(addr);
 
 	if (!mon_desc->unmapped) {
-		qdf_mem_unmap_page(soc->osdev,
-				   (qdf_dma_addr_t)mon_desc->paddr,
-				   DP_MON_DATA_BUFFER_SIZE,
-				   QDF_DMA_FROM_DEVICE);
+		qdf_mem_unmap_page_wrapper(soc->osdev,
+					   (qdf_dma_addr_t)mon_desc->paddr,
+					   DP_MON_DATA_BUFFER_SIZE,
+					   QDF_DMA_FROM_DEVICE);
 		mon_desc->unmapped = 1;
 	}
 	dp_mon_add_to_free_desc_list(desc_list, tail, mon_desc);
@@ -1981,10 +1981,10 @@ dp_rx_mon_flush_packet_tlv(struct dp_pdev *pdev, void *buf, uint16_t end_offset,
 			addr = mon_desc->buf_addr;
 
 			if (!mon_desc->unmapped) {
-				qdf_mem_unmap_page(soc->osdev,
-						   (qdf_dma_addr_t)mon_desc->paddr,
-						   DP_MON_DATA_BUFFER_SIZE,
-						   QDF_DMA_FROM_DEVICE);
+				qdf_mem_unmap_page_wrapper(soc->osdev,
+							   (qdf_dma_addr_t)mon_desc->paddr,
+							   DP_MON_DATA_BUFFER_SIZE,
+							   QDF_DMA_FROM_DEVICE);
 				mon_desc->unmapped = 1;
 			}
 			dp_mon_add_to_free_desc_list(desc_list, tail, mon_desc);
@@ -2664,9 +2664,9 @@ dp_rx_mon_srng_process_2_0(struct dp_soc *soc, struct dp_intr *int_ctx,
 		mon_pdev_be->prev_rxmon_cookie = mon_desc->cookie;
 
 		if (!mon_desc->unmapped) {
-			qdf_mem_unmap_page(soc->osdev, mon_desc->paddr,
-					   rx_mon_desc_pool->buf_size,
-					   QDF_DMA_FROM_DEVICE);
+			qdf_mem_unmap_page_wrapper(soc->osdev, mon_desc->paddr,
+						   rx_mon_desc_pool->buf_size,
+						   QDF_DMA_FROM_DEVICE);
 			mon_desc->unmapped = 1;
 		}
 		mon_desc->end_offset = hal_mon_rx_desc.end_offset;
