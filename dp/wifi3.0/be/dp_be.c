@@ -2725,7 +2725,7 @@ static QDF_STATUS dp_soc_srng_alloc_be(struct dp_soc *soc)
 	if (soc->features.dmac_cmn_src_rxbuf_ring_enabled) {
 		for (i = 0; i < soc->num_rx_refill_buf_rings; i++) {
 			if (dp_srng_alloc(soc, &soc->rx_refill_buf_ring[i],
-					  RXDMA_BUF, ring_size, 0)) {
+					  RXDMA_BUF, ring_size, DP_SRNG_ALLOC_CACHED)) {
 				dp_err("%pK: dp_srng_alloc failed refill ring",
 				       soc);
 				goto fail;
