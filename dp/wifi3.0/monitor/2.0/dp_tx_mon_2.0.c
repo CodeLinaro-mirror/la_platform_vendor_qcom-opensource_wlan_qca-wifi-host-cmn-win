@@ -2373,7 +2373,7 @@ QDF_STATUS dp_tx_mon_pdev_rings_alloc_2_0(struct dp_pdev *pdev, uint32_t lmac_id
 	entries = wlan_cfg_get_dma_tx_mon_dest_ring_size(pdev_cfg_ctx);
 
 	return dp_srng_alloc(soc, &mon_soc_be->tx_mon_dst_ring[lmac_id],
-				  TX_MONITOR_DST, entries, 0);
+				  TX_MONITOR_DST, entries, DP_SRNG_ALLOC_CACHED);
 }
 
 void dp_tx_mon_pdev_rings_free_2_0(struct dp_pdev *pdev, uint32_t lmac_id)
@@ -2431,7 +2431,7 @@ QDF_STATUS dp_tx_mon_soc_attach_2_0(struct dp_soc *soc, uint32_t lmac_id)
 	qdf_print("%s:%d tx mon buf entries: %d", __func__, __LINE__, entries);
 
 	return dp_srng_alloc(soc, &mon_soc_be->tx_mon_buf_ring,
-			  TX_MONITOR_BUF, entries, 0);
+			  TX_MONITOR_BUF, entries, DP_SRNG_ALLOC_CACHED);
 }
 
 QDF_STATUS dp_tx_mon_soc_detach_2_0(struct dp_soc *soc, uint32_t lmac_id)
