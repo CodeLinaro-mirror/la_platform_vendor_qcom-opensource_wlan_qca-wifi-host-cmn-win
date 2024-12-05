@@ -49,8 +49,10 @@
  * @link_frame_maxsize: Maximum size of generated secondary link specific
  * reconfiguration request
  * @link_frame_len: Pointer to location where populated length of generated
- * secondary link specific reconfiguration request should be written. This should be
- * ignored in the case of failure.
+ * secondary link specific reconfiguration request should be written. This
+ * should be ignored in the case of failure.
+ * @assoc_frame: Pointer to cached association request.
+ * @assoc_frame_len: Length of cached association request
  *
  * Generate a link specific logically equivalent reconfiguration request for
  * the secondary link from the link reconfig request containing a Multi-Link
@@ -67,7 +69,9 @@ util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
 				   struct qdf_mac_addr link_addr,
 				   uint8_t *link_frame,
 				   qdf_size_t link_frame_maxsize,
-				   qdf_size_t *link_frame_len);
+				   qdf_size_t *link_frame_len,
+				   uint8_t *assoc_frame,
+				   qdf_size_t assoc_frame_len);
 
 /**
  * util_gen_link_assoc_req() - Generate link specific assoc request
@@ -728,7 +732,8 @@ util_gen_link_specifc_reconfig_req(uint8_t *frame, qdf_size_t frame_len,
 			struct qdf_mac_addr link_addr,
 			uint8_t *link_frame,
 			qdf_size_t link_frame_maxsize,
-			qdf_size_t *link_frame_len)
+			qdf_size_t *link_frame_len,
+			uint8_t *assoc_frame, qdf_size_t assoc_frame_len)
 {
 	return QDF_STATUS_E_NOSUPPORT;
 }
