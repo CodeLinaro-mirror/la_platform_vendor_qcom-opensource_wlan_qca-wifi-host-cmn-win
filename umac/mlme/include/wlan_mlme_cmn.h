@@ -1400,6 +1400,16 @@ void mlme_vdev_reconfig_timer_cb(void *arg);
  */
 bool mlme_mlo_is_reconfig_reassoc_enable(struct wlan_objmgr_psoc *psoc);
 
+/**
+ * mlme_mlo_is_link_reconfiguration_supported() - Get if link reconfiguration
+ * on setup links is supported
+ * @psoc: Object manager psoc pointer
+ *
+ * Return: True if setup link reconfiguration is supported
+ */
+
+bool mlme_mlo_is_link_reconfiguration_supported(struct wlan_objmgr_psoc *psoc);
+
 #ifdef WLAN_BOOST_CPU_FREQ_IN_ROAM
 /**
  * mlme_cm_osif_perfd_reset_cpufreq() - Function to reset CPU freq

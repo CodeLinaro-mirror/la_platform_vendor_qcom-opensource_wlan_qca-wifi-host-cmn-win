@@ -2559,6 +2559,9 @@ enum wlan_ml_bv_cinfo_emlcap_transtimeout {
 /* AAR Support */
 #define WLAN_ML_BV_CINFO_MLDCAPANDOP_AARSUPPORT_IDX                      12
 #define WLAN_ML_BV_CINFO_MLDCAPANDOP_AARSUPPORT_BITS                     1
+/* Link Reconfiguration Operation Support */
+#define WLAN_ML_BV_CINFO_MLDCAPANDOP_LINKRECONFIGSUPPORT_IDX             13
+#define WLAN_ML_BV_CINFO_MLDCAPANDOP_LINKRECONFIGSUPPORT_BITS            1
 
 /* Size in octets of MLD ID subfield in Basic variant Multi-Link
  * element Common Info field.

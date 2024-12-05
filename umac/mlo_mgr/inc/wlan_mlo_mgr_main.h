@@ -1053,6 +1053,20 @@ void mlo_t2lm_reset_established_and_upcoming_mapping(
 	struct wlan_mlo_dev_context *ml_dev);
 
 /**
+ * mlo_reconfiguration_is_supported() - API to know if link reconfiguraiton
+ * is supported or not
+ * @ml_dev: Pointer to ML Dev context
+ *
+ * Return: True if supported, else false
+ */
+static inline
+bool mlo_reconfiguration_is_supported(
+	struct wlan_mlo_dev_context *ml_dev)
+{
+	return ml_dev->mlo_reconfiguration_supported;
+}
+
+/**
  * ucfg_mlo_get_active_vdev_id() - This API wrapper for
  * "wlan_mlo_get_active_vdev_id"
  *

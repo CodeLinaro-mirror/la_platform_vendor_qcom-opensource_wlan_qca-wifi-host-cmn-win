@@ -16084,6 +16084,8 @@ static void extract_mac_phy_mldcap(struct wlan_psoc_host_mac_phy_caps_ext2 *para
 	param->mldcap.tid2link_neg_support = WMI_TID_TO_LINK_NEGOTIATION_GET(mac_phy_caps->mld_capability);
 	param->mldcap.str_freq_sep = WMI_FREQ_SEPERATION_STR_GET(mac_phy_caps->mld_capability);
 	param->mldcap.aar_support = WMI_SUPPORT_AAR_GET(mac_phy_caps->mld_capability);
+	/*To do: Get link reconfig support flag from WMI/FW*/
+	param->mldcap.link_reconfig_support = 0;
 }
 
 /**

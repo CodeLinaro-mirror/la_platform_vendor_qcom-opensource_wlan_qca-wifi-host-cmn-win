@@ -191,6 +191,8 @@ static void mlme_init_cfg(struct wlan_objmgr_psoc *psoc)
 		cfg_default(CFG_MLME_11BE_TARGET_CAPAB);
 	mlme_psoc_obj->psoc_cfg.mlo_config.reconfig_reassoc_en =
 		cfg_get(psoc, CFG_MLME_MLO_RECONFIG_REASSOC_ENABLE);
+	mlme_psoc_obj->psoc_cfg.mlo_config.link_reconfig_supported =
+		cfg_get(psoc, CFG_MLME_MLO_LINK_RECONFIG_SUPPORTED);
 
 	wlan_minidump_log(mlme_psoc_obj, sizeof(*mlme_psoc_obj), psoc,
 			  WLAN_MD_OBJMGR_PSOC_MLME, "psoc_mlme");

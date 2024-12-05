@@ -1091,6 +1091,8 @@ struct wlan_mlo_link_mac_update {
  * @mlo_extmld_cap_advertisement: Enable/disable Extended MLD Cap and OP
  *                                advertisement
  * @link_ptqm_migrate_ctx: PTQM migration link context
+ * @mlo_reconfiguration_supported: Flag to indicate if link reconfiguration
+ *                                 is supported
  */
 struct wlan_mlo_dev_context {
 	qdf_list_node_t node;
@@ -1128,6 +1130,7 @@ struct wlan_mlo_dev_context {
 	struct mlo_link_switch_context *link_ctx;
 	uint8_t mlo_max_recom_simult_links;
 	bool mlo_extmld_cap_advertisement;
+	bool mlo_reconfiguration_supported;
 };
 
 /**
@@ -1230,6 +1233,7 @@ struct wlan_mlo_msd_cap {
  * @str_freq_sep: Frequency separation suggested by STR non-AP MLD
  *                OR Type of AP-MLD
  * @aar_support: AAR Support
+ * @link_reconfig_support: Link Reconfiguration Operation Support
  * @reserved: Reserved
  */
 struct wlan_mlo_mld_cap {
@@ -1238,7 +1242,8 @@ struct wlan_mlo_mld_cap {
 		 tid2link_neg_support:2,
 		 str_freq_sep:5,
 		 aar_support:1,
-		 reserved:3;
+		 link_reconfig_support:1,
+		 reserved:2;
 };
 
 #ifdef WLAN_FEATURE_11BE_MLO_TTLM

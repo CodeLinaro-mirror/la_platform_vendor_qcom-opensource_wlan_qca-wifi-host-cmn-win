@@ -35,6 +35,7 @@
 #include "cdp_txrx_cmn.h"
 #include "wlan_mlo_mgr_sta.h"
 #include <wlan_utility.h>
+#include <include/wlan_mlme_cmn.h>
 
 #ifdef WLAN_WSI_STATS_SUPPORT
 /*
@@ -1283,6 +1284,8 @@ static QDF_STATUS mlo_dev_ctx_init(struct wlan_objmgr_vdev *vdev)
 		WLAN_UMAC_MLO_RECOM_MAX_SIMULT_LINKS_DEFAULT;
 
 	ml_dev->mlo_extmld_cap_advertisement = false;
+	ml_dev->mlo_reconfiguration_supported =
+		mlme_mlo_is_link_reconfiguration_supported(psoc);
 
 	mlo_dev_mlpeer_list_init(ml_dev);
 
