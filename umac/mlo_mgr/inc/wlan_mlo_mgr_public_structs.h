@@ -1278,7 +1278,58 @@ enum mlreconfig_operation_type {
 	MLRECONFIG_OPERATION_TYPE_DELETE_LINK = 3,
 	MLRECONFIG_OPERATION_TYPE_MAX = 4,
 };
+
+/**
+ * struct mlreconfig_setup_link_info - ml setup link information
+ * @link_id: setup link id
+ * @reconfig_optype: reconfiguration operation type
+ */
+struct mlreconfig_setup_link_info {
+	uint8_t link_id : 4,
+		reserved: 4;
+	enum mlreconfig_operation_type reconfig_optype;
+};
+
+/**
+ * struct mlreconfig_setup_links_req - link reconfig request information
+ * @setup_link_info: setup links information to be reconfigured
+ */
+struct mlreconfig_setup_links_req {
+	struct mlreconfig_setup_link_info
+		setup_link_info[WLAN_UMAC_MLO_MAX_VDEVS];
+};
+
+/**
+ * enum mlreconfig_setup_links_category - setup link reconfig action
+ *                                        categories
+ * @MLRECONFIG_SETUP_LINKS_CATEGORY_NOTIFY:  Notify to non-AP MLD
+ * @MLRECONFIG_SETUP_LINKS_CATEGORY_REQUEST: Request to AP MLD
+ * @MLRECONFIG_SETUP_LINKS_CATEGORY_RESPONSE: Response from AP MLD
+ */
+enum mlreconfig_setup_links_category {
+	MLRECONFIG_SETUP_LINKS_CATEGORY_NOTIFY,
+	MLRECONFIG_SETUP_LINKS_CATEGORY_REQUEST,
+	MLRECONFIG_SETUP_LINKS_CATEGORY_RESPONSE,
+};
+
+/**
+ * struct mlreconfig_setup_links_action - ml setup link action infomration
+ * @dialog_token: Non-zero dialog token
+ * @category: Link reconfig action category
+ * @num_operations: Number of reconfiguration operations
+ * @reconfig_optype: reconfiguration operation type
+ * @mlreconfig_link_req: setup link request information
+ */
+struct mlreconfig_setup_links_action {
+	uint8_t dialog_token;
+	enum mlreconfig_setup_links_category category;
+	int num_operations;
+	union {
+		struct mlreconfig_setup_links_req mlreconfig_link_req;
+	};
+};
 #endif
+
 /**
  * struct wlan_mlo_peer_context - MLO peer context
  *
@@ -1302,6 +1353,7 @@ enum mlreconfig_operation_type {
  * @pending_auth: Holds pending auth request
  * @t2lm_policy: TID-to-link mapping information
  * @epcs_info: EPCS information
+ * @setup_links_action_info: ML Reconfig setup links action info
  * @msd_cap_present: Medium Sync Capability present bit
  * @mlpeer_emlcap: EML capability information for ML peer
  * @mlpeer_msdcap: Medium Sync Delay capability information for ML peer
@@ -1348,6 +1400,7 @@ struct wlan_mlo_peer_context {
 #ifdef WLAN_FEATURE_11BE
 	struct wlan_mlo_peer_t2lm_policy t2lm_policy;
 	struct wlan_mlo_peer_epcs_info epcs_info;
+	struct mlreconfig_setup_links_action setup_links_action_info;
 #endif
 	bool msd_cap_present;
 	struct wlan_mlo_eml_cap mlpeer_emlcap;
