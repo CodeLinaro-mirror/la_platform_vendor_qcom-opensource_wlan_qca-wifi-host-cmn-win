@@ -1114,6 +1114,23 @@ uint16_t wlan_reg_dmn_get_chanwidth_from_opclass(uint8_t *country,
 						 uint8_t opclass);
 
 /**
+ * wlan_reg_get_chanwidth_and_behav_limit_from_opclass() - get channel width
+ * and behaviour limit from operating class.
+ * @pdev: Pointer to pdev.
+ * @opclass: Operating class.
+ * @channel: Channel number.
+ * @behav_limit: Pointer to behaviour limit.
+ * @ch_width: Pointer to channel width.
+ * Return: None
+ */
+void
+wlan_reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+						    uint8_t opclass,
+						    uint8_t channel,
+						    uint16_t *behav_limit,
+						    uint16_t *ch_width);
+
+/**
  * wlan_reg_dmn_get_chanwidth_from_opclass_auto() - get channel width from
  * operating class. If opclass not found then search in global opclass.
  * @country: country alpha2
