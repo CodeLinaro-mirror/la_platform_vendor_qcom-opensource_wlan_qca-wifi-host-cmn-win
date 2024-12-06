@@ -387,9 +387,6 @@ static bool mlme_vdev_state_dfs_cac_wait_event(void *ctx, uint16_t event,
 		break;
 
 	case WLAN_VDEV_SM_EV_DOWN:
-		/* stop the CAC timer, then notify state machine */
-		mlme_vdev_dfs_cac_timer_stop(vdev_mlme, event_data_len,
-					     event_data);
 		mlme_vdev_sm_transition_to(vdev_mlme, WLAN_VDEV_S_SUSPEND);
 		mlme_vdev_sm_deliver_event(vdev_mlme, WLAN_VDEV_SM_EV_DOWN,
 					   event_data_len, event_data);
