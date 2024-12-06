@@ -2849,6 +2849,34 @@ end:
 
 	return vaddr;
 }
+
+void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
+				       qdf_size_t size,
+				       void *vaddr,
+				       qdf_dma_addr_t paddr,
+				       qdf_dma_context_t memctx,
+				       uint8_t is_mem_prealloc)
+{
+	struct hif_driver_state_callbacks *cbk =
+				hif_get_callbacks_handle(scn);
+	struct device *dev = scn->qdf_dev->dev;
+	struct platform_device *pdev = NULL;
+
+	if (is_mem_prealloc) {
+		if (cbk && cbk->prealloc_put_consistent_mem_unaligned) {
+			cbk->prealloc_put_consistent_mem_unaligned(vaddr);
+		} else {
+			dp_warn("dp_prealloc_put_consistent_unligned NULL");
+		}
+	} else {
+		pdev = pld_get_plat_dev_by_bus_dev(dev);
+		if (pdev)
+			if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
+				dev = &pdev->dev;
+		qdf_mem_free_consistent(scn->qdf_dev, dev, size, vaddr, paddr,
+					memctx);
+	}
+}
 #else
 void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 					 qdf_size_t size,
@@ -2882,7 +2910,6 @@ end:
 
 	return vaddr;
 }
-#endif
 
 void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
 				       qdf_size_t size,
@@ -2906,6 +2933,7 @@ void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
 					size, vaddr, paddr, memctx);
 	}
 }
+#endif
 
 void hif_prealloc_get_multi_pages(struct hif_softc *scn, uint32_t desc_type,
 				  qdf_size_t elem_size, uint16_t elem_num,
