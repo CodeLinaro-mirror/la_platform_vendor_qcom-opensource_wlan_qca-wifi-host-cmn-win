@@ -1100,6 +1100,7 @@ struct wlan_mlo_dev_context {
 	struct qdf_mac_addr mld_addr;
 	struct wlan_objmgr_vdev *wlan_vdev_list[WLAN_UMAC_MLO_MAX_VDEVS];
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_MLO_MULTI_CHIP)
+	qdf_work_t bridge_vap_work;
 	struct wlan_objmgr_vdev *wlan_bridge_vdev_list[WLAN_UMAC_MLO_MAX_BRIDGE_VDEVS];
 	struct wlan_mlo_bridge_sta *bridge_sta_ctx;
 	struct wlan_objmgr_pdev *br_pdev_list[MLO_MAX_BRIDGE_LINKS_PER_MLD];
