@@ -1183,12 +1183,17 @@ void dp_hw_link_desc_ring_free(struct dp_soc *soc)
 			vaddr = soc->wbm_idle_scatter_buf_base_vaddr[i];
 			paddr = soc->wbm_idle_scatter_buf_base_paddr[i];
 			if (vaddr) {
-				qdf_mem_free_consistent(soc->osdev,
+				if (DP_SRNG_ALLOC_CACHED) {
+					qdf_mem_free(vaddr);
+				} else {
+					qdf_mem_free_consistent(
+							soc->osdev,
 							soc->osdev->dev,
 							size,
 							vaddr,
 							paddr,
 							0);
+				}
 				vaddr = NULL;
 			}
 		}
@@ -1253,18 +1258,36 @@ QDF_STATUS dp_hw_link_desc_ring_alloc(struct dp_soc *soc)
 		for (i = 0; i < num_scatter_bufs; i++) {
 			baseaddr = &soc->wbm_idle_scatter_buf_base_paddr[i];
 			buf_size = soc->wbm_idle_scatter_buf_size;
-			soc->wbm_idle_scatter_buf_base_vaddr[i] =
+			if (DP_SRNG_ALLOC_CACHED) {
+				soc->wbm_idle_scatter_buf_base_vaddr[i] =
+					qdf_mem_malloc(buf_size);
+
+				if (!soc->wbm_idle_scatter_buf_base_vaddr[i]) {
+					QDF_TRACE(
+					QDF_MODULE_ID_DP,
+					QDF_TRACE_LEVEL_ERROR,
+					FL("Scatter lst memory alloc fail"));
+					goto fail;
+				}
+
+				baseaddr =
+				(qdf_dma_addr_t *)qdf_mem_virt_to_phys(
+				soc->wbm_idle_scatter_buf_base_vaddr[i]);
+			} else {
+				soc->wbm_idle_scatter_buf_base_vaddr[i] =
 				qdf_mem_alloc_consistent(soc->osdev,
 							 soc->osdev->dev,
 							 buf_size,
 							 baseaddr);
-
-			if (!soc->wbm_idle_scatter_buf_base_vaddr[i]) {
-				QDF_TRACE(QDF_MODULE_ID_DP,
-					  QDF_TRACE_LEVEL_ERROR,
-					  FL("Scatter lst memory alloc fail"));
-				goto fail;
+				if (!soc->wbm_idle_scatter_buf_base_vaddr[i]) {
+					QDF_TRACE(
+					QDF_MODULE_ID_DP,
+					QDF_TRACE_LEVEL_ERROR,
+					FL("Scatter lst memory alloc fail"));
+					goto fail;
+				}
 			}
+
 		}
 		soc->num_scatter_bufs = num_scatter_bufs;
 	}
@@ -1276,10 +1299,16 @@ fail:
 		qdf_dma_addr_t paddr = soc->wbm_idle_scatter_buf_base_paddr[i];
 
 		if (vaddr) {
-			qdf_mem_free_consistent(soc->osdev, soc->osdev->dev,
+			if (DP_SRNG_ALLOC_CACHED) {
+				qdf_mem_free(vaddr);
+			} else {
+				qdf_mem_free_consistent(
+						soc->osdev,
+						soc->osdev->dev,
 						soc->wbm_idle_scatter_buf_size,
 						vaddr,
 						paddr, 0);
+			}
 			vaddr = NULL;
 		}
 	}

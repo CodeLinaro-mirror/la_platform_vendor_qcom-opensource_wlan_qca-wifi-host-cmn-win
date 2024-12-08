@@ -426,7 +426,8 @@ dp_tx_ext_desc_pool_alloc_by_id(struct dp_soc *soc, uint32_t num_elem,
 	/* Coherent tx extension descriptor alloc */
 	dp_desc_multi_pages_mem_alloc(soc, QDF_DP_TX_EXT_DESC_TYPE,
 				      &dp_tx_ext_desc_pool->desc_pages,
-				      elem_size, num_elem, memctx, false);
+				      elem_size, num_elem, memctx,
+				      DP_SRNG_ALLOC_CACHED);
 
 	if (!dp_tx_ext_desc_pool->desc_pages.num_pages) {
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
@@ -456,17 +457,89 @@ dp_tx_ext_desc_pool_alloc_by_id(struct dp_soc *soc, uint32_t num_elem,
 free_ext_desc:
 	dp_desc_multi_pages_mem_free(soc, QDF_DP_TX_EXT_DESC_TYPE,
 				     &dp_tx_ext_desc_pool->desc_pages,
-				     memctx, false);
+				     memctx, DP_SRNG_ALLOC_CACHED);
 	return status;
+
+}
+
+
+static QDF_STATUS
+dp_tx_ext_desc_pool_init_freelist(
+		struct dp_tx_ext_desc_pool_s *dp_tx_ext_desc_pool,
+		bool cacheable)
+{
+	uint32_t i;
+	uint32_t page_num = 0;
+	struct dp_tx_ext_desc_elem_s *c_elem, *p_elem;
+	struct qdf_mem_dma_page_t *page_info;
+	struct qdf_mem_multi_page_t *pages;
+	void **cacheable_pages;
+
+	cacheable = DP_SRNG_ALLOC_CACHED ? 1 : cacheable;
+	pages = &dp_tx_ext_desc_pool->desc_pages;
+
+	if (!cacheable) {
+		page_info = dp_tx_ext_desc_pool->desc_pages.dma_pages;
+		c_elem = dp_tx_ext_desc_pool->freelist;
+		p_elem = c_elem;
+		for (i = 0; i < dp_tx_ext_desc_pool->elem_count; i++) {
+			if (!(i % pages->num_element_per_page)) {
+			/**
+			 * First element for new page,
+			 * should point next page
+			 */
+				if (!pages->dma_pages->page_v_addr_start) {
+					QDF_TRACE(QDF_MODULE_ID_DP,
+						  QDF_TRACE_LEVEL_ERROR,
+						  "link over flow");
+					return QDF_STATUS_E_FAULT;
+				}
+
+				c_elem->vaddr =
+					(void *)page_info->page_v_addr_start;
+				c_elem->paddr = page_info->page_p_addr;
+				page_info++;
+			} else {
+				c_elem->vaddr = (void *)(p_elem->vaddr +
+					dp_tx_ext_desc_pool->elem_size);
+				c_elem->paddr = (p_elem->paddr +
+					dp_tx_ext_desc_pool->elem_size);
+			}
+			p_elem = c_elem;
+			c_elem = c_elem->next;
+			if (!c_elem)
+				break;
+		}
+	} else {
+		cacheable_pages =
+			dp_tx_ext_desc_pool->desc_pages.cacheable_pages;
+		c_elem = dp_tx_ext_desc_pool->freelist;
+		p_elem = c_elem;
+		for (i = 0; i < dp_tx_ext_desc_pool->elem_count; i++) {
+			if (!(i % pages->num_element_per_page)) {
+				c_elem->vaddr = cacheable_pages[page_num];
+				c_elem->paddr =
+				qdf_mem_virt_to_phys(cacheable_pages[page_num]);
+				page_num++;
+			} else {
+				c_elem->vaddr = (void *)(p_elem->vaddr +
+					dp_tx_ext_desc_pool->elem_size);
+				c_elem->paddr = (p_elem->paddr +
+					dp_tx_ext_desc_pool->elem_size);
+			}
+			p_elem = c_elem;
+			c_elem = c_elem->next;
+			if (!c_elem)
+				break;
+		}
+	}
+
+	return QDF_STATUS_SUCCESS;
 }
 
 QDF_STATUS dp_tx_ext_desc_pool_init_by_id(struct dp_soc *soc, uint32_t num_elem,
 					  uint8_t pool_id)
 {
-	uint32_t i;
-	struct dp_tx_ext_desc_elem_s *c_elem, *p_elem;
-	struct qdf_mem_dma_page_t *page_info;
-	struct qdf_mem_multi_page_t *pages;
 	struct dp_tx_ext_desc_pool_s *dp_tx_ext_desc_pool;
 	QDF_STATUS status;
 
@@ -493,39 +566,14 @@ QDF_STATUS dp_tx_ext_desc_pool_init_by_id(struct dp_soc *soc, uint32_t num_elem,
 	}
 
 	/* Assign coherent memory pointer into linked free list */
-	pages = &dp_tx_ext_desc_pool->desc_pages;
-	page_info = dp_tx_ext_desc_pool->desc_pages.dma_pages;
-	c_elem = dp_tx_ext_desc_pool->freelist;
-	p_elem = c_elem;
-	for (i = 0; i < dp_tx_ext_desc_pool->elem_count; i++) {
-		if (!(i % pages->num_element_per_page)) {
-		/**
-		 * First element for new page,
-		 * should point next page
-		 */
-			if (!pages->dma_pages->page_v_addr_start) {
-				QDF_TRACE(QDF_MODULE_ID_DP,
-					  QDF_TRACE_LEVEL_ERROR,
-					  "link over flow");
-				status = QDF_STATUS_E_FAULT;
-				goto fail;
-			}
-
-			c_elem->vaddr =
-				(void *)page_info->page_v_addr_start;
-			c_elem->paddr = page_info->page_p_addr;
-			page_info++;
-		} else {
-			c_elem->vaddr = (void *)(p_elem->vaddr +
-				dp_tx_ext_desc_pool->elem_size);
-			c_elem->paddr = (p_elem->paddr +
-				dp_tx_ext_desc_pool->elem_size);
-		}
-		p_elem = c_elem;
-		c_elem = c_elem->next;
-		if (!c_elem)
-			break;
+	if (dp_tx_ext_desc_pool_init_freelist(
+					dp_tx_ext_desc_pool,
+					DP_SRNG_ALLOC_CACHED)
+					!= QDF_STATUS_SUCCESS) {
+		status = QDF_STATUS_E_FAULT;
+		goto fail;
 	}
+
 	dp_tx_ext_desc_pool->num_free = num_elem;
 	qdf_spinlock_create(&dp_tx_ext_desc_pool->lock);
 
@@ -549,7 +597,7 @@ void dp_tx_ext_desc_pool_free_by_id(struct dp_soc *soc, uint8_t pool_id)
 
 	dp_desc_multi_pages_mem_free(soc, QDF_DP_TX_EXT_DESC_TYPE,
 				     &dp_tx_ext_desc_pool->desc_pages,
-				     memctx, false);
+				     memctx, DP_SRNG_ALLOC_CACHED);
 	dp_tx_ext_desc_pool_free_mem(soc, pool_id);
 }
 

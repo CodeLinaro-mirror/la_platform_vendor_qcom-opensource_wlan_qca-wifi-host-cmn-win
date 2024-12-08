@@ -881,14 +881,21 @@ static inline void dp_ppeds_stop_soc_be(struct dp_soc *soc)
 
 void dp_reo_shared_qaddr_detach(struct dp_soc *soc)
 {
-	qdf_mem_free_consistent(soc->osdev, soc->osdev->dev,
+	if (DP_SRNG_ALLOC_CACHED) {
+		qdf_mem_free(soc->reo_qref.mlo_reo_qref_table_vaddr);
+		qdf_mem_free(soc->reo_qref.non_mlo_reo_qref_table_vaddr);
+	} else {
+		qdf_mem_free_consistent(
+				soc->osdev, soc->osdev->dev,
 				REO_QUEUE_REF_ML_TABLE_SIZE,
 				soc->reo_qref.mlo_reo_qref_table_vaddr,
 				soc->reo_qref.mlo_reo_qref_table_paddr, 0);
-	qdf_mem_free_consistent(soc->osdev, soc->osdev->dev,
+		qdf_mem_free_consistent(
+				soc->osdev, soc->osdev->dev,
 				REO_QUEUE_REF_NON_ML_TABLE_SIZE,
 				soc->reo_qref.non_mlo_reo_qref_table_vaddr,
 				soc->reo_qref.non_mlo_reo_qref_table_paddr, 0);
+	}
 }
 
 #ifdef QCA_SUPPORT_DP_GLOBAL_CTX

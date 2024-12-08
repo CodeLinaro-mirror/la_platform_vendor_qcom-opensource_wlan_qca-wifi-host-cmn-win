@@ -3500,29 +3500,58 @@ hal_reo_shared_qaddr_setup_be(hal_soc_handle_t hal_soc_hdl,
 
 	reo_qref->reo_qref_table_en = 1;
 
-	reo_qref->mlo_reo_qref_table_vaddr =
+	if (DP_SRNG_ALLOC_CACHED) {
+		reo_qref->mlo_reo_qref_table_vaddr =
+			qdf_mem_malloc(REO_QUEUE_REF_ML_TABLE_SIZE);
+
+		if (!reo_qref->mlo_reo_qref_table_vaddr)
+			return QDF_STATUS_E_NOMEM;
+
+		reo_qref->mlo_reo_qref_table_paddr =
+			qdf_mem_virt_to_phys(reo_qref->mlo_reo_qref_table_vaddr);
+	} else {
+		reo_qref->mlo_reo_qref_table_vaddr =
 		(uint64_t *)qdf_mem_alloc_consistent(
 				hal->qdf_dev, hal->qdf_dev->dev,
 				REO_QUEUE_REF_ML_TABLE_SIZE,
 				&reo_qref->mlo_reo_qref_table_paddr);
-	if (!reo_qref->mlo_reo_qref_table_vaddr)
-		return QDF_STATUS_E_NOMEM;
 
-	reo_qref->non_mlo_reo_qref_table_vaddr =
+		if (!reo_qref->mlo_reo_qref_table_vaddr)
+			return QDF_STATUS_E_NOMEM;
+	}
+
+	if (DP_SRNG_ALLOC_CACHED) {
+		reo_qref->non_mlo_reo_qref_table_vaddr =
+			qdf_mem_malloc(REO_QUEUE_REF_NON_ML_TABLE_SIZE);
+
+		if (!reo_qref->non_mlo_reo_qref_table_vaddr) {
+			qdf_mem_free(reo_qref->mlo_reo_qref_table_vaddr);
+			reo_qref->mlo_reo_qref_table_vaddr = NULL;
+			return QDF_STATUS_E_NOMEM;
+		}
+
+		reo_qref->non_mlo_reo_qref_table_paddr =
+			qdf_mem_virt_to_phys(
+				reo_qref->non_mlo_reo_qref_table_vaddr);
+	} else {
+		reo_qref->non_mlo_reo_qref_table_vaddr =
 		(uint64_t *)qdf_mem_alloc_consistent(
 				hal->qdf_dev, hal->qdf_dev->dev,
 				REO_QUEUE_REF_NON_ML_TABLE_SIZE,
 				&reo_qref->non_mlo_reo_qref_table_paddr);
-	if (!reo_qref->non_mlo_reo_qref_table_vaddr) {
-		qdf_mem_free_consistent(
+
+		if (!reo_qref->non_mlo_reo_qref_table_vaddr) {
+			qdf_mem_free_consistent(
 				hal->qdf_dev, hal->qdf_dev->dev,
 				REO_QUEUE_REF_ML_TABLE_SIZE,
 				reo_qref->mlo_reo_qref_table_vaddr,
 				reo_qref->mlo_reo_qref_table_paddr,
 				0);
-		reo_qref->mlo_reo_qref_table_vaddr = NULL;
-		return QDF_STATUS_E_NOMEM;
+			reo_qref->mlo_reo_qref_table_vaddr = NULL;
+			return QDF_STATUS_E_NOMEM;
+		}
 	}
+
 
 	hal_verbose_debug("MLO table start paddr:%pK,"
 			  "Non-MLO table start paddr:%pK,"

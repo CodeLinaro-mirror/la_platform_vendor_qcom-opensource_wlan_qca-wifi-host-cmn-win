@@ -1462,6 +1462,12 @@ static inline void hal_mem_dma_cache_sync(struct hal_soc *soc, uint32_t *desc,
 	qdf_nbuf_dma_inv_range((void *)desc, (void *)(desc + entry_size));
 }
 #else
+#ifdef CONFIG_IO_COHERENCY
+static inline void hal_mem_dma_cache_sync(struct hal_soc *soc, uint32_t *desc,
+					  uint32_t entry_size)
+{
+}
+#else
 static inline void hal_mem_dma_cache_sync(struct hal_soc *soc, uint32_t *desc,
 					  uint32_t entry_size)
 {
@@ -1469,6 +1475,7 @@ static inline void hal_mem_dma_cache_sync(struct hal_soc *soc, uint32_t *desc,
 			       QDF_DMA_FROM_DEVICE,
 			       (entry_size * sizeof(uint32_t)));
 }
+#endif /*CONFIG_IO_COHERENCY*/
 #endif
 
 /**

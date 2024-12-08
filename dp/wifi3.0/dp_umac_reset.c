@@ -123,14 +123,32 @@ QDF_STATUS dp_soc_umac_reset_init(struct cdp_soc_t *txrx_soc)
 
 	alloc_size = sizeof(htt_umac_hang_recovery_msg_shmem_t) +
 			DP_UMAC_RESET_SHMEM_ALIGN - 1;
-	umac_reset_ctx->shmem_vaddr_unaligned =
-	    qdf_mem_alloc_consistent(soc->osdev, soc->osdev->dev,
-				     alloc_size,
-				     &umac_reset_ctx->shmem_paddr_unaligned);
-	if (!umac_reset_ctx->shmem_vaddr_unaligned) {
-		dp_umac_reset_err("shmem allocation failed");
-		return QDF_STATUS_E_NOMEM;
+	if (DP_SRNG_ALLOC_CACHED) {
+		umac_reset_ctx->shmem_vaddr_unaligned =
+			qdf_mem_malloc(alloc_size);
+
+		if (!umac_reset_ctx->shmem_vaddr_unaligned) {
+			dp_umac_reset_err("shmem allocation failed");
+			return QDF_STATUS_E_NOMEM;
+		}
+
+		umac_reset_ctx->shmem_paddr_unaligned =
+			qdf_mem_virt_to_phys(
+				umac_reset_ctx->shmem_vaddr_unaligned);
+	} else {
+		umac_reset_ctx->shmem_vaddr_unaligned =
+				qdf_mem_alloc_consistent(
+					soc->osdev,
+					soc->osdev->dev,
+					alloc_size,
+					&umac_reset_ctx->shmem_paddr_unaligned);
+
+		if (!umac_reset_ctx->shmem_vaddr_unaligned) {
+			dp_umac_reset_err("shmem allocation failed");
+			return QDF_STATUS_E_NOMEM;
+		}
 	}
+
 
 	umac_reset_ctx->shmem_vaddr_aligned = (void *)(uintptr_t)qdf_roundup(
 		(uint64_t)(uintptr_t)umac_reset_ctx->shmem_vaddr_unaligned,
@@ -148,11 +166,17 @@ QDF_STATUS dp_soc_umac_reset_init(struct cdp_soc_t *txrx_soc)
 	status = dp_umac_reset_interrupt_attach(soc, target_type);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		dp_umac_reset_err("Interrupt attach failed");
-		qdf_mem_free_consistent(soc->osdev, soc->osdev->dev,
+		if (DP_SRNG_ALLOC_CACHED) {
+			qdf_mem_free(umac_reset_ctx->shmem_vaddr_unaligned);
+		} else {
+			qdf_mem_free_consistent(
+					soc->osdev, soc->osdev->dev,
 					umac_reset_ctx->shmem_size,
 					umac_reset_ctx->shmem_vaddr_unaligned,
 					umac_reset_ctx->shmem_paddr_unaligned,
 					0);
+
+		}
 		return status;
 	}
 
@@ -1125,11 +1149,16 @@ dp_soc_umac_reset_deinit(struct cdp_soc_t *txrx_soc, uint8_t recovery_type)
 	dp_umac_reset_interrupt_detach(soc, recovery_type);
 
 	umac_reset_ctx = &soc->umac_reset_ctx;
-	qdf_mem_free_consistent(soc->osdev, soc->osdev->dev,
+	if (DP_SRNG_ALLOC_CACHED) {
+		qdf_mem_free(umac_reset_ctx->shmem_vaddr_unaligned);
+	} else {
+		qdf_mem_free_consistent(
+				soc->osdev, soc->osdev->dev,
 				umac_reset_ctx->shmem_size,
 				umac_reset_ctx->shmem_vaddr_unaligned,
 				umac_reset_ctx->shmem_paddr_unaligned,
 				0);
+	}
 
 	return QDF_STATUS_SUCCESS;
 }

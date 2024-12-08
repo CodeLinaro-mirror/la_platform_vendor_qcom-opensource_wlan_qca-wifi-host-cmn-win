@@ -443,17 +443,36 @@ hal_rx_fst_attach(hal_soc_handle_t hal_soc_hdl,
 
 	if (fst_cmem_base == 0) {
 		/* FST is in DDR */
-		fst->base_vaddr = (uint8_t *)qdf_mem_alloc_consistent(qdf_dev,
-				    qdf_dev->dev,
-				    (fst->max_entries * fst_entry_size),
-				    &fst->base_paddr);
+		if (DP_SRNG_ALLOC_CACHED) {
+			fst->base_vaddr =
+				qdf_mem_malloc(
+					(fst->max_entries * fst_entry_size));
 
-		if (!fst->base_vaddr) {
-			QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
-				  FL("hal fst->base_vaddr allocation failed"));
-			qdf_mem_free(fst);
-			return NULL;
+			if (!fst->base_vaddr) {
+				QDF_TRACE(
+				QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
+				FL("hal fst->base_vaddr allocation failed"));
+				qdf_mem_free(fst);
+				return NULL;
+			}
+			fst->base_paddr = qdf_mem_virt_to_phys(fst->base_vaddr);
+		} else {
+			fst->base_vaddr =
+				(uint8_t *)qdf_mem_alloc_consistent(
+					qdf_dev,
+					qdf_dev->dev,
+					(fst->max_entries * fst_entry_size),
+					&fst->base_paddr);
+
+			if (!fst->base_vaddr) {
+				QDF_TRACE(
+				QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
+				FL("hal fst->base_vaddr allocation failed"));
+				qdf_mem_free(fst);
+				return NULL;
+			}
 		}
+
 		qdf_ssr_driver_dump_register_region("dp_fisa_hw_fse_table",
 						    fst->base_vaddr,
 						    (fst->max_entries *
@@ -493,11 +512,16 @@ void hal_rx_fst_detach(hal_soc_handle_t hal_soc_hdl, struct hal_rx_fst *rx_fst,
 
 	if (fst_cmem_base == 0 && rx_fst->base_vaddr) {
 		qdf_ssr_driver_dump_unregister_region("dp_fisa_hw_fse_table");
-		qdf_mem_free_consistent(qdf_dev, qdf_dev->dev,
+		if (DP_SRNG_ALLOC_CACHED) {
+			qdf_mem_free(rx_fst->base_vaddr);
+		} else {
+			qdf_mem_free_consistent(
+					qdf_dev, qdf_dev->dev,
 					rx_fst->max_entries *
 					rx_fst->fst_entry_size,
 					rx_fst->base_vaddr, rx_fst->base_paddr,
 					0);
+		}
 	}
 
 	qdf_mem_free(rx_fst);
