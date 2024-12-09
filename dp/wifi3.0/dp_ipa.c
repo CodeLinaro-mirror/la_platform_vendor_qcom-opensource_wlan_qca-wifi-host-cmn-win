@@ -3799,7 +3799,7 @@ void dp_ipa_wdi_opt_dpath_notify_flt_rsvd(bool is_success)
 }
 #endif
 
-#ifdef IPA_WDS_EASYMESH_FEATURE
+#if defined (IPA_WDS_EASYMESH_FEATURE) || defined (QCA_IPA_LL_TX_FLOW_CONTROL)
 /**
  * dp_ipa_peer_check() - Check for peer for given mac
  * @soc: dp soc object
