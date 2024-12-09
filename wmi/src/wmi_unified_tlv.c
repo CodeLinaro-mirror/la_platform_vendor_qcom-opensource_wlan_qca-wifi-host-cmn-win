@@ -22982,8 +22982,8 @@ extract_power_boost_cap_tlv(wmi_unified_t wmi_handle,
 			void *evt_buf, uint8_t phy_idx,
 			struct wlan_psoc_power_boost_capability *param)
 {
-	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf;
-	WMI_POWER_BOOST_CAPABILITIES *ev_pb_cap;
+	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf = NULL;
+	WMI_POWER_BOOST_CAPABILITIES *ev_pb_cap = NULL;
 
 	if (!evt_buf) {
 		wmi_err("Event buffer is empty");
@@ -23000,7 +23000,20 @@ extract_power_boost_cap_tlv(wmi_unified_t wmi_handle,
 		return QDF_STATUS_E_INVAL;
 	}
 
+	if (!param_buf->power_boost_capabilities) {
+		wmi_debug("Power Boost capabilities is NULL");
+		/* Power Boost is optional, return success */
+		return QDF_STATUS_SUCCESS;
+	}
+
 	ev_pb_cap = &param_buf->power_boost_capabilities[phy_idx];
+
+	if (!ev_pb_cap) {
+		wmi_err("Power boost capability for phy_idx %u is null",
+				phy_idx);
+		/* Power Boost is optional, return success */
+		return QDF_STATUS_SUCCESS;
+	}
 
 	param->phy_id = WMI_POWER_BOOST_CAPABILITIES_PHY_ID_GET(
 				ev_pb_cap->phy_id__power_boost_enable__word32);
