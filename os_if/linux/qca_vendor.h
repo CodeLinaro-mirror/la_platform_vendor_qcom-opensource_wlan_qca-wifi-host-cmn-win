@@ -12696,6 +12696,11 @@ enum qca_wlan_vendor_attr_add_sta_node_params {
 	 * MLD STA node.
 	 */
 	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_IS_ML = 3,
+	/*
+	 * This is u8 attribute used to identify a specific link affiliated
+	 * to an AP MLD.
+	 */
+	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_LINK_ID = 4,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_ADD_STA_NODE_PARAM_AFTER_LAST,
