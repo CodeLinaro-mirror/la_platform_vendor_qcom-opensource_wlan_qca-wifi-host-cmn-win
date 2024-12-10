@@ -1517,6 +1517,9 @@ struct hal_hw_txrx_ops {
 						    uint8_t reo_dest_ind);
 	uint16_t (*hal_srng_dst_get_num_avail_words)(
 			hal_ring_handle_t hal_ring_hdl);
+
+	void (*hal_rx_get_pn)(hal_soc_handle_t hal_soc_hdl,
+			      void *hw_qdesc_vaddr, uint32_t *rx_pn_buf);
 };
 
 /**
