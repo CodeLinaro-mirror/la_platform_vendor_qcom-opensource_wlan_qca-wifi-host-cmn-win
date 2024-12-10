@@ -34,6 +34,7 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/string.h>
+#include <linux/of.h>
 #include <qdf_list.h>
 
 #ifdef CNSS_MEM_PRE_ALLOC
@@ -3273,3 +3274,62 @@ void qdf_dma_invalid_buf_list_deinit(void)
 	qdf_spinlock_destroy(&qdf_invalid_buf_list_lock);
 }
 #endif /* QCA_DMA_PADDR_CHECK */
+
+#ifdef CONFIG_IO_COHERENCY
+void *qdf_mem_malloc_io_coherent(qdf_device_t osdev, void *dev,
+				 qdf_size_t size, qdf_dma_addr_t *paddr)
+{
+	if (!dev || !osdev || !osdev->io_coherent_dev) {
+		qdf_err("dev is NULL @ %s:%d", __func__, __LINE__);
+		return qdf_mem_alloc_consistent(osdev, dev, size, paddr);
+	}
+
+	if (!of_property_read_bool(osdev->io_coherent_dev->of_node,
+				   "dma-coherent")) {
+		qdf_err("dma-coherent flag is not found for device %s",
+				osdev->io_coherent_dev->kobj.name);
+		return qdf_mem_alloc_consistent(osdev, dev, size, paddr);
+	}
+
+	return qdf_mem_alloc_consistent(osdev, osdev->io_coherent_dev, size,
+					paddr);
+}
+qdf_export_symbol(qdf_mem_malloc_io_coherent);
+
+void qdf_mem_free_io_coherent(qdf_device_t osdev, void *dev, qdf_size_t size,
+			      void *vaddr, qdf_dma_addr_t paddr,
+			      qdf_dma_context_t memctx)
+{
+	if (!dev || !osdev || !osdev->io_coherent_dev) {
+		qdf_err("dev is NULL @ %s:%d", __func__, __LINE__);
+		qdf_mem_free_consistent(osdev, dev, size, vaddr, paddr, memctx);
+		return;
+	}
+
+	if (!of_property_read_bool(osdev->io_coherent_dev->of_node,
+				   "dma-coherent")) {
+		qdf_err("dma-coherent flag is not found for device %s",
+				osdev->io_coherent_dev->kobj.name);
+		qdf_mem_free_consistent(osdev, dev, size, vaddr, paddr, memctx);
+		return;
+	}
+
+	qdf_mem_free_consistent(osdev, osdev->io_coherent_dev, size, vaddr,
+				paddr, memctx);
+}
+qdf_export_symbol(qdf_mem_free_io_coherent);
+#else
+void *qdf_mem_malloc_io_coherent(qdf_device_t osdev, void *dev,
+				 qdf_size_t size, qdf_dma_addr_t *paddr)
+{
+	return NULL;
+}
+qdf_export_symbol(qdf_mem_malloc_io_coherent);
+
+void qdf_mem_free_io_coherent(qdf_device_t osdev, void *dev, qdf_size_t size,
+			      void *vaddr, qdf_dma_addr_t paddr,
+			      qdf_dma_context_t memctx)
+{
+}
+qdf_export_symbol(qdf_mem_free_io_coherent);
+#endif

@@ -88,8 +88,16 @@ static uint32_t init_deinit_alloc_host_mem_chunk(struct wlan_objmgr_psoc *psoc,
 	info->mem_chunks[idx].vaddr = NULL;
 	/* reduce the requested allocation by half until allocation succeeds */
 	while (!info->mem_chunks[idx].vaddr && num_units) {
-		info->mem_chunks[idx].vaddr = qdf_mem_alloc_consistent(qdf_dev,
-				qdf_dev->dev, num_units * unit_len, &paddr);
+		if (QDF_MEM_IO_COHERENT)
+			info->mem_chunks[idx].vaddr =
+				qdf_mem_malloc_io_coherent(qdf_dev,
+					qdf_dev->dev,
+					num_units * unit_len, &paddr);
+		else
+			info->mem_chunks[idx].vaddr =
+				qdf_mem_alloc_consistent(qdf_dev,
+					qdf_dev->dev,
+					num_units * unit_len, &paddr);
 		if (!info->mem_chunks[idx].vaddr) {
 			if (num_unit_info &
 					HOST_CONTIGUOUS_MEM_CHUNK_REQUIRED) {
@@ -210,13 +218,24 @@ QDF_STATUS init_deinit_free_num_units(struct wlan_objmgr_psoc *psoc,
 		}
 		info = (&tgt_hdl->info);
 		for (idx = 0; idx < info->num_mem_chunks; idx++) {
-			qdf_mem_free_consistent(
-					qdf_dev, qdf_dev->dev,
-					info->mem_chunks[idx].len,
-					info->mem_chunks[idx].vaddr,
-					info->mem_chunks[idx].paddr,
-					qdf_get_dma_mem_context(
-					(&info->mem_chunks[idx]), memctx));
+			if (QDF_MEM_IO_COHERENT)
+				qdf_mem_free_io_coherent(
+						qdf_dev, qdf_dev->dev,
+						info->mem_chunks[idx].len,
+						info->mem_chunks[idx].vaddr,
+						info->mem_chunks[idx].paddr,
+						qdf_get_dma_mem_context(
+						(&info->mem_chunks[idx]),
+						memctx));
+			else
+				qdf_mem_free_consistent(
+						qdf_dev, qdf_dev->dev,
+						info->mem_chunks[idx].len,
+						info->mem_chunks[idx].vaddr,
+						info->mem_chunks[idx].paddr,
+						qdf_get_dma_mem_context(
+						(&info->mem_chunks[idx]),
+						memctx));
 
 			info->mem_chunks[idx].vaddr = NULL;
 			info->mem_chunks[idx].paddr = 0;

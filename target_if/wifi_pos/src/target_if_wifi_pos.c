@@ -256,8 +256,14 @@ static QDF_STATUS target_if_wifi_pos_init_ring(uint8_t ring_idx,
 
 	ring_alloc_size = (num_entries * entry_size) + RING_BASE_ALIGN - 1;
 	priv->dma_cfg[ring_idx].ring_alloc_size = ring_alloc_size;
-	priv->dma_cfg[ring_idx].base_vaddr_unaligned =
-		qdf_mem_alloc_consistent(NULL, NULL, ring_alloc_size, &paddr);
+	if (QDF_MEM_IO_COHERENT)
+		priv->dma_cfg[ring_idx].base_vaddr_unaligned =
+			qdf_mem_malloc_io_coherent(NULL, NULL, ring_alloc_size,
+						   &paddr);
+	else
+		priv->dma_cfg[ring_idx].base_vaddr_unaligned =
+			qdf_mem_alloc_consistent(NULL, NULL, ring_alloc_size,
+						 &paddr);
 	priv->dma_cfg[ring_idx].base_paddr_unaligned = (void *)paddr;
 	if (!priv->dma_cfg[ring_idx].base_vaddr_unaligned) {
 		target_if_err("malloc failed");
@@ -296,11 +302,18 @@ static QDF_STATUS target_if_wifi_pos_deinit_ring(uint8_t ring_idx,
 	target_if_wifi_pos_empty_ring(ring_idx, priv);
 	priv->dma_buf_pool[ring_idx] = NULL;
 	hal_srng_cleanup(priv->hal_soc, priv->dma_cfg[ring_idx].srng, 0);
-	qdf_mem_free_consistent(NULL, NULL,
-		priv->dma_cfg[ring_idx].ring_alloc_size,
-		priv->dma_cfg[ring_idx].base_vaddr_unaligned,
-		(qdf_dma_addr_t)priv->dma_cfg[ring_idx].base_paddr_unaligned,
-		0);
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(NULL, NULL,
+			priv->dma_cfg[ring_idx].ring_alloc_size,
+			priv->dma_cfg[ring_idx].base_vaddr_unaligned,
+			(qdf_dma_addr_t)priv->dma_cfg[ring_idx].base_paddr_unaligned,
+			0);
+	else
+		qdf_mem_free_consistent(NULL, NULL,
+			priv->dma_cfg[ring_idx].ring_alloc_size,
+			priv->dma_cfg[ring_idx].base_vaddr_unaligned,
+			(qdf_dma_addr_t)priv->dma_cfg[ring_idx].base_paddr_unaligned,
+			0);
 	qdf_mem_free(priv->dma_buf_pool[ring_idx]);
 
 	return QDF_STATUS_SUCCESS;

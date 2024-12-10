@@ -197,8 +197,12 @@ QDF_STATUS hif_diag_read_mem(struct hif_opaque_softc *hif_ctx,
 	 *   2) Buffer in DMA-able space
 	 */
 	orig_nbytes = nbytes;
-	data_buf = qdf_mem_alloc_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				    orig_nbytes, &CE_data_base);
+	if (QDF_MEM_IO_COHERENT)
+		data_buf = qdf_mem_malloc_io_coherent(scn->qdf_dev,
+				scn->qdf_dev->dev, orig_nbytes, &CE_data_base);
+	else
+		data_buf = qdf_mem_alloc_consistent(scn->qdf_dev,
+				scn->qdf_dev->dev, orig_nbytes, &CE_data_base);
 	if (!data_buf) {
 		status = QDF_STATUS_E_NOMEM;
 		goto done;
@@ -288,9 +292,14 @@ done:
 	else
 		hif_err("Failure (0x%x)", address);
 
-	if (data_buf)
-		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				orig_nbytes, data_buf, CE_data_base, 0);
+	if (data_buf) {
+		if (QDF_MEM_IO_COHERENT)
+			qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					orig_nbytes, data_buf, CE_data_base, 0);
+		else
+			qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+					orig_nbytes, data_buf, CE_data_base, 0);
+	}
 
 	return status;
 }
@@ -369,8 +378,12 @@ QDF_STATUS hif_diag_write_mem(struct hif_opaque_softc *hif_ctx,
 	 *   2) Buffer in DMA-able space
 	 */
 	orig_nbytes = nbytes;
-	data_buf = qdf_mem_alloc_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				    orig_nbytes, &CE_data_base);
+	if (QDF_MEM_IO_COHERENT)
+		data_buf = qdf_mem_malloc_io_coherent(scn->qdf_dev,
+				scn->qdf_dev->dev, orig_nbytes, &CE_data_base);
+	else
+		data_buf = qdf_mem_alloc_consistent(scn->qdf_dev,
+				scn->qdf_dev->dev, orig_nbytes, &CE_data_base);
 	if (!data_buf) {
 		status = QDF_STATUS_E_NOMEM;
 		goto done;
@@ -470,8 +483,12 @@ done:
 	A_TARGET_ACCESS_UNLIKELY(scn);
 
 	if (data_buf) {
-		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				orig_nbytes, data_buf, CE_data_base, 0);
+		if (QDF_MEM_IO_COHERENT)
+			qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					orig_nbytes, data_buf, CE_data_base, 0);
+		else
+			qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+					orig_nbytes, data_buf, CE_data_base, 0);
 	}
 
 	if (status != QDF_STATUS_SUCCESS) {

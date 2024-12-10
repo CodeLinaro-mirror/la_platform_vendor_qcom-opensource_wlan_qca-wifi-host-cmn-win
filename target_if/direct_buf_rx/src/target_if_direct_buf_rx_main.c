@@ -1458,6 +1458,7 @@ static QDF_STATUS target_if_dbr_init_ring(struct wlan_objmgr_pdev *pdev,
 	struct direct_buf_rx_psoc_obj *dbr_psoc_obj;
 	struct direct_buf_rx_ring_cap *dbr_ring_cap;
 	struct direct_buf_rx_ring_cfg *dbr_ring_cfg;
+	qdf_device_t qdf_dev;
 	QDF_STATUS status;
 
 	direct_buf_rx_enter();
@@ -1481,6 +1482,11 @@ static QDF_STATUS target_if_dbr_init_ring(struct wlan_objmgr_pdev *pdev,
 	    !dbr_psoc_obj->osdev) {
 		direct_buf_rx_err("dir buf rx target attach failed");
 		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (QDF_MEM_IO_COHERENT) {
+		qdf_dev = wlan_psoc_get_qdf_dev(psoc);
+		dbr_psoc_obj->osdev->io_coherent_dev = qdf_dev->io_coherent_dev;
 	}
 
 	max_entries = hal_srng_max_entries(dbr_psoc_obj->hal_soc,
@@ -1510,9 +1516,14 @@ static QDF_STATUS target_if_dbr_init_ring(struct wlan_objmgr_pdev *pdev,
 	ring_alloc_size = (num_entries * entry_size) + DBR_RING_BASE_ALIGN - 1;
 	dbr_ring_cfg->ring_alloc_size = ring_alloc_size;
 	direct_buf_rx_debug("dbr_psoc_obj %pK", dbr_psoc_obj);
-	dbr_ring_cfg->base_vaddr_unaligned = qdf_mem_alloc_consistent(
-		dbr_psoc_obj->osdev, dbr_psoc_obj->osdev->dev, ring_alloc_size,
-		&paddr);
+	if (QDF_MEM_IO_COHERENT)
+		dbr_ring_cfg->base_vaddr_unaligned = qdf_mem_malloc_io_coherent(
+			dbr_psoc_obj->osdev, dbr_psoc_obj->osdev->dev,
+			ring_alloc_size, &paddr);
+	else
+		dbr_ring_cfg->base_vaddr_unaligned = qdf_mem_alloc_consistent(
+			dbr_psoc_obj->osdev, dbr_psoc_obj->osdev->dev,
+			ring_alloc_size, &paddr);
 	direct_buf_rx_debug("vaddr aligned allocated");
 	dbr_ring_cfg->base_paddr_unaligned = paddr;
 	if (!dbr_ring_cfg->base_vaddr_unaligned) {
@@ -1539,11 +1550,20 @@ static QDF_STATUS target_if_dbr_init_ring(struct wlan_objmgr_pdev *pdev,
 	if (!srng) {
 		direct_buf_rx_err("srng setup failed");
 		qdf_mem_free(mod_param->dbr_buf_pool);
-		qdf_mem_free_consistent(dbr_psoc_obj->osdev,
+		if (QDF_MEM_IO_COHERENT)
+			qdf_mem_free_io_coherent(dbr_psoc_obj->osdev,
 					dbr_psoc_obj->osdev->dev,
 					ring_alloc_size,
 					dbr_ring_cfg->base_vaddr_unaligned,
-			(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned, 0);
+				(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned,
+				0);
+		else
+			qdf_mem_free_consistent(dbr_psoc_obj->osdev,
+					dbr_psoc_obj->osdev->dev,
+					ring_alloc_size,
+					dbr_ring_cfg->base_vaddr_unaligned,
+				(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned,
+				0);
 		return QDF_STATUS_E_FAILURE;
 	}
 	dbr_ring_cfg->srng = srng;
@@ -2367,11 +2387,20 @@ static QDF_STATUS target_if_dbr_deinit_ring(struct wlan_objmgr_pdev *pdev,
 	if (dbr_ring_cfg) {
 		target_if_dbr_empty_ring(pdev, dbr_psoc_obj, mod_param);
 		hal_srng_cleanup(dbr_psoc_obj->hal_soc, dbr_ring_cfg->srng, 0);
-		qdf_mem_free_consistent(dbr_psoc_obj->osdev,
+		if (QDF_MEM_IO_COHERENT)
+			qdf_mem_free_io_coherent(dbr_psoc_obj->osdev,
 					dbr_psoc_obj->osdev->dev,
 					dbr_ring_cfg->ring_alloc_size,
 					dbr_ring_cfg->base_vaddr_unaligned,
-			(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned, 0);
+				(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned,
+				0);
+		else
+			qdf_mem_free_consistent(dbr_psoc_obj->osdev,
+					dbr_psoc_obj->osdev->dev,
+					dbr_ring_cfg->ring_alloc_size,
+					dbr_ring_cfg->base_vaddr_unaligned,
+				(qdf_dma_addr_t)dbr_ring_cfg->base_paddr_unaligned,
+				0);
 	}
 
 	return QDF_STATUS_SUCCESS;
