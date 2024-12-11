@@ -5631,6 +5631,9 @@ typedef enum {
 	wmi_mgmt_srng_reap_eventid,
 #endif
 	wmi_pdev_power_boost_eventid,
+#ifdef WLAN_FEATURE_VBSS
+	wmi_vdev_vbss_config_eventid,
+#endif
 	wmi_events_max,
 } wmi_conv_event_id;
 

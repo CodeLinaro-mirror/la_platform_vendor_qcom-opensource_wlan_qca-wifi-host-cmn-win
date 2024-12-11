@@ -23185,6 +23185,203 @@ pdev_power_boost_cmd_send_tlv(wmi_unified_t wmi_handle,
 	return ret;
 }
 
+#ifdef WLAN_FEATURE_VBSS
+static QDF_STATUS
+vbss_trigger_move_sta_send_tlv(
+		wmi_unified_t wmi_handle,
+		struct win_host_vbss_sta_context *vbss_sta_context)
+{
+	wmi_vdev_vbss_config_cmd_fixed_param *cmd;
+	uint32_t len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
+	QDF_STATUS ret;
+	wmi_buf_t buf;
+	uint8_t *buf_ptr;
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		wmi_err("Failed to allocate memory for VBSS Get STA context");
+		return QDF_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_vdev_vbss_config_cmd_fixed_param *)wmi_buf_data(buf);
+	buf_ptr = (uint8_t *)cmd;
+
+	WMITLV_SET_HDR(
+		&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_vbss_config_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_vbss_config_cmd_fixed_param));
+
+	cmd->vdev_id = vbss_sta_context->vdev_id;
+	cmd->action = vbss_sta_context->action;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(vbss_sta_context->macaddr,
+				   &cmd->peer_mac_addr);
+
+	/* Need to set 0 length PN info */
+	buf_ptr += sizeof(wmi_vdev_vbss_config_cmd_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			WMITLV_GET_STRUCT_TLVLEN(0));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Need to set 0 length SN info */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			WMITLV_GET_STRUCT_TLVLEN(0));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	wmi_debug("WMI CMD Params for VBSS CMD: vdev_id: %d, action: %d, macaddr: "
+		  QDF_MAC_ADDR_FMT,
+		  cmd->vdev_id, cmd->action,
+		  QDF_MAC_ADDR_REF(vbss_sta_context->macaddr));
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+				   WMI_VDEV_VBSS_CONFIG_CMDID);
+	if (QDF_IS_STATUS_ERROR(ret)) {
+		wmi_err("Failed to send WMI for VBSS");
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
+static QDF_STATUS
+vbss_set_sta_context_send_tlv(
+		wmi_unified_t wmi_handle,
+		struct win_host_vbss_sta_context *vbss_sta_context)
+{
+	wmi_vdev_vbss_config_cmd_fixed_param *cmd;
+	wmi_vdev_vbss_peer_sn_info *sn_info;
+	wmi_vdev_vbss_peer_pn_info *pn_info;
+	uint8_t *buf_ptr;
+	uint32_t len;
+	QDF_STATUS ret;
+	wmi_buf_t buf;
+	uint32_t i;
+
+	/* Calculate the length of the buffer */
+	len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
+	len += sizeof(wmi_vdev_vbss_peer_pn_info);
+	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * WLAN_MAX_PER_PEER_SN_TIDS);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		wmi_err("Failed to allocate memory for VBSS set STA context");
+		return QDF_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_vdev_vbss_config_cmd_fixed_param *)wmi_buf_data(buf);
+	buf_ptr = (uint8_t *)cmd;
+
+	WMITLV_SET_HDR(
+		&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_vbss_config_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_vbss_config_cmd_fixed_param));
+
+	cmd->vdev_id = vbss_sta_context->vdev_id;
+	cmd->action = vbss_sta_context->action;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(vbss_sta_context->macaddr,
+				   &cmd->peer_mac_addr);
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			(sizeof(wmi_vdev_vbss_peer_pn_info)));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill PN info first */
+	pn_info = (wmi_vdev_vbss_peer_pn_info *)buf_ptr;
+	WMITLV_SET_HDR(&pn_info->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_pn_info,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_pn_info));
+
+	/* Assuming single context ID*/
+	pn_info->pn_ctxt_id = 0;
+	for (i = 0; i < WLAN_MAX_TX_PN_SIZE; i++) {
+		pn_info->pn[i] = vbss_sta_context->tx_pn[i];
+		wmi_debug("Setting PN[%d]: %d", i, pn_info->pn[i]);
+	}
+
+	buf_ptr += sizeof(wmi_vdev_vbss_peer_pn_info);
+	WMITLV_SET_HDR(
+		buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		(sizeof(wmi_vdev_vbss_peer_sn_info) *
+		WLAN_MAX_PER_PEER_SN_TIDS));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill SN info */
+	sn_info = (wmi_vdev_vbss_peer_sn_info *)buf_ptr;
+	for (i = 0; i < WLAN_MAX_PER_PEER_SN_TIDS; i++) {
+		WMITLV_SET_HDR(
+			&sn_info[i].tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_sn_info,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_sn_info));
+		sn_info[i].tid_num_sn = vbss_sta_context->sn[i];
+		wmi_debug("Setting SN info: TID %u, SN %u", i,
+			  vbss_sta_context->sn[i]);
+	}
+
+	wmi_debug("WMI CMD Params for VBSS SET CMD: vdev_id: %u, action: %u, macaddr: "
+		  QDF_MAC_ADDR_FMT,
+		  cmd->vdev_id, cmd->action,
+		  QDF_MAC_ADDR_REF(vbss_sta_context->macaddr));
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+					WMI_VDEV_VBSS_CONFIG_CMDID);
+	if (QDF_IS_STATUS_ERROR(ret)) {
+		wmi_err("Failed to send WMI for VBSS SET");
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
+static QDF_STATUS
+extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
+			     struct win_host_vbss_sta_context *vbss_sta_context)
+{
+	WMI_VDEV_VBSS_CONFIG_EVENTID_param_tlvs *param_buf = NULL;
+	wmi_vdev_vbss_config_event_fixed_param *fixed_param = NULL;
+	wmi_vdev_vbss_peer_sn_info *sn_info = NULL;
+	wmi_vdev_vbss_peer_pn_info *pn_info = NULL;
+	uint8_t i;
+
+	/* Parse the event buffer */
+	param_buf = (WMI_VDEV_VBSS_CONFIG_EVENTID_param_tlvs *)evt_buf;
+	if (!param_buf) {
+		wmi_err("Invalid VBSS event");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	fixed_param = param_buf->fixed_param;
+	if (!fixed_param) {
+		wmi_err("Fixed param is NULL");
+		return QDF_STATUS_E_FAILURE;
+	}
+	vbss_sta_context->vdev_id = fixed_param->vdev_id;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&fixed_param->peer_mac_addr,
+				   vbss_sta_context->macaddr);
+	/* Parse PN info */
+	pn_info = param_buf->vbss_peer_pn_info;
+	for (i = 0; i < WLAN_MAX_TX_PN_SIZE; i++) {
+		vbss_sta_context->tx_pn[i] = pn_info->pn[i];
+		wmi_debug("Parsed PN[%d]: %d", i, vbss_sta_context->tx_pn[i]);
+	}
+
+	/* Parse SN info */
+	sn_info = param_buf->vbss_peer_sn_info;
+	for (i = 0; i < param_buf->num_vbss_peer_sn_info; i++) {
+		vbss_sta_context->sn[i] = sn_info[i].tid_num_sn;
+		wmi_debug("Parsed SN info: %u", vbss_sta_context->sn[i]);
+	}
+
+	wmi_debug("Extracted VBSS STA context: vdev_id %u, MAC "
+		  QDF_MAC_ADDR_FMT,
+		  vbss_sta_context->vdev_id,
+		  QDF_MAC_ADDR_REF(vbss_sta_context->macaddr));
+
+	return QDF_STATUS_SUCCESS;
+}
+#endif /* WLAN_FEATURE_VBSS */
+
 struct wmi_ops tlv_ops =  {
 	.send_vdev_create_cmd = send_vdev_create_cmd_tlv,
 	.send_vdev_delete_cmd = send_vdev_delete_cmd_tlv,
@@ -23726,6 +23923,11 @@ struct wmi_ops tlv_ops =  {
 	.extract_power_boost_cap = extract_power_boost_cap_tlv,
 	.extract_pdev_power_boost_event = extract_pdev_power_boost_event_tlv,
 	.pdev_power_boost_cmd_send = pdev_power_boost_cmd_send_tlv,
+#ifdef WLAN_FEATURE_VBSS
+	.vbss_trigger_move_sta_send = vbss_trigger_move_sta_send_tlv,
+	.vbss_set_sta_context_send = vbss_set_sta_context_send_tlv,
+	.extract_vbss_sta_context = extract_vbss_sta_context_tlv,
+#endif /* WLAN_FEATURE_VBSS */
 };
 
 #ifdef WLAN_FEATURE_11BE_MLO
@@ -24295,6 +24497,9 @@ static void populate_tlv_events_id(WMI_EVT_ID *event_ids)
 	event_ids[wmi_mgmt_srng_reap_eventid] = WMI_MGMT_SRNG_REAP_EVENTID;
 #endif
 	event_ids[wmi_pdev_power_boost_eventid] = WMI_PDEV_POWER_BOOST_EVENTID;
+#ifdef WLAN_FEATURE_VBSS
+	event_ids[wmi_vdev_vbss_config_eventid] = WMI_VDEV_VBSS_CONFIG_EVENTID;
+#endif
 }
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
