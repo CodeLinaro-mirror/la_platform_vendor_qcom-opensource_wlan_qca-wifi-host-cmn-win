@@ -974,7 +974,7 @@ struct dp_tx_ext_desc_elem_s *dp_tx_prepare_ext_desc(struct dp_vdev *vdev,
  *
  * Return: None
  */
-#ifdef DP_DISABLE_TX_PKT_TRACE
+#ifdef DP_DISABLE_PKT_TRACE
 static void dp_tx_trace_pkt(struct dp_soc *soc,
 			    qdf_nbuf_t skb, uint16_t msdu_id,
 			    uint8_t vdev_id, enum QDF_OPMODE op_mode)
