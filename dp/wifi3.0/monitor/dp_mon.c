@@ -4448,6 +4448,7 @@ dp_process_ppdu_stats_user_compltn_flush_tlv(struct dp_pdev *pdev,
 					     struct ppdu_info *ppdu_info)
 {
 	struct cdp_tx_completion_ppdu *ppdu_desc;
+	struct ppdu_info *ppdu_info_tmp;
 	uint32_t peer_id;
 	uint8_t tid;
 	struct dp_peer *peer;
@@ -4495,6 +4496,17 @@ add_ppdu_to_sched_list:
 	ppdu_info->done = 1;
 	TAILQ_REMOVE(&mon_pdev->ppdu_info_list, ppdu_info, ppdu_info_list_elem);
 	mon_pdev->list_depth--;
+
+	if (mon_pdev->sched_comp_list_depth > HTT_PPDU_DESC_MAX_SCHED_DEPTH) {
+		ppdu_info_tmp = TAILQ_FIRST(&mon_pdev->sched_comp_ppdu_list);
+		TAILQ_REMOVE(&mon_pdev->sched_comp_ppdu_list,
+			     ppdu_info_tmp, ppdu_info_list_elem);
+
+		qdf_assert_always(ppdu_info_tmp->nbuf);
+		qdf_nbuf_free(ppdu_info_tmp->nbuf);
+		qdf_mem_free(ppdu_info_tmp);
+		mon_pdev->sched_comp_list_depth--;
+	}
 	TAILQ_INSERT_TAIL(&mon_pdev->sched_comp_ppdu_list, ppdu_info,
 			  ppdu_info_list_elem);
 	mon_pdev->sched_comp_list_depth++;
@@ -4514,6 +4526,7 @@ dp_process_ppdu_stats_sch_cmd_status_tlv(struct dp_pdev *pdev,
 {
 	struct cdp_tx_completion_ppdu *ppdu_desc;
 	struct dp_peer *peer;
+	struct ppdu_info *ppdu_info_tmp;
 	uint8_t num_users;
 	uint8_t i;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
@@ -4659,6 +4672,18 @@ dp_process_ppdu_stats_sch_cmd_status_tlv(struct dp_pdev *pdev,
 
 	TAILQ_REMOVE(&mon_pdev->ppdu_info_list, ppdu_info, ppdu_info_list_elem);
 	mon_pdev->list_depth--;
+
+	if (mon_pdev->sched_comp_list_depth > HTT_PPDU_DESC_MAX_SCHED_DEPTH) {
+		ppdu_info_tmp = TAILQ_FIRST(&mon_pdev->sched_comp_ppdu_list);
+		TAILQ_REMOVE(&mon_pdev->sched_comp_ppdu_list,
+			     ppdu_info_tmp, ppdu_info_list_elem);
+
+		qdf_assert_always(ppdu_info_tmp->nbuf);
+		qdf_nbuf_free(ppdu_info_tmp->nbuf);
+		qdf_mem_free(ppdu_info_tmp);
+		mon_pdev->sched_comp_list_depth--;
+	}
+
 	TAILQ_INSERT_TAIL(&mon_pdev->sched_comp_ppdu_list, ppdu_info,
 			  ppdu_info_list_elem);
 	mon_pdev->sched_comp_list_depth++;

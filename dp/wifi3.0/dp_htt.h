@@ -106,6 +106,7 @@ void htt_htc_pkt_pool_free(struct htt_soc *soc);
 
 #define HTT_FRAMECTRL_DATATYPE 0x08
 #define HTT_PPDU_DESC_MAX_DEPTH 16
+#define HTT_PPDU_DESC_MAX_SCHED_DEPTH 16
 #define DP_SCAN_PEER_ID 0xFFFF
 
 #define HTT_RX_DELBA_WIN_SIZE_M    0x0000FC00
