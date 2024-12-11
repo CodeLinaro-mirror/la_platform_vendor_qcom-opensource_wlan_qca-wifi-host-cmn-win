@@ -8933,6 +8933,8 @@ dp_print_pdev_tx_stats(struct dp_pdev *pdev)
 		       pdev->stats.tx_i.mcast_en.dropped_self_mac);
 	DP_PRINT_STATS("	Dropped: Send Fail = %u",
 		       pdev->stats.tx_i.mcast_en.dropped_send_fail);
+	DP_PRINT_STATS("	Dropped: No mcast desc available = %u",
+		       pdev->stats.tx_i.mcast_en.dropped_no_desc);
 	DP_PRINT_STATS("	Unicast sent = %u",
 		       pdev->stats.tx_i.mcast_en.ucast);
 
@@ -10380,6 +10382,8 @@ void dp_update_pdev_ingress_stats(struct dp_pdev *tgtobj,
 				  tx_i, mcast_en.dropped_self_mac, idx);
 		DP_STATS_AGGR_IDX(tgtobj, srcobj,
 				  tx_i, mcast_en.dropped_send_fail, idx);
+		DP_STATS_AGGR_IDX(tgtobj, srcobj,
+				  tx_i, mcast_en.dropped_no_desc, idx);
 		DP_STATS_AGGR_IDX(tgtobj, srcobj, tx_i, mcast_en.ucast, idx);
 		DP_STATS_AGGR_IDX(tgtobj, srcobj, tx_i,
 				  igmp_mcast_en.igmp_rcvd, idx);

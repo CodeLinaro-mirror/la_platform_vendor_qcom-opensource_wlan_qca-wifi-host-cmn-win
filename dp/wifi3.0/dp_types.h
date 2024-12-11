@@ -4178,6 +4178,7 @@ struct dp_pdev {
 		char *vaddr;
 		struct dp_tx_me_buf_t *freelist;
 		int buf_in_use;
+		uint16_t num_me_extra_buf;
 		qdf_dma_mem_context(memctx);
 	} me_buf;
 
@@ -5730,6 +5731,7 @@ struct dp_invalid_peer_msg {
  * @next: pointer to next buffer
  * @data: Destination Mac address
  * @paddr_macbuf: physical address for dest_mac
+ * @not_from_pool: Descriptor not from freelist
  */
 struct dp_tx_me_buf_t {
 	/* Note: ME buf pool initialization logic expects next pointer to
@@ -5737,6 +5739,7 @@ struct dp_tx_me_buf_t {
 	struct dp_tx_me_buf_t *next;
 	uint8_t data[QDF_MAC_ADDR_SIZE];
 	qdf_dma_addr_t paddr_macbuf;
+	bool not_from_pool;
 };
 
 #if defined(WLAN_SUPPORT_RX_FLOW_TAG) || defined(WLAN_SUPPORT_RX_FISA)

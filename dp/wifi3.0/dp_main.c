@@ -7794,6 +7794,7 @@ static void dp_pdev_getstats(struct cdp_pdev *pdev_handle,
 			    pdev->stats.tx_i.mcast_en.dropped_map_error +
 			    pdev->stats.tx_i.mcast_en.dropped_self_mac +
 			    pdev->stats.tx_i.mcast_en.dropped_send_fail +
+			    pdev->stats.tx_i.mcast_en.dropped_no_desc +
 			    pdev->stats.tx.nawds_mcast_drop +
 			    pdev->stats.tso_stats.dropped_host.num;
 
