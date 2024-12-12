@@ -1184,6 +1184,8 @@ uint8_t dp_sawf_config_fast_send_be(struct dp_soc *soc,
 	if (tcl_cmd_num == DP_SAWF_INVALID_TCL_CMD)
 		return tid;
 
+	fw_metadata = tcl_cmd_num;
+
 	hal_tx_desc_cached[3] = fw_metadata << TCL_DATA_CMD_TCL_CMD_NUMBER_LSB;
 
 	hal_tx_desc_cached[5] |= 1 << TCL_DATA_CMD_FLOW_OVERRIDE_ENABLE_LSB;
