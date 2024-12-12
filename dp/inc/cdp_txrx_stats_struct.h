@@ -872,6 +872,9 @@ enum WDI_EVENT {
 	WDI_EVENT_STA_PRIMARY_UMAC_UPDATE,
 	WDI_EVENT_FSE_UPDATE,
 	WDI_EVENT_PEER_MSDUQ_EVENT,
+#ifdef WLAN_FEATURE_VBSS
+	WDI_EVENT_NAC_STATS,
+#endif
 	/* End of new event items */
 	WDI_EVENT_LAST
 };
@@ -2487,6 +2490,19 @@ struct cdp_interface_peer_qos_stats {
 	uint8_t  frame_control_info_valid;
 	uint8_t  qos_control_info_valid;
 	uint8_t  vdev_id;
+};
+
+/**
+ * struct cdp_interface_nac_stats - interface structure for NAC stats
+ * @mac_addr: NAC peer mac address
+ * @rssi: current rssi value of peer
+ * @avg_rssi: Averaged rssi
+ */
+
+struct cdp_interface_nac_stats {
+	uint8_t mac_addr[QDF_MAC_ADDR_SIZE];
+	uint8_t rssi;
+	uint8_t avg_rssi;
 };
 
 /* Tx completions per interrupt */
