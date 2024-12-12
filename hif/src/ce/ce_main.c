@@ -4709,10 +4709,16 @@ static inline QDF_STATUS hif_alloc_rri_on_ddr(struct hif_softc *scn)
 {
 	qdf_dma_addr_t paddr_rri_on_ddr = 0;
 
-	scn->vaddr_rri_on_ddr =
-		(void *)qdf_mem_alloc_consistent(scn->qdf_dev,
-		scn->qdf_dev->dev, RRI_ON_DDR_MEM_SIZE,
-		&paddr_rri_on_ddr);
+	if (QDF_MEM_IO_COHERENT)
+		scn->vaddr_rri_on_ddr =
+			(void *)qdf_mem_malloc_io_coherent(scn->qdf_dev,
+			scn->qdf_dev->dev, RRI_ON_DDR_MEM_SIZE,
+			&paddr_rri_on_ddr);
+	else
+		scn->vaddr_rri_on_ddr =
+			(void *)qdf_mem_alloc_consistent(scn->qdf_dev,
+			scn->qdf_dev->dev, RRI_ON_DDR_MEM_SIZE,
+			&paddr_rri_on_ddr);
 
 	if (!scn->vaddr_rri_on_ddr) {
 		hif_err("dmaable page alloc fail");
@@ -5335,7 +5341,14 @@ static void hif_post_static_buf_to_target(struct hif_softc *scn)
 	uint32_t i = 0;
 	int ret;
 
-	scn->vaddr_qmi_bypass =
+	if (QDF_MEM_IO_COHERENT)
+		scn->vaddr_qmi_bypass =
+			(uint32_t *)qdf_mem_malloc_io_coherent(scn->qdf_dev,
+							     scn->qdf_dev->dev,
+							     FW_SHARED_MEM,
+							     &target_pa);
+	else
+		scn->vaddr_qmi_bypass =
 			(uint32_t *)qdf_mem_alloc_consistent(scn->qdf_dev,
 							     scn->qdf_dev->dev,
 							     FW_SHARED_MEM,
@@ -5387,9 +5400,14 @@ static void hif_cleanup_static_buf_to_target(struct hif_softc *scn)
 	void *target_va = scn->vaddr_qmi_bypass;
 	phys_addr_t target_pa = scn->paddr_qmi_bypass;
 
-	qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				FW_SHARED_MEM, target_va,
-				target_pa, 0);
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					FW_SHARED_MEM, target_va,
+					target_pa, 0);
+	else
+		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+					FW_SHARED_MEM, target_va,
+					target_pa, 0);
 	hif_write32_mb(scn, scn->mem + BYPASS_QMI_TEMP_REGISTER, 0);
 }
 #else
@@ -5405,7 +5423,14 @@ static void hif_post_static_buf_to_target(struct hif_softc *scn)
 {
 	qdf_dma_addr_t target_pa;
 
-	scn->vaddr_qmi_bypass =
+	if (QDF_MEM_IO_COHERENT)
+		scn->vaddr_qmi_bypass =
+			(uint32_t *)qdf_mem_malloc_io_coherent(scn->qdf_dev,
+							     scn->qdf_dev->dev,
+							     FW_SHARED_MEM,
+							     &target_pa);
+	else
+		scn->vaddr_qmi_bypass =
 			(uint32_t *)qdf_mem_alloc_consistent(scn->qdf_dev,
 							     scn->qdf_dev->dev,
 							     FW_SHARED_MEM,
@@ -5431,9 +5456,14 @@ static void hif_cleanup_static_buf_to_target(struct hif_softc *scn)
 	void *target_va = scn->vaddr_qmi_bypass;
 	phys_addr_t target_pa = scn->paddr_qmi_bypass;
 
-	qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				FW_SHARED_MEM, target_va,
-				target_pa, 0);
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					FW_SHARED_MEM, target_va,
+					target_pa, 0);
+	else
+		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+					FW_SHARED_MEM, target_va,
+					target_pa, 0);
 	hif_write32_mb(scn, scn->mem + BYPASS_QMI_TEMP_REGISTER, 0);
 }
 #endif

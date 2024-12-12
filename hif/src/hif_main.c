@@ -1360,7 +1360,15 @@ out:
  */
 void hif_uninit_rri_on_ddr(struct hif_softc *scn)
 {
-	if (scn->vaddr_rri_on_ddr)
+	if (!scn->vaddr_rri_on_ddr)
+		return;
+
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					RRI_ON_DDR_MEM_SIZE,
+					scn->vaddr_rri_on_ddr,
+					scn->paddr_rri_on_ddr, 0);
+	else
 		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
 					RRI_ON_DDR_MEM_SIZE,
 					scn->vaddr_rri_on_ddr,
@@ -2810,74 +2818,6 @@ int hif_get_bandwidth_level(struct hif_opaque_softc *hif_handle)
 qdf_export_symbol(hif_get_bandwidth_level);
 
 #ifdef DP_MEM_PRE_ALLOC
-#ifdef CONFIG_IO_COHERENCY
-void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
-					 qdf_size_t size,
-					 qdf_dma_addr_t *paddr,
-					 uint32_t ring_type,
-					 uint8_t *is_mem_prealloc)
-{
-	struct device *dev = scn->qdf_dev->dev;
-	void *vaddr = NULL;
-	struct hif_driver_state_callbacks *cbk =
-				hif_get_callbacks_handle(scn);
-	struct platform_device *pdev = NULL;
-
-	*is_mem_prealloc = false;
-	if (cbk && cbk->prealloc_get_consistent_mem_unaligned) {
-		vaddr = cbk->prealloc_get_consistent_mem_unaligned(size,
-								   paddr,
-								   ring_type);
-		if (vaddr) {
-			*is_mem_prealloc = true;
-			goto end;
-		}
-	}
-
-	pdev = pld_get_plat_dev_by_bus_dev(dev);
-	if (pdev)
-		if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
-			dev = &pdev->dev;
-	vaddr = qdf_mem_alloc_consistent(scn->qdf_dev,
-					 dev,
-					 size,
-					 paddr);
-end:
-	dp_info("%s va_unaligned %pK pa_unaligned %pK size %d ring_type %d",
-		*is_mem_prealloc ? "pre-alloc" : "dynamic-alloc", vaddr,
-		(void *)*paddr, (int)size, ring_type);
-
-	return vaddr;
-}
-
-void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
-				       qdf_size_t size,
-				       void *vaddr,
-				       qdf_dma_addr_t paddr,
-				       qdf_dma_context_t memctx,
-				       uint8_t is_mem_prealloc)
-{
-	struct hif_driver_state_callbacks *cbk =
-				hif_get_callbacks_handle(scn);
-	struct device *dev = scn->qdf_dev->dev;
-	struct platform_device *pdev = NULL;
-
-	if (is_mem_prealloc) {
-		if (cbk && cbk->prealloc_put_consistent_mem_unaligned) {
-			cbk->prealloc_put_consistent_mem_unaligned(vaddr);
-		} else {
-			dp_warn("dp_prealloc_put_consistent_unligned NULL");
-		}
-	} else {
-		pdev = pld_get_plat_dev_by_bus_dev(dev);
-		if (pdev)
-			if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
-				dev = &pdev->dev;
-		qdf_mem_free_consistent(scn->qdf_dev, dev, size, vaddr, paddr,
-					memctx);
-	}
-}
-#else
 void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 					 qdf_size_t size,
 					 qdf_dma_addr_t *paddr,
@@ -2899,10 +2839,16 @@ void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 		}
 	}
 
-	vaddr = qdf_mem_alloc_consistent(scn->qdf_dev,
-					 scn->qdf_dev->dev,
-					 size,
-					 paddr);
+	if (QDF_MEM_IO_COHERENT)
+		vaddr = qdf_mem_malloc_io_coherent(scn->qdf_dev,
+						 scn->qdf_dev->dev,
+						 size,
+						 paddr);
+	else
+		vaddr = qdf_mem_alloc_consistent(scn->qdf_dev,
+						 scn->qdf_dev->dev,
+						 size,
+						 paddr);
 end:
 	dp_info("%s va_unaligned %pK pa_unaligned %pK size %d ring_type %d",
 		*is_mem_prealloc ? "pre-alloc" : "dynamic-alloc", vaddr,
@@ -2929,11 +2875,15 @@ void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
 			QDF_BUG(0);
 		}
 	} else {
-		qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-					size, vaddr, paddr, memctx);
+		if (QDF_MEM_IO_COHERENT) {
+			qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+						size, vaddr, paddr, memctx);
+		} else {
+			qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+						size, vaddr, paddr, memctx);
+		}
 	}
 }
-#endif
 
 void hif_prealloc_get_multi_pages(struct hif_softc *scn, uint32_t desc_type,
 				  qdf_size_t elem_size, uint16_t elem_num,

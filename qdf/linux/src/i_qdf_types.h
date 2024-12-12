@@ -307,6 +307,7 @@ struct __qdf_device {
 	struct dma_iommu_mapping *iommu_mapping;
 #endif
 #endif
+	struct device *io_coherent_dev;
 };
 typedef struct __qdf_device *__qdf_device_t;
 

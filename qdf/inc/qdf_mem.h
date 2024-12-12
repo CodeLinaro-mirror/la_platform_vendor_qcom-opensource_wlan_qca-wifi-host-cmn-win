@@ -1590,4 +1590,15 @@ qdf_dma_invalid_buf_free(void *dev, uint8_t domain)
 {
 }
 #endif /* QCA_DMA_PADDR_CHECK */
+
+#ifdef CONFIG_IO_COHERENCY
+#define QDF_MEM_IO_COHERENT 1
+#else
+#define QDF_MEM_IO_COHERENT 0
+#endif
+void *qdf_mem_malloc_io_coherent(qdf_device_t osdev, void *dev,
+				   qdf_size_t size, qdf_dma_addr_t *paddr);
+void qdf_mem_free_io_coherent(qdf_device_t osdev, void *dev, qdf_size_t size,
+				void *vaddr, qdf_dma_addr_t paddr,
+				qdf_dma_context_t memctx);
 #endif /* __QDF_MEMORY_H */

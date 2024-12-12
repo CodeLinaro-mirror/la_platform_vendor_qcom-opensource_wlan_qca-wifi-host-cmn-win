@@ -751,7 +751,6 @@ void hif_prealloc_put_multi_pages(struct hif_softc *scn, uint32_t desc_type,
 				  struct qdf_mem_multi_page_t *pages,
 				  bool cacheable);
 #else
-#ifdef CONFIG_IO_COHERENCY
 static inline
 void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 					 qdf_size_t size,
@@ -759,18 +758,16 @@ void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
 					 uint32_t ring_type,
 					 uint8_t *is_mem_prealloc)
 {
-	struct device *dev = scn->qdf_dev->dev;
-	struct platform_device *pdev = NULL;
-
-	pdev = pld_get_plat_dev_by_bus_dev(dev);
-	if (pdev)
-		if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
-			dev = &pdev->dev;
-
-	return qdf_mem_alloc_consistent(scn->qdf_dev,
-					dev,
-					size,
-					paddr);
+	if (QDF_MEM_IO_COHERENT)
+		return qdf_mem_malloc_io_coherent(scn->qdf_dev,
+						scn->qdf_dev->dev,
+						size,
+						paddr);
+	else
+		return qdf_mem_alloc_consistent(scn->qdf_dev,
+						scn->qdf_dev->dev,
+						size,
+						paddr);
 }
 
 static inline
@@ -781,43 +778,13 @@ void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
 				       qdf_dma_context_t memctx,
 				       uint8_t is_mem_prealloc)
 {
-	struct device *dev = scn->qdf_dev->dev;
-	struct platform_device *pdev = NULL;
-
-	pdev = pld_get_plat_dev_by_bus_dev(dev);
-	if (pdev)
-		if (of_property_read_bool(pdev->dev.of_node, "dma-coherent"))
-			dev = &pdev->dev;
-
-	return qdf_mem_free_consistent(scn->qdf_dev, dev, size, vaddr, paddr,
-				       memctx);
+	if (QDF_MEM_IO_COHERENT)
+		return qdf_mem_free_io_coherent(scn->qdf_dev, scn->qdf_dev->dev,
+					       size, vaddr, paddr, memctx);
+	else
+		return qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
+					       size, vaddr, paddr, memctx);
 }
-#else
-static inline
-void *hif_mem_alloc_consistent_unaligned(struct hif_softc *scn,
-					 qdf_size_t size,
-					 qdf_dma_addr_t *paddr,
-					 uint32_t ring_type,
-					 uint8_t *is_mem_prealloc)
-{
-	return qdf_mem_alloc_consistent(scn->qdf_dev,
-					scn->qdf_dev->dev,
-					size,
-					paddr);
-}
-
-static inline
-void hif_mem_free_consistent_unaligned(struct hif_softc *scn,
-				       qdf_size_t size,
-				       void *vaddr,
-				       qdf_dma_addr_t paddr,
-				       qdf_dma_context_t memctx,
-				       uint8_t is_mem_prealloc)
-{
-	return qdf_mem_free_consistent(scn->qdf_dev, scn->qdf_dev->dev,
-				       size, vaddr, paddr, memctx);
-}
-#endif
 
 static inline
 void hif_prealloc_get_multi_pages(struct hif_softc *scn, uint32_t desc_type,

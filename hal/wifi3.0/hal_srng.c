@@ -1352,10 +1352,16 @@ void hal_free_shadow_wr_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 static inline
 QDF_STATUS hal_alloc_shadow_rd_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 {
-	hal->shadow_rdptr_mem_vaddr =
-		(uint32_t *)qdf_mem_alloc_consistent(qdf_dev, qdf_dev->dev,
-		sizeof(*(hal->shadow_rdptr_mem_vaddr)) * HAL_SRNG_ID_MAX,
-		&(hal->shadow_rdptr_mem_paddr));
+	if (QDF_MEM_IO_COHERENT)
+		hal->shadow_rdptr_mem_vaddr =
+			(uint32_t *)qdf_mem_malloc_io_coherent(qdf_dev, qdf_dev->dev,
+			sizeof(*(hal->shadow_rdptr_mem_vaddr)) * HAL_SRNG_ID_MAX,
+			&(hal->shadow_rdptr_mem_paddr));
+	else
+		hal->shadow_rdptr_mem_vaddr =
+			(uint32_t *)qdf_mem_alloc_consistent(qdf_dev, qdf_dev->dev,
+			sizeof(*(hal->shadow_rdptr_mem_vaddr)) * HAL_SRNG_ID_MAX,
+			&(hal->shadow_rdptr_mem_paddr));
 
 	if (!hal->shadow_rdptr_mem_vaddr) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
@@ -1369,10 +1375,16 @@ QDF_STATUS hal_alloc_shadow_rd_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 static inline
 QDF_STATUS hal_alloc_shadow_wr_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 {
-	hal->shadow_wrptr_mem_vaddr =
-		(uint32_t *)qdf_mem_alloc_consistent(qdf_dev, qdf_dev->dev,
-		sizeof(*(hal->shadow_wrptr_mem_vaddr)) * HAL_MAX_LMAC_RINGS,
-		&(hal->shadow_wrptr_mem_paddr));
+	if (QDF_MEM_IO_COHERENT)
+		hal->shadow_wrptr_mem_vaddr =
+			(uint32_t *)qdf_mem_malloc_io_coherent(qdf_dev, qdf_dev->dev,
+			sizeof(*(hal->shadow_wrptr_mem_vaddr)) * HAL_MAX_LMAC_RINGS,
+			&(hal->shadow_wrptr_mem_paddr));
+	else
+		hal->shadow_wrptr_mem_vaddr =
+			(uint32_t *)qdf_mem_alloc_consistent(qdf_dev, qdf_dev->dev,
+			sizeof(*(hal->shadow_wrptr_mem_vaddr)) * HAL_MAX_LMAC_RINGS,
+			&(hal->shadow_wrptr_mem_paddr));
 
 	if (!hal->shadow_wrptr_mem_vaddr) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
@@ -1386,27 +1398,41 @@ QDF_STATUS hal_alloc_shadow_wr_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 static inline
 void hal_free_shadow_rd_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 {
-	if (hal->shadow_rdptr_mem_vaddr) {
-		qdf_mem_free_consistent(
-			qdf_dev, qdf_dev->dev,
+	if (!hal->shadow_rdptr_mem_vaddr)
+		return;
+
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(qdf_dev, qdf_dev->dev,
 			sizeof(*(hal->shadow_rdptr_mem_vaddr)) *
 			HAL_SRNG_ID_MAX,
 			hal->shadow_rdptr_mem_vaddr,
 			hal->shadow_rdptr_mem_paddr, 0);
-	}
+	else
+		qdf_mem_free_consistent(qdf_dev, qdf_dev->dev,
+			sizeof(*(hal->shadow_rdptr_mem_vaddr)) *
+			HAL_SRNG_ID_MAX,
+			hal->shadow_rdptr_mem_vaddr,
+			hal->shadow_rdptr_mem_paddr, 0);
 }
 
 static inline
 void hal_free_shadow_wr_ptr(struct hal_soc *hal, qdf_device_t qdf_dev)
 {
-	if (hal->shadow_wrptr_mem_vaddr) {
-		qdf_mem_free_consistent(
-				qdf_dev, qdf_dev->dev,
+	if (!hal->shadow_wrptr_mem_vaddr)
+		return;
+
+	if (QDF_MEM_IO_COHERENT)
+		qdf_mem_free_io_coherent(qdf_dev, qdf_dev->dev,
 				sizeof(*hal->shadow_wrptr_mem_vaddr) *
 				HAL_MAX_LMAC_RINGS,
 				hal->shadow_wrptr_mem_vaddr,
 				hal->shadow_wrptr_mem_paddr, 0);
-	}
+	else
+		qdf_mem_free_consistent(qdf_dev, qdf_dev->dev,
+				sizeof(*hal->shadow_wrptr_mem_vaddr) *
+				HAL_MAX_LMAC_RINGS,
+				hal->shadow_wrptr_mem_vaddr,
+				hal->shadow_wrptr_mem_paddr, 0);
 }
 #endif /* CONFIG_IO_COHERENCY */
 
