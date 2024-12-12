@@ -578,7 +578,7 @@ struct wlan_cfg_dp_soc_ctxt {
 	bool ppeds_enable;
 	int reo2ppe_ring;
 	int ppe2tcl_ring;
-	int ppeds_num_tx_desc;
+	uint32_t ppeds_num_tx_desc;
 	int ppeds_tx_comp_napi_budget;
 	int ppeds_tx_desc_hotlist_len;
 	int ppeds_borrow_limit;

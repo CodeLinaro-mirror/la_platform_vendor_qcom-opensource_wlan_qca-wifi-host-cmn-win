@@ -1810,6 +1810,28 @@ struct dp_tx_ext_desc_pool_s *dp_get_tx_ext_desc_pool(struct dp_soc *soc,
 }
 #endif
 
+#if defined(WLAN_SUPPORT_PPEDS)
+#if defined(QCA_SUPPORT_DP_GLOBAL_CTX)
+static inline
+struct dp_tx_desc_pool_s *dp_get_ppeds_tx_desc_pool(struct dp_soc *soc)
+{
+	struct dp_global_context *dp_global = NULL;
+
+	dp_global = wlan_objmgr_get_global_ctx();
+
+	return dp_global->ppeds_tx_desc;
+}
+#else
+static inline
+struct dp_ppeds_tx_desc_pool_s *dp_get_ppeds_tx_desc_pool(struct dp_soc *soc)
+{
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	return &be_soc->ppeds_tx_desc;
+}
+#endif
+#endif
+
 #ifdef DP_TX_TRACKING
 /**
  * dp_tx_desc_set_timestamp() - set timestamp in tx descriptor

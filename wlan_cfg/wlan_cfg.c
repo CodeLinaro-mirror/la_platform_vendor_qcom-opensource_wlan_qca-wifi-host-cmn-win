@@ -3857,6 +3857,9 @@ wlan_soc_ppe_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
 	wlan_cfg_ctx->reo2ppe_ring = cfg_get(psoc, CFG_DP_REO2PPE_RING);
 	wlan_cfg_ctx->ppe2tcl_ring = cfg_get(psoc, CFG_DP_PPE2TCL_RING);
 	wlan_cfg_ctx->ppeds_num_tx_desc = cfg_get(psoc, CFG_DP_PPEDS_TX_DESC);
+#ifdef QCA_SUPPORT_DP_GLOBAL_CTX
+	wlan_cfg_ctx->ppeds_num_tx_desc = cfg_get(psoc, CFG_DP_PPEDS_GLOBAL_TX_DESC_POOL);
+#endif
 	wlan_cfg_ctx->ppeds_tx_desc_hotlist_len =
 				cfg_get(psoc, CFG_DP_PPEDS_TX_DESC_HOTLIST_LEN);
 	wlan_cfg_ctx->ppeds_tx_comp_napi_budget =

@@ -152,6 +152,28 @@ static int dp_tx_release_ds_tx_desc(struct dp_soc *soc,
 	return 0;
 }
 
+#ifdef QCA_SUPPORT_DP_GLOBAL_CTX
+static void dp_ppeds_inuse_desc(struct dp_soc *soc)
+{
+	dp_ppeds_tx_desc_pool_ctx *tx_desc_pool;
+	uint32_t num_elem;
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	num_elem = wlan_cfg_get_dp_soc_ppeds_num_tx_desc(soc->wlan_cfg_ctx);
+	DP_PRINT_STATS("SOC Tx Stats:\n");
+
+	tx_desc_pool = dp_get_ppeds_tx_desc_pool(soc);
+
+	DP_PRINT_STATS("PPE-DS Tx Global Descriptors in Use = %u num_free %u",
+			tx_desc_pool->num_allocated,
+			num_elem - tx_desc_pool->num_allocated);
+
+	DP_PRINT_STATS("PPE-DS Tx desc alloc failed %u",
+			be_soc->ppeds_stats.tx.desc_alloc_failed);
+
+	dp_ppeds_print_assert_war_stats(be_soc);
+}
+#else
 static void dp_ppeds_inuse_desc(struct dp_soc *soc)
 {
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
@@ -165,6 +187,7 @@ static void dp_ppeds_inuse_desc(struct dp_soc *soc)
 
 	dp_ppeds_print_assert_war_stats(be_soc);
 }
+#endif
 
 static void dp_ppeds_clear_stats(struct dp_soc *soc)
 {
