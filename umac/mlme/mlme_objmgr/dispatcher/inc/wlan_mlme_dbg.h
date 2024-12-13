@@ -64,5 +64,17 @@
 #define mlme_rl_nofl_info(format, args...) \
 	QDF_TRACE_INFO_RL_NO_FL(QDF_MODULE_ID_CMN_MLME, format, ## args)
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+#define mlrecfg_fatal(params...) \
+	QDF_TRACE_FATAL(QDF_MODULE_ID_MLRECFG, params)
+#define mlrecfg_err(params...) \
+	QDF_TRACE_ERROR(QDF_MODULE_ID_MLRECFG, params)
+#define mlrecfg_warn(params...) \
+	QDF_TRACE_WARN(QDF_MODULE_ID_MLRECFG, params)
+#define mlrecfg_info(params...) \
+	QDF_TRACE_INFO(QDF_MODULE_ID_MLRECFG, params)
+#define mlrecfg_debug(params...) \
+	QDF_TRACE_DEBUG(QDF_MODULE_ID_MLRECFG, params)
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif    /* _WLAN_MLME_DBG_H_ */
 
