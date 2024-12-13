@@ -3565,6 +3565,24 @@ struct spectral_startscan_resp_params {
 };
 
 /**
+ * struct spectral_spur_chan_impacted_bin_info - Params from the event send by
+ * FW as a response to the scan start command
+ * @spur_freqx10: Spur Frequency
+ * @spur_start_bin_idx: Indicates the start spur bin index
+ * @spur_end_bin_idx: Indicates the end spur bin index
+ */
+struct spectral_spur_chan_impacted_bin_info {
+	uint32_t spur_freqx10;
+	uint32_t spur_start_bin_idx;
+	uint32_t spur_end_bin_idx;
+};
+
+struct spectral_spur_info {
+	uint32_t num_spur_info;
+	struct spectral_spur_chan_impacted_bin_info *bin_info;
+};
+
+/**
  * struct spectral_session_chan_info - Spectral scan session channel information
  * @operating_pri20_freq: frequency of primary 20MHz channel (in MHz)
  * @operating_cfreq1: center frequency 1 of operating channel (in MHz)
@@ -6791,6 +6809,7 @@ typedef enum {
 	wmi_service_therm_throt_tx_chain_mask,
 	wmi_service_therm_throt_5_levels,
 	wmi_service_mrsno_support,
+	wmi_service_spectral_spur_bin_info_support,
 
 	wmi_services_max,
 } wmi_conv_service_ids;
