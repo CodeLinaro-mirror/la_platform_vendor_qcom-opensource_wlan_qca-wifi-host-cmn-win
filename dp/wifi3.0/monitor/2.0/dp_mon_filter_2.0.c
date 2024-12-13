@@ -1786,18 +1786,6 @@ int htt_h2t_tx_ring_cfg(struct htt_soc *htt_soc, int pdev_id,
 	HTT_TX_MONITOR_CFG_RING_BUFFER_SIZE_SET(*msg_word,
 						ring_buf_size);
 
-	if (htt_tlv_filter->mgmt_filter)
-		htt_tx_ring_pkt_type_set(*msg_word, ENABLE_FLAGS,
-					 MGMT, 1);
-
-	if (htt_tlv_filter->ctrl_filter)
-		htt_tx_ring_pkt_type_set(*msg_word, ENABLE_FLAGS,
-					 CTRL, 1);
-
-	if (htt_tlv_filter->data_filter)
-		htt_tx_ring_pkt_type_set(*msg_word, ENABLE_FLAGS,
-					 DATA, 1);
-
 	if (htt_tlv_filter->mgmt_dma_length)
 		HTT_TX_MONITOR_CFG_CONFIG_LENGTH_MGMT_SET(*msg_word,
 							  htt_tlv_filter->mgmt_dma_length);
