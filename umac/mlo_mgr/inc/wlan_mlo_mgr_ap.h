@@ -719,4 +719,48 @@ void mlo_ap_ml_ptqm_peerid_free(struct wlan_mlo_dev_context *ml_dev,
  */
 struct wlan_objmgr_vdev *mlo_get_first_active_vdev_by_ml_dev_ctx(
 				struct wlan_mlo_dev_context *dev_ctx);
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+/**
+ * init_mlrecfg_add_link_rej() - API to initialize MLO setup link
+ * reconfiguration link add reject
+ * @mldev: ML dev pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS init_mlrecfg_add_link_rej(struct wlan_mlo_dev_context *mldev);
+
+/**
+ * clear_mlrecfg_add_link_rej() - API to clear MLO setup link reconfiguration
+ * link add reject
+ * @vdev: vdev pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS clear_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * set_mlrecfg_add_link_rej() - API to set MLO setup link reconfiguration
+ * link add reject
+ * @vdev: vdev pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS set_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * get_mlrecfg_add_link_rej() - API to get MLO setup link reconfiguration
+ * link add reject
+ * @vdev: vdev pointer
+ *
+ * Return: QDF_STATUS
+ */
+bool get_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev);
+#else
+static inline QDF_STATUS init_mlrecfg_add_link_rej
+					(struct wlan_mlo_dev_context *mldev)
+{
+	return QDF_STATUS_SUCCESS;
+}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif

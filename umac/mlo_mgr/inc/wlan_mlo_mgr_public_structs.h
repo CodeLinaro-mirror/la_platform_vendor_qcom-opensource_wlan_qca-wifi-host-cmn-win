@@ -1016,6 +1016,7 @@ struct wlan_mlo_sta {
  * @mlo_vdev_up_bmap: Bitmap of vdevs for which sync complete can be dispatched
  * @assoc_list: MLO sta assoc pending list entry (for FT-over-DS)
  * @mlo_link_reject: Enum to indicate if MLO link rejection configuration
+ * @mlrecfg_add_link_rej: MLO setup link reconfiguration add rejection bitmap
  */
 struct wlan_mlo_ap {
 	uint8_t vdev_up_candidate_count;
@@ -1029,6 +1030,9 @@ struct wlan_mlo_ap {
 	qdf_bitmap(mlo_vdev_up_bmap, WLAN_UMAC_MLO_MAX_VDEVS);
 	struct wlan_mlo_sta_assoc_pending_list assoc_list;
 	enum mlo_link_rej_cfg mlo_link_reject;
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	qdf_bitmap(mlrecfg_add_link_rej, MAX_MLO_LINK_ID + 1);
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 };
 
 /**

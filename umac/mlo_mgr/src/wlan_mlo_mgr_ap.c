@@ -895,6 +895,119 @@ bool mlo_ap_vdev_quiet_is_any_idx_set(struct wlan_objmgr_vdev *vdev)
 			sizeof(mld_ctx->ap_ctx->mlo_vdev_quiet_bmap));
 }
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+QDF_STATUS init_mlrecfg_add_link_rej(struct wlan_mlo_dev_context *mldev)
+{
+	qdf_bitmap_zero(&mldev->ap_ctx->mlrecfg_add_link_rej,
+			MAX_MLO_LINK_ID + 1);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static QDF_STATUS _set_mlrecfg_add_link_rej(struct wlan_mlo_dev_context *mldev,
+					    uint8_t link)
+{
+	if (link > MAX_MLO_LINK_ID)
+		return QDF_STATUS_E_INVAL;
+
+	qdf_set_bit(link, &mldev->ap_ctx->mlrecfg_add_link_rej);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static QDF_STATUS _clear_mlrecfg_add_link_rej
+			(struct wlan_mlo_dev_context *mldev, uint8_t link)
+{
+	if (link > MAX_MLO_LINK_ID)
+		return QDF_STATUS_E_INVAL;
+
+	qdf_clear_bit(link, &mldev->ap_ctx->mlrecfg_add_link_rej);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static bool _get_mlrecfg_add_link_rej(struct wlan_mlo_dev_context *mldev,
+				      uint8_t link)
+{
+	if (link > MAX_MLO_LINK_ID)
+		return false;
+
+	return qdf_test_bit(link, &mldev->ap_ctx->mlrecfg_add_link_rej);
+}
+
+QDF_STATUS set_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_mlo_dev_context *mldev;
+	uint8_t link;
+
+	if (!vdev)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	mldev = vdev->mlo_dev_ctx;
+	if (!mldev)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	if (!wlan_vdev_mlme_is_mlo_ap(vdev))
+		return QDF_STATUS_E_INVAL;
+
+	link = wlan_vdev_get_link_id(vdev);
+	if (link == WLAN_INVALID_LINK_ID)
+		return QDF_STATUS_E_INVAL;
+
+	mlrecfg_debug("Set add link reject link %u MLD MAC " QDF_MAC_ADDR_FMT,
+		      link, QDF_MAC_ADDR_REF(&mldev->mld_addr));
+
+	return _set_mlrecfg_add_link_rej(mldev, link);
+}
+
+QDF_STATUS clear_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_mlo_dev_context *mldev;
+	uint8_t link;
+
+	if (!vdev)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	mldev = vdev->mlo_dev_ctx;
+	if (!mldev)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	if (!wlan_vdev_mlme_is_mlo_ap(vdev))
+		return QDF_STATUS_E_INVAL;
+
+	link = wlan_vdev_get_link_id(vdev);
+	if (link == WLAN_INVALID_LINK_ID)
+		return QDF_STATUS_E_INVAL;
+
+	mlrecfg_debug("Clear add link reject link %u MLD MAC " QDF_MAC_ADDR_FMT,
+		      link, QDF_MAC_ADDR_REF(&mldev->mld_addr));
+
+	return _clear_mlrecfg_add_link_rej(mldev, link);
+}
+
+bool get_mlrecfg_add_link_rej(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_mlo_dev_context *mldev;
+	uint8_t link;
+
+	if (!vdev)
+		return false;
+
+	mldev = vdev->mlo_dev_ctx;
+	if (!mldev)
+		return false;
+
+	if (!wlan_vdev_mlme_is_mlo_ap(vdev))
+		return false;
+
+	link = wlan_vdev_get_link_id(vdev);
+	if (link == WLAN_INVALID_LINK_ID)
+		return false;
+
+	return _get_mlrecfg_add_link_rej(mldev, link);
+}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
+
 QDF_STATUS
 mlo_peer_create_get_frm_buf(
 		struct wlan_mlo_peer_context *ml_peer,

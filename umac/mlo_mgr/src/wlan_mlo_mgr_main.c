@@ -823,6 +823,7 @@ static QDF_STATUS mlo_ap_ctx_deinit(struct wlan_mlo_dev_context *ml_dev)
 static QDF_STATUS mlo_ap_ctx_init(struct wlan_mlo_dev_context *ml_dev)
 {
 	struct wlan_mlo_ap *ap_ctx;
+	QDF_STATUS status;
 
 	ap_ctx = qdf_mem_malloc(sizeof(*ap_ctx));
 	if (!ap_ctx) {
@@ -835,6 +836,12 @@ static QDF_STATUS mlo_ap_ctx_init(struct wlan_mlo_dev_context *ml_dev)
 	if (wlan_mlo_vdev_aid_mgr_init(ml_dev) != QDF_STATUS_SUCCESS) {
 		mlo_ap_ctx_deinit(ml_dev);
 		return QDF_STATUS_E_NOMEM;
+	}
+
+	status = init_mlrecfg_add_link_rej(ml_dev);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_ap_ctx_deinit(ml_dev);
+		return status;
 	}
 
 	return QDF_STATUS_SUCCESS;
