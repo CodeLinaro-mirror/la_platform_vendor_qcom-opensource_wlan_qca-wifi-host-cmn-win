@@ -699,6 +699,15 @@ wlan_mlo_peer_deauth_init(struct wlan_mlo_peer_context *ml_peer,
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
+
 	mlo_peer_lock_release(ml_peer);
 
 	for (i = 0; i < MAX_MLO_LINK_PEERS; i++) {
@@ -756,6 +765,15 @@ void wlan_mlo_peer_delete(struct wlan_mlo_peer_context *ml_peer)
 	}
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 	mlo_peer_lock_release(ml_peer);
 
@@ -853,6 +871,15 @@ void wlan_mlo_partner_peer_disconnect_notify(struct wlan_objmgr_peer *src_peer)
 	wlan_mlo_peer_wsi_link_delete(ml_peer);
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 	if (wlan_vdev_mlme_get_opmode(vdev) == QDF_STA_MODE) {
 		mlo_peer_lock_release(ml_peer);

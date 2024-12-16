@@ -358,6 +358,7 @@ void mlo_mlme_peer_reassoc(struct wlan_objmgr_vdev *vdev,
 			   struct qdf_mac_addr *addr,
 			   qdf_nbuf_t frm_buf);
 
+
 /**
  * mlo_get_link_vdev_ix() - Get index of link VDEV in MLD
  * @mldev: ML device context
@@ -1017,6 +1018,14 @@ bool mlo_is_mlrecfg_add_op_rejected(struct wlan_mlo_peer_context *mlpeer,
  */
 bool mlo_is_mlrecfg_del_op_rejected(struct wlan_mlo_peer_context *mlpeer,
 				    int link);
+
+/**
+ * mlo_mlme_mlpeer_disconnect() - Reassoc mlo peer
+ * @ml_peer: MLO peer context
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS mlo_mlme_mlpeer_disconnect(struct wlan_mlo_peer_context *ml_peer);
 #else
 static inline QDF_STATUS mlo_init_mlrecfg_ctx
 					(struct wlan_mlo_peer_context *mlpeer)
@@ -1058,6 +1067,12 @@ static inline bool mlo_is_mlrecfg_del_op_rejected
 				(struct wlan_mlo_peer_context *mlpeer, int link)
 {
 	return false;
+}
+
+static inline QDF_STATUS mlo_mlme_mlpeer_disconnect
+				(struct wlan_mlo_peer_context *ml_peer)
+{
+	return QDF_STATUS_SUCCESS;
 }
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif

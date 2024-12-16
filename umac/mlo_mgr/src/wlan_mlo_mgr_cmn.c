@@ -1262,4 +1262,17 @@ bool mlo_is_mlrecfg_del_op_rejected(struct wlan_mlo_peer_context *mlpeer,
 }
 
 qdf_export_symbol(mlo_is_mlrecfg_del_op_rejected);
+
+QDF_STATUS mlo_mlme_mlpeer_disconnect(struct wlan_mlo_peer_context *ml_peer)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->mlo_mlme_ext_mlpeer_disconnect)
+		return QDF_STATUS_E_FAILURE;
+
+	return mlo_ctx->mlme_ops->mlo_mlme_ext_mlpeer_disconnect(ml_peer);
+}
+
+qdf_export_symbol(mlo_mlme_mlpeer_disconnect);
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */

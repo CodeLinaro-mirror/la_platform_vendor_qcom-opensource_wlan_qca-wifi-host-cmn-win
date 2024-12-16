@@ -1217,6 +1217,7 @@ enum recfg_state {
 	RECFG_S_CHECK_PEER_DEL,
 	RECFG_S_DO_PEER_DEL,
 	RECFG_S_COMPL,
+	RECFG_S_DISCONNECT,
 	RECFG_S_MAX,
 	RECFG_SS_DEFAULT,
 	RECFG_SS_VALIDATION,
@@ -1286,6 +1287,7 @@ enum recfg_ev {
 	RECFG_EV_APP_OP_COMPL_TIMEOUT,
 	RECFG_EV_APP_OP_COMPL,
 	RECFG_EV_COMPL,
+	RECFG_EV_DISCONNECT,
 	RECFG_EV_WAIT_FOR_NEW_REQ,
 };
 
@@ -1847,6 +1849,8 @@ struct mlo_mlme_ext_ops {
 					   int link);
 	bool (*is_mlrecfg_del_op_rejected)(struct wlan_mlo_peer_context *mlpeer,
 					   int link);
+	QDF_STATUS (*mlo_mlme_ext_mlpeer_disconnect)(
+				struct wlan_mlo_peer_context *ml_peer);
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */
 };
 
