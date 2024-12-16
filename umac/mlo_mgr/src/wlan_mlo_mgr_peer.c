@@ -30,11 +30,11 @@
 #include "wlan_mlo_mgr_sta.h"
 #include "cfg_ucfg_api.h"
 
-static void mlo_partner_peer_create_post(struct wlan_mlo_dev_context *ml_dev,
-					 struct wlan_objmgr_vdev *vdev_link,
-					 struct wlan_mlo_peer_context *ml_peer,
-					 qdf_nbuf_t frm_buf,
-					 struct mlo_partner_info *ml_info)
+void mlo_partner_peer_create_post(struct wlan_mlo_dev_context *ml_dev,
+				  struct wlan_objmgr_vdev *vdev_link,
+				  struct wlan_mlo_peer_context *ml_peer,
+				  qdf_nbuf_t frm_buf,
+				  struct mlo_partner_info *ml_info)
 {
 	struct peer_create_notif_s peer_create;
 	QDF_STATUS status;
@@ -126,8 +126,8 @@ static void mlo_partner_peer_reassoc_post(struct wlan_mlo_dev_context *ml_dev,
 	}
 }
 
-static void mlo_link_peer_assoc_notify(struct wlan_mlo_dev_context *ml_dev,
-				       struct wlan_objmgr_peer *peer)
+void mlo_link_peer_assoc_notify(struct wlan_mlo_dev_context *ml_dev,
+				struct wlan_objmgr_peer *peer)
 {
 	struct peer_assoc_notify_s peer_assoc;
 	QDF_STATUS status;
@@ -150,8 +150,8 @@ static void mlo_link_peer_send_assoc_fail(struct wlan_mlo_dev_context *ml_dev,
 		wlan_objmgr_peer_release_ref(peer, WLAN_MLO_MGR_ID);
 }
 
-static void mlo_link_peer_disconnect_notify(struct wlan_mlo_dev_context *ml_dev,
-					    struct wlan_objmgr_peer *peer)
+void mlo_link_peer_disconnect_notify(struct wlan_mlo_dev_context *ml_dev,
+				     struct wlan_objmgr_peer *peer)
 {
 	struct peer_discon_notify_s peer_disconn;
 	QDF_STATUS status;
@@ -924,6 +924,7 @@ static void mlo_peer_free(struct wlan_mlo_peer_context *ml_peer)
 	mlo_debug("ML Peer " QDF_MAC_ADDR_FMT " is freed",
 		  QDF_MAC_ADDR_REF(ml_peer->peer_mld_addr.bytes));
 
+	mlo_deinit_mlrecfg_ctx(ml_peer);
 	wlan_t2lm_timer_stop(&ml_dev->t2lm_ctx.t2lm_timer);
 	mlo_t2lm_reset_established_and_upcoming_mapping(ml_dev);
 	ttlm_sm_destroy(ml_peer);
@@ -986,7 +987,8 @@ static QDF_STATUS mlo_peer_attach_link_peer(
 
 	mlo_peer_lock_acquire(ml_peer);
 
-	if (ml_peer->mlpeer_state != ML_PEER_CREATED) {
+	if (!mlo_is_mlrecfg_in_progress(ml_peer) &&
+	    ml_peer->mlpeer_state != ML_PEER_CREATED) {
 		mlo_peer_lock_release(ml_peer);
 		mlo_err("ML Peer " QDF_MAC_ADDR_FMT " is not in created state (state %d)",
 			QDF_MAC_ADDR_REF(ml_peer->peer_mld_addr.bytes),
@@ -1979,6 +1981,15 @@ QDF_STATUS wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 	psoc = wlan_peer_get_psoc(link_peer);
 	wlan_minidump_log(ml_peer, sizeof(*ml_peer), psoc,
 			  WLAN_MD_CP_MLO_PEER_CTX, "wlan_mlo_peer_context");
+
+	status = mlo_init_mlrecfg_ctx(ml_peer);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mlo_err("Recfg ctx init failed " QDF_MAC_ADDR_FMT "(L):" QDF_MAC_ADDR_FMT "(R)",
+			QDF_MAC_ADDR_REF(mldev_get_mld_mac(ml_dev)),
+		QDF_MAC_ADDR_REF(mlpeer_get_mld_mac(ml_peer)));
+		wlan_mlo_peer_release_ref(ml_peer);
+		return status;
+	}
 	wlan_mlo_peer_release_ref(ml_peer);
 
 	return QDF_STATUS_SUCCESS;
@@ -2170,10 +2181,19 @@ void wlan_mlo_peer_get_links_info(struct wlan_objmgr_peer *peer,
 			peer_entry->is_primary;
 		ml_links->link_info[ix].mlo_logical_link_index_valid = 1;
 		ml_links->link_info[ix].emlsr_support = ml_emlcap->emlsr_supp;
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+		ml_links->link_info[ix].logical_link_index = i;
+#else
 		ml_links->link_info[ix].logical_link_index = idx - 1;
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 		ml_links->link_info[ix].mlo_bridge_peer = link_peer->mlo_bridge_peer;
 		ml_links->link_info[ix].ieee_link_id =
 			wlan_vdev_get_link_id(link_vdev);
+		ml_links->link_info[ix].mlo_link_add =
+		   mlo_is_mlrecfg_add_op_accepted(ml_peer, peer_entry->link_ix);
+		ml_links->link_info[ix].mlo_link_del =
+		   mlo_is_mlrecfg_del_op_accepted(ml_peer, peer_entry->link_ix);
+
 		ml_links->num_partner_links++;
 	}
 	mlo_peer_lock_release(ml_peer);

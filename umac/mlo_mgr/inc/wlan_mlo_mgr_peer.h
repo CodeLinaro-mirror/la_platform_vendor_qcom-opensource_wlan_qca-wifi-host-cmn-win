@@ -1086,4 +1086,46 @@ QDF_STATUS wlan_mlo_dev_get_link_vdevs(
  */
 void wlan_mlo_dev_release_link_vdevs(
 			struct wlan_objmgr_vdev *link_vdevs[]);
+
+/**
+ * mlo_partner_peer_create_post() - API to create partner peer
+ * @ml_dev: Pointer to mlo dev object
+ * @vdev_link: Pointer to link vdev
+ * @ml_peer: Pointer to mlo peer object
+ * @frm_buf: Frame buffer
+ * @ml_info: MLO info
+ *
+ * API to API to create partner peer
+ *
+ * Return: void
+ */
+void mlo_partner_peer_create_post(struct wlan_mlo_dev_context *ml_dev,
+				  struct wlan_objmgr_vdev *vdev_link,
+				  struct wlan_mlo_peer_context *ml_peer,
+				  qdf_nbuf_t frm_buf,
+				  struct mlo_partner_info *ml_info);
+
+/**
+ * mlo_link_peer_assoc_notify() - API to notify peer assoc command
+ * @ml_dev: Pointer to mlo dev object
+ * @peer: Pointer to peer object
+ *
+ * API to notify peer assoc command
+ *
+ * Return: void
+ */
+void mlo_link_peer_assoc_notify(struct wlan_mlo_dev_context *ml_dev,
+				struct wlan_objmgr_peer *peer);
+
+/**
+ * mlo_link_peer_disconnect_notify() - API to notify peer delete command
+ * @ml_dev: Pointer to mlo dev object
+ * @peer: Pointer to peer object
+ *
+ * API to notify peer delete command
+ *
+ * Return: void
+ */
+void mlo_link_peer_disconnect_notify(struct wlan_mlo_dev_context *ml_dev,
+				     struct wlan_objmgr_peer *peer);
 #endif

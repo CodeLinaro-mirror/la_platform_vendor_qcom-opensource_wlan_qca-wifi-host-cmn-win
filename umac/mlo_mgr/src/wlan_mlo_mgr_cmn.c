@@ -1171,3 +1171,95 @@ mlo_ttlm_send_cmd_register_resp_cb(struct wlan_objmgr_vdev *vdev,
 	return QDF_STATUS_SUCCESS;
 }
 #endif
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+QDF_STATUS mlo_init_mlrecfg_ctx(struct wlan_mlo_peer_context *mlpeer)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->init_mlrecfg_ctx)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	return mlo_ctx->mlme_ops->init_mlrecfg_ctx(mlpeer);
+}
+
+QDF_STATUS mlo_deinit_mlrecfg_ctx(struct wlan_mlo_peer_context *mlpeer)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->deinit_mlrecfg_ctx)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	return mlo_ctx->mlme_ops->deinit_mlrecfg_ctx(mlpeer);
+}
+
+bool mlo_is_mlrecfg_in_progress(struct wlan_mlo_peer_context *mlpeer)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->is_mlrecfg_in_progress)
+		return false;
+
+	return mlo_ctx->mlme_ops->is_mlrecfg_in_progress(mlpeer);
+}
+
+qdf_export_symbol(mlo_is_mlrecfg_in_progress);
+
+bool mlo_is_mlrecfg_add_op_accepted(struct wlan_mlo_peer_context *mlpeer,
+				    int link)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->is_mlrecfg_add_op_accepted)
+		return false;
+
+	return mlo_ctx->mlme_ops->is_mlrecfg_add_op_accepted(mlpeer, link);
+}
+
+qdf_export_symbol(mlo_is_mlrecfg_add_op_accepted);
+
+bool mlo_is_mlrecfg_del_op_accepted(struct wlan_mlo_peer_context *mlpeer,
+				    int link)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->is_mlrecfg_del_op_accepted)
+		return false;
+
+	return mlo_ctx->mlme_ops->is_mlrecfg_del_op_accepted(mlpeer, link);
+}
+
+qdf_export_symbol(mlo_is_mlrecfg_del_op_accepted);
+
+bool mlo_is_mlrecfg_add_op_rejected(struct wlan_mlo_peer_context *mlpeer,
+				    int link)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->is_mlrecfg_add_op_rejected)
+		return false;
+
+	return mlo_ctx->mlme_ops->is_mlrecfg_add_op_rejected(mlpeer, link);
+}
+
+qdf_export_symbol(mlo_is_mlrecfg_add_op_rejected);
+
+bool mlo_is_mlrecfg_del_op_rejected(struct wlan_mlo_peer_context *mlpeer,
+				    int link)
+{
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+
+	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
+	    !mlo_ctx->mlme_ops->is_mlrecfg_del_op_rejected)
+		return false;
+
+	return mlo_ctx->mlme_ops->is_mlrecfg_del_op_rejected(mlpeer, link);
+}
+
+qdf_export_symbol(mlo_is_mlrecfg_del_op_rejected);
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */

@@ -1337,7 +1337,6 @@ struct mlrecfg_ctx {
 	struct requestor *remote_requestor;
 	struct responder *local_responder;
 	struct recfg_mgr *recfg_mgr;
-	bool done;
 };
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
@@ -1690,7 +1689,9 @@ struct mlo_tgt_link_info {
 		 msd_cap_support:1,
 		 mlo_bridge_peer:1,
 		 ieee_link_id:4,
-		 unused:18;
+		 mlo_link_add:1,
+		 mlo_link_del:1,
+		 unused:16;
 	uint32_t logical_link_index;
 
 };
@@ -1747,6 +1748,17 @@ struct wlan_mlo_bridge_sta {
  * @mlo_mlme_ext_connect_get_partner_info: Callback to get MLO partner info
  * @mlo_mlme_ext_set_ieee_link_id: Callback to update ieee_link_id in vap
  * @mlo_mlme_ext_teardown_tdls: Callback to teardown TDLS
+ * @init_mlrecfg_ctx: Init MLO setup link reconfiguration context
+ * @deinit_mlrecfg_ctx: Deinit MLO setup link reconfiguration context
+ * @is_mlrecfg_in_progress: Check MLO setup link reconfiguration is in progress
+ * @is_mlrecfg_add_op_accepted: Check MLO link addition to the setup links is
+ * accepted
+ * @is_mlrecfg_del_op_accepted: Check MLO link deletion from the setup links is
+ * accepted
+ * @is_mlrecfg_add_op_rejected: Check MLO link addition to the setup links is
+ * rejected
+ * @is_mlrecfg_del_op_rejected: Check MLO link deletion from the setup links is
+ * rejected
  */
 struct mlo_mlme_ext_ops {
 	QDF_STATUS (*mlo_mlme_ext_validate_conn_req)(
@@ -1794,6 +1806,19 @@ struct mlo_mlme_ext_ops {
 	QDF_STATUS (*mlo_mlme_ext_set_ieee_link_id)(struct wlan_objmgr_vdev *vdev);
 #endif
 	QDF_STATUS (*mlo_mlme_ext_teardown_tdls)(struct wlan_objmgr_psoc *psoc);
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	QDF_STATUS (*init_mlrecfg_ctx)(struct wlan_mlo_peer_context *mlpeer);
+	QDF_STATUS (*deinit_mlrecfg_ctx)(struct wlan_mlo_peer_context *mlpeer);
+	bool (*is_mlrecfg_in_progress)(struct wlan_mlo_peer_context *mlpeer);
+	bool (*is_mlrecfg_add_op_accepted)(struct wlan_mlo_peer_context *mlpeer,
+					   int link);
+	bool (*is_mlrecfg_del_op_accepted)(struct wlan_mlo_peer_context *mlpeer,
+					   int link);
+	bool (*is_mlrecfg_add_op_rejected)(struct wlan_mlo_peer_context *mlpeer,
+					   int link);
+	bool (*is_mlrecfg_del_op_rejected)(struct wlan_mlo_peer_context *mlpeer,
+					   int link);
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 };
 
 /*

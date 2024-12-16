@@ -930,4 +930,134 @@ mldev_get_mld_mac(struct wlan_mlo_dev_context *mldev)
 
 	return &mldev->mld_addr;
 }
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+/**
+ * mlo_init_mlrecfg_ctx - Initialize MLO reconfiguration context
+ * @mlpeer: ML peer object
+ *
+ * API to initialize MLO reconfiguration context.
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS mlo_init_mlrecfg_ctx(struct wlan_mlo_peer_context *mlpeer);
+
+/**
+ * mlo_deinit_mlrecfg_ctx - De-initialize MLO reconfiguration context
+ * @mlpeer: ML peer object
+ *
+ * API to de-initialize MLO reconfiguration context.
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS mlo_deinit_mlrecfg_ctx(struct wlan_mlo_peer_context *mlpeer);
+
+/**
+ * mlo_is_mlrecfg_in_progress - Check MLO reconfiguration is in progress
+ * @mlpeer: ML peer object
+ *
+ * API to check MLO reconfiguration is in progress for the ML peer.
+ *
+ * Return: bool
+ */
+bool mlo_is_mlrecfg_in_progress(struct wlan_mlo_peer_context *mlpeer);
+
+/**
+ * mlo_is_mlrecfg_add_op_accepted - Check MLO reconfiguration add operation is
+ * accepted for a given link of an ML peer
+ * @mlpeer: ML peer object
+ * @link: Protocol link ID
+ *
+ * API to Check MLO reconfiguration add operation is accepted for a given link
+ * of an ML peer.
+ *
+ * Return: bool
+ */
+bool mlo_is_mlrecfg_add_op_accepted(struct wlan_mlo_peer_context *mlpeer,
+				    int link);
+
+/**
+ * mlo_is_mlrecfg_del_op_accepted - Check MLO reconfiguration delete operation
+ * is accepted for a given link of an ML peer
+ * @mlpeer: ML peer object
+ * @link: Protocol link ID
+ *
+ * API to Check MLO reconfiguration delete operation is accepted for a given
+ * link of an ML peer.
+ *
+ * Return: bool
+ */
+bool mlo_is_mlrecfg_del_op_accepted(struct wlan_mlo_peer_context *mlpeer,
+				    int link);
+
+/**
+ * mlo_is_mlrecfg_add_op_rejected - Check MLO reconfiguration add operation is
+ * rejected for a given link of an ML peer
+ * @mlpeer: ML peer object
+ * @link: Protocol link ID
+ *
+ * API to Check MLO reconfiguration add operation is rejected for a given link
+ * of an ML peer.
+ *
+ * Return: bool
+ */
+bool mlo_is_mlrecfg_add_op_rejected(struct wlan_mlo_peer_context *mlpeer,
+				    int link);
+
+/**
+ * mlo_is_mlrecfg_del_op_rejected - Check MLO reconfiguration delete operation
+ * is rejected for a given link of an ML peer
+ * @mlpeer: ML peer object
+ * @link: Protocol link ID
+ *
+ * API to Check MLO reconfiguration delete operation is rejected for a given
+ * link of an ML peer.
+ *
+ * Return: bool
+ */
+bool mlo_is_mlrecfg_del_op_rejected(struct wlan_mlo_peer_context *mlpeer,
+				    int link);
+#else
+static inline QDF_STATUS mlo_init_mlrecfg_ctx
+					(struct wlan_mlo_peer_context *mlpeer)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS mlo_deinit_mlrecfg_ctx
+					(struct wlan_mlo_peer_context *mlpeer)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline bool mlo_is_mlrecfg_in_progress
+					(struct wlan_mlo_peer_context *mlpeer)
+{
+	return false;
+}
+
+static inline bool mlo_is_mlrecfg_add_op_accepted
+				(struct wlan_mlo_peer_context *mlpeer, int link)
+{
+	return false;
+}
+
+static inline bool mlo_is_mlrecfg_del_op_accepted
+				(struct wlan_mlo_peer_context *mlpeer, int link)
+{
+	return false;
+}
+
+static inline bool mlo_is_mlrecfg_add_op_rejected
+				(struct wlan_mlo_peer_context *mlpeer, int link)
+{
+	return false;
+}
+
+static inline bool mlo_is_mlrecfg_del_op_rejected
+				(struct wlan_mlo_peer_context *mlpeer, int link)
+{
+	return false;
+}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif

@@ -84,6 +84,12 @@ static void wlan_mlo_peer_get_rssi(struct wlan_objmgr_psoc *psoc,
 	if (!mlo_peer_ctx)
 		return;
 
+	if (mlo_is_mlrecfg_del_op_accepted(mlo_peer_ctx, peer_get_link(peer)))
+		return;
+
+	if (mlo_is_mlrecfg_add_op_rejected(mlo_peer_ctx, peer_get_link(peer)))
+		return;
+
 	/* If this psoc is new primary UMAC after migration,
 	 * account RSSI on new link
 	 */
