@@ -1310,8 +1310,7 @@ struct recfg_sm {
 	qdf_bitmap(app_op_resp_pending, MAX_MLO_LINK_ID + 1);
 	struct mlrecfg_os_cont app_os_cont;
 	qdf_event_t link_create_compl[MAX_MLO_LINK_ID + 1];
-	void *app_resp_frame;
-	uint16_t app_resp_frame_len;
+	qdf_nbuf_t app_resp_wbuf;
 	bool resp_tx_compl_pending;
 	struct mlrecfg_os_cont comb_os_cont;
 	struct key_cache ptk_cache;
@@ -1320,8 +1319,8 @@ struct recfg_sm {
 
 struct recfg_cb {
 	QDF_STATUS(*resp_ready)(void *arg, uint8_t req_id,
-				void *app_resp_frame,
-				uint16_t app_resp_frame_len);
+				qdf_nbuf_t app_resp_wbuf,
+				struct mlrecfg_os_cont *status_container);
 	QDF_STATUS(*compl)(void *arg, uint8_t req_id);
 	void *arg;
 };
@@ -1465,7 +1464,9 @@ enum mlreconfig_operation_type {
 	MLRECONFIG_OPERATION_TYPE_DELETE_LINK = 3,
 	MLRECONFIG_OPERATION_TYPE_MAX = 4,
 };
+#endif
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
 /**
  * struct mlreconfig_setup_link_info - ml setup link information
  * @link_id: setup link id
@@ -1484,6 +1485,26 @@ struct mlreconfig_setup_link_info {
 struct mlreconfig_setup_links_req {
 	struct mlreconfig_setup_link_info
 		setup_link_info[WLAN_UMAC_MLO_MAX_VDEVS];
+};
+
+/**
+ * struct mlreconfig_kde - Group key data
+ * @len: key data len
+ * @data: key data
+ */
+struct mlreconfig_kde {
+	uint8_t len;
+	uint8_t *data;
+};
+
+/**
+ * struct mlreconfig_setup_links_resp - link reconfig response information
+ * @status_container: setup link status code container
+ * @kde: accepted add links group key data
+ */
+struct mlreconfig_setup_links_resp {
+	struct mlrecfg_os_cont status_container;
+	struct mlreconfig_kde kde;
 };
 
 /**
@@ -1506,6 +1527,7 @@ enum mlreconfig_setup_links_category {
  * @num_operations: Number of reconfiguration operations
  * @reconfig_optype: reconfiguration operation type
  * @mlreconfig_link_req: setup link request information
+ * @mlreconfig_link_resp: setup link response information
  */
 struct mlreconfig_setup_links_action {
 	uint8_t dialog_token;
@@ -1513,9 +1535,10 @@ struct mlreconfig_setup_links_action {
 	int num_operations;
 	union {
 		struct mlreconfig_setup_links_req mlreconfig_link_req;
+		struct mlreconfig_setup_links_resp mlreconfig_link_resp;
 	};
 };
-#endif
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 /**
  * struct wlan_mlo_peer_context - MLO peer context
@@ -1592,7 +1615,9 @@ struct wlan_mlo_peer_context {
 #ifdef WLAN_FEATURE_11BE
 	struct wlan_mlo_peer_t2lm_policy t2lm_policy;
 	struct wlan_mlo_peer_epcs_info epcs_info;
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
 	struct mlreconfig_setup_links_action setup_links_action_info;
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif
 	bool msd_cap_present;
 	struct wlan_mlo_eml_cap mlpeer_emlcap;
