@@ -932,6 +932,20 @@ QDF_STATUS wlan_mlo_validate_reassocreq(struct wlan_mlo_peer_context *ml_peer);
  * Return: void
  */
 void wlan_objmgr_mlo_update_primary_info(struct wlan_objmgr_peer *peer);
+
+/**
+ * get_mlrecfg_plink_resel_mode() - API to get primary link reselection mode.
+ * @mlpeer: Pointer to mlpeer
+ *
+ * API to get primary link reselection mode.
+ *
+ * Return: enum mlrecfg_plink_resel_mode
+ */
+static inline enum mlrecfg_plink_resel_mode get_mlrecfg_plink_resel_mode
+					(struct wlan_mlo_peer_context *mlpeer)
+{
+	return mlpeer->mlrecfg_plink_resel_mode;
+}
 #endif
 
 /**

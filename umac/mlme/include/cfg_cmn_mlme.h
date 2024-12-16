@@ -24,6 +24,35 @@
 
 /*
  * <ini>
+ * mlrecfg_plink_resel_mode- This INI is used to configure the primary
+ * link reselection mode on MLO reconfiguration.
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This INI is used to configure the primary link reselection mode on MLO
+ * reconfiguration. Following are the supported modes.
+ * 0 - Reselect primary link on every ML reconfiguration
+ * 1 - Reselect primary link when the current primary link is deleted or when
+ * the current primary link can't continue to serve as the primary link after
+ * reconfiguration.
+ *
+ * Related: None
+ *
+ * Supported Feature: MLO Reconfiguration
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_MLRECFG_PLINK_RESEL_MODE CFG_INI_UINT( \
+	"mlrecfg_plink_resel_mode",\
+	0, 1, 0, \
+	CFG_VALUE_OR_DEFAULT, \
+	"MLO reconfiguration primary link reselection criteria")
+
+/*
+ * <ini>
  * max_chan_switch_ie_enable - Flag to enable max chan switch IE support
  * @Min: false
  * @Max: true
@@ -156,6 +185,7 @@
 
 
 #define CFG_CMN_MLME_ALL \
+	CFG(CFG_MLRECFG_PLINK_RESEL_MODE) \
 	CFG(CFG_MLME_MAX_CHAN_SWITCH_IE_ENABLE) \
 	CFG(CFG_MLME_11BE_TARGET_CAPAB) \
 	CFG(CFG_MLME_MLO_RECONFIG_REASSOC_ENABLE) \

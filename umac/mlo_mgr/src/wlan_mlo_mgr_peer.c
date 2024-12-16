@@ -28,6 +28,7 @@
 #include "wlan_utility.h"
 #include "wlan_mlo_epcs.h"
 #include "wlan_mlo_mgr_sta.h"
+#include "cfg_ucfg_api.h"
 
 static void mlo_partner_peer_create_post(struct wlan_mlo_dev_context *ml_dev,
 					 struct wlan_objmgr_vdev *vdev_link,
@@ -1765,6 +1766,10 @@ QDF_STATUS wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 			wlan_mlo_dev_release_link_vdevs(link_vdevs);
 			return QDF_STATUS_E_INVAL;
 		}
+
+		psoc = wlan_peer_get_psoc(link_peer);
+		ml_peer->mlrecfg_plink_resel_mode =
+			      cfg_get(psoc, CFG_MLRECFG_PLINK_RESEL_MODE);
 
 		epcs_dev_peer_lock_create(&ml_peer->epcs_info);
 		wlan_mlo_peer_initialize_epcs_info(ml_peer);

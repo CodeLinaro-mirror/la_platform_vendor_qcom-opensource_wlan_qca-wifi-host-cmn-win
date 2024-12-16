@@ -1341,6 +1341,14 @@ struct mlrecfg_ctx {
 };
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
+#ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
+enum mlrecfg_plink_resel_mode {
+	MLRECFG_PLINK_RESEL_ALWAYS = 0,
+	MLRECFG_PLINK_RESEL_CONDITIONAL = 1,
+	MLRECFG_PLINK_RESEL_MODE_MAX,
+};
+#endif /* QCA_SUPPORT_PRIMARY_LINK_MIGRATE */
+
 /**
  * struct mlpeer_auth_params - Deferred Auth params
  * @vdev_id:  VDEV ID
@@ -1545,6 +1553,7 @@ struct mlreconfig_setup_links_action {
  * @ttlm_sm: TTLM state machine
  * @ttlm_request_timer: TTLM request timer
  * @peer_ptqm_migrate_ctx: PTQM migration peer context
+ * @mlrecfg_plink_resel_mode: MLO reconfiguration primary link reselection mode
  * @assoc_wbuf: Cached link specific association request
  */
 struct wlan_mlo_peer_context {
@@ -1599,6 +1608,7 @@ struct wlan_mlo_peer_context {
 #endif
 #ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
 	struct ptqm_migrate_peer_context *peer_ptqm_migrate_ctx;
+	enum mlrecfg_plink_resel_mode mlrecfg_plink_resel_mode;
 #endif
 	qdf_nbuf_t assoc_wbuf;
 };
