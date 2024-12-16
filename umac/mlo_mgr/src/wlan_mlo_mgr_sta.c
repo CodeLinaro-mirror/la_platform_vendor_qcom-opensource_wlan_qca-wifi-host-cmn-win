@@ -2764,6 +2764,7 @@ mlo_sta_handle_ptqm_migration(struct wlan_objmgr_vdev *removal_vdev)
 	params.src_link_id = HW_LINK_ID_ANY;
 	params.dst_link_id = HW_LINK_ID_ANY;
 	params.force_mig = true;
+	params.allow_reelection = false;
 
 	return wlan_ptqm_peer_migrate_req_add(removal_vdev,
 					      bss_peer->mlo_peer_ctx, &params);

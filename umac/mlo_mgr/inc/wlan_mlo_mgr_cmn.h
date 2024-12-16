@@ -746,6 +746,7 @@ void mlo_mlme_ptqm_migrate_timer_cb(void *arg);
  * @link_id: link id for new ptqm
  * @force_mig: allow migration to vdevs which are disabled to be pumac
  * using primary_umac_skip ini
+ * @allow_reelection: Allow reelection of current primary link
  *
  * Return: Success if migration is triggered, else failure
  */
@@ -753,7 +754,7 @@ QDF_STATUS wlan_mlo_set_ptqm_migration(struct wlan_objmgr_vdev *vdev,
 				       struct wlan_mlo_peer_context *ml_peer,
 				       bool link_migration,
 				       uint32_t link_id,
-				       bool force_mig);
+				       bool force_mig, bool allow_reelection);
 
 #define HW_LINK_ID_ANY 0xff
 
@@ -798,6 +799,7 @@ struct ptqm_link_migration_rsp_params {
  * @end: Callback to be called at the end
  * @user_data: Opaque user data
  * @force_mig: allow migration to vdevs which are disabled to be primary umac
+ * @allow_reelection: Allow reelection of current primary link
  */
 struct ptqm_peer_migrate_params {
 	enum ptqm_migration_module_id module_id;
@@ -809,6 +811,7 @@ struct ptqm_peer_migrate_params {
 		    void *user_data);
 	void *user_data;
 	bool force_mig;
+	bool allow_reelection;
 };
 
 /*
