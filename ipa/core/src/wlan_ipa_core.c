@@ -3394,6 +3394,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			if (type == QDF_IPA_STA_DISCONNECT ||
 			    type == QDF_IPA_AP_DISCONNECT) {
 				for (i = 0; i < WLAN_IPA_MAX_IFACE; i++) {
+					qdf_mutex_acquire(&ipa_ctx->event_lock);
 					iface_ctx = &ipa_ctx->iface_context[i];
 					if (wlan_ipa_check_iface_netdev_sessid(
 							     iface_ctx, net_dev,
@@ -3401,8 +3402,10 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 						wlan_ipa_cleanup_iface(
 								iface_ctx,
 								mac_addr);
+						qdf_mutex_release(&ipa_ctx->event_lock);
 						break;
 					}
+					qdf_mutex_release(&ipa_ctx->event_lock);
 				}
 
 				if (qdf_ipa_get_lan_rx_napi() &&
@@ -5926,6 +5929,7 @@ void wlan_ipa_uc_ssr_cleanup(struct wlan_ipa_priv *ipa_ctx)
 	ipa_info("enter");
 
 	for (i = 0; i < WLAN_IPA_MAX_IFACE; i++) {
+		qdf_mutex_acquire(&ipa_ctx->event_lock);
 		iface = &ipa_ctx->iface_context[i];
 		if (iface->dev) {
 			if (iface->device_mode == QDF_SAP_MODE)
@@ -5940,6 +5944,7 @@ void wlan_ipa_uc_ssr_cleanup(struct wlan_ipa_priv *ipa_ctx)
 						     ipa_ctx);
 			wlan_ipa_cleanup_iface(iface, NULL);
 		}
+		qdf_mutex_release(&ipa_ctx->event_lock);
 	}
 
 	ipa_ctx->opt_dp_ctrl_ssr = true;
