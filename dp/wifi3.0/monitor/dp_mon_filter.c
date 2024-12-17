@@ -436,13 +436,14 @@ dp_mon_ht2_rx_ring_cfg(struct dp_soc *soc,
 }
 
 #ifdef QCA_ENHANCED_STATS_SUPPORT
-void dp_mon_filter_setup_enhanced_stats(struct dp_pdev *pdev)
+void dp_mon_filter_setup_enhanced_stats(struct dp_pdev *pdev,
+					enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 	struct dp_mon_ops *mon_ops = NULL;
 
 	mon_ops = dp_mon_ops_get(pdev->soc);
 	if (mon_ops && mon_ops->mon_filter_setup_enhanced_stats)
-		mon_ops->mon_filter_setup_enhanced_stats(pdev);
+		mon_ops->mon_filter_setup_enhanced_stats(pdev, stats_lvl);
 }
 
 void dp_mon_filter_reset_enhanced_stats(struct dp_pdev *pdev)

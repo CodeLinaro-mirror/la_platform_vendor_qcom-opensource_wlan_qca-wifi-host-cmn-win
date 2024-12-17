@@ -1997,7 +1997,9 @@ fail0:
 #endif
 
 #ifdef QCA_ENHANCED_STATS_SUPPORT
-void dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev)
+void
+dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev,
+				       enum cdp_mon_enh_stats_lvl stats_lvl)
 {
 	struct dp_mon_filter_be filter = {0};
 	enum dp_mon_filter_mode mode = DP_MON_FILTER_ENHACHED_STATS_MODE;
@@ -2018,6 +2020,8 @@ void dp_mon_filter_setup_enhanced_stats_2_0(struct dp_pdev *pdev)
 
 	rx_tlv_filter = &filter.rx_tlv_filter;
 	dp_mon_filter_set_status_cmn(mon_pdev, rx_tlv_filter);
+	if (stats_lvl == CDP_MON_ENHANCED_STATS_PPDU)
+		rx_tlv_filter->tlv_filter.mpdu_start = 0;
 	/* Setup the filter */
 	rx_tlv_filter->tlv_filter.ppdu_end_user_stats_ext = 0;
 	rx_tlv_filter->tlv_filter.enable_mo = 0;

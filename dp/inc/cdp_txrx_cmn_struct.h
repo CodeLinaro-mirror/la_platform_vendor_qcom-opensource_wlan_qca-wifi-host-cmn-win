@@ -3478,6 +3478,18 @@ enum cdp_umac_reset_state {
 	CDP_UMAC_RESET_INVALID_STATE
 };
 
+/**
+ * enum cdp_mon_enh_stats_lvl - enhanced stats level
+ * @CDP_MON_ENHANCED_STATS_ALL: Enable all stats
+ * @CDP_MON_ENHANCED_STATS_PPDU: Enable stats from PPDU TLVs
+ * @CDP_MON_ENHANCED_STATS_INVALID: Invalid stats level
+ */
+enum cdp_mon_enh_stats_lvl {
+	CDP_MON_ENHANCED_STATS_ALL = 1,
+	CDP_MON_ENHANCED_STATS_PPDU = 2,
+	CDP_MON_ENHANCED_STATS_INVALID
+};
+
 #ifdef WLAN_FEATURE_TX_LATENCY_STATS
 /* the maximum distribution level of tx latency stats */
 #define CDP_TX_LATENCY_DISTR_LV_MAX 4
