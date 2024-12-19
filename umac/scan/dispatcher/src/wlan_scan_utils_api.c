@@ -114,7 +114,6 @@ util_get_last_scan_time(struct wlan_objmgr_vdev *vdev)
 
 	if (!vdev) {
 		scm_warn("null vdev");
-		QDF_ASSERT(0);
 		return 0;
 	}
 	pdev_id = wlan_scan_vdev_get_pdev_id(vdev);

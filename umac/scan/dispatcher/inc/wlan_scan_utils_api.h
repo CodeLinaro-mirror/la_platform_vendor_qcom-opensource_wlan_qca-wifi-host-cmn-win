@@ -648,7 +648,6 @@ util_scan_entry_copy_ie_data(struct scan_cache_entry *scan_entry,
 	u_int16_t    buff_len;
 
 	/* iebuf can be NULL, ie_len must be a valid pointer. */
-	QDF_ASSERT(ie_len);
 	if (!ie_len)
 		return QDF_STATUS_E_NULL_VALUE;
 
