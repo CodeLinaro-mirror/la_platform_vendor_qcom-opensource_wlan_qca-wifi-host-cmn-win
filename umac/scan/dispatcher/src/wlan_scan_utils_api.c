@@ -4031,7 +4031,7 @@ util_scan_parse_eht_beacon(struct wlan_objmgr_pdev *pdev,
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 
 	if (mbssid_ie && ie_list) {
-		if (ie_list[TAG_LEN_POS] <= 0) {
+		if (ie_list[TAG_LEN_POS] < 0) {
 			scm_debug_rl("Corrupt IE");
 			return QDF_STATUS_E_INVAL;
 		}
