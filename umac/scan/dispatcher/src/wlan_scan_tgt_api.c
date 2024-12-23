@@ -103,7 +103,11 @@ QDF_STATUS tgt_scan_pno_start(struct wlan_objmgr_vdev *vdev,
 		return QDF_STATUS_E_FAILURE;
 	}
 	/* invoke wmi_unified_pno_start_cmd() */
-	QDF_ASSERT(scan_ops->pno_start);
+	if (!(scan_ops->pno_start)) {
+		scm_err(" NULL scan_ops pno_start");
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	if (scan_ops->pno_start)
 		return scan_ops->pno_start(psoc, req);
 
@@ -128,7 +132,11 @@ QDF_STATUS tgt_scan_pno_stop(struct wlan_objmgr_vdev *vdev,
 		return QDF_STATUS_E_FAILURE;
 	}
 	/* invoke wmi_unified_pno_stop_cmd() */
-	QDF_ASSERT(scan_ops->pno_stop);
+	if (!(scan_ops->pno_stop)) {
+		scm_err(" NULL scan_ops pno_stop");
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	if (scan_ops->pno_stop)
 		return scan_ops->pno_stop(psoc, vdev_id);
 
@@ -157,7 +165,11 @@ QDF_STATUS tgt_scan_obss_disable(struct wlan_objmgr_vdev *vdev)
 	vdev_id = wlan_vdev_get_id(vdev);
 
 	/* invoke wmi_unified_obss_disable_cmd() */
-	QDF_ASSERT(scan_ops->obss_disable);
+	if (!(scan_ops->obss_disable)) {
+		scm_err(" NULL scan_ops obss_disable");
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	if (scan_ops->obss_disable)
 		return scan_ops->obss_disable(psoc, vdev_id);
 
@@ -191,7 +203,11 @@ tgt_scan_start(struct scan_start_request *req)
 	}
 
 	/* invoke wmi_unified_scan_start_cmd_send() */
-	QDF_ASSERT(scan_ops->scan_start);
+	if (!(scan_ops->scan_start)) {
+		scm_err(" NULL scan_ops scan_start");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
 	if (scan_ops->scan_start)
 		return scan_ops->scan_start(pdev, req);
 	else
@@ -224,7 +240,11 @@ tgt_scan_cancel(struct scan_cancel_request *req)
 	}
 
 	/* invoke wmi_unified_scan_stop_cmd_send() */
-	QDF_ASSERT(scan_ops->scan_cancel);
+	if (!(scan_ops->scan_cancel)) {
+		scm_err(" NULL scan_ops scan_cancel");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
 	if (scan_ops->scan_cancel)
 		return scan_ops->scan_cancel(pdev, &req->cancel_req);
 	else
@@ -248,7 +268,11 @@ tgt_scan_register_ev_handler(struct wlan_objmgr_psoc *psoc)
 	 * DA can pass necessary arguments by clubing then into
 	 * some structure.
 	 */
-	QDF_ASSERT(scan_ops->scan_reg_ev_handler);
+	if (!(scan_ops->scan_reg_ev_handler)) {
+		scm_err(" NULL scan_ops scan_reg_ev_handler");
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	if (scan_ops->scan_reg_ev_handler)
 		return scan_ops->scan_reg_ev_handler(psoc, NULL);
 	else
@@ -272,7 +296,11 @@ tgt_scan_unregister_ev_handler(struct wlan_objmgr_psoc *psoc)
 	 * DA can pass necessary arguments by clubing then into
 	 * some structure.
 	 */
-	QDF_ASSERT(scan_ops->scan_unreg_ev_handler);
+	if (!(scan_ops->scan_unreg_ev_handler)) {
+		scm_err(" NULL scan_ops scan_unreg_ev_handler");
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	if (scan_ops->scan_unreg_ev_handler)
 		return scan_ops->scan_unreg_ev_handler(psoc, NULL);
 	else
