@@ -193,7 +193,7 @@
 
 #define QCA5424_MAX_HEADER_LENGTH_WORDS 22
 
-#define QCA5424_MAX_DATA_LENGTH_BYTES 8192
+#define QCA5424_MAX_DATA_LENGTH_BYTES 15744
 
 /* Max size :
  * sizeof(csi_cfr_header) + 88 bytes(cfr header) + 8192 bytes(cfr payload)
