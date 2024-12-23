@@ -1502,12 +1502,10 @@ scm_scan_cancel_req(struct scheduler_msg *msg)
 
 	if (!msg) {
 		scm_err("msg received is NULL");
-		QDF_ASSERT(0);
 		return QDF_STATUS_E_NULL_VALUE;
 	}
 	if (!msg->bodyptr) {
 		scm_err("Bodyptr is NULL");
-		QDF_ASSERT(0);
 		return QDF_STATUS_E_NULL_VALUE;
 	}
 
@@ -1565,7 +1563,6 @@ scm_scan_cancel_req(struct scheduler_msg *msg)
 		/* do nothing */
 		break;
 	default:
-		QDF_ASSERT(0);
 		status = QDF_STATUS_E_INVAL;
 		break;
 	}
@@ -1726,12 +1723,10 @@ scm_scan_event_handler(struct scheduler_msg *msg)
 
 	if (!msg) {
 		scm_err("NULL msg received ");
-		QDF_ASSERT(0);
 		return QDF_STATUS_E_NULL_VALUE;
 	}
 	if (!msg->bodyptr) {
 		scm_err("NULL scan event received");
-		QDF_ASSERT(0);
 		return QDF_STATUS_E_NULL_VALUE;
 	}
 
