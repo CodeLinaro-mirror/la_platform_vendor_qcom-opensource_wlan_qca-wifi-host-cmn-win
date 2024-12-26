@@ -552,10 +552,12 @@ void wlan_mlo_partner_peer_assoc_post(struct wlan_objmgr_peer *assoc_peer)
 	if (!ml_peer)
 		return;
 
+	wlan_mlo_peer_get_ref(ml_peer);
 	mlo_peer_lock_acquire(ml_peer);
 
 	if (ml_peer->mlpeer_state != ML_PEER_CREATED) {
 		mlo_peer_lock_release(ml_peer);
+		wlan_mlo_peer_release_ref(ml_peer);
 		return;
 	}
 
@@ -593,6 +595,7 @@ void wlan_mlo_partner_peer_assoc_post(struct wlan_objmgr_peer *assoc_peer)
 		/* Prepare and queue message */
 		mlo_link_peer_assoc_notify(ml_dev, link_peers[i]);
 	}
+	wlan_mlo_peer_release_ref(ml_peer);
 }
 
 void wlan_mlo_link_peer_assoc_set(struct wlan_objmgr_peer *peer, bool is_sent)
