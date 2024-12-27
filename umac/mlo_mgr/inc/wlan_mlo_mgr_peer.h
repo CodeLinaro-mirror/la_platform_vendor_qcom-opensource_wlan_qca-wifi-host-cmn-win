@@ -176,6 +176,20 @@ struct wlan_objmgr_peer *wlan_mlo_peer_get_assoc_peer(
 					struct wlan_mlo_peer_context *ml_peer);
 
 /**
+ * wlan_mlo_peer_get_peer_by_hw_link_id() - Get peer with the hw link index
+ * @ml_peer: MLO peer
+ * @hw_link_id: hw link index for the peer
+ *
+ * This function returns the peer with the given hw link index
+ *
+ * Return: required peer, if it is found, otherwise NULL
+ */
+
+struct wlan_objmgr_peer *wlan_mlo_peer_get_peer_by_hw_link_id(
+					struct wlan_mlo_peer_context *ml_peer,
+					uint8_t hw_link_id);
+
+/**
  * wlan_mlo_peer_get_peer_by_linkix() - Get peer with the given link index
  * @ml_peer: MLO peer
  * @link_ix: Link index for the peer
