@@ -46,11 +46,13 @@ struct mlpeer_data {
  * @psoc_tqm_parms:  It collects peer data for all PSOCs
  * @num_psocs:       Number of PSOCs in the system
  * @current_psoc_id: current psoc id, it is for iterator
+ * @curr_mlo_peer_id: current mlo peer id, it is for iterator
  */
 struct mlo_all_link_rssi {
 	struct mlpeer_data psoc_tqm_parms[WLAN_OBJMGR_MAX_DEVICES];
 	uint8_t num_psocs;
 	uint8_t current_psoc_id;
+	uint32_t curr_mlo_peer_id;
 };
 
 /* Invalid TQM/PSOC ID */
@@ -84,12 +86,6 @@ static void wlan_mlo_peer_get_rssi(struct wlan_objmgr_psoc *psoc,
 	if (!mlo_peer_ctx)
 		return;
 
-	if (mlo_is_mlrecfg_del_op_accepted(mlo_peer_ctx, peer_get_link(peer)))
-		return;
-
-	if (mlo_is_mlrecfg_add_op_rejected(mlo_peer_ctx, peer_get_link(peer)))
-		return;
-
 	/* If this psoc is new primary UMAC after migration,
 	 * account RSSI on new link
 	 */
@@ -105,7 +101,8 @@ static void wlan_mlo_peer_get_rssi(struct wlan_objmgr_psoc *psoc,
 	 */
 	if (mlo_peer_ctx->primary_umac_psoc_id == rssi_data->current_psoc_id &&
 	    mlo_peer_ctx->migrate_primary_umac_psoc_id ==
-	    ML_INVALID_PRIMARY_TQM) {
+	    ML_INVALID_PRIMARY_TQM &&
+	    mlo_peer_ctx->mlo_peer_id != rssi_data->curr_mlo_peer_id) {
 		tqm_params->total_rssi += mlo_peer_ctx->avg_link_rssi;
 		tqm_params->num_ml_peers += 1;
 	}
@@ -1698,6 +1695,7 @@ QDF_STATUS wlan_mlo_set_ptqm_migration(struct wlan_objmgr_vdev *vdev,
 		return QDF_STATUS_E_NULL_VALUE;
 	}
 
+	rssi_data.curr_mlo_peer_id = ml_peer->mlo_peer_id;
 	mld_get_link_rssi(&rssi_data);
 
 	if (link_migration) {
