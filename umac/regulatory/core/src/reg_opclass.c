@@ -524,8 +524,8 @@ static const struct reg_dmn_op_class_map_t china_op_class[] = {
  *
  * Return: class.
  */
-static const struct reg_dmn_op_class_map_t
-*reg_get_class_from_country(const uint8_t *country)
+const struct reg_dmn_op_class_map_t *
+reg_get_class_from_country(const uint8_t *country)
 {
 	const struct reg_dmn_op_class_map_t *class = NULL;
 
@@ -1827,7 +1827,7 @@ static bool reg_is_cfi_supported(struct wlan_objmgr_pdev *pdev,
  * 80P80 false otherwise.
  * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
  */
-static bool
+bool
 reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl)
 {
 	return (op_class_tbl->chan_spacing == BW_80_MHZ &&

@@ -3128,4 +3128,23 @@ bool wlan_reg_is_vlp_depriority_freq(struct wlan_objmgr_pdev *pdev,
 	return false;
 }
 #endif
+
+/**
+ * wlan_reg_is_opclass_entry_80p80() - Return true if the opclass entry is
+ * 80P80 false otherwise.
+ * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
+ *
+ * Return - true if opclass entry is 80p80, otherwise false.
+ */
+bool
+wlan_reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl);
+
+/**
+ * wlan_reg_get_class_from_country()- Get Class from country.
+ * @country: Country ISO.
+ *
+ * Return: pointer to opclass table.
+ */
+const struct reg_dmn_op_class_map_t *
+wlan_reg_get_class_from_country(const uint8_t *country);
 #endif
