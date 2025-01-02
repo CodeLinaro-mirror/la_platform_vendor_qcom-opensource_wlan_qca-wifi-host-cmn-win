@@ -109,9 +109,16 @@ uint8_t *vdev_start_add_mlo_params(uint8_t *buf_ptr,
 
 	vdev_start_add_mlo_mcast_params(&mlo_params->mlo_flags.mlo_flags,
 					req);
-	wmi_info("mlo_flags 0x%x emlsr_support %d ",
+	mlo_params->ieee_link_id = req->ieee_link_id;
+	WMI_MLO_FLAGS_SET_IEEE_LINK_ID_VALID(
+			mlo_params->mlo_flags.mlo_flags,
+			req->mlo_flags.mlo_ieee_link_id_valid);
+
+	wmi_info("mlo_flags 0x%x emlsr_support %d ieee_link_id:%d mlo_ieee_link_id_valid:%d",
 		 mlo_params->mlo_flags.mlo_flags,
-		 mlo_params->mlo_flags.emlsr_support);
+		 mlo_params->mlo_flags.emlsr_support,
+		 mlo_params->ieee_link_id,
+		 WMI_MLO_FLAGS_GET_IEEE_LINK_ID_VALID(mlo_params->mlo_flags.mlo_flags));
 
 	return buf_ptr + sizeof(wmi_vdev_start_mlo_params);
 }
@@ -137,15 +144,22 @@ uint8_t *vdev_start_add_ml_partner_links(uint8_t *buf_ptr,
 		ml_partner_link->vdev_id = req_partner->partner_info[i].vdev_id;
 		ml_partner_link->hw_link_id =
 				req_partner->partner_info[i].hw_mld_link_id;
+		ml_partner_link->ieee_link_id =
+				req_partner->partner_info[i].ieee_link_id;
+		WMI_MLO_FLAGS_SET_IEEE_LINK_ID_VALID_PARTNER(
+			ml_partner_link->mlo_flags.mlo_flags,
+			req_partner->partner_info[i].ieee_link_id_valid);
 		WMI_MLO_FLAGS_SET_MLO_BRIDGE_LINK(ml_partner_link->mlo_flags.mlo_flags,
 						  req_partner->partner_info[i].is_bridge_vdev);
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(req_partner->partner_info[i].mac_addr,
 					   &ml_partner_link->vdev_macaddr);
-		wmi_info("vdev_id %d hw_link_id %d is bridge vdev %d MAC addr " QDF_MAC_ADDR_FMT,
+		wmi_info("vdev_id %d hw_link_id %d is bridge vdev %d MAC addr " QDF_MAC_ADDR_FMT " ieee_link_id %d ieee_link_id_valid:%d",
 			 ml_partner_link->vdev_id,
 			 ml_partner_link->hw_link_id,
 			 req_partner->partner_info[i].is_bridge_vdev,
-			 QDF_MAC_ADDR_REF(req_partner->partner_info[i].mac_addr));
+			 QDF_MAC_ADDR_REF(req_partner->partner_info[i].mac_addr),
+			 ml_partner_link->ieee_link_id,
+			 WMI_MLO_FLAGS_GET_IEEE_LINK_ID_VALID_PARTNER(ml_partner_link->mlo_flags.mlo_flags));
 		ml_partner_link++;
 	}
 
