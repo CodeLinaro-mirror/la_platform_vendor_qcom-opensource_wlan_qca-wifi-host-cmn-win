@@ -249,6 +249,19 @@ uint16_t wlan_reg_dmn_get_chanwidth_from_opclass(uint8_t *country,
 						  opclass);
 }
 
+void
+wlan_reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+						    uint8_t opclass,
+						    uint8_t channel,
+						    uint16_t *behav_limit,
+						    uint16_t *ch_width)
+{
+	return reg_get_chanwidth_and_behav_limit_from_opclass(pdev, opclass,
+							      channel,
+							      behav_limit,
+							      ch_width);
+}
+
 uint16_t wlan_reg_dmn_get_chanwidth_from_opclass_auto(uint8_t *country,
 						      uint8_t channel,
 						      uint8_t opclass)
