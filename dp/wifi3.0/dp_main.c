@@ -9834,6 +9834,12 @@ dp_txrx_update_peer_stats(struct cdp_peer_stats *peer_stats)
 		peer_stats->rx.unicast.bytes = peer_stats->rx.rx_total.bytes -
 					peer_stats->rx.multicast.bytes;
 	peer_stats->rx.rx_retries = peer_stats->rx.retried_msdu_count;
+	peer_stats->rx.rx_success =
+				peer_stats->rx.rx_total;
+	peer_stats->rx.to_stack.num =
+		peer_stats->rx.unicast.num + peer_stats->rx.multicast.num;
+	peer_stats->rx.to_stack.bytes =
+		peer_stats->rx.unicast.bytes + peer_stats->rx.multicast.bytes;
 }
 
 /**
