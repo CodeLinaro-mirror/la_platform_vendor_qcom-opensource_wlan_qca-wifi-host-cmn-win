@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -1455,6 +1455,10 @@ wlan_mlo_get_bridge_peer_psoc_id(struct wlan_objmgr_vdev *vdev,
 		else
 			ml_vdev = ml_dev->wlan_vdev_list[i];
 		if (!ml_vdev)
+			continue;
+
+		if ((wlan_vdev_is_up(ml_vdev) != QDF_STATUS_SUCCESS) &&
+		    wlan_vdev_is_dfs_cac_wait(ml_vdev) != QDF_STATUS_SUCCESS)
 			continue;
 		comp_psoc_id = wlan_vdev_get_psoc_id(ml_vdev);
 		if ((comp_psoc_id != psoc_ids[0]) &&
