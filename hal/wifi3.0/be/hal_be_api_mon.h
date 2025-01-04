@@ -1526,7 +1526,8 @@ struct hal_tx_ppdu_info {
 		 ack_recvd	:1,
 		 cts_recvd	:1,
 		 su_or_mu	:2,
-		 reserved	:10;
+		 mu_type	:1,
+		 reserved	:9;
 
 	uint32_t prot_tlv_status;
 	int8_t ack_rssi;
