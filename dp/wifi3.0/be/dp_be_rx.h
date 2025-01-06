@@ -580,20 +580,47 @@ QDF_STATUS dp_peer_rx_reorder_queue_setup_be(struct dp_soc *soc,
 #endif /* WLAN_FEATURE_11BE_MLO */
 
 #ifdef QCA_DP_RX_NBUF_AND_NBUF_DATA_PREFETCH
+#ifdef QCA_WIFI_QCA5424
+static inline
+void dp_rx_prefetch_nbuf_data_be(qdf_nbuf_t nbuf, qdf_nbuf_t next)
+{
+	qdf_prefetch(nbuf->data);
+	qdf_prefetch(nbuf->data + 64);
+	qdf_prefetch(nbuf->data + 128);
+
+	if (next) {
+		qdf_prefetch(next->data);
+		qdf_prefetch(next->data + 64);
+		if (next->next) {
+			uint8_t *addr = (uint8_t *)next->next;
+			/* prefetch skb->next and first few bytes of skb->cb */
+			qdf_prefetch(addr);
+			/* skb->cb spread across 2 cache lines */
+			qdf_prefetch(addr + 64);
+			qdf_prefetch(addr + 128);
+			qdf_prefetch(addr + 192);
+		}
+	}
+}
+#else
 static inline
 void dp_rx_prefetch_nbuf_data_be(qdf_nbuf_t nbuf, qdf_nbuf_t next)
 {
 	if (next) {
-		/* prefetch skb->next and first few bytes of skb->cb */
-		qdf_prefetch(next);
-		/* skb->cb spread across 2 cache lines hence below prefetch */
-		qdf_prefetch(&next->_skb_refdst);
-		qdf_prefetch(&next->protocol);
-		qdf_prefetch(&next->data);
 		qdf_prefetch(next->data);
 		qdf_prefetch(next->data + 64);
+		if (next->next) {
+			uint8_t *addr = (uint8_t *)next->next;
+			/* prefetch skb->next and first few bytes of skb->cb */
+			qdf_prefetch(addr);
+			/* skb->cb spread across 2 cache lines */
+			qdf_prefetch(addr + 64);
+			qdf_prefetch(addr + 128);
+			qdf_prefetch(addr + 192);
+		}
 	}
 }
+#endif /* QCA_WIFI_QCA5424 */
 #else
 static inline
 void dp_rx_prefetch_nbuf_data_be(qdf_nbuf_t nbuf, qdf_nbuf_t next)
@@ -615,6 +642,7 @@ void *dp_rx_va_prefetch(void *last_prefetched_hw_desc)
 
 	prefetch_desc = (void *)hal_rx_get_reo_desc_va(last_prefetched_hw_desc);
 	qdf_prefetch(prefetch_desc);
+	qdf_prefetch(prefetch_desc + 64);
 	return prefetch_desc;
 }
 
@@ -638,11 +666,6 @@ dp_rx_prefetch_hw_sw_nbuf_32_byte_desc(struct dp_soc *soc,
 			       hal_ring_desc_t *last_prefetched_hw_desc,
 			       struct dp_rx_desc **last_prefetched_sw_desc)
 {
-	if (*last_prefetched_sw_desc) {
-		qdf_prefetch((uint8_t *)(*last_prefetched_sw_desc)->nbuf);
-		qdf_prefetch((uint8_t *)(*last_prefetched_sw_desc)->nbuf + 64);
-	}
-
 	if (num_entries) {
 		*last_prefetched_sw_desc =
 			dp_rx_va_prefetch(*last_prefetched_hw_desc);

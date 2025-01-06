@@ -3871,6 +3871,20 @@ dp_rx_ring_record_entry(struct dp_soc *soc, uint8_t ring_num,
  *
  * Return: true if peer_ids are different.
  */
+#ifdef QCA_WIFI_QCA5424
+static inline bool
+dp_rx_is_list_ready(qdf_nbuf_t nbuf_head,
+                   struct dp_vdev *vdev,
+                   struct dp_txrx_peer *txrx_peer,
+                   uint16_t peer_id,
+                   uint8_t vdev_id)
+{
+       if (nbuf_head)
+               return true;
+
+       return false;
+}
+#else
 static inline bool
 dp_rx_is_list_ready(qdf_nbuf_t nbuf_head,
 		    struct dp_vdev *vdev,
@@ -3883,6 +3897,7 @@ dp_rx_is_list_ready(qdf_nbuf_t nbuf_head,
 
 	return false;
 }
+#endif
 
 /**
  * dp_rx_deliver_to_stack_ext() - Deliver to netdev per sta
