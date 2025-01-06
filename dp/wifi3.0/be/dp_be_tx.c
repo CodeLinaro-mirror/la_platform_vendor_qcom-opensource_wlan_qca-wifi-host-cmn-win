@@ -2636,13 +2636,13 @@ add_to_pool2:
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS) {
 				dp_tx_nbuf_dev_queue_free(&h, tx_desc);
 				fast_desc_count++;
-				if (!fast_head_desc) {
-					fast_head_desc = tx_desc;
+				if (!fast_tail_desc) {
 					fast_tail_desc = tx_desc;
 				}
-				fast_tail_desc->next = tx_desc;
-				fast_tail_desc = tx_desc;
+
 				dp_tx_desc_clear(tx_desc);
+				tx_desc->next = fast_head_desc;
+				fast_head_desc = tx_desc;
 			} else {
 				if (!head_desc) {
 					head_desc = tx_desc;
