@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -6998,8 +6998,6 @@ void dp_mon_ops_register(struct dp_soc *soc)
 	case TARGET_TYPE_WCN7750:
 	case TARGET_TYPE_QCC2072:
 		dp_mon_ops_register_1_0(mon_soc);
-		dp_mon_ops_register_cmn_2_0(mon_soc);
-		dp_mon_ops_register_tx_2_0(mon_soc);
 		break;
 	case TARGET_TYPE_QCN9224:
 	case TARGET_TYPE_QCA5332:
