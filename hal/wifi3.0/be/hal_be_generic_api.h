@@ -1213,6 +1213,9 @@ hal_txmon_parse_user_desc_common(void *tx_tlv, uint32_t user_id,
 				 struct hal_tx_ppdu_info *ppdu_info)
 {
 	struct hal_txmon_usr_desc_common usr_common = {0};
+	uint8_t su_or_mu = TXMON_HAL(ppdu_info, su_or_mu);
+	uint8_t mu_type = TXMON_HAL(ppdu_info, mu_type);
+	uint8_t num_users = TXMON_HAL(ppdu_info, num_users);
 
 	usr_common.num_users = TXMON_HAL(ppdu_info, num_users);
 	hal_txmon_get_user_desc_common(tx_tlv, &usr_common);
@@ -1232,6 +1235,17 @@ hal_txmon_parse_user_desc_common(void *tx_tlv, uint32_t user_id,
 	case TXMON_PKT_TYPE_11BE:
 		hal_txmon_populate_eht_sig_common(&usr_common,
 						  user_id, ppdu_info);
+		/*
+		 * update number of non ofdma user if trasmission
+		 * type is SU or MU-MIMO
+		 */
+		if (!su_or_mu || !mu_type) {
+			TXMON_HAL_STATUS(ppdu_info, eht_known) |=
+				QDF_MON_STATUS_EHT_NUM_NON_OFDMA_USERS_KNOWN;
+			TXMON_HAL_STATUS(ppdu_info, eht_data[7]) |=
+				num_users <<
+				QDF_MON_STATUS_EHT_NUM_NON_OFDMA_USERS_SHIFT;
+		}
 		break;
 	}
 }
@@ -3218,6 +3232,17 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 		num_users = TXMON_HAL(ppdu_info, num_users);
 		TXMON_HAL(ppdu_info, su_or_mu) =
 			HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, SU_OR_MU);
+		/*
+		 * mu_type is valid only for
+		 * SU_or_MU == MU_transmission (1)
+		 * SU_or_MU == MU_SU_transmission (2)
+		 *
+		 */
+		if (TXMON_HAL(ppdu_info, su_or_mu)) {
+			TXMON_HAL(ppdu_info, mu_type) =
+				HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC,
+						   MU_TYPE);
+		}
 		pkt_type = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, PKT_TYPE);
 		is_stbc = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, STBC);
 		is_triggered = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC,
