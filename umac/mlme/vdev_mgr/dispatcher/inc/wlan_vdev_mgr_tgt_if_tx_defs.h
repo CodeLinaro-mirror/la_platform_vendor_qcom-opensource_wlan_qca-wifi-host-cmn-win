@@ -643,6 +643,7 @@ struct vdev_scan_nac_rssi_params {
  * @emlsr_support: indicate non AP MLD STA supports eMLSR mode
  * @mlo_link_add: Dynamic link addition
  * @is_bridge_vdev: Indicate the vdev is a bridge vdev
+ * @mlo_ieee_link_id_valid: flag to indicate if the ieee_link_id is valid
  * @rsvd: reserved bits
  */
 struct mlo_vdev_start_flags {
@@ -652,7 +653,8 @@ struct mlo_vdev_start_flags {
 		 emlsr_support:1,
 		 mlo_link_add:1,
 		 is_bridge_vdev:1,
-		 rsvd:26;
+		 mlo_ieee_link_id_valid:1,
+		 rsvd:25;
 };
 
 /**
@@ -661,12 +663,16 @@ struct mlo_vdev_start_flags {
  * @hw_mld_link_id: unique hw link id across SoCs
  * @mac_addr: Partner mac address
  * @is_bridge_vdev: Indicate the vdev is bridge vdev
+ * @ieee_link_id: IEEE link id of the vdev
+ * @ieee_link_id_valid: flag to indicate if the ieee_link_id is valid
  */
 struct ml_vdev_start_partner_info {
 	uint32_t vdev_id;
 	uint32_t hw_mld_link_id;
 	uint8_t mac_addr[QDF_MAC_ADDR_SIZE];
 	bool is_bridge_vdev;
+	uint32_t ieee_link_id;
+	bool ieee_link_id_valid;
 };
 
 /**
@@ -711,6 +717,7 @@ struct mlo_vdev_start_partner_links {
  * @mbssid_multi_group_id: Group id of current vdev
  * @target_tsf_us_lo: Target TSF value of current vdev from bits 31:0
  * @target_tsf_us_hi: Target TSF value of current vdev from bits 63:32
+ * @ieee_link_id: IEEE link id of the vdev
  */
 struct vdev_start_params {
 	uint8_t vdev_id;
@@ -743,6 +750,7 @@ struct vdev_start_params {
 	uint32_t mbssid_multi_group_id;
 	uint32_t target_tsf_us_lo;
 	uint32_t target_tsf_us_hi;
+	uint32_t ieee_link_id;
 };
 
 /**
