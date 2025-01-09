@@ -1517,6 +1517,13 @@ void wlan_print_vdev_info(struct wlan_objmgr_vdev *vdev)
 qdf_export_symbol(wlan_print_vdev_info);
 #endif
 
+int32_t wlan_objmgr_vdev_read_ref(struct wlan_objmgr_vdev *vdev,
+				  wlan_objmgr_ref_dbgid id)
+{
+	return qdf_atomic_read(&vdev->vdev_objmgr.ref_id_dbg[id]);
+}
+qdf_export_symbol(wlan_objmgr_vdev_read_ref);
+
 void wlan_objmgr_vdev_peer_freed_notify(struct wlan_objmgr_vdev *vdev)
 {
 	wlan_objmgr_vdev_peer_free_notify_handler stat_handler;
@@ -1691,6 +1698,8 @@ bool wlan_vdev_mlme_get_user_dis_eht_flag(struct wlan_objmgr_vdev *vdev)
 void wlan_vdev_mlme_set_mlo_vdev(struct wlan_objmgr_vdev *vdev)
 {
 	struct wlan_objmgr_pdev *pdev;
+	QDF_STATUS status;
+	uint8_t vdev_id;
 
 	if (!vdev) {
 		obj_mgr_err("vdev is NULL");
@@ -1705,22 +1714,36 @@ void wlan_vdev_mlme_set_mlo_vdev(struct wlan_objmgr_vdev *vdev)
 
 	wlan_acquire_vdev_mlo_lock(vdev);
 
+	vdev_id = wlan_vdev_get_id(vdev);
 	if (wlan_vdev_mlme_feat_ext2_cap_get(vdev, WLAN_VDEV_FEXT2_MLO)) {
+		obj_mgr_err("vdev %d MLME more ext feature capability is already set",
+			    vdev_id);
 		wlan_release_vdev_mlo_lock(vdev);
 		return;
 	}
+
+	status = wlan_objmgr_vdev_try_get_ref(vdev, WLAN_MLME_MLO_ID);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		obj_mgr_err("vdev %d unable to get reference",
+			    vdev_id);
+		wlan_release_vdev_mlo_lock(vdev);
+		return;
+	}
+
 	wlan_vdev_mlme_feat_ext2_cap_set(vdev, WLAN_VDEV_FEXT2_MLO);
 
 	wlan_pdev_inc_mlo_vdev_count(pdev);
 
 	wlan_release_vdev_mlo_lock(vdev);
-	obj_mgr_debug("Set MLO flag: vdev_id: %d", wlan_vdev_get_id(vdev));
+	obj_mgr_debug("Set MLO flag: vdev_id: %d", vdev_id);
 }
 
 void wlan_vdev_mlme_clear_mlo_vdev(struct wlan_objmgr_vdev *vdev)
 {
 	struct wlan_objmgr_pdev *pdev;
 	uint32_t mlo_vdev_cap;
+	uint8_t vdev_id;
+	wlan_objmgr_ref_dbgid id = WLAN_MLME_MLO_ID;
 
 	if (!vdev) {
 		obj_mgr_err("vdev is NULL");
@@ -1743,10 +1766,21 @@ void wlan_vdev_mlme_clear_mlo_vdev(struct wlan_objmgr_vdev *vdev)
 	mlo_vdev_cap = WLAN_VDEV_FEXT2_MLO | WLAN_VDEV_FEXT2_MLO_STA_LINK;
 	wlan_vdev_mlme_feat_ext2_cap_clear(vdev, mlo_vdev_cap);
 
+	vdev_id = wlan_vdev_get_id(vdev);
+	if (!wlan_objmgr_vdev_read_ref(vdev, id)) {
+		obj_mgr_alert("vdev (id:%d)ref cnt was not taken by %d",
+			      vdev_id, id);
+		wlan_objmgr_print_ref_ids(vdev->vdev_objmgr.ref_id_dbg,
+					  QDF_TRACE_LEVEL_FATAL);
+		wlan_release_vdev_mlo_lock(vdev);
+		return;
+	}
+
+	wlan_objmgr_vdev_release_ref(vdev, id);
 	wlan_pdev_dec_mlo_vdev_count(pdev);
 
 	wlan_release_vdev_mlo_lock(vdev);
-	obj_mgr_debug("Clear MLO flag: vdev_id: %d", wlan_vdev_get_id(vdev));
+	obj_mgr_debug("Clear MLO flag: vdev_id: %d", vdev_id);
 }
 
 void wlan_vdev_mlme_set_mlo_link_vdev(struct wlan_objmgr_vdev *vdev)

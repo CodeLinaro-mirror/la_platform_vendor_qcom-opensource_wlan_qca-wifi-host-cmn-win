@@ -2440,6 +2440,18 @@ struct wlan_objmgr_vdev *wlan_pdev_vdev_list_peek_active_head(
 #endif
 
 /**
+ * wlan_objmgr_vdev_read_ref() - read vdev reference id
+ * @vdev: VDEV object
+ * @id:   Object Manager ref debug id
+ *
+ * API to read vdev reference id
+ *
+ * Return: vdev reference id
+ */
+int32_t wlan_objmgr_vdev_read_ref(struct wlan_objmgr_vdev *vdev,
+				  wlan_objmgr_ref_dbgid id);
+
+/**
  * wlan_objmgr_vdev_peer_freed_notify() - Notifies modules about peer freed
  * @vdev: VDEV object
  *
