@@ -23310,13 +23310,13 @@ vbss_set_sta_context_send_tlv(
 	/* Fill SN info */
 	sn_info = (wmi_vdev_vbss_peer_sn_info *)buf_ptr;
 	for (i = 0; i < WLAN_MAX_PER_PEER_SN_TIDS; i++) {
-		WMITLV_SET_HDR(
-			&sn_info[i].tlv_header,
+		WMITLV_SET_HDR(&sn_info[i].tlv_header,
 			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_sn_info,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_sn_info));
-		sn_info[i].tid_num_sn = vbss_sta_context->sn[i];
-		wmi_debug("Setting SN info: TID %u, SN %u", i,
-			  vbss_sta_context->sn[i]);
+		sn_info[i].tid_num = (vbss_sta_context->sn[i] & 0xFFFF);
+		sn_info[i].ssn = (vbss_sta_context->sn[i] >> 16) & 0xFFFF;
+		wmi_debug("Setting SN info: TID 0x%x, SN 0x%x",
+			  sn_info[i].tid_num, sn_info[i].ssn);
 	}
 
 	wmi_debug("WMI CMD Params for VBSS SET CMD: vdev_id: %u, action: %u, macaddr: "
@@ -23369,8 +23369,11 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	/* Parse SN info */
 	sn_info = param_buf->vbss_peer_sn_info;
 	for (i = 0; i < param_buf->num_vbss_peer_sn_info; i++) {
-		vbss_sta_context->sn[i] = sn_info[i].tid_num_sn;
-		wmi_debug("Parsed SN info: %u", vbss_sta_context->sn[i]);
+		vbss_sta_context->sn[i] = sn_info[i].tid_num;
+		vbss_sta_context->sn[i] |=
+				((sn_info[i].ssn << 16) & 0xFFFF0000);
+		wmi_debug("Parsed SN info[%d]: 0x%x", i,
+			  vbss_sta_context->sn[i]);
 	}
 
 	wmi_debug("Extracted VBSS STA context: vdev_id %u, MAC "
