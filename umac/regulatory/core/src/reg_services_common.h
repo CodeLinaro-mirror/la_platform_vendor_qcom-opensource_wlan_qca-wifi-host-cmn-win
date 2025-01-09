@@ -3164,6 +3164,15 @@ reg_set_afc_power_event_received(struct wlan_objmgr_pdev *pdev, bool val)
 QDF_STATUS
 reg_display_super_chan_list(struct wlan_objmgr_pdev *pdev);
 
+/**
+ * reg_display_hw_blacklist() - Display blacklist channel list for all modes
+ * @pdev: pdev pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev);
+
 #if defined(CONFIG_AFC_SUPPORT) && defined(CONFIG_BAND_6GHZ)
 /**
  * reg_get_afc_freq_range_and_psd_limits() - Get freq range and psd

@@ -428,6 +428,13 @@ static void wlan_lmac_if_register_super_chan_display(
 		wlan_reg_display_super_chan_list;
 }
 
+static void wlan_lmac_if_register_display_blacklist_chan(
+					struct wlan_lmac_if_rx_ops *rx_ops)
+{
+	rx_ops->reg_rx_ops.reg_display_hw_blacklist =
+		wlan_reg_display_blacklist_chan_list;
+}
+
 static void wlan_lmac_if_register_both_psd_eirp_preferred(
 					struct wlan_lmac_if_rx_ops *rx_ops)
 {
@@ -473,6 +480,11 @@ static inline void wlan_lmac_if_register_afc_handlers(
 }
 
 static inline void wlan_lmac_if_register_super_chan_display(
+					struct wlan_lmac_if_rx_ops *rx_ops)
+{
+}
+
+static inline void wlan_lmac_if_register_display_blacklist_chan(
 					struct wlan_lmac_if_rx_ops *rx_ops)
 {
 }
@@ -598,6 +610,8 @@ static void wlan_lmac_if_umac_reg_rx_ops_register(
 	wlan_lmac_if_register_hw_blacklist_chan_handler(rx_ops);
 
 	wlan_lmac_if_register_super_chan_display(rx_ops);
+
+	wlan_lmac_if_register_display_blacklist_chan(rx_ops);
 
 	wlan_lmac_if_register_both_psd_eirp_preferred(rx_ops);
 

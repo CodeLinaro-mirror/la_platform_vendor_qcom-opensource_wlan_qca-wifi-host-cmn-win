@@ -10599,6 +10599,44 @@ reg_display_super_chan_list(struct wlan_objmgr_pdev *pdev)
 	return QDF_STATUS_SUCCESS;
 }
 
+QDF_STATUS reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev)
+{
+	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
+	struct hbl_chans *hw_blacklist;
+	enum reg_6g_ap_type p;
+	uint8_t i;
+
+	pdev_priv_obj = reg_get_pdev_obj(pdev);
+	if (!IS_VALID_PDEV_REG_OBJ(pdev_priv_obj)) {
+		reg_err_rl("pdev reg component is NULL");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	hw_blacklist = pdev_priv_obj->hbl_pm_chlst;
+
+	for (p = REG_INDOOR_AP; p <= REG_VERY_LOW_POWER_AP; p++) {
+		qdf_err("Power mode = %d\n", p);
+		qdf_info("Num of full BW channels = %d\n", hw_blacklist[p].nfbchans);
+		qdf_info("Num of punctured channels = %d\n", hw_blacklist[p].npcchans);
+		qdf_info("Full BW channels\n");
+		for (i = 0; i < hw_blacklist[p].nfbchans; i++) {
+			qdf_info("Primary Freq %d \t Max blocked BW %d \t Blocked 320 centre freq %d",
+				 hw_blacklist[p].fb_chan[i].pri_freq,
+				 hw_blacklist[p].fb_chan[i].max_bw,
+				 hw_blacklist[p].fb_chan[i].cen320_freq);
+		}
+
+		qdf_info("Punctured channels\n");
+		for (i = 0; i < hw_blacklist[p].npcchans; i++) {
+			qdf_info("Center Freq %d \t BW %d Number of blocked Puncture pattern %d",
+				 hw_blacklist[p].pc_chan[i].cen_freq,
+				 hw_blacklist[p].pc_chan[i].bw,
+				 hw_blacklist[p].pc_chan[i].bl_pat_bitmap);
+		}
+	}
+	return QDF_STATUS_SUCCESS;
+}
+
 #if defined(CONFIG_AFC_SUPPORT) && defined(CONFIG_BAND_6GHZ)
 QDF_STATUS
 reg_get_afc_freq_range_and_psd_limits(struct wlan_objmgr_pdev *pdev,

@@ -2009,6 +2009,12 @@ wlan_reg_display_super_chan_list(struct wlan_objmgr_pdev *pdev)
 	return reg_display_super_chan_list(pdev);
 }
 
+QDF_STATUS
+wlan_reg_display_blacklist_chan_list(struct wlan_objmgr_pdev *pdev)
+{
+	return reg_display_hw_blacklist(pdev);
+}
+
 #if defined(CONFIG_AFC_SUPPORT) && defined(CONFIG_BAND_6GHZ)
 QDF_STATUS
 wlan_reg_get_afc_freq_range_and_psd_limits(struct wlan_objmgr_pdev *pdev,

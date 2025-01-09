@@ -2970,6 +2970,15 @@ wlan_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
 QDF_STATUS
 wlan_reg_display_super_chan_list(struct wlan_objmgr_pdev *pdev);
 
+/**
+ * wlan_reg_display_blacklist_chan_list() - Display blacklist channel list for all modes
+ * @pdev: Pointer to pdev
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+wlan_reg_display_blacklist_chan_list(struct wlan_objmgr_pdev *pdev);
+
 #if defined(CONFIG_AFC_SUPPORT) && defined(CONFIG_BAND_6GHZ)
 /**
  * wlan_reg_get_afc_freq_range_and_psd_limits() - Get freq range and psd
@@ -3038,6 +3047,12 @@ wlan_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
 
 static inline QDF_STATUS
 wlan_reg_display_super_chan_list(struct wlan_objmgr_pdev *pdev)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline QDF_STATUS
+wlan_reg_display_blacklist_chan_list(struct wlan_objmgr_pdev *pdev)
 {
 	return QDF_STATUS_E_NOSUPPORT;
 }
