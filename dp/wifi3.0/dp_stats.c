@@ -10059,6 +10059,8 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 			srcobj->tx.ru_loc[i].mpdu_tried;
 	}
 
+	for (i = 0; i < CDP_RSSI_CHAIN_LEN; i++)
+		tgtobj->stats.tx.rssi_chain[i] = srcobj->tx.rssi_chain[i];
 	tgtobj->stats.tx.tx_ppdus += srcobj->tx.tx_ppdus;
 	tgtobj->stats.tx.tx_mpdus_success += srcobj->tx.tx_mpdus_success;
 	tgtobj->stats.tx.tx_mpdus_tried += srcobj->tx.tx_mpdus_tried;
