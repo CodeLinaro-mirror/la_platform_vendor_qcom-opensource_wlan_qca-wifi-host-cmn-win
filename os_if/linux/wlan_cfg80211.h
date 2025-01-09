@@ -203,6 +203,7 @@
  * @QCA_NL80211_VENDOR_SUBCMD_ASYNC_GET_STATION_INDEX: Event index for async
  * get station sent for ucast cmd
  * @QCA_NL80211_VENDOR_SUBCMD_IDLE_SHUTDOWN_INDEX: Idle shutdown event index
+ * @QCA_NL80211_VENDOR_SUBCMD_VBSS_EVENT_INDEX: VBSS STA move event index
  */
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -350,6 +351,9 @@ enum qca_nl80211_vendor_subcmds_index {
 #endif
 	QCA_NL80211_VENDOR_SUBCMD_ASYNC_GET_STATION_INDEX,
 	QCA_NL80211_VENDOR_SUBCMD_IDLE_SHUTDOWN_INDEX,
+#ifdef WLAN_FEATURE_VBSS
+	QCA_NL80211_VENDOR_SUBCMD_VBSS_EVENT_INDEX,
+#endif
 };
 
 #if !defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC) && \
