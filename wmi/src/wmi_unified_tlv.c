@@ -10298,6 +10298,23 @@ void wmi_copy_mgmt_rx_srng_support(wmi_resource_config *resource_cfg,
 }
 #endif
 
+#ifdef WLAN_FEATURE_VBSS
+static inline
+void wmi_copy_vbss_mode_support(wmi_resource_config *resource_cfg,
+				target_resource_config *tgt_res_cfg)
+{
+	if (tgt_res_cfg->vbss_mode_enabled)
+		WMI_RSRC_CFG_HOST_SERVICE_FLAG_VBSS_ENABLED_SET(
+					resource_cfg->host_service_flags, 1);
+}
+#else
+static inline
+void wmi_copy_vbss_mode_support(wmi_resource_config *resource_cfg,
+				target_resource_config *tgt_res_cfg)
+{
+}
+#endif
+
 static
 void wmi_copy_resource_config(wmi_unified_t wmi_handle,
 			      wmi_resource_config *resource_cfg,
@@ -10627,6 +10644,7 @@ void wmi_copy_resource_config(wmi_unified_t wmi_handle,
 	wmi_copy_latency_flowq_support(resource_cfg, tgt_res_cfg);
 	wmi_copy_full_bw_nol_cfg(resource_cfg, tgt_res_cfg);
 	wmi_copy_mgmt_rx_srng_support(resource_cfg, tgt_res_cfg);
+	wmi_copy_vbss_mode_support(resource_cfg, tgt_res_cfg);
 
 }
 

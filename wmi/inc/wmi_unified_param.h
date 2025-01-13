@@ -7347,6 +7347,9 @@ typedef struct {
 #ifdef FEATURE_MGMT_RX_OVER_SRNG
 	bool mgmt_rx_srng_support;
 #endif
+#ifdef WLAN_FEATURE_VBSS
+	bool vbss_mode_enabled;
+#endif
 } target_resource_config;
 
 /**
