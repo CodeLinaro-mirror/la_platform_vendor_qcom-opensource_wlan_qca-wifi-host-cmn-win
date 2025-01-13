@@ -5724,7 +5724,7 @@ qdf_nbuf_update_radiotap_eht_flags(struct mon_rx_status *rx_status,
 {
 	qdf_radiotap_tlv_t *tlv;
 	qdf_radiotap_eht_t *eht;
-	uint32_t len = 0, user;
+	uint32_t len = 0;
 	uint32_t eht_len = sizeof(qdf_radiotap_eht_t);
 	struct mon_rx_user_status *rx_user_status = rx_status->rx_user_status;
 
@@ -5757,26 +5757,17 @@ qdf_nbuf_update_radiotap_eht_flags(struct mon_rx_status *rx_status,
 	eht->data[3] = cpu_to_le32(rx_status->eht_data[3]);
 	eht->data[4] = cpu_to_le32(rx_status->eht_data[4]);
 	eht->data[5] = cpu_to_le32(rx_status->eht_data[5]);
-	if (!rx_user_status) {
-		for (user = 0; user < rx_status->num_eht_user_info_valid &&
-		     user < EHT_USER_INFO_LEN; user++)
-			eht->user_info[user] = cpu_to_le32(rx_status->eht_user_info[user]);
-		qdf_rl_debug("EHT data %x %x %x %x %x %x %x",
-			     rx_status->eht_known, rx_status->eht_data[0],
-			     rx_status->eht_data[1], rx_status->eht_data[2],
-			     rx_status->eht_data[3], rx_status->eht_data[4],
-			     rx_status->eht_data[5]);
-	} else {
-		eht->user_info[0] = cpu_to_le32(rx_user_status->eht_user_info);
-		qdf_rl_debug("EHT data %x %x %x %x %x %x %x",
-			     rx_status->eht_known | rx_user_status->eht_known,
-			     rx_status->eht_data[0] |
-			     rx_user_status->eht_data[0],
-			     rx_status->eht_data[1] |
-			     rx_user_status->eht_data[1],
-			     rx_status->eht_data[2], rx_status->eht_data[3],
-			     rx_status->eht_data[4], rx_status->eht_data[5]);
-	}
+
+	eht->user_info[0] = cpu_to_le32(rx_user_status->eht_user_info);
+	qdf_rl_debug("EHT data %x %x %x %x %x %x %x",
+		     rx_status->eht_known | rx_user_status->eht_known,
+		     rx_status->eht_data[0] |
+		     rx_user_status->eht_data[0],
+		     rx_status->eht_data[1] |
+		     rx_user_status->eht_data[1],
+		     rx_status->eht_data[2], rx_status->eht_data[3],
+		     rx_status->eht_data[4], rx_status->eht_data[5]);
+
 	return (len + rtap_len);
 }
 

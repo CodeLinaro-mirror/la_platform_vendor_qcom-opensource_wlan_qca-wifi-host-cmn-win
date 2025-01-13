@@ -2116,103 +2116,39 @@ hal_rx_parse_ru_allocation_be(struct hal_soc *hal_soc, void *tlv,
 }
 
 static inline uint32_t
-hal_rx_parse_eht_sig_mumimo_user_info_be(struct hal_soc *hal_soc, void *tlv,
-					 struct hal_rx_ppdu_info *ppdu_info)
-{
-	struct hal_eht_sig_mu_mimo_user_info *user_info;
-	uint32_t user_idx = ppdu_info->rx_status.num_eht_user_info_valid;
-
-	user_info = (struct hal_eht_sig_mu_mimo_user_info *)tlv;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-				QDF_MON_STATUS_EHT_USER_STA_ID_KNOWN |
-				QDF_MON_STATUS_EHT_USER_MCS_KNOWN |
-				QDF_MON_STATUS_EHT_USER_CODING_KNOWN |
-				QDF_MON_STATUS_EHT_USER_SPATIAL_CONFIG_KNOWN;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->sta_id << QDF_MON_STATUS_EHT_USER_STA_ID_SHIFT);
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->mcs << QDF_MON_STATUS_EHT_USER_MCS_SHIFT);
-	ppdu_info->rx_status.mcs = user_info->mcs;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->coding << QDF_MON_STATUS_EHT_USER_CODING_SHIFT);
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-				(user_info->spatial_coding <<
-				 QDF_MON_STATUS_EHT_USER_SPATIAL_CONFIG_SHIFT);
-
-	/* CRC for matched user block */
-	ppdu_info->rx_status.eht_known |=
-			QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_KNOWN |
-			QDF_MON_STATUS_EHT_USER_ENC_BLOCK_TAIL_KNOWN;
-	ppdu_info->rx_status.eht_data[7] |=
-		(user_info->crc << QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_SHIFT);
-
-	ppdu_info->rx_status.num_eht_user_info_valid++;
-
-	return HAL_TLV_STATUS_PPDU_NOT_DONE;
-}
-
-static inline uint32_t
-hal_rx_parse_eht_sig_non_mumimo_user_info_be(struct hal_soc *hal_soc, void *tlv,
-					     struct hal_rx_ppdu_info *ppdu_info)
-{
-	struct hal_eht_sig_non_mu_mimo_user_info *user_info;
-	uint32_t user_idx = ppdu_info->rx_status.num_eht_user_info_valid;
-
-	user_info = (struct hal_eht_sig_non_mu_mimo_user_info *)tlv;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-				QDF_MON_STATUS_EHT_USER_STA_ID_KNOWN |
-				QDF_MON_STATUS_EHT_USER_MCS_KNOWN |
-				QDF_MON_STATUS_EHT_USER_CODING_KNOWN |
-				QDF_MON_STATUS_EHT_USER_NSS_KNOWN |
-				QDF_MON_STATUS_EHT_USER_BEAMFORMING_KNOWN;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->sta_id << QDF_MON_STATUS_EHT_USER_STA_ID_SHIFT);
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->mcs << QDF_MON_STATUS_EHT_USER_MCS_SHIFT);
-	ppdu_info->rx_status.mcs = user_info->mcs;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->nss << QDF_MON_STATUS_EHT_USER_NSS_SHIFT);
-	ppdu_info->rx_status.nss = user_info->nss + 1;
-
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-				(user_info->beamformed <<
-				 QDF_MON_STATUS_EHT_USER_BEAMFORMING_SHIFT);
-	ppdu_info->rx_status.eht_user_info[user_idx] |=
-		(user_info->coding << QDF_MON_STATUS_EHT_USER_CODING_SHIFT);
-
-	/* CRC for matched user block */
-	ppdu_info->rx_status.eht_known |=
-			QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_KNOWN |
-			QDF_MON_STATUS_EHT_USER_ENC_BLOCK_TAIL_KNOWN;
-	ppdu_info->rx_status.eht_data[7] |=
-		(user_info->crc << QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_SHIFT);
-
-	ppdu_info->rx_status.num_eht_user_info_valid++;
-
-	return HAL_TLV_STATUS_PPDU_NOT_DONE;
-}
-
-static inline uint32_t
 hal_rx_parse_eht_sig_non_ofdma_be(struct hal_soc *hal_soc, void *tlv,
 				  struct hal_rx_ppdu_info *ppdu_info)
 {
-	void *user_info = (void *)((uint8_t *)tlv + 4);
+	uint32_t user_idx = ppdu_info->rx_status.num_eht_user_info_valid;
+	uint32_t *eht_user_info =
+			&ppdu_info->rx_user_status[user_idx].eht_user_info;
 
 	hal_rx_parse_usig_overflow(hal_soc, tlv, ppdu_info);
 	hal_rx_parse_non_ofdma_users(hal_soc, tlv, ppdu_info);
 
-	if (hal_rx_is_mu_mimo_user(hal_soc, ppdu_info))
-		hal_rx_parse_eht_sig_mumimo_user_info_be(hal_soc, user_info,
-							 ppdu_info);
-	else
-		hal_rx_parse_eht_sig_non_mumimo_user_info_be(hal_soc, user_info,
-							     ppdu_info);
+	if (hal_rx_is_mu_mimo_user(hal_soc, ppdu_info)) {
+		struct hal_eht_sig_mu_mimo_user_info *user_info =
+			(struct hal_eht_sig_mu_mimo_user_info *)
+			((uint8_t *)tlv + 4);
+		hal_rx_parse_eht_mumimo_user_info(eht_user_info, user_info);
+		ppdu_info->rx_status.eht_data[7] |=
+			(user_info->crc <<
+			 QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_SHIFT);
+	} else {
+		struct hal_eht_sig_non_mu_mimo_user_info *user_info =
+		      (struct hal_eht_sig_non_mu_mimo_user_info *)
+		      ((uint8_t *)tlv + 4);
+		hal_rx_parse_eht_non_mumimo_user_info(eht_user_info, user_info);
+		ppdu_info->rx_status.eht_data[7] |=
+			(user_info->crc <<
+			 QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_SHIFT);
+	}
+
+	/* CRC for matched user block */
+	ppdu_info->rx_status.eht_known |=
+		QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_KNOWN |
+		QDF_MON_STATUS_EHT_USER_ENC_BLOCK_TAIL_KNOWN;
+	ppdu_info->rx_status.num_eht_user_info_valid++;
 
 	return HAL_TLV_STATUS_PPDU_NOT_DONE;
 }
@@ -2222,12 +2158,23 @@ hal_rx_parse_eht_sig_ofdma_be(struct hal_soc *hal_soc, void *tlv,
 			      struct hal_rx_ppdu_info *ppdu_info)
 {
 	uint64_t *eht_sig_tlv = (uint64_t *)tlv;
-	void *user_info = (void *)(eht_sig_tlv + 2);
+	struct hal_eht_sig_non_mu_mimo_user_info *user_info =
+		(struct hal_eht_sig_non_mu_mimo_user_info *)(eht_sig_tlv + 2);
+	uint32_t user_idx = ppdu_info->rx_status.num_eht_user_info_valid;
+	uint32_t *eht_user_info =
+			&ppdu_info->rx_user_status[user_idx].eht_user_info;
 
 	hal_rx_parse_usig_overflow(hal_soc, tlv, ppdu_info);
 	hal_rx_parse_ru_allocation_be(hal_soc, tlv, ppdu_info);
-	hal_rx_parse_eht_sig_non_mumimo_user_info_be(hal_soc, user_info,
-						     ppdu_info);
+	hal_rx_parse_eht_non_mumimo_user_info(eht_user_info, user_info);
+
+	/* CRC for matched user block */
+	ppdu_info->rx_status.eht_known |=
+		QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_KNOWN |
+		QDF_MON_STATUS_EHT_USER_ENC_BLOCK_TAIL_KNOWN;
+	ppdu_info->rx_status.eht_data[7] |=
+		(user_info->crc << QDF_MON_STATUS_EHT_USER_ENC_BLOCK_CRC_SHIFT);
+	ppdu_info->rx_status.num_eht_user_info_valid++;
 
 	return HAL_TLV_STATUS_PPDU_NOT_DONE;
 }
