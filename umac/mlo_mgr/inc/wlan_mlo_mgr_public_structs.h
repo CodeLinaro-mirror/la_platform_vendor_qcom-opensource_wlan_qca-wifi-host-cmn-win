@@ -1582,6 +1582,7 @@ struct mlreconfig_setup_links_action {
  * @ttlm_request_timer: TTLM request timer
  * @peer_ptqm_migrate_ctx: PTQM migration peer context
  * @mlrecfg_plink_resel_mode: MLO reconfiguration primary link reselection mode
+ * @recov_peer_hw_link_id_bmap: HW link id bitmap of peer handled through recovery for mlo peer delete
  * @assoc_wbuf: Cached link specific association request
  */
 struct wlan_mlo_peer_context {
@@ -1640,6 +1641,7 @@ struct wlan_mlo_peer_context {
 	struct ptqm_migrate_peer_context *peer_ptqm_migrate_ctx;
 	enum mlrecfg_plink_resel_mode mlrecfg_plink_resel_mode;
 #endif
+	uint32_t recov_peer_hw_link_id_bmap;
 	qdf_nbuf_t assoc_wbuf;
 };
 
