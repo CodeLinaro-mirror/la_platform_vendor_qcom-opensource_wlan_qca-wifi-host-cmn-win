@@ -333,6 +333,10 @@ wlan_serialization_psoc_destroy_handler(struct wlan_objmgr_psoc *psoc,
 		ser_err("invalid ser_soc_obj");
 		goto error;
 	}
+
+	wlan_minidump_remove(ser_soc_obj, sizeof(*ser_soc_obj), psoc,
+			     WLAN_MD_OBJMGR_PSOC_SER, "wlan_ser_psoc_obj");
+
 	status = wlan_objmgr_psoc_component_obj_detach(
 			psoc, WLAN_UMAC_COMP_SERIALIZATION, ser_soc_obj);
 	if (status != QDF_STATUS_SUCCESS)
@@ -340,9 +344,6 @@ wlan_serialization_psoc_destroy_handler(struct wlan_objmgr_psoc *psoc,
 
 	wlan_serialization_destroy_lock(&ser_soc_obj->timer_lock);
 	ser_debug("ser psoc obj deleted with status %d", status);
-
-	wlan_minidump_remove(ser_soc_obj, sizeof(*ser_soc_obj), psoc,
-			     WLAN_MD_OBJMGR_PSOC_SER, "wlan_ser_psoc_obj");
 
 	qdf_mem_free(ser_soc_obj);
 
@@ -463,6 +464,7 @@ wlan_serialization_vdev_create_handler(struct wlan_objmgr_vdev *vdev,
 		}
 		qdf_mem_free(ser_vdev_obj);
 		ser_err("serialization vdev obj attach failed");
+		return status;
 	}
 
 	psoc = wlan_vdev_get_psoc(vdev);
