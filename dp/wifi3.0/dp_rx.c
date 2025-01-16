@@ -701,7 +701,6 @@ __dp_rx_comp2refill_replenish(struct dp_soc *soc, uint32_t mac_id,
 
 		nbuf = cur->rx_desc.reuse_nbuf;
 
-		cur->rx_desc.nbuf = NULL;
 		cur->rx_desc.in_use = 0;
 		cur->rx_desc.has_reuse_nbuf = false;
 		cur->rx_desc.reuse_nbuf = NULL;
