@@ -13300,6 +13300,31 @@ dp_recovery_vdev_flush_peers(struct cdp_soc_t *cdp_soc,
 	dp_vdev_flush_peers((struct cdp_vdev *)vdev, false, mlo_peers_only);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 }
+
+static void dp_recovery_peer_flush(struct cdp_soc_t *cdp_soc,
+				   uint8_t *peer_mac)
+{
+	struct dp_soc *soc = (struct dp_soc *)cdp_soc;
+	struct cdp_peer_info peer_info = {0};
+	struct dp_peer *peer = NULL;
+
+	DP_PEER_INFO_PARAMS_INIT(&peer_info, DP_VDEV_ALL, peer_mac, false,
+				 CDP_LINK_PEER_TYPE);
+
+	peer = dp_peer_hash_find_wrapper(soc, &peer_info, DP_MOD_ID_CDP);
+	if (!peer)
+		return;
+
+	dp_peer_delete(soc, peer, NULL);
+	dp_rx_peer_unmap_handler(soc, peer->peer_id,
+				 peer->vdev->vdev_id,
+				 peer->mac_addr.raw, 0,
+				 DP_PEER_WDS_COUNT_INVALID);
+
+	/* release the ref taken during peer search */
+	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+}
+
 #endif
 #endif
 #ifdef QCA_GET_TSF_VIA_REG
@@ -13567,6 +13592,8 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 					dp_ds_cfg_astidx_cache_mapping,
 #if defined(WLAN_MLO_MULTI_CHIP)
 	.txrx_recovery_vdev_flush_peers = dp_recovery_vdev_flush_peers,
+	/* This should be used only during the recovery cases */
+	.txrx_recovery_peer_flush = dp_recovery_peer_flush,
 #endif
 #endif
 	.txrx_umac_reset_deinit = dp_soc_umac_reset_deinit,

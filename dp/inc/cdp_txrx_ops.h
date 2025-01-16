@@ -745,6 +745,8 @@ struct cdp_cmn_ops {
 	void (*txrx_recovery_vdev_flush_peers)(struct cdp_soc_t *soc,
 					       uint8_t vdev_id,
 					       bool mlo_peers_only);
+	void (*txrx_recovery_peer_flush)(struct cdp_soc_t *soc,
+					 uint8_t *peer_mac);
 #endif
 #endif
 	QDF_STATUS (*txrx_umac_reset_deinit)(ol_txrx_soc_handle soc,
