@@ -143,6 +143,20 @@ enum wlan_mlme_host_vdev_start_status {
 	WLAN_MLME_HOST_VDEV_START_MAX_REASON,
 };
 
+#ifdef WLAN_FEATURE_VBSS
+/**
+ * enum wlan_vdev_up_flags - vdev up flags
+ * @WLAN_VDEV_UP_FLAG_EMA_MBSSID_AP:
+ * @WLAN_VDEV_UP_FLAG_VBSS_ACTIVE: VBSS vap active state
+ * @WLAN_VDEV_UP_FLAG_VBSS_PASSIVE: VBSS vap passive state
+ */
+enum wlan_vdev_up_flags {
+	WLAN_VDEV_UP_FLAG_EMA_MBSSID_AP = 0x00000001,
+	WLAN_VDEV_UP_FLAG_VBSS_ACTIVE = 0x00000002,
+	WLAN_VDEV_UP_FLAG_VBSS_PASSIVE = 0x00000004,
+};
+#endif /* WLAN_FEATURE_VBSS */
+
 /**
  * string_from_start_rsp_status() - Convert start response status to string
  * @start_rsp: start response status
@@ -920,6 +934,7 @@ struct vdev_stop_params {
  * @profile_num: the total profile numbers of non-trans aps (mbssid case).
  *		0 means non-MBSS AP.
  * @trans_bssid: bssid of transmitted AP (MBSS IE case)
+ * @flags: bit-wise ORed flags from enum wlan_vdev_up_flags
  */
 struct vdev_up_params {
 	uint8_t vdev_id;
@@ -927,6 +942,9 @@ struct vdev_up_params {
 	uint32_t profile_idx;
 	uint32_t profile_num;
 	uint8_t trans_bssid[QDF_MAC_ADDR_SIZE];
+#ifdef WLAN_FEATURE_VBSS
+	uint32_t flags;
+#endif
 };
 
 /**
