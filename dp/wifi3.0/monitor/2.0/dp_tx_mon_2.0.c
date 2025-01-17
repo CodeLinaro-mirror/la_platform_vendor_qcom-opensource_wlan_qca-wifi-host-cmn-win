@@ -394,12 +394,57 @@ fail:
 	return QDF_STATUS_E_FAILURE;
 }
 
+void dp_tx_mon_reset_status_frag_array(struct dp_soc *soc, uint32_t mac_id)
+{
+	struct dp_mon_pdev *mon_pdev;
+	struct dp_mon_pdev_be *mon_pdev_be;
+	struct dp_pdev_tx_monitor_be *tx_mon_be;
+	struct dp_pdev *pdev;
+	struct dp_mon_mac *mon_mac;
+	uint8_t last_frag_q_idx = 0;
+	uint8_t i = 0;
+
+	pdev = dp_get_pdev_for_lmac_id(soc, mac_id);
+	if (qdf_unlikely(!pdev))
+		return;
+
+	mon_mac = dp_get_mon_mac(pdev, mac_id);
+	mon_pdev = pdev->monitor_pdev;
+	if (qdf_unlikely(!mon_pdev))
+		return;
+
+	mon_pdev_be = dp_get_be_mon_pdev_from_dp_mon_pdev(mon_pdev);
+	if (qdf_unlikely(!mon_pdev_be))
+		return;
+
+	tx_mon_be = dp_mon_pdev_get_tx_mon(mon_pdev_be, mac_id);
+	if (qdf_unlikely(!tx_mon_be))
+		return;
+
+	qdf_spin_lock_bh(&mon_mac->mon_lock);
+	last_frag_q_idx = tx_mon_be->last_frag_q_idx;
+	i = tx_mon_be->cur_frag_q_idx;
+	if (last_frag_q_idx > MAX_STATUS_BUFFER_IN_PPDU)
+		last_frag_q_idx = MAX_STATUS_BUFFER_IN_PPDU;
+
+	for (; i < last_frag_q_idx; i++) {
+		tx_mon_be->frag_q_vec[i].frag_buf = NULL;
+		tx_mon_be->frag_q_vec[i].end_offset = 0;
+	}
+	tx_mon_be->last_frag_q_idx = 0;
+	tx_mon_be->cur_frag_q_idx = 0;
+	tx_mon_be->be_ppdu_id = 0;
+	tx_mon_be->mode = TX_MON_BE_DISABLE;
+	qdf_spin_unlock_bh(&mon_mac->mon_lock);
+}
+
 void dp_tx_mon_soc_deinit_2_0(struct dp_soc *soc, uint32_t lmac_id)
 {
 	struct dp_mon_soc *mon_soc = soc->monitor_soc;
 	struct dp_mon_soc_be *mon_soc_be =
 		dp_get_be_mon_soc_from_dp_mon_soc(mon_soc);
 
+	dp_tx_mon_reset_status_frag_array(soc, lmac_id);
 	dp_tx_mon_buffers_free(soc);
 	dp_tx_mon_buf_desc_pool_deinit(soc);
 	dp_srng_deinit(soc, &mon_soc_be->tx_mon_buf_ring, TX_MONITOR_BUF, 0);
