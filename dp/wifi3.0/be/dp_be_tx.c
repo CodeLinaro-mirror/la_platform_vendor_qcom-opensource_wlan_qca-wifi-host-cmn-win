@@ -2216,6 +2216,8 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 		hal_tx_desc[5] |= 1 << TCL_DATA_CMD_HLOS_TID_OVERWRITE_LSB;
 	}
 
+	/* reset the word6 as well */
+	hal_tx_desc[6] = 0;
 	if (vdev->opmode == wlan_op_mode_sta)
 		hal_tx_desc[6] = vdev->bss_ast_idx |
 			((vdev->bss_ast_hash & 0xF) <<
