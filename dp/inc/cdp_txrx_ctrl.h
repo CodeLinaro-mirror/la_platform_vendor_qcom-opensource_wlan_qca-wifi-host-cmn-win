@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -72,6 +72,7 @@ cdp_mempools_attach(ol_txrx_soc_handle soc)
  * @vdev_id: id of the pointer to vdev
  * @cmd: add/del entry into peer table
  * @macaddr: the address of neighbour peer
+ * @is_vbss_peer: VBSS peer or not
  *
  *  This defines interface function to update neighbour peers addresses
  *  which needs to be filtered
@@ -80,7 +81,7 @@ cdp_mempools_attach(ol_txrx_soc_handle soc)
  */
 static inline int
 cdp_update_filter_neighbour_peers(ol_txrx_soc_handle soc,
-	uint8_t vdev_id, uint32_t cmd, uint8_t *macaddr)
+	uint8_t vdev_id, uint32_t cmd, uint8_t *macaddr, bool is_vbss_peer)
 {
 	if (!soc || !soc->ops) {
 		dp_cdp_debug("Invalid Instance:");
@@ -93,7 +94,7 @@ cdp_update_filter_neighbour_peers(ol_txrx_soc_handle soc,
 		return 0;
 
 	return soc->ops->mon_ops->txrx_update_filter_neighbour_peers
-			(soc, vdev_id, cmd, macaddr);
+			(soc, vdev_id, cmd, macaddr, is_vbss_peer);
 }
 #endif /* ATH_SUPPORT_NAC || ATH_SUPPORT_NAC_RSSI*/
 

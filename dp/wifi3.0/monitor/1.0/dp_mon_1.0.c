@@ -1168,12 +1168,14 @@ static void dp_mon_register_intr_ops_1_0(struct dp_soc *soc)
  * @vdev_id: id of virtual device object
  * @cmd: Add/Del command
  * @macaddr: nac client mac address
+ * @is_vbss peer: VBSS peer or not
  *
  * Return: success/failure
  */
 static int dp_update_filter_neighbour_peers(struct cdp_soc_t *soc_hdl,
 					    uint8_t vdev_id,
-					    uint32_t cmd, uint8_t *macaddr)
+					    uint32_t cmd, uint8_t *macaddr,
+					    bool is_vbss_peer)
 {
 	struct dp_soc *soc = (struct dp_soc *)soc_hdl;
 	struct dp_pdev *pdev;
@@ -1340,11 +1342,11 @@ dp_config_for_nac_rssi(struct cdp_soc_t *cdp_soc,
 	if (cmd == CDP_NAC_PARAM_ADD) {
 		dp_update_filter_neighbour_peers(cdp_soc, vdev->vdev_id,
 						 DP_NAC_PARAM_ADD,
-						 (uint8_t *)client_macaddr);
+						 (uint8_t *)client_macaddr, false);
 	} else if (cmd == CDP_NAC_PARAM_DEL) {
 		dp_update_filter_neighbour_peers(cdp_soc, vdev->vdev_id,
 						 DP_NAC_PARAM_DEL,
-						 (uint8_t *)client_macaddr);
+						 (uint8_t *)client_macaddr, false);
 	}
 
 	if (soc->cdp_soc.ol_ops->config_bssid_in_fw_for_nac_rssi)
