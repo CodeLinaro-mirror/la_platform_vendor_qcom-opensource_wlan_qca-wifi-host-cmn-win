@@ -519,9 +519,9 @@ dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 	cc_ctx->desc_type = ((desc_type == QDF_DP_TX_DESC_TYPE) ?
 			     QDF_DP_TX_HW_CC_SPT_PAGE_TYPE :
 			     QDF_DP_RX_HW_CC_SPT_PAGE_TYPE);
-	qdf_mem_multi_pages_alloc_no_debug(soc->osdev, &cc_ctx->page_pool,
-					   qdf_page_size,
-					   num_spt_pages);
+	qdf_mem_multi_pages_alloc_no_header(soc->osdev, &cc_ctx->page_pool,
+					    qdf_page_size,
+					    num_spt_pages);
 	if (!cc_ctx->page_pool.cacheable_pages) {
 		dp_err("spt memory allocation failed");
 		return QDF_STATUS_E_RESOURCES;
@@ -552,7 +552,7 @@ dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 
 	return QDF_STATUS_SUCCESS;
 fail_0:
-	qdf_mem_multi_pages_free_no_debug(soc->osdev, &cc_ctx->page_pool);
+	qdf_mem_multi_pages_free_no_header(soc->osdev, &cc_ctx->page_pool);
 
 	return QDF_STATUS_E_FAILURE;
 }
@@ -563,7 +563,7 @@ dp_hw_cookie_conversion_detach(struct dp_soc_be *be_soc,
 {
 	struct dp_soc *soc = DP_SOC_BE_GET_SOC(be_soc);
 
-	qdf_mem_multi_pages_free_no_debug(soc->osdev, &cc_ctx->page_pool);
+	qdf_mem_multi_pages_free_no_header(soc->osdev, &cc_ctx->page_pool);
 	if (cc_ctx->page_desc_base)
 		qdf_spinlock_destroy(&cc_ctx->cc_lock);
 
