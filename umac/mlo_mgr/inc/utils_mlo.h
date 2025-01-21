@@ -517,6 +517,33 @@ util_get_bvmlie_bssparamchangecnt(uint8_t *mlieseq, qdf_size_t mlieseqlen,
 QDF_STATUS
 util_get_bvmlie_mldcap(uint8_t *mlieseq, qdf_size_t mlieseqlen,
 		       bool *mldcapfound, uint16_t *mldcap);
+
+/**
+ * util_get_rvmlie_mldcap() - Get the MLD capabilities
+ * @mlieseq: Starting address of the Multi-Link element or Multi-Link element
+ * fragment sequence
+ * @mlieseqlen: Total length of the Multi-Link element or Multi-Link element
+ * fragment sequence
+ * @mldcapfound: Pointer to the location where a boolean status should be
+ * updated indicating whether the MLD capabilities was found or not. This should
+ * be ignored by the caller if the function returns error.
+ * @mldcap: Pointer to the location where the value of the MLD capabilities
+ * should be updated. This should be ignored by the caller if the function
+ * returns error, or if the function indicates that the MLD capabilities was not
+ * found.
+ *
+ * Get the MLD capabilities from a given Reconfig variant Multi-Link element or
+ * element fragment sequence, of the non-AP that transmits the Multi-Link
+ * element/element fragment sequence and that is affiliated with the MLD
+ * that is described in the Multi-Link element.
+ *
+ * Return: QDF_STATUS_SUCCESS in the case of success, QDF_STATUS value giving
+ * the reason for error in the case of failure
+ */
+QDF_STATUS
+util_get_rvmlie_mldcap(uint8_t *mlieseq, qdf_size_t mlieseqlen,
+		       bool *mldcapfound, uint16_t *mldcap);
+
 /**
  * util_get_bvmlie_ext_mld_cap_op_info() - Get Ext MLD Capabilities and
  * operation
