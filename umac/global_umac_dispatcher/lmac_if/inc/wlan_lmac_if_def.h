@@ -1391,6 +1391,7 @@ struct wlan_lmac_if_dfs_tx_ops {
 			struct wlan_objmgr_pdev *pdev);
 	bool (*dfs_get_enable_york_dfs)(
 			struct wlan_objmgr_pdev *pdev);
+	void (*dfs_configure_green_ap) (struct wlan_objmgr_pdev *pdev, bool enable);
 };
 
 /**
