@@ -1605,6 +1605,7 @@ cm_connect_fetch_candidates(struct wlan_objmgr_pdev *pdev,
 				       security_valid_for_6ghz);
 
 	cm_update_mlo_filter(pdev, cm_req, filter);
+	filter->mrsno_gen = wlan_vdev_get_rsno_gen_supported(cm_ctx->vdev);
 
 	candidate_list = wlan_scan_get_result(pdev, filter);
 	if (candidate_list) {
