@@ -182,6 +182,14 @@ bool reg_is_5ghz_op_class(const uint8_t *country, uint8_t op_class);
  */
 bool reg_is_2ghz_op_class(const uint8_t *country, uint8_t op_class);
 
+/**
+ * reg_get_class_from_country()- Get Class from country.
+ * @country: Country ISO.
+ *
+ * Return: pointer to opclass table.
+ */
+const struct reg_dmn_op_class_map_t *
+reg_get_class_from_country(const uint8_t *country);
 #ifdef CONFIG_CHAN_FREQ_API
 
 /**
@@ -638,4 +646,14 @@ QDF_STATUS reg_enable_disable_opclass_chans(struct wlan_objmgr_pdev *pdev,
 					    uint8_t chan_list_size,
 					    bool global_tbl_lookup);
 #endif
+
+/**
+ * reg_is_opclass_entry_80p80() - Return true if the opclass entry is
+ * 80P80 false otherwise.
+ * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
+ *
+ * Return - true if opclass entry is 80p80, otherwise false.
+ */
+bool
+reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl);
 #endif
