@@ -1825,40 +1825,44 @@ end:
 }
 
 QDF_STATUS
-dp_set_pn_check_wifi3(struct cdp_soc_t *soc_t, uint8_t vdev_id,
-		      uint8_t *peer_mac, enum cdp_sec_type sec_type,
-		      uint32_t *rx_pn)
+dp_rx_tid_set_pn(struct dp_soc *soc, struct dp_peer *peer,
+		 uint8_t tid, enum cdp_sec_type sec_type,
+		 uint32_t *rx_pn, void *reo_cmd_cb,
+		 void *reo_cmd_cb_ctxt)
 {
-	struct dp_pdev *pdev;
-	int i;
+	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	uint8_t pn_size;
 	struct hal_reo_cmd_params params;
-	struct dp_peer *peer = NULL;
-	struct dp_vdev *vdev = NULL;
-	struct dp_soc *soc = NULL;
-
-	peer = dp_peer_get_tgt_peer_hash_find((struct dp_soc *)soc_t,
-					      peer_mac, 0, vdev_id,
-					      DP_MOD_ID_CDP);
+	struct dp_rx_tid *rx_tid;
+	struct dp_vdev *vdev;
 
 	if (!peer) {
-		dp_peer_debug("%pK: Peer is NULL!", soc);
-		return QDF_STATUS_E_FAILURE;
+		dp_peer_debug("%pK: NULL peer!", soc);
+		status = QDF_STATUS_E_FAILURE;
+		goto end;
 	}
 
-	vdev = peer->vdev;
-
-	if (!vdev) {
-		dp_peer_debug("%pK: VDEV is NULL!", soc);
-		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
-		return QDF_STATUS_E_FAILURE;
+	if (!peer->vdev) {
+		dp_peer_debug("%pK: NULL Vdev!", soc);
+		status = QDF_STATUS_E_FAILURE;
+		goto end;
 	}
 
-	pdev = vdev->pdev;
-	soc = pdev->soc;
+	if (tid >= DP_MAX_TIDS) {
+		dp_peer_debug("%pK: Invalid TID value %u!", soc, tid);
+		status = QDF_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	if (!rx_pn) {
+		dp_peer_debug("%pK: NULL rx pn buffer!");
+		status = QDF_STATUS_E_FAILURE;
+		goto end;
+	}
+
 	qdf_mem_zero(&params, sizeof(params));
 
-	params.std.need_status = 1;
+	params.std.need_status = reo_cmd_cb ? 1 : 0;
 	params.u.upd_queue_params.update_pn_valid = 1;
 	params.u.upd_queue_params.update_pn_size = 1;
 	params.u.upd_queue_params.update_pn = 1;
@@ -1894,46 +1898,79 @@ dp_set_pn_check_wifi3(struct cdp_soc_t *soc_t, uint8_t vdev_id,
 		break;
 	}
 
-	for (i = 0; i < DP_MAX_TIDS; i++) {
-		struct dp_rx_tid *rx_tid = &peer->rx_tid[i];
+	rx_tid = &peer->rx_tid[tid];
 
-		qdf_spin_lock_bh(&rx_tid->tid_lock);
-		if (rx_tid->hw_qdesc_vaddr_unaligned) {
-			params.std.addr_lo =
-				rx_tid->hw_qdesc_paddr & 0xffffffff;
-			params.std.addr_hi =
-				(uint64_t)(rx_tid->hw_qdesc_paddr) >> 32;
+	qdf_spin_lock_bh(&rx_tid->tid_lock);
 
-			if (pn_size) {
-				dp_peer_info("%pK: PN set for TID:%d pn:%x:%x:%x:%x",
-					     soc, i, rx_pn[3], rx_pn[2],
-					     rx_pn[1], rx_pn[0]);
-				params.u.upd_queue_params.update_pn_valid = 1;
-				params.u.upd_queue_params.pn_31_0 = rx_pn[0];
-				params.u.upd_queue_params.pn_63_32 = rx_pn[1];
-				params.u.upd_queue_params.pn_95_64 = rx_pn[2];
-				params.u.upd_queue_params.pn_127_96 = rx_pn[3];
-			}
-			rx_tid->pn_size = pn_size;
-			if (dp_reo_send_cmd(soc,
-					    CMD_UPDATE_RX_REO_QUEUE,
-					    &params, dp_rx_tid_update_cb,
-					    rx_tid)) {
-				dp_err_log("fail to send CMD_UPDATE_RX_REO_QUEUE"
-					   "tid %d desc %pK", rx_tid->tid,
-					   (void *)(rx_tid->hw_qdesc_paddr));
-				DP_STATS_INC(soc,
-					     rx.err.reo_cmd_send_fail, 1);
-			}
-		} else {
-			dp_peer_info("%pK: PN Check not setup for TID :%d ", soc, i);
+	if (rx_tid->hw_qdesc_vaddr_unaligned) {
+		QDF_STATUS ret;
+
+		params.std.addr_lo = rx_tid->hw_qdesc_paddr & 0xffffffff;
+		params.std.addr_hi = (uint64_t)(rx_tid->hw_qdesc_paddr) >> 32;
+
+		if (pn_size) {
+			dp_peer_info("%pK: PN set for TID:%d pn:%x:%x:%x:%x",
+				     soc, rx_tid->tid, rx_pn[3], rx_pn[2],
+				     rx_pn[1], rx_pn[0]);
+
+			params.u.upd_queue_params.update_pn_valid = 1;
+			params.u.upd_queue_params.pn_31_0 = rx_pn[0];
+			params.u.upd_queue_params.pn_63_32 = rx_pn[1];
+			params.u.upd_queue_params.pn_95_64 = rx_pn[2];
+			params.u.upd_queue_params.pn_127_96 = rx_pn[3];
 		}
-		qdf_spin_unlock_bh(&rx_tid->tid_lock);
+
+		rx_tid->pn_size = pn_size;
+
+		ret = dp_reo_send_cmd(soc, CMD_UPDATE_RX_REO_QUEUE,
+					 &params, reo_cmd_cb, reo_cmd_cb_ctxt);
+		if (!QDF_IS_STATUS_SUCCESS(ret)) {
+			dp_peer_debug("failed to send CMD_UPDATE_RX_REO_QUEUE"
+				      "tid-%d desc-%pK", rx_tid->tid,
+				      (void *)(rx_tid->hw_qdesc_paddr));
+			DP_STATS_INC(soc, rx.err.reo_cmd_send_fail, 1);
+		}
+	} else {
+		dp_peer_debug("%pK: TID :%d is not setup", soc, rx_tid->tid);
 	}
 
-	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+	qdf_spin_unlock_bh(&rx_tid->tid_lock);
 
-	return QDF_STATUS_SUCCESS;
+end:
+	return status;
+}
+
+QDF_STATUS
+dp_set_pn_check_wifi3(struct cdp_soc_t *soc_t, uint8_t vdev_id,
+		      uint8_t *peer_mac, enum cdp_sec_type sec_type,
+		      uint32_t *rx_pn)
+{
+	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	struct dp_soc *soc = (struct dp_soc *)soc_t;
+	struct dp_peer *peer =
+
+	peer = dp_peer_get_tgt_peer_hash_find(soc, peer_mac, 0, vdev_id,
+					      DP_MOD_ID_CDP);
+	if (!peer) {
+		dp_peer_debug("%pK: Peer is NULL!", soc);
+		status = QDF_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	if (!peer->vdev) {
+		dp_peer_debug("%pK: VDEV is NULL!", soc);
+		status = QDF_STATUS_E_FAILURE;
+		goto unref;
+	}
+
+	for (uint8_t tid = 0; tid < DP_MAX_TIDS; tid++)
+		dp_rx_tid_set_pn(soc, peer, tid, sec_type, rx_pn,
+				 dp_rx_tid_update_cb, &peer->rx_tid[tid]);
+
+unref:
+	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+end:
+	return status;
 }
 
 QDF_STATUS

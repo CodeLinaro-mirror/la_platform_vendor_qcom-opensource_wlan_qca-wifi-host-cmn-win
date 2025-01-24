@@ -48,7 +48,6 @@
 	defined(WLAN_MCAST_MLO)) || defined(WLAN_MCAST_MLO_SAP))
 /* MLO peer id for reinject*/
 #define DP_MLO_MCAST_REINJECT_PEER_ID 0x1fff
-#define MAX_GSN_NUM 0x0FFF
 #endif
 
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_MLO_MULTI_CHIP)
