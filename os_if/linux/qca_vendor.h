@@ -19031,16 +19031,10 @@ enum qca_wlan_connect_ext_features {
  * @QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_FEATURES: Feature flags contained in a byte
  * array. The feature flags are identified by their bit index (see &enum
  * qca_wlan_connect_ext_features).
- *
- * @QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_BSS_FREQ: Indicates the frequency of the
- * channel in which the candidate AP is operating. In case of a multi link
- * association, it will indicate the operating frequency of the Assoc link AP
- * vap
  */
 enum qca_wlan_vendor_attr_connect_ext {
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_FEATURES = 1,
-	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_BSS_FREQ = 2,
 
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_MAX =
