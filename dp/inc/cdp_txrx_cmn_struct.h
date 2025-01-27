@@ -214,10 +214,6 @@
 
 #define CDP_HTT_STATS_MAX_CHAINS 8
 
-#ifdef WLAN_FEATURE_VBSS
-#define RX_PN_DWORDS 4
-#endif
-
 QDF_DECLARE_EWMA(tx_lag, 1024, 8)
 struct cdp_stats_cookie;
 
@@ -1478,7 +1474,6 @@ enum cdp_pdev_param_type {
  * @cdp_vdev_param_wds: wds sta
  * @cdp_vdev_param_mec: MEC enable flags
  * @cdp_vdev_param_proxysta: proxy sta
- * @cdp_vdev_param_vbss: set vap type to virtual bss
  * @cdp_vdev_param_tdls_flags: tdls link flags
  * @cdp_vdev_param_ap_brdg_en: set ap_bridging enable/disable
  * @cdp_vdev_param_cipher_en: set cipher type based on security
@@ -1591,9 +1586,6 @@ typedef union cdp_config_param_t {
 	bool cdp_vdev_param_mec;
 	bool cdp_vdev_param_nawds;
 	bool cdp_vdev_param_proxysta;
-#ifdef WLAN_FEATURE_VBSS
-	bool cdp_vdev_param_vbss;
-#endif
 	bool cdp_vdev_param_tdls_flags;
 	bool cdp_vdev_param_ap_brdg_en;
 	bool cdp_vdev_param_qwrap_isolation;
@@ -1814,7 +1806,6 @@ enum cdp_pdev_bpr_param {
  * @CDP_MONITOR_FREQUENCY: monitor frequency
  * @CDP_EAPOL_OVER_CONTROL_PORT_DISABLE: Disable eapol over control port
  * @CDP_OSIF_TX_DROP: Vap level TX drops in OSIF layer
- * @CDP_ENABLE_VBSS: Enable virtual BSS feature of the vap.
  */
 enum cdp_vdev_param_type {
 	CDP_ENABLE_NAWDS,
@@ -1871,9 +1862,6 @@ enum cdp_vdev_param_type {
 	CDP_MONITOR_FREQUENCY,
 	CDP_EAPOL_OVER_CONTROL_PORT_DISABLE,
 	CDP_OSIF_TX_DROP,
-#ifdef WLAN_FEATURE_VBSS
-	CDP_ENABLE_VBSS,
-#endif
 };
 
 /**
@@ -3580,41 +3568,4 @@ struct cdp_tx_latency {
 typedef QDF_STATUS(*cdp_tx_latency_cb)(uint8_t vdev_id,
 				       qdf_list_t *stats_list);
 #endif
-
-#ifdef WLAN_FEATURE_VBSS
- /**
-  * struct cdp_tid_roam_ctxt - Roaming peer's per tid context
-  * @active: whether tid is in use
-  * @buffer_size: window size used by this tid
-  * @rx_pn: 128 bit PN used for this tid.
-  */
-struct cdp_tid_roam_ctxt {
-	bool active;
-	uint16_t buffer_size;
-	uint32_t rx_pn[RX_PN_DWORDS];
-};
-
- /**
-  * struct cdp_peer_roam_ctxt - remote peer's roaming context data
-  * @tid_ctxt: tid context for all tids of this roaming peer
-  * @tx_gsn: global tx seq. number used at the  vap connected to this roaming
-  * peer.
-  * @sec_type: roaming peers uc desc type
-  */
-struct cdp_peer_roam_ctxt {
-	struct cdp_tid_roam_ctxt tid_roam_ctxt[CDP_MAX_TIDS];
-	uint64_t tx_gsn;
-	enum cdp_sec_type sec_type;
-};
-
-/**
- * typedef cdp_peer_roam_ctxt_cb() - callback used by CP to receive roaming peer
- * ctxt data.
- * @ctxt_buf: peer ctxt buffer
- * @cdp_ctxt: control path private data.
- */
-typedef void (*cdp_peer_roam_ctxt_cb)(struct cdp_peer_roam_ctxt *ctxt_buf,
-				      void *cdp_ctxt);
-#endif /* WLAN_FEATURE_VBSS */
-
 #endif

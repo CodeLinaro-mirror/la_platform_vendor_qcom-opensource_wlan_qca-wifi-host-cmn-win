@@ -282,11 +282,6 @@ static inline void dp_get_rx_reo_queue_info(struct cdp_soc_t *soc_hdl,
 }
 #endif /* DUMP_REO_QUEUE_INFO_IN_DDR */
 void dp_peer_rx_tid_setup(struct dp_peer *peer);
-
-QDF_STATUS dp_rx_tid_set_pn(struct dp_soc *soc, struct dp_peer *peer,
-			    uint8_t tid, enum cdp_sec_type sec_type,
-			    uint32_t *rx_pn, void *reo_cmd_cb,
-			    void *reo_cmd_cb_ctxt);
 #else
 static inline void dp_rx_tid_stats_cb(struct dp_soc *soc, void *cb_ctxt,
 				      union hal_reo_status *reo_status) {}
@@ -385,15 +380,6 @@ static inline void dp_peer_rx_tid_setup(struct dp_peer *peer) {}
 static inline QDF_STATUS
 dp_rx_tid_setup_wifi3(struct dp_peer *peer, int tid,
 		      uint32_t ba_window_size, uint32_t start_seq)
-{
-	return QDF_STATUS_SUCCESS;
-}
-
-static inline QDF_STATUS
-dp_rx_tid_set_pn(struct dp_soc *soc, struct dp_peer *peer,
-		 uint8_t tid, enum cdp_sec_type sec_type,
-		 uint32_t *rx_pn, void *reo_cmd_cb,
-		 void *reo_cmd_cb_ctxt)
 {
 	return QDF_STATUS_SUCCESS;
 }

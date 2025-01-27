@@ -707,28 +707,6 @@ static inline void hal_reo_qdesc_setup(hal_soc_handle_t hal_soc_hdl, int tid,
 }
 
 /**
- * hal_rx_get_pn - Retrieves the queue desc. 128 bit PN.
- * @hal_soc_hdl: Opaque HAL SOC handle
- * @hw_qdesc_vaddr: REO queue desc. memory virtual address
- * @rx_pn_buf: output buffer to store pn values.
- */
-static inline void hal_rx_get_pn(hal_soc_handle_t hal_soc_hdl,
-				 void *hw_qdesc_vaddr, uint32_t *rx_pn_buf)
-{
-	struct hal_soc *hal_soc = (struct hal_soc *)hal_soc_hdl;
-
-	if (!hal_soc || !hal_soc->ops) {
-		hal_err("hal handle is NULL");
-		QDF_BUG(0);
-		return;
-	}
-
-	if (hal_soc->ops->hal_rx_get_pn)
-		hal_soc->ops->hal_rx_get_pn(hal_soc_hdl, hw_qdesc_vaddr,
-					    rx_pn_buf);
-}
-
-/**
  * hal_get_ba_aging_timeout - Retrieve BA aging timeout
  * @hal_soc_hdl: Opaque HAL SOC handle
  * @ac: Access category

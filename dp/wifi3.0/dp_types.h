@@ -2902,9 +2902,6 @@ struct dp_arch_ops {
 	void (*dp_tx_override_flow_pool_id)(struct dp_vdev *vdev,
 					    struct dp_tx_queue *queue);
 	void (*dp_vdev_mlo_stats_clear)(struct dp_vdev *vdev);
-
-	uint32_t (*dp_vdev_get_tx_gsn)(struct dp_vdev *vdev);
-	void (*dp_vdev_set_tx_gsn)(struct dp_vdev *vdev, uint32_t gsn);
 };
 
 /**
@@ -4645,8 +4642,7 @@ struct dp_vdev {
 	uint8_t proxysta_vdev : 1, /* Is this a proxySTA VAP */
 		wrap_vdev : 1, /* Is this a QWRAP AP VAP */
 		isolation_vdev : 1, /* Is this a QWRAP AP VAP */
-		vbss_vdev : 1,
-		reserved : 4; /* Reserved */
+		reserved : 5; /* Reserved */
 
 #ifdef QCA_LL_TX_FLOW_CONTROL_V2
 	struct dp_tx_desc_pool_s *pool;

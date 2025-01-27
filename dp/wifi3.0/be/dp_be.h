@@ -174,11 +174,6 @@ enum CMEM_MEM_CLIENTS {
 #define DP_CMEM_OFFSET_TO_PPT_ID(offset) \
 	((offset) / DP_CC_PPT_ENTRY_SIZE_4K_ALIGNED)
 
-#if defined(WLAN_FEATURE_11BE_MLO) && ((defined(WLAN_MLO_MULTI_CHIP) && \
-	defined(WLAN_MCAST_MLO)) || defined(WLAN_MCAST_MLO_SAP))
-#define MAX_GSN_NUM 0x0FFF
-#endif
-
 /**
  * struct dp_spt_page_desc - secondary page table page descriptors
  * @page_v_addr: page virtual address

@@ -784,18 +784,6 @@ struct cdp_cmn_ops {
 	int (*get_ext_grp_id_from_reo_num)(struct cdp_soc_t *soc_hdl,
 					   uint8_t reo_num);
 #endif
-
-#ifdef WLAN_FEATURE_VBSS
-	QDF_STATUS (*txrx_get_peer_roam_ctxt)(struct cdp_soc_t *soc,
-					uint8_t vdev_id, uint8_t *peer_mac,
-					enum cdp_peer_type peer_type,
-					cdp_peer_roam_ctxt_cb cb,
-					void *cb_ctxt);
-	QDF_STATUS (*txrx_set_peer_roam_ctxt)(struct cdp_soc_t *soc,
-					uint8_t vdev_id, uint8_t *peer_mac,
-					enum cdp_peer_type peer_type,
-					struct cdp_peer_roam_ctxt *ctxt_buf);
-#endif
 };
 
 struct cdp_ctrl_ops {
