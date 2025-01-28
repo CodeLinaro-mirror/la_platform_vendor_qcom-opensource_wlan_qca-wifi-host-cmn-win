@@ -652,6 +652,8 @@ void dp_print_pdev_tx_monitor_stats_2_0(struct dp_pdev *pdev)
 	DP_PRINT_STATS("\t\tppdu drop : %llu", stats.ppdu_drop_cnt);
 	DP_PRINT_STATS("\t\tmpdu drop : %llu", stats.mpdu_drop_cnt);
 	DP_PRINT_STATS("\t\ttlv drop : %llu", stats.tlv_drop_cnt);
+	DP_PRINT_STATS("\t\tppdu drop tlv missing : %llu",
+			stats.ppdu_drop_tlv_missing);
 	DP_PRINT_STATS("\tPacket Classification");
 	DP_PRINT_STATS("\t\t ARP    : %u",
 			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_ARP]);
