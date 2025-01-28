@@ -46,6 +46,16 @@
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(DP_MLO_LINK_STATS_SUPPORT)
 #include "reg_services_common.h"
 #endif
+
+#ifdef WLAN_FEATURE_VBSS
+struct dp_peer_roam_ctxt {
+	struct cdp_peer_roam_ctxt cdp_roam_ctxt;
+	cdp_peer_roam_ctxt_cb cdp_cb;
+	void *cdp_cb_ctxt;
+	struct dp_peer *peer;
+};
+#endif
+
 #ifdef FEATURE_WDS
 #ifdef BYPASS_OL_OPS
 /**
@@ -4716,3 +4726,316 @@ void dp_peer_set_hw_accel_flag(struct cdp_soc_t *cdp_soc,
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_TX_MULTIPASS);
 }
 #endif /* QCA_MULTIPASS_SUPPORT */
+
+#ifdef WLAN_FEATURE_VBSS
+static void
+dp_send_peer_roam_ctxt(struct dp_soc *soc, void *cb_ctxt,
+		       union hal_reo_status *reo_status)
+{
+	struct dp_peer_roam_ctxt *dp_roam_ctxt =
+				(struct dp_peer_roam_ctxt *)cb_ctxt;
+	struct dp_peer *peer = dp_roam_ctxt->peer;
+	struct cdp_tid_roam_ctxt *tid_roam_ctxt;
+	struct dp_rx_tid *rx_tid;
+
+	for (uint8_t tid = 0; tid < DP_MAX_TIDS; tid++) {
+		tid_roam_ctxt = &dp_roam_ctxt->cdp_roam_ctxt.tid_roam_ctxt[tid];
+
+		if (!tid_roam_ctxt->active)
+			continue;
+
+		rx_tid = &peer->rx_tid[tid];
+
+		qdf_spin_lock_bh(&rx_tid->tid_lock);
+
+		qdf_mem_dma_cache_sync(soc->osdev,
+				       rx_tid->hw_qdesc_paddr,
+				       QDF_DMA_FROM_DEVICE,
+				       rx_tid->hw_qdesc_alloc_size);
+
+		hal_rx_get_pn(soc->hal_soc,
+			      rx_tid->hw_qdesc_vaddr_aligned,
+			      &tid_roam_ctxt->rx_pn[0]);
+
+		tid_roam_ctxt->buffer_size = rx_tid->ba_win_size;
+
+		qdf_spin_unlock_bh(&rx_tid->tid_lock);
+	}
+
+	if (soc->arch_ops.dp_vdev_get_tx_gsn) {
+		dp_roam_ctxt->cdp_roam_ctxt.tx_gsn =
+			soc->arch_ops.dp_vdev_get_tx_gsn(peer->vdev);
+	}
+
+	dp_roam_ctxt->cdp_cb(&dp_roam_ctxt->cdp_roam_ctxt,
+			     dp_roam_ctxt->cdp_cb_ctxt);
+
+	/*
+	 * Release the peer ref. taken inside dp_peer_get_roam_ctxt()
+	 */
+	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+
+	qdf_mem_free(dp_roam_ctxt);
+}
+
+static uint32_t
+dp_peer_get_active_tid_bmap(struct dp_peer *peer)
+{
+	uint32_t bmap = 0;
+
+	for (uint8_t tid = 0; tid < DP_MAX_TIDS; tid++)
+		if (peer->rx_tid[tid].hw_qdesc_vaddr_aligned)
+			bmap |= BIT(tid);
+
+	return bmap;
+}
+
+QDF_STATUS
+dp_peer_get_roam_ctxt(struct cdp_soc_t *cdp_soc,
+		      uint8_t vdev_id,
+		      uint8_t *peer_mac,
+		      enum cdp_peer_type peer_type,
+		      cdp_peer_roam_ctxt_cb cb,
+		      void *cb_ctxt)
+{
+	struct dp_soc *soc;
+	struct dp_peer *peer;
+	struct dp_peer_roam_ctxt *dp_roam_ctxt;
+	struct hal_reo_cmd_params params;
+	uint32_t tid_bitmap;
+	struct cdp_peer_info peer_info = {0};
+	struct dp_rx_tid *rx_tid;
+	struct cdp_tid_roam_ctxt *tid_roam_ctxt;
+
+	if (!cb) {
+		dp_err("%pK: NULL cdp pper ctxt cb!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!peer_mac) {
+		dp_err("%pK: peer mac is NULL!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	DP_PEER_INFO_PARAMS_INIT(&peer_info, vdev_id, peer_mac, false,
+				 peer_type);
+
+	peer = dp_peer_hash_find_wrapper((struct dp_soc *)cdp_soc,
+					 &peer_info, DP_MOD_ID_CDP);
+	if (!peer) {
+		dp_err("%pK: Peer is NULL!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!peer->vdev) {
+		dp_err("%pK: NULL vdev!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!peer->vdev->vbss_vdev) {
+		dp_err("%pK: vap is not a vbss vdev!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (vdev_id != peer->vdev->vdev_id) {
+		dp_err("%pK: Vdev id mismatch!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	tid_bitmap = dp_peer_get_active_tid_bmap(peer);
+	if (!tid_bitmap) {
+		dp_err("%pK: This is unusual..No active tids!", cdp_soc);
+		qdf_assert_always(0);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	dp_roam_ctxt = qdf_mem_malloc(sizeof(struct dp_peer_roam_ctxt));
+	if (!dp_roam_ctxt) {
+		dp_err("%pK: vbss peer ctxt mem alloc failed!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	qdf_mem_zero(dp_roam_ctxt, sizeof(*dp_roam_ctxt));
+
+	soc = peer->vdev->pdev->soc;
+
+	for (uint8_t tid = 0; tid_bitmap && (tid < DP_MAX_TIDS); tid++) {
+
+		if (!(BIT(tid) & tid_bitmap))
+			continue;
+
+		rx_tid = &peer->rx_tid[tid];
+
+		tid_roam_ctxt =
+			&(dp_roam_ctxt->cdp_roam_ctxt.tid_roam_ctxt[tid]);
+
+		tid_bitmap &= ~BIT(tid);
+
+		qdf_spin_lock_bh(&rx_tid->tid_lock);
+
+		if (rx_tid->hw_qdesc_vaddr_aligned) {
+			QDF_STATUS ret;
+
+			tid_roam_ctxt->active = true;
+
+			qdf_mem_zero(&params, sizeof(params));
+
+			params.std.addr_lo =
+				rx_tid->hw_qdesc_paddr & 0xffffffff;
+			params.std.addr_hi =
+				(uint64_t)(rx_tid->hw_qdesc_paddr) >> 32;
+
+			ret = dp_reo_send_cmd(soc, CMD_FLUSH_QUEUE, &params,
+					      NULL, NULL);
+			if (!QDF_IS_STATUS_SUCCESS(ret)) {
+				dp_err("failed to send CMD_FLUSH_QUEUE"
+				       "tid-%d desc-%pK", rx_tid->tid,
+				       (void *)(rx_tid->hw_qdesc_paddr));
+				DP_STATS_INC(soc, rx.err.reo_cmd_send_fail, 1);
+			}
+
+			qdf_mem_zero(&params, sizeof(params));
+
+			params.std.addr_lo =
+				rx_tid->hw_qdesc_paddr & 0xffffffff;
+			params.std.addr_hi =
+				(uint64_t)(rx_tid->hw_qdesc_paddr) >> 32;
+
+			params.u.fl_cache_params.flush_no_inval = 0;
+
+			if (rx_tid->ba_win_size > 256)
+				params.u.fl_cache_params.flush_q_1k_desc = 1;
+
+			params.u.fl_cache_params.fwd_mpdus_in_queue = 1;
+
+			if (!tid_bitmap) {
+				params.std.need_status = 1;
+				dp_roam_ctxt->cdp_cb = cb;
+				dp_roam_ctxt->cdp_cb_ctxt = cb_ctxt;
+				dp_roam_ctxt->peer = peer;
+				ret = dp_reo_send_cmd(soc, CMD_FLUSH_CACHE,
+						      &params,
+						      dp_send_peer_roam_ctxt,
+						      dp_roam_ctxt);
+			} else {
+				ret = dp_reo_send_cmd(soc, CMD_FLUSH_CACHE,
+						      &params, NULL, NULL);
+			}
+
+			if (!QDF_IS_STATUS_SUCCESS(ret)) {
+				dp_err("failed to send CMD_FLUSH_CACHE"
+				       "tid-%d desc-%pK", rx_tid->tid,
+				       (void *)(rx_tid->hw_qdesc_paddr));
+				DP_STATS_INC(soc, rx.err.reo_cmd_send_fail, 1);
+			}
+		} else {
+			dp_err("%pK: TID-%d not setup", soc, tid);
+		}
+
+		qdf_spin_unlock_bh(&rx_tid->tid_lock);
+	}
+
+	/*
+	 * Keep holding the remote vbss peer's ref. until the roaming context
+	 * data is extacted and delivered to control path. This is done inside
+	 * dp_send_peer_roam_ctxt().
+	 */
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS
+dp_peer_set_roam_ctxt(struct cdp_soc_t *cdp_soc,
+		      uint8_t vdev_id,
+		      uint8_t *peer_mac,
+		      enum cdp_peer_type peer_type,
+		      struct cdp_peer_roam_ctxt *peer_roam_ctxt)
+{
+	struct dp_soc *soc;
+	struct dp_peer *peer;
+	struct dp_vdev *vdev;
+	struct cdp_peer_info peer_info = {0};
+	enum cdp_sec_type sec_type;
+
+	if (!peer_roam_ctxt) {
+		dp_err("%pK: cdp peer ctxt is NULL!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!peer_mac) {
+		dp_err("%pK: peer mac is NULL!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	DP_PEER_INFO_PARAMS_INIT(&peer_info, vdev_id, peer_mac, false,
+				 peer_type);
+
+	peer = dp_peer_hash_find_wrapper((struct dp_soc *)cdp_soc, &peer_info,
+					 DP_MOD_ID_CDP);
+	if (!peer) {
+		dp_err("%pK: Peer is NULL!", cdp_soc);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	vdev = peer->vdev;
+
+	if (!vdev) {
+		dp_err("%pK: Vdev is NULL!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (vdev_id != vdev->vdev_id) {
+		dp_err("%pK: Vdev id mismatch!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!vdev->vbss_vdev) {
+		dp_err("%pK: Not a vbss vdev!", cdp_soc);
+		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	sec_type = peer->txrx_peer->security[dp_sec_ucast].sec_type;
+
+	soc = peer->vdev->pdev->soc;
+
+	if (soc->arch_ops.dp_vdev_set_tx_gsn)
+		soc->arch_ops.dp_vdev_set_tx_gsn(peer->vdev,
+						 peer_roam_ctxt->tx_gsn);
+
+	for (uint8_t tid = 0; tid < DP_MAX_TIDS; tid++) {
+		QDF_STATUS ret;
+		struct cdp_tid_roam_ctxt *tid_roam_ctxt =
+					&peer_roam_ctxt->tid_roam_ctxt[tid];
+
+		if (!tid_roam_ctxt->active)
+			continue;
+
+		ret = dp_rx_tid_setup_wifi3(peer, BIT(tid),
+					    tid_roam_ctxt->buffer_size, 0);
+		if (QDF_IS_STATUS_SUCCESS(ret)) {
+			if (sec_type != cdp_sec_type_none) {
+				ret = dp_rx_tid_set_pn(soc, peer, tid, sec_type,
+						       tid_roam_ctxt->rx_pn,
+						       NULL, NULL);
+				if (!QDF_IS_STATUS_SUCCESS(ret))
+					dp_err("%pK: TID:%d PN set failed",
+					       soc, tid);
+			}
+		} else {
+			dp_err("%pK: TID-%d Setup failed!", soc, tid);
+		}
+	}
+
+	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+
+	return QDF_STATUS_SUCCESS;
+}
+#endif /* WLAN_FEATURE_VBSS */
+

@@ -3855,6 +3855,23 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 	return QDF_STATUS_SUCCESS;
 }
+
+static inline
+uint32_t dp_vdev_get_tx_gsn_be(struct dp_vdev *vdev)
+{
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	return qdf_atomic_read(&be_vdev->mlo_dev_ctxt->seq_num);
+}
+
+static inline
+void dp_vdev_set_tx_gsn_be(struct dp_vdev *vdev, uint32_t gsn)
+{
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	qdf_atomic_set(&be_vdev->mlo_dev_ctxt->seq_num,
+		       gsn >= MAX_GSN_NUM ? 0 : gsn);
+}
 #else
 void dp_mlo_dev_ctxt_list_attach(dp_mlo_dev_obj_t mlo_dev_obj)
 {
@@ -3892,6 +3909,16 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 				       uint8_t *mld_mac_addr)
 {
 	return QDF_STATUS_SUCCESS;
+}
+
+static inline
+uint32_t dp_vdev_get_tx_gsn_be(struct dp_vdev *vdev)
+{
+	return 0;
+}
+
+void dp_vdev_set_tx_gsn_be(struct dp_vdev *vdev, uint32_t gsn)
+{
 }
 #endif /* WLAN_DP_MLO_DEV_CTX */
 
@@ -4237,6 +4264,8 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 	arch_ops->dp_mlo_tx_pool_map = dp_mlo_tx_pool_map_be;
 	arch_ops->dp_mlo_tx_pool_unmap = dp_mlo_tx_pool_unmap_be;
 	arch_ops->dp_tx_override_flow_pool_id = dp_tx_override_flow_pool_id_be;
+	arch_ops->dp_vdev_get_tx_gsn = dp_vdev_get_tx_gsn_be;
+	arch_ops->dp_vdev_set_tx_gsn = dp_vdev_set_tx_gsn_be;
 
 	dp_initialize_arch_ops_be_ipa(arch_ops);
 	dp_initialize_arch_ops_be_single_dev(arch_ops);

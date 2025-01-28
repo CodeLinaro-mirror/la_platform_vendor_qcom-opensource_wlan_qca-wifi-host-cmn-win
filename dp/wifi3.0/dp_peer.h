@@ -2750,4 +2750,21 @@ dp_peer_update_wds(struct dp_soc *soc, struct dp_txrx_peer *ta_peer,
 }
 #endif /* FEATURE_WDS_AST_LEARNING */
 
+#ifdef WLAN_FEATURE_VBSS
+QDF_STATUS
+dp_peer_get_roam_ctxt(struct cdp_soc_t *soc,
+		      uint8_t vdev_id,
+		      uint8_t *peer_mac,
+		      enum cdp_peer_type peer_type,
+		      cdp_peer_roam_ctxt_cb cb,
+		      void *cb_ctxt);
+
+QDF_STATUS
+dp_peer_set_roam_ctxt(struct cdp_soc_t *soc,
+		      uint8_t vdev_id,
+		      uint8_t *peer_mac,
+		      enum cdp_peer_type peer_type,
+		      struct cdp_peer_roam_ctxt *ctxt_buf);
+#endif /* WLAN_FEATURE_VBSS */
+
 #endif /* _DP_PEER_H_ */

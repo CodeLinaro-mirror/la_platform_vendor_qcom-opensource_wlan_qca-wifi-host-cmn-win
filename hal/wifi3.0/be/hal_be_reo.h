@@ -100,4 +100,8 @@ hal_reo_rx_update_queue_status_be(hal_ring_desc_t ring_desc,
 void hal_reo_init_cmd_ring_be(hal_soc_handle_t hal_soc_hdl,
 			      hal_ring_handle_t hal_ring_hdl);
 uint8_t hal_get_tlv_hdr_size_be(void);
+
+void hal_reo_get_pn_be(hal_soc_handle_t hal_soc_hdl, void *hw_qdesc_vaddr,
+		       uint32_t *rx_pn_buf);
+
 #endif /* _HAL_REO_BE_H_ */

@@ -9595,6 +9595,11 @@ dp_set_vdev_param(struct cdp_soc_t *cdp_soc, uint8_t vdev_id,
 		return QDF_STATUS_E_FAILURE;
 
 	switch (param) {
+#ifdef WLAN_FEATURE_VBSS
+	case CDP_ENABLE_VBSS:
+		vdev->vbss_vdev = val.cdp_vdev_param_vbss;
+		break;
+#endif
 	case CDP_ENABLE_WDS:
 		dp_cdp_err("%pK: wds_enable %d for vdev(%pK) id(%d)",
 			   dsoc, val.cdp_vdev_param_wds, vdev, vdev->vdev_id);
@@ -13658,6 +13663,11 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 	.calculate_per_ring_pkt_avg = dp_rx_calculate_per_ring_pkt_avg,
 	.get_per_ring_pkt_avg = dp_rx_get_per_ring_pkt_avg,
 	.get_ext_grp_id_from_reo_num = dp_soc_get_ext_grp_id_from_reo_num,
+#endif
+
+#ifdef WLAN_FEATURE_VBSS
+	.txrx_get_peer_roam_ctxt = dp_peer_get_roam_ctxt,
+	.txrx_set_peer_roam_ctxt = dp_peer_set_roam_ctxt,
 #endif
 };
 
