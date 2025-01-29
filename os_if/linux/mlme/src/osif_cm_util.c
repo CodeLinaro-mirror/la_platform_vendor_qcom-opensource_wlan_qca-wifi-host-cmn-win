@@ -787,6 +787,19 @@ struct net_device *osif_cm_get_mld_netdev(struct wlan_objmgr_vdev *vdev)
 
 	return dev;
 }
+
+QDF_STATUS osif_cm_set_unassoc_link_ieee_id(struct wlan_objmgr_vdev *vdev)
+{
+	osif_cm_set_unassoc_link_ieee_id_cb cb = NULL;
+	QDF_STATUS ret = QDF_STATUS_SUCCESS;
+
+	if (osif_cm_legacy_ops)
+		cb = osif_cm_legacy_ops->osif_set_unassoc_link_ieee_id_cb;
+	if (cb)
+		ret = cb(vdev);
+
+	return ret;
+}
 #endif
 
 #ifdef WLAN_VENDOR_HANDOFF_CONTROL
