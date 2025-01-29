@@ -717,6 +717,26 @@ wlan_objmgr_vdev_find_peer_by_mac(struct wlan_objmgr_vdev *vdev,
 
 qdf_export_symbol(wlan_objmgr_vdev_find_peer_by_mac);
 
+static void wlan_vdev_get_connected_peer(struct wlan_objmgr_vdev *vdev,
+					 void *obj, void *arg)
+{
+	uint16_t *num_peer = (uint16_t *)arg;
+	struct wlan_objmgr_peer *peer = (struct wlan_objmgr_peer *)obj;
+
+	 if (wlan_peer_mlme_get_state(peer) == WLAN_CONNECTED_STATE)
+		(*num_peer)++;
+}
+
+uint16_t wlan_vdev_get_connected_peer_count(struct wlan_objmgr_vdev *vdev)
+{
+	uint16_t peer_count = 0;
+
+	wlan_objmgr_iterate_peerobj_list(vdev, wlan_vdev_get_connected_peer,
+					 &peer_count, WLAN_OBJMGR_ID);
+
+	return peer_count;
+}
+
 /**
  * wlan_obj_vdev_populate_logically_del_peerlist() - get peer
  * from vdev peer list
