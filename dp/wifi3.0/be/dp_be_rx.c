@@ -558,6 +558,13 @@ more_data:
 	last_prefetched_hw_desc = dp_srng_dst_prefetch_32_byte_desc(hal_soc,
 							    hal_ring_hdl,
 							    num_pending);
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx)) &&
+	    rx_ring)
+		hal_update_ring_util(soc->hal_soc, rx_ring->hal_srng,
+				     REO_DST,
+				     &rx_ring->stats);
 	/*
 	 * start reaping the buffers from reo ring and queue
 	 * them in per vdev queue.
@@ -2366,6 +2373,7 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	bool process_sg_buf = false;
 	QDF_STATUS status;
 	struct dp_soc *replenish_soc;
+	struct dp_srng *srng;
 	uint8_t chip_id;
 	union hal_wbm_err_info_u wbm_err = { 0 };
 	union dp_rx_desc_list_elem_t
@@ -2389,6 +2397,15 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 		dp_rx_err_err("%pK: HAL RING Access Failed -- %pK",
 			      soc, hal_ring_hdl);
 		goto done;
+	}
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->rx_rel_ring;
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     WBM2SW_RELEASE,
+					     &srng->stats);
 	}
 
 	while (qdf_likely(quota)) {

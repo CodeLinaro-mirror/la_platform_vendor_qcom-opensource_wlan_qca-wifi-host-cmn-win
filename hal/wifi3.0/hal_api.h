@@ -48,10 +48,16 @@
  */
 enum RING_USAGE {
 	RING_USAGE_100,
-	RING_USAGE_GREAT_90,
-	RING_USAGE_70_TO_90,
-	RING_USAGE_50_TO_70,
-	RING_USAGE_LESS_50,
+	RING_USAGE_90_TO_100,
+	RING_USAGE_80_TO_90,
+	RING_USAGE_70_TO_80,
+	RING_USAGE_60_TO_70,
+	RING_USAGE_50_TO_60,
+	RING_USAGE_40_TO_50,
+	RING_USAGE_30_TO_40,
+	RING_USAGE_20_TO_30,
+	RING_USAGE_10_TO_20,
+	RING_USAGE_LESS_10,
 	RING_USAGE_MAX,
 };
 
@@ -63,9 +69,15 @@ struct ring_util_stats {
 };
 
 #define RING_USAGE_100_PERCENTAGE 100
-#define RING_USAGE_50_PERCENTAGE   50
-#define RING_USAGE_70_PERCENTAGE   70
 #define RING_USAGE_90_PERCENTAGE   90
+#define RING_USAGE_80_PERCENTAGE   80
+#define RING_USAGE_70_PERCENTAGE   70
+#define RING_USAGE_60_PERCENTAGE   60
+#define RING_USAGE_50_PERCENTAGE   50
+#define RING_USAGE_40_PERCENTAGE   40
+#define RING_USAGE_30_PERCENTAGE   30
+#define RING_USAGE_20_PERCENTAGE   20
+#define RING_USAGE_10_PERCENTAGE   10
 
 /* calculate the register address offset from bar0 of shadow register x */
 #if defined(QCA_WIFI_QCA6390) || defined(QCA_WIFI_QCA6490) || \
@@ -3451,15 +3463,25 @@ void hal_update_ring_util(void *hal_soc, hal_ring_handle_t hal_ring_hdl,
 	if (ring_usage == RING_USAGE_100_PERCENTAGE) {
 		ring_utilisation->util[RING_USAGE_100]++;
 	} else if (ring_usage > RING_USAGE_90_PERCENTAGE) {
-		ring_utilisation->util[RING_USAGE_GREAT_90]++;
-	} else if ((ring_usage > RING_USAGE_70_PERCENTAGE) &&
-		   (ring_usage <= RING_USAGE_90_PERCENTAGE)) {
-		ring_utilisation->util[RING_USAGE_70_TO_90]++;
-	} else if ((ring_usage > RING_USAGE_50_PERCENTAGE) &&
-		   (ring_usage <= RING_USAGE_70_PERCENTAGE)) {
-		ring_utilisation->util[RING_USAGE_50_TO_70]++;
+		ring_utilisation->util[RING_USAGE_90_TO_100]++;
+	} else if (ring_usage > RING_USAGE_80_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_80_TO_90]++;
+	} else if (ring_usage > RING_USAGE_70_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_70_TO_80]++;
+	} else if (ring_usage > RING_USAGE_60_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_60_TO_70]++;
+	} else if (ring_usage > RING_USAGE_50_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_50_TO_60]++;
+	} else if (ring_usage > RING_USAGE_40_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_40_TO_50]++;
+	} else if (ring_usage > RING_USAGE_30_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_30_TO_40]++;
+	} else if (ring_usage > RING_USAGE_20_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_20_TO_30]++;
+	} else if (ring_usage > RING_USAGE_10_PERCENTAGE) {
+		ring_utilisation->util[RING_USAGE_10_TO_20]++;
 	} else {
-		ring_utilisation->util[RING_USAGE_LESS_50]++;
+		ring_utilisation->util[RING_USAGE_LESS_10]++;
 	}
 }
 

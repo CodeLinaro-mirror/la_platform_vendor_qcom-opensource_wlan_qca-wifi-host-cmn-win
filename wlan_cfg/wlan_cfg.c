@@ -4540,6 +4540,8 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 			cfg_get(psoc, CFG_DP_SPECTRAL_SPUR_METHOD_REPORT);
 	wlan_cfg_ctx->avg_rate_stats_filter_val =
 		cfg_get(psoc, CFG_DP_STATS_AVG_RATE_FILTER);
+	wlan_cfg_ctx->dp_ring_util_stats =
+		cfg_get(psoc, CFG_DP_RING_UTIL_STATS_ENABLE);
 	wlan_soc_ast_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_mcast_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_reclaim_timer_val_attach(psoc, wlan_cfg_ctx);
@@ -4857,6 +4859,8 @@ wlan_cfg_soc_attach(struct cdp_ctrl_objmgr_psoc *psoc)
 			cfg_get(psoc, CFG_DP_SPECTRAL_SPUR_METHOD_REPORT);
 	wlan_cfg_ctx->avg_rate_stats_filter_val =
 		cfg_get(psoc, CFG_DP_STATS_AVG_RATE_FILTER);
+	wlan_cfg_ctx->dp_ring_util_stats =
+		cfg_get(psoc, CFG_DP_RING_UTIL_STATS_ENABLE);
 	wlan_soc_ast_cfg_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_mcast_attach(psoc, wlan_cfg_ctx);
 	wlan_soc_sawf_reclaim_timer_val_attach(psoc, wlan_cfg_ctx);
@@ -6223,6 +6227,12 @@ wlan_cfg_is_delay_mon_replenish(struct wlan_cfg_dp_soc_ctxt *cfg)
 }
 
 qdf_export_symbol(wlan_cfg_is_delay_mon_replenish);
+
+bool
+wlan_cfg_is_dp_ring_util_stats_enabled(struct wlan_cfg_dp_soc_ctxt *cfg)
+{
+	return cfg->dp_ring_util_stats;
+}
 
 #ifdef WLAN_SOFTUMAC_SUPPORT
 void wlan_cfg_dp_soc_ctx_dump(struct wlan_cfg_dp_soc_ctxt *cfg)

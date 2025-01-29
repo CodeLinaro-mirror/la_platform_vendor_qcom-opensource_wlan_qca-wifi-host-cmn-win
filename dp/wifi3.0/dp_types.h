@@ -2820,6 +2820,8 @@ struct dp_arch_ops {
 	void (*dp_tx_ipa_opt_dp_ctrl)(struct dp_soc *soc, uint8_t vdev_id,
 				      qdf_nbuf_t nbuf);
 #endif
+	void (*dp_txrx_rings_util_stats)(struct dp_soc *soc);
+	void (*dp_txrx_clear_rings_util_stats)(struct dp_soc *soc);
 #ifdef WLAN_SUPPORT_PPEDS
 	void (*dp_txrx_ppeds_rings_status)(struct dp_soc *soc);
 	void (*dp_tx_ppeds_inuse_desc)(struct dp_soc *soc);
@@ -2827,8 +2829,6 @@ struct dp_arch_ops {
 	void (*dp_tx_ppeds_cfg_astidx_cache_mapping)(struct dp_soc *soc,
 						     struct dp_vdev *vdev,
 						     bool peer_map);
-	void (*dp_txrx_ppeds_rings_stats)(struct dp_soc *soc);
-	void (*dp_txrx_ppeds_clear_rings_stats)(struct dp_soc *soc);
 	void (*dp_tx_update_ppeds_tx_comp_stats)(struct dp_soc *soc,
 						 struct dp_txrx_peer *txrx_peer,
 						 struct hal_tx_completion_status *ts,

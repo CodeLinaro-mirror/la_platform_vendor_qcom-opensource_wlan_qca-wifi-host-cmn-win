@@ -398,6 +398,7 @@ struct wlan_srng_cfg {
  * @dp_rx_buffer_recycle_enabled: DP RX buffer recycling using page pool API
  *				  enabled/disabled
  * @dp_eapol_stats: flag to enable/disable eapol drop stats
+ * @dp_ring_util_stats: Enable/Disable dp ring utilization stats
  */
 struct wlan_cfg_dp_soc_ctxt {
 	int num_int_ctxts;
@@ -660,6 +661,7 @@ struct wlan_cfg_dp_soc_ctxt {
 	bool dp_eapol_stats;
 #endif
 	int spec_spur_method;
+	bool dp_ring_util_stats;
 };
 
 /**
@@ -2519,6 +2521,15 @@ wlan_cfg_set_delay_mon_replenish(struct wlan_cfg_dp_soc_ctxt *cfg, bool val);
  * Return:
  */
 void wlan_cfg_dp_soc_ctx_dump(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_is_dp_ring_util_stats_enabled() - Get if dp ring util stats is
+ * enabled
+ * @cfg: soc configuration context
+ *
+ * Return:
+ */
+bool wlan_cfg_is_dp_ring_util_stats_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
 
 #ifdef WLAN_SUPPORT_PPEDS
 /**
