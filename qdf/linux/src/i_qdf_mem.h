@@ -810,4 +810,36 @@ void __qdf_mem_free_consistent(qdf_device_t osdev, void *dev,
 			       qdf_size_t size, void *vaddr,
 			       qdf_dma_addr_t paddr, qdf_dma_context_t memctx);
 
+/**
+ * qdf_mem_malloc_no_header() - no header version of of memory allocation API
+ * @size: Number of bytes of memory to allocate.
+ * @func: Function name of the call site
+ * @line: Line number of the call site
+ * @caller: Address of the caller function
+ * @flag: GFP flag
+ *
+ * This function will dynamically allocate the specified number of bytes of
+ * memory and add it to the qdf tracking list to check for memory leaks and
+ * corruptions. This version of malloc only adds tralier and does not add any
+ * memory header.
+ *
+ * Return: A valid memory location on success, or NULL on failure
+ */
+void *__qdf_mem_malloc_no_header(size_t size, const char *func, uint32_t line,
+				 void *caller, uint32_t flag);
+
+/**
+ * qdf_mem_free_no_header() - No header version of memory free API
+ * @ptr: Pointer to the starting address of the memory to be freed.
+ * @size: Number of bytes of memory to free.
+ * @func: Function name of the call site
+ * @line: Line number of the call site
+ *
+ * This function will free the memory pointed to by 'ptr'. It also checks for
+ * memory corruption, underrun, overrun, double free, domain mismatch, etc.
+ *
+ * Return: none
+ */
+void __qdf_mem_free_no_header(void *ptr, size_t size, const char *func,
+			      uint32_t line);
 #endif /* __I_QDF_MEM_H */

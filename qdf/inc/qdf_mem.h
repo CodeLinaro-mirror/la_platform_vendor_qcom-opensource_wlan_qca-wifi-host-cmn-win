@@ -202,6 +202,12 @@ void *qdf_mem_malloc_debug(size_t size, const char *func, uint32_t line,
 #define qdf_mem_malloc_atomic(size) \
 	qdf_mem_malloc_atomic_debug(size, __func__, __LINE__, QDF_RET_IP)
 
+#define qdf_mem_malloc_no_header(size) \
+	__qdf_mem_malloc_no_header(size, __func__, __LINE__, QDF_RET_IP, 0)
+
+#define qdf_mem_free_no_header(ptr, size) \
+	__qdf_mem_free_no_header(ptr, size, __func__, __LINE__)
+
 /**
  * qdf_mem_free() - free allocate memory
  * @ptr: Pointer to the starting address of the memory to be freed.
@@ -435,47 +441,48 @@ void qdf_mem_multi_pages_free(qdf_device_t osdev,
 			      struct qdf_mem_multi_page_t *pages,
 			      qdf_dma_context_t memctxt, bool cacheable);
 
+#define qdf_mem_malloc_no_header(size) \
+	__qdf_mem_malloc(size, __func__, __LINE__)
+
+#define qdf_mem_free_no_header(ptr, size) \
+	__qdf_mem_free(ptr)
+
 #endif /* MEMORY_DEBUG */
 
 /**
- * qdf_mem_multi_pages_alloc_no_debug() - No Debug version of
+ * qdf_mem_multi_pages_alloc_no_header() - No header version of
  * qdf_mem_multi_pages_alloc
  * @osdev: OS device handle pointer
  * @pages: Multi page information storage
  * @element_size: Each element size
  * @element_num: Total number of elements should be allocated
  *
- * This function will skip qdf mem debug framework during memory allocation.
- * This function should not be used in normal scenario and should be used
- * only for special case where 4k alignment is required for which qdf header
- * should not be added.
+ * This function will skip adding qdf mem header and only add trailer
+ * during memory allocation. This function should not be used in normal
+ * scenario and should be used only for special case where 4k alignment is
+ * required for which qdf header should not be added.
  *
  * Return: None
  */
-void qdf_mem_multi_pages_alloc_no_debug(qdf_device_t osdev,
-					struct qdf_mem_multi_page_t *pages,
-					size_t element_size,
-					uint32_t element_num);
+void qdf_mem_multi_pages_alloc_no_header(qdf_device_t osdev,
+					 struct qdf_mem_multi_page_t *pages,
+					 size_t element_size,
+					 uint32_t element_num);
 
 /**
- * qdf_mem_multi_pages_free_no_debug() - No Debug version of
+ * qdf_mem_multi_pages_free_no_header() - No header version of
  * qdf_mem_multi_pages_free
  * @osdev: OS device handle pointer
  * @pages: Multi page information storage
  *
  * This function will free large size of memory over multiple pages. This will
- * skip qdf memory debug framework.
+ * be used to free memory which was initialized using no header version of
+ * alloc.
  *
  * Return: None
  */
-void qdf_mem_multi_pages_free_no_debug(qdf_device_t osdev,
-				       struct qdf_mem_multi_page_t *pages);
-
-#define qdf_mem_malloc_no_debug(size) \
-	__qdf_mem_malloc(size, __func__, __LINE__)
-
-#define qdf_mem_free_no_debug(ptr) \
-	__qdf_mem_free(ptr)
+void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
+					struct qdf_mem_multi_page_t *pages);
 
 /**
  * qdf_mem_malloc_flags: Get mem allocation flags
