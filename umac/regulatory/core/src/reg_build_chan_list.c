@@ -3625,6 +3625,7 @@ static void reg_append_6g_reg_rules_in_pdev(
 	struct reg_rule_info *pdev_reg_rules;
 	enum reg_6g_ap_type cur_pwr_type;
 	uint8_t num_reg_rules;
+	uint8_t *num_6ghz_reg_rules;
 
 	cur_pwr_type = pdev_priv_obj->reg_cur_6g_ap_pwr_type;
 	if (cur_pwr_type > REG_MAX_SUPP_AP_TYPE) {
@@ -3635,6 +3636,22 @@ static void reg_append_6g_reg_rules_in_pdev(
 	pdev_reg_rules = &pdev_priv_obj->reg_rules;
 
 	num_reg_rules = pdev_reg_rules->num_of_reg_rules;
+	num_6ghz_reg_rules = pdev_reg_rules->num_of_6g_ap_reg_rules;
+
+	if (!num_6ghz_reg_rules[cur_pwr_type]) {
+		if (num_6ghz_reg_rules[REG_INDOOR_AP])
+			cur_pwr_type = REG_INDOOR_AP;
+		else if (num_6ghz_reg_rules[REG_VERY_LOW_POWER_AP])
+			cur_pwr_type = REG_VERY_LOW_POWER_AP;
+		else if (num_6ghz_reg_rules[REG_STANDARD_POWER_AP])
+			cur_pwr_type = REG_STANDARD_POWER_AP;
+		else {
+			reg_debug("No rules found");
+			return;
+		}
+	}
+
+	reg_debug("Copying power type %d rules to pdev", cur_pwr_type);
 	pdev_reg_rules->num_of_reg_rules +=
 		pdev_reg_rules->num_of_6g_ap_reg_rules[cur_pwr_type];
 
