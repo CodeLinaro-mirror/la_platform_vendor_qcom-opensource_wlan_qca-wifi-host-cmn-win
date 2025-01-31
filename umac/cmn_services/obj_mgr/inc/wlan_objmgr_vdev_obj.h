@@ -1704,6 +1704,19 @@ wlan_objmgr_vdev_find_peer_by_mac(struct wlan_objmgr_vdev *vdev,
 				  wlan_objmgr_ref_dbgid dbg_id);
 
 /**
+ *
+ * wlan_vdev_get_connected_peer_count() - get number of peers in connected state
+ * @vdev: VDEV object
+ *
+ * API to get number of peers in connected state
+ *
+ * Return: number of peers in connected state
+ */
+
+uint16_t
+wlan_vdev_get_connected_peer_count(struct wlan_objmgr_vdev *vdev);
+
+/**
  * wlan_objmgr_vdev_try_get_bsspeer() - get and increment ref count of BSS peer
  * of VDEV
  * @vdev: VDEV object

@@ -1257,3 +1257,26 @@ void wlan_print_pdev_info(struct wlan_objmgr_pdev *pdev)
 
 qdf_export_symbol(wlan_print_pdev_info);
 #endif
+
+static void wlan_pdev_get_connected_peer(struct wlan_objmgr_pdev *pdev,
+					 void *obj, void *arg)
+{
+	uint16_t *num_peer = (uint16_t *)arg;
+	struct wlan_objmgr_peer *peer = (struct wlan_objmgr_peer *)obj;
+
+	 if (wlan_peer_mlme_get_state(peer) == WLAN_CONNECTED_STATE)
+		(*num_peer)++;
+}
+
+uint16_t wlan_pdev_get_connected_peer_count(struct wlan_objmgr_pdev *pdev)
+{
+	uint16_t peer_count = 0;
+
+	wlan_objmgr_pdev_iterate_obj_list(pdev, WLAN_PEER_OP,
+					  wlan_pdev_get_connected_peer,
+					  &peer_count, 0, WLAN_OBJMGR_ID);
+
+	return peer_count;
+}
+
+
