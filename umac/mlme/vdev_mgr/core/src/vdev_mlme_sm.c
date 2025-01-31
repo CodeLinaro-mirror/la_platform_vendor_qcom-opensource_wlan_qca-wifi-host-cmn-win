@@ -405,7 +405,9 @@ static bool mlme_vdev_state_dfs_cac_wait_event(void *ctx, uint16_t event,
 		break;
 
 	case WLAN_VDEV_SM_EV_DFS_CAC_COMPLETED:
-		if (mode == QDF_STA_MODE) {
+		/* Dispatch vdev UP command if the STA vap is in connected state.
+		 */
+		if ((mode == QDF_STA_MODE) && !wlan_cm_is_vdev_connected(vdev)) {
 			mlme_vdev_sm_transition_to(vdev_mlme,
 						   WLAN_VDEV_S_START);
 			mlme_vdev_sm_deliver_event(vdev_mlme,
