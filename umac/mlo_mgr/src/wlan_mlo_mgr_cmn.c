@@ -344,7 +344,7 @@ mlo_mlme_connect_get_partner_info(struct wlan_objmgr_vdev *vdev,
 	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
 	struct vdev_mlme_obj *vdev_mlme;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
-	struct mlo_mlme_ext_ops *ops = mlo_ctx->mlme_ops;
+	struct mlo_mlme_ext_ops *ops;
 
 	if (!mlo_ctx || !mlo_ctx->mlme_ops ||
 	    !mlo_ctx->mlme_ops->mlo_mlme_ext_validate_conn_req)
@@ -354,6 +354,7 @@ mlo_mlme_connect_get_partner_info(struct wlan_objmgr_vdev *vdev,
 	if (!vdev_mlme)
 		return QDF_STATUS_E_FAILURE;
 
+	ops = mlo_ctx->mlme_ops;
 	if (mlo_ctx->mlme_ops->mlo_mlme_ext_connect_get_partner_info)
 		status = ops->mlo_mlme_ext_connect_get_partner_info(vdev, req,
 								    par_info);
@@ -366,11 +367,12 @@ mlo_mlme_set_ieee_link_id(struct wlan_objmgr_vdev *vdev)
 {
 	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
-	struct mlo_mlme_ext_ops *ops = mlo_ctx->mlme_ops;
+	struct mlo_mlme_ext_ops *ops;
 
 	if (!mlo_ctx || !mlo_ctx->mlme_ops)
 		return QDF_STATUS_E_FAILURE;
 
+	ops = mlo_ctx->mlme_ops;
 	if (mlo_ctx->mlme_ops->mlo_mlme_ext_set_ieee_link_id)
 		status = ops->mlo_mlme_ext_set_ieee_link_id(vdev);
 
