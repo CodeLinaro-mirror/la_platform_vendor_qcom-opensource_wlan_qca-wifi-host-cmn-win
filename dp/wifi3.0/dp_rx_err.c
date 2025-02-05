@@ -56,6 +56,8 @@
 #define DP_MAX_REG_RX_ROUTING_ERRS_IN_TIMEOUT 10
 #define DP_RX_ERR_ROUTE_TIMEOUT_US (5 * 1000 * 1000) /* micro seconds */
 
+#define MAX_RING_FULL_WAIT_CNT 200
+
 #ifdef FEATURE_MEC
 bool dp_rx_mcast_echo_check(struct dp_soc *soc,
 			    struct dp_txrx_peer *txrx_peer,
@@ -196,6 +198,7 @@ dp_rx_link_desc_return_by_addr(struct dp_soc *soc,
 	hal_soc_handle_t hal_soc = soc->hal_soc;
 	QDF_STATUS status = QDF_STATUS_E_FAILURE;
 	void *src_srng_desc;
+	uint16_t wait_cnt;
 
 	if (!wbm_rel_srng) {
 		dp_rx_err_err("%pK: WBM RELEASE RING not initialized", soc);
@@ -221,6 +224,19 @@ dp_rx_link_desc_return_by_addr(struct dp_soc *soc,
 		goto done;
 	}
 	src_srng_desc = hal_srng_src_get_next(hal_soc, wbm_rel_srng);
+
+	if (qdf_unlikely(!src_srng_desc)) {
+		for (wait_cnt = 0;
+		     wait_cnt < MAX_RING_FULL_WAIT_CNT; wait_cnt++) {
+			hal_srng_access_start_unlocked(hal_soc, wbm_rel_srng);
+			src_srng_desc =
+				hal_srng_src_get_next(hal_soc, wbm_rel_srng);
+			if (qdf_likely(src_srng_desc))
+				break;
+			hal_srng_access_end_unlocked(hal_soc, wbm_rel_srng);
+		}
+	}
+
 	if (qdf_likely(src_srng_desc)) {
 		/* Return link descriptor through WBM ring (SW2WBM)*/
 		hal_rx_msdu_link_desc_set(hal_soc,
