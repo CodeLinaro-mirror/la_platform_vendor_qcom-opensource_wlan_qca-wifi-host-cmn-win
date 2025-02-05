@@ -1251,7 +1251,13 @@ dp_tx_mon_generated_response_frm(struct dp_pdev *pdev,
 		break;
 	}
 	case TXMON_GEN_RESP_SELFGEN_BA:
-	{
+	{	/* drop ppdu if WIFIRX_FRAME_BITMAP_ACK_E TLV is missing */
+		if (qdf_unlikely(TXMON_PPDU_HAL(tx_ppdu_info, ba_user_id)
+						== -1)) {
+			tx_mon_be->stats.ppdu_drop_tlv_missing++;
+			break;
+		}
+
 		dp_tx_mon_generate_block_ack_frm(pdev, tx_ppdu_info,
 						 RESPONSE_WINDOW, mac_id);
 		break;
