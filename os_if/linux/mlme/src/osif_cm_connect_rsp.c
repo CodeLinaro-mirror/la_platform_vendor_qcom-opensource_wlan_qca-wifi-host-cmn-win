@@ -1076,6 +1076,18 @@ static int osif_connect_done(struct net_device *dev, struct cfg80211_bss *bss,
 
 	osif_free_ml_link_params(&conn_rsp_params);
 
+	/*
+	 * osif_cm set_unassoc_link_ieee_id API sets unassociated link's
+	 * ieee_link_id to 0xff. This is needed particularly in those cases
+	 * where n-links in a m-link STA MLD group(with n<m) successfully
+	 * associates to an AP that has different radio order as that of STA
+	 * which results in ieee_link_id collisions.
+	 */
+	if ((status == WLAN_STATUS_SUCCESS) &&
+	    QDF_IS_STATUS_ERROR(osif_cm_set_unassoc_link_ieee_id(vdev))) {
+		osif_err("Error in updating unassociated link's ieee_link_id");
+	}
+
 	return 0;
 }
 #else /* CFG80211_CONNECT_DONE */
