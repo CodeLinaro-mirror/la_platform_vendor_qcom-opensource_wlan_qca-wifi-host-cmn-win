@@ -3316,6 +3316,23 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 		he_data1 |= QDF_MON_STATUS_HE_STBC_KNOWN;
 		he_data3 |= (is_stbc << QDF_MON_STATUS_STBC_SHIFT);
 
+		/* GI mapping for radiotap */
+		switch (gi) {
+		case HE_GI_0_8:
+			gi = HE_GI_RADIOTAP_0_8;
+			break;
+		case HE_GI_0_4:
+			gi = HE_GI_RADIOTAP_0_8;
+			break;
+		case HE_GI_1_6:
+			gi = HE_GI_RADIOTAP_1_6;
+			break;
+		case HE_GI_3_2:
+			gi = HE_GI_RADIOTAP_3_2;
+			break;
+		default:
+			gi = HE_GI_RADIOTAP_RESERVED;
+		}
 		/* GI */
 		he_data2 |= QDF_MON_STATUS_HE_GI_KNOWN;
 		he_data5 |= (gi << QDF_MON_STATUS_GI_SHIFT);
