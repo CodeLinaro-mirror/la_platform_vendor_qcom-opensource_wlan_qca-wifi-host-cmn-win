@@ -1968,7 +1968,7 @@ util_scan_add_hidden_ssid(struct wlan_objmgr_pdev *pdev, qdf_nbuf_t bcnbuf)
 	struct wlan_ssid *conf_ssid;
 	struct  ie_header *ie;
 	uint32_t frame_len = qdf_nbuf_len(bcnbuf);
-	uint16_t bcn_ie_offset, ssid_ie_start_offset, ssid_ie_end_offset;
+	uint16_t bcn_ie_offset, ssid_ie_start_offset = 0, ssid_ie_end_offset = 0;
 	uint16_t tmplen, ie_length;
 	uint8_t *pbeacon, *tmp;
 	bool     set_ssid_flag = false;
