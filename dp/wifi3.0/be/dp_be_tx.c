@@ -2187,7 +2187,9 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 			     qdf_nbuf_t nbuf, uint8_t *tid, uint8_t *sawf_tid)
 {
 	hal_tx_desc[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc[1] = tx_desc->id <<
+	hal_tx_desc[1] = (((uint64_t)tx_desc->dma_addr) >> 32) &
+		TCL_DATA_CMD_BUF_ADDR_INFO_BUFFER_ADDR_39_32_MASK;
+	hal_tx_desc[1] |= tx_desc->id <<
 		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
 
 	/* bank_id */
@@ -2242,7 +2244,9 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 
 	hal_tx_desc_cached = (void *)cached_desc;
 	hal_tx_desc_cached[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc_cached[1] = tx_desc->id <<
+	hal_tx_desc_cached[1] = (((uint64_t)tx_desc->dma_addr) >> 32) &
+		TCL_DATA_CMD_BUF_ADDR_INFO_BUFFER_ADDR_39_32_MASK;
+	hal_tx_desc_cached[1] |= tx_desc->id <<
 		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
 
 	/* bank_id */
