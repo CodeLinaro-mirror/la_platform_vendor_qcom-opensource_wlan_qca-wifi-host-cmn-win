@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1393,6 +1393,34 @@ static void dp_print_peer_table(struct dp_vdev *vdev)
 	dp_vdev_iterate_peer(vdev, dp_print_peer_info, NULL,
 			     DP_MOD_ID_GENERIC_STATS);
 }
+
+#ifdef WLAN_FEATURE_11BE_MLO
+void dp_dump_mld_link_peers_info(struct dp_peer *mld_peer)
+{
+	uint8_t i = 0;
+	struct dp_peer_link_info *link_peer_info;
+
+	if (!IS_MLO_DP_MLD_PEER(mld_peer))
+		return;
+
+	DP_PRINT_STATS("Dumping link peer info of MLD peer: " QDF_MAC_ADDR_FMT,
+		       QDF_MAC_ADDR_REF(mld_peer->mac_addr.raw));
+
+	for (i = 0; i < DP_MAX_MLO_LINKS; i++)  {
+		link_peer_info = &mld_peer->link_peers[i];
+		if (link_peer_info->is_valid) {
+			DP_PRINT_STATS("link_peer mac" QDF_MAC_ADDR_FMT
+				       "vdev_id = %u chip_id = %u "
+				       "is_bridge_peer = %u",
+				       QDF_MAC_ADDR_REF
+				       (link_peer_info->mac_addr.raw),
+				       link_peer_info->vdev_id,
+				       link_peer_info->chip_id,
+				       link_peer_info->is_bridge_peer);
+		}
+	}
+}
+#endif
 
 /**
  * dp_print_vlan_group_idx_table() - Dump vlan- group idx table
@@ -6416,12 +6444,30 @@ QDF_STATUS dp_peer_mlo_setup(
 					   peer, NULL, vdev_id, setup_info);
 
 	/* if this is the first link peer */
-	if (setup_info->is_first_link)
+	if (setup_info->is_first_link) {
+
+		/* Check if MLD peer already exist with same MAC address */
+		mld_peer = dp_mld_peer_find_hash_find(soc,
+						      setup_info->mld_peer_mac,
+						      0, vdev_id, DP_MOD_ID_CDP);
+		if (mld_peer) {
+			dp_peer_alert("Peer setup failed as DP mld peer already"
+				      " exists with MAC " QDF_MAC_ADDR_FMT
+				      "current peer mac " QDF_MAC_ADDR_FMT,
+				       QDF_MAC_ADDR_REF
+					(setup_info->mld_peer_mac),
+				       QDF_MAC_ADDR_REF(peer->mac_addr.raw));
+			dp_dump_mld_link_peers_info(mld_peer);
+			dp_peer_unref_delete(mld_peer, DP_MOD_ID_CDP);
+			return QDF_STATUS_E_FAILURE;
+		}
+
 		/* create MLD peer */
 		dp_peer_create_wifi3((struct cdp_soc_t *)soc,
 				     vdev_id,
 				     setup_info->mld_peer_mac,
 				     CDP_MLD_PEER_TYPE);
+	}
 
 	if (peer->vdev->opmode == wlan_op_mode_sta &&
 	    setup_info->is_primary_link) {
