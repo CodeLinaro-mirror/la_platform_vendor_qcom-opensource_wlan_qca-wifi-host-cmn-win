@@ -725,6 +725,14 @@ typedef QDF_STATUS (*wlan_mlo_t2lm_link_update_handler)(
  *                              invoked as part of mapping switch time and
  *                              expected duration expiry.
  * @mlo_dev_ctx: Pointer to mlo_dev context
+ * @established_t2lm_ed_modified_in_case_of_cac: When advertised
+ *                                               t2lm is there with 5GHz only
+ *                                               mapping and after 5GHz CSA
+ *                                               new channel
+ *                                               require CAC, then this
+ *                                               variable indicates that
+ *                                               esatblished t2lm ED is
+ *                                               modified or not.
  */
 struct wlan_t2lm_context {
 	struct wlan_mlo_t2lm_ie established_t2lm;
@@ -745,6 +753,7 @@ struct wlan_t2lm_context {
 #endif
 	int link_update_callback_index;
 	struct wlan_mlo_dev_context *mlo_dev_ctx;
+	bool established_t2lm_ed_modified_in_case_of_cac;
 };
 
 #ifdef WLAN_FEATURE_11BE
