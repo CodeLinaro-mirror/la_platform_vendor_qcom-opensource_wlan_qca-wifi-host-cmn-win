@@ -474,11 +474,12 @@ dfs_find_dfs_sub_channels_for_freq(struct wlan_dfs *dfs,
 								 chan,
 								 SEG_ID_PRIMARY,
 								 DETECTOR_ID_0,
-								 subchan_arr);
+								 subchan_arr,
+								 false);
 		if (WLAN_IS_CHAN_DFS_CFREQ2(chan))
 			return dfs_get_bonding_channels_for_freq
 				(dfs, chan, SEG_ID_SECONDARY,
-				 DETECTOR_ID_0, subchan_arr);
+				 DETECTOR_ID_0, subchan_arr, false);
 		/* All channels in 160/80_80 BW are non DFS, return 0
 		 * as number of subchannels
 		 */

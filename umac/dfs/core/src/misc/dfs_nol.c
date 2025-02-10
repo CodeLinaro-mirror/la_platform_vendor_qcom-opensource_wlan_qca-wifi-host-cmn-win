@@ -693,7 +693,7 @@ void dfs_remove_spoof_channel_from_nol(struct wlan_dfs *dfs)
 						   &dfs->dfs_radar_found_chan,
 						   SEG_ID_PRIMARY,
 						   DETECTOR_ID_0,
-						   freq_list);
+						   freq_list, false);
 
 	WLAN_DFSNOL_LOCK(dfs);
 	for (i = 0; i < nchans && i < MAX_20MHZ_SUBCHANS; i++) {
