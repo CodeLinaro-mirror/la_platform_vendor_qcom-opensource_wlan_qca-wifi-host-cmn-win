@@ -5257,8 +5257,8 @@ reg_get_20mhz_channel_state_based_on_nol(struct wlan_objmgr_pdev *pdev,
  * @freq: Input frequency in MHZ
  * @bonded_chan_entry: Pointer to bonded channel pair.
  *
- * Return: True if freq lie between provided channel pair, otherwise
- * false.
+ * Return: Returns true if the frequency falls between the
+ * specified channel pair; otherwise, it returns false.
  */
 static bool
 reg_is_freq_within_bondedpair(qdf_freq_t freq,
@@ -5308,10 +5308,11 @@ reg_get_320_bonded_chan_array(struct wlan_objmgr_pdev *pdev,
 	} else {
 		/* Fetch the bonded channel pointer for the given band_center */
 		for (i = 0; i < array_size; i++) {
-			qdf_freq_t bandstart = bonded_chan_ar[i].start_freq;
-
+			qdf_freq_t bandstart;
 			if (!reg_is_freq_within_bondedpair(freq, &bonded_chan_ar[i]))
 				continue;
+
+			bandstart = bonded_chan_ar[i].start_freq;
 			if (band_center_320 ==
 			    reg_get_band_cen_from_bandstart(BW_320_MHZ,
 							    bandstart)) {
