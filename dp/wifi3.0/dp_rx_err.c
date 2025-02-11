@@ -48,6 +48,8 @@
 	__QDF_TRACE_RL(QDF_TRACE_LEVEL_INFO_HIGH, QDF_MODULE_ID_DP_RX_ERROR, ## params)
 #define dp_rx_err_debug(params...) QDF_TRACE_DEBUG(QDF_MODULE_ID_DP_RX_ERROR, params)
 
+#define MAX_RING_FULL_WAIT_CNT 200
+
 #ifndef QCA_HOST_MODE_WIFI_DISABLED
 
 
@@ -55,8 +57,6 @@
 #define DP_MAX_REG_RX_ROUTING_ERRS_THRESHOLD 20
 #define DP_MAX_REG_RX_ROUTING_ERRS_IN_TIMEOUT 10
 #define DP_RX_ERR_ROUTE_TIMEOUT_US (5 * 1000 * 1000) /* micro seconds */
-
-#define MAX_RING_FULL_WAIT_CNT 200
 
 #ifdef FEATURE_MEC
 bool dp_rx_mcast_echo_check(struct dp_soc *soc,
