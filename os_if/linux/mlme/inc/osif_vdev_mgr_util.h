@@ -58,7 +58,7 @@ static void osif_set_mac_addr_event_cb(uint8_t vdev_id, uint8_t status)
 	struct mlo_mgr_context *mlo_mgr_ctx = wlan_objmgr_get_mlo_ctx();
 	uint8_t idx, count = 0;
 	struct wlan_objmgr_vdev *vdev = NULL;
-	struct osif_request *req;
+	struct osif_request *req = NULL;
 	struct mac_addr_set_priv *priv;
 
 	qdf_err("entering osif_set_mac_addr_event_cb");
