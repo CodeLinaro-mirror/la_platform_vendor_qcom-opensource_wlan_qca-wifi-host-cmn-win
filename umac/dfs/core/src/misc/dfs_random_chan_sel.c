@@ -866,27 +866,86 @@ dfs_mark_leaking_chan_for_freq(struct wlan_dfs *dfs,
 #endif
 #endif
 
+/**
+ * dfs_is_chan_supported_by_regulatory() - Check if channel is supported by
+ * regulatory.
+ * @dfs: Pointer to wlan_dfs.
+ * @freq: Frequency of the channel.
+ * @ch_width: Channel width.
+ * Return: true if channel is supported by regulatory, false otherwise.
+ */
+static bool
+dfs_is_chan_supported_by_regulatory(struct wlan_dfs *dfs,
+				    uint16_t freq,
+				    enum phy_ch_width ch_width)
+{
+	enum channel_state chan_state;
+	struct ch_params ch_params = {0};
+
+	ch_params.ch_width = ch_width;
+	chan_state =
+		wlan_reg_get_5g_bonded_channel_state_for_pwrmode(dfs->dfs_pdev_obj,
+								 freq,
+								 &ch_params,
+								 REG_CURRENT_PWR_MODE);
+	if (chan_state == CHANNEL_STATE_PASSIVE ||
+	    chan_state == CHANNEL_STATE_ENABLE ||
+	    chan_state == CHANNEL_STATE_DFS) {
+		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			 "Freq %u is enabled by reg for width: %d", freq,
+			 ch_width);
+		return true;
+	}
+	return false;
+}
+
 /*
  * dfs_populate_80mhz_available_channel_for_freq() - Populate 80MHZ channels
  * available for selection.
  * @dfs: Pointer to wlan_dfs.
  * @bitmap: Pointer to bonding channel bitmap.
  * @avail_freq_list: Pointer to frequency list of available channels.
+ * @dfs_chan_width: Channel width enum
  */
 #ifdef CONFIG_CHAN_FREQ_API
 static uint8_t dfs_populate_80mhz_available_channel_for_freq(
 		struct wlan_dfs *dfs,
 		struct chan_bonding_bitmap *bitmap,
-		uint16_t *avail_freq_list)
+		uint16_t *avail_freq_list,
+		uint16_t dfs_chan_width)
 {
 	uint8_t i = 0;
 	uint8_t chnl_count = 0;
-	uint16_t start_chan_freq = 0;
+	enum phy_ch_width reg_ch_width;
+
+	switch (dfs_chan_width) {
+	case DFS_CH_WIDTH_320MHZ:
+		reg_ch_width = CH_WIDTH_320MHZ;
+		break;
+	case DFS_CH_WIDTH_160MHZ:
+		reg_ch_width = CH_WIDTH_160MHZ;
+		break;
+	case DFS_CH_WIDTH_80P80MHZ:
+		reg_ch_width = CH_WIDTH_80P80MHZ;
+		break;
+	case DFS_CH_WIDTH_80MHZ:
+		reg_ch_width = CH_WIDTH_80MHZ;
+		break;
+	default:
+		reg_ch_width = CH_WIDTH_INVALID;
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"Channel width %d is not handled", dfs_chan_width);
+		return chnl_count;
+	}
+
 
 	for (i = 0; i < DFS_MAX_80MHZ_BANDS; i++) {
+		uint16_t start_chan_freq;
+
 		start_chan_freq = bitmap->chan_bonding_set[i].start_chan_freq;
 		if (bitmap->chan_bonding_set[i].chan_map ==
-			DFS_80MHZ_MASK) {
+			DFS_80MHZ_MASK && dfs_is_chan_supported_by_regulatory(
+				dfs, start_chan_freq, reg_ch_width)) {
 			avail_freq_list[chnl_count++] = start_chan_freq +
 				(DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET * 0);
 			avail_freq_list[chnl_count++] = start_chan_freq +
@@ -909,23 +968,48 @@ static uint8_t dfs_populate_80mhz_available_channel_for_freq(
 static uint8_t
 dfs_populate_40mhz_available_channel_for_freq(struct wlan_dfs *dfs,
 					      struct chan_bonding_bitmap *bmap,
-					      uint16_t *avail_freq_list)
+					      uint16_t *avail_freq_list,
+					      uint16_t dfs_chan_width)
 {
 	uint8_t i = 0;
 	uint8_t chnl_count = 0;
-	uint16_t start_chan_freq = 0;
+	enum phy_ch_width reg_ch_width;
+
+	if (dfs_chan_width != DFS_CH_WIDTH_40MHZ) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"channel width %d is not handled", dfs_chan_width);
+		return chnl_count;
+	}
+	reg_ch_width = CH_WIDTH_40MHZ;
 
 	for (i = 0; i < DFS_MAX_80MHZ_BANDS; i++) {
+		uint16_t start_chan_freq;
+		bool is_chan_supported_by_reg;
+		uint16_t start_freq_40m_mask_high;
+
 		start_chan_freq = bmap->chan_bonding_set[i].start_chan_freq;
-		if ((bmap->chan_bonding_set[i].chan_map &
-			DFS_40MHZ_MASK_L) == DFS_40MHZ_MASK_L) {
+		is_chan_supported_by_reg =
+		    dfs_is_chan_supported_by_regulatory(dfs,
+							start_chan_freq,
+							reg_ch_width);
+
+		if (((bmap->chan_bonding_set[i].chan_map &
+		      DFS_40MHZ_MASK_L) == DFS_40MHZ_MASK_L) &&
+		    is_chan_supported_by_reg) {
 			avail_freq_list[chnl_count++] = start_chan_freq +
 				(DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET * 0);
 			avail_freq_list[chnl_count++] = start_chan_freq +
 				(DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET * 1);
 		}
-		if ((bmap->chan_bonding_set[i].chan_map &
-			DFS_40MHZ_MASK_H) == DFS_40MHZ_MASK_H) {
+		start_freq_40m_mask_high = start_chan_freq +
+			DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET * 2;
+		is_chan_supported_by_reg =
+		    dfs_is_chan_supported_by_regulatory(dfs,
+							start_freq_40m_mask_high,
+							reg_ch_width);
+		if (((bmap->chan_bonding_set[i].chan_map &
+			DFS_40MHZ_MASK_H) == DFS_40MHZ_MASK_H) &&
+		    is_chan_supported_by_reg) {
 			avail_freq_list[chnl_count++] = start_chan_freq +
 				(DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET * 2);
 			avail_freq_list[chnl_count++] = start_chan_freq +
@@ -966,11 +1050,13 @@ dfs_populate_available_channel_for_freq(struct wlan_dfs *dfs,
 	case DFS_CH_WIDTH_80MHZ:
 		return dfs_populate_80mhz_available_channel_for_freq(dfs,
 								     bitmap,
-								     freq_list);
+								     freq_list,
+								     chan_width);
 	case DFS_CH_WIDTH_40MHZ:
 		return dfs_populate_40mhz_available_channel_for_freq(dfs,
 								     bitmap,
-								     freq_list);
+								     freq_list,
+								     chan_width);
 	default:
 		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
 			"Invalid chan_width %d", chan_width);
@@ -1194,34 +1280,9 @@ static uint16_t dfs_find_ch_with_fallback_for_freq(struct wlan_dfs *dfs,
 	final_cnt = dfs_populate_available_channel_for_freq(dfs, &ch_map,
 							    *chan_wd, final_lst);
 
-	/* If no valid 80mhz bonded chan found, fallback */
-	if (final_cnt == 0) {
-		if ((*chan_wd == DFS_CH_WIDTH_320MHZ) ||
-		    (*chan_wd == DFS_CH_WIDTH_160MHZ) ||
-		    (*chan_wd == DFS_CH_WIDTH_80P80MHZ) ||
-		    (*chan_wd == DFS_CH_WIDTH_80MHZ)) {
-			dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-				 "from [%d] to 40Mhz", *chan_wd);
-			*chan_wd = DFS_CH_WIDTH_40MHZ;
-		} else if (*chan_wd == DFS_CH_WIDTH_40MHZ) {
-			dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-				 "from 40Mhz to 20MHz");
-			*chan_wd = DFS_CH_WIDTH_20MHZ;
-		}
-		return 0;
-	}
-
-	/* ch count should be > 8 to switch new channel in 160Mhz band */
-	if (((*chan_wd == DFS_CH_WIDTH_160MHZ) ||
-	     (*chan_wd == DFS_CH_WIDTH_80P80MHZ)) &&
-	     (final_cnt < DFS_MAX_NUM_160_SUBCHAN)) {
-		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-			 "from [%d] to 80Mhz", *chan_wd);
-		*chan_wd = DFS_CH_WIDTH_80MHZ;
-		return 0;
-	}
-
-	/* ch count should be 12 to switch new 320 channel band (240MHZ) */
+	/* The channel count must meet the minimum requirement to
+	 * switch to that channel bandwidth.
+	 */
 	if (*chan_wd == DFS_CH_WIDTH_320MHZ) {
 		if (final_cnt < DFS_MAX_NUM_240_SUBCHAN) {
 			dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
@@ -1229,6 +1290,25 @@ static uint16_t dfs_find_ch_with_fallback_for_freq(struct wlan_dfs *dfs,
 			*chan_wd = DFS_CH_WIDTH_160MHZ;
 			return 0;
 		}
+	} else if (((*chan_wd == DFS_CH_WIDTH_160MHZ) ||
+		    (*chan_wd == DFS_CH_WIDTH_80P80MHZ)) &&
+		   (final_cnt < DFS_MAX_NUM_160_SUBCHAN)) {
+		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			 "from [%d] to 80Mhz", *chan_wd);
+		*chan_wd = DFS_CH_WIDTH_80MHZ;
+		return 0;
+	} else if (*chan_wd == DFS_CH_WIDTH_80MHZ &&
+		   final_cnt < DFS_80_NUM_SUB_CHANNEL) {
+		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			 "from [%d] to 40Mhz", *chan_wd);
+		*chan_wd = DFS_CH_WIDTH_40MHZ;
+		return 0;
+	} else if (*chan_wd == DFS_CH_WIDTH_40MHZ &&
+		   final_cnt < DFS_MAX_NUM_40_SUBCHAN) {
+		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			 "from 40Mhz to 20MHz");
+		*chan_wd = DFS_CH_WIDTH_20MHZ;
+		return 0;
 	}
 
 	if (*chan_wd == DFS_CH_WIDTH_320MHZ ||
