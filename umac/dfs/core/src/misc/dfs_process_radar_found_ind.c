@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1149,6 +1149,12 @@ dfs_process_radar_ind_on_home_chan(struct wlan_dfs *dfs,
 	}
 
 	dfs_reset_bangradar(dfs);
+
+	if (!WLAN_IS_CHAN_11BE(dfs->dfs_curchan)) {
+		dfs_debug(dfs, WLAN_DEBUG_DFS_ALWAYS,
+			  "Puncturing feature is disabled. Only applicable on 11BE channels");
+		dfs->dfs_use_puncture = 0;
+	}
 
 	if (dfs->dfs_use_puncture && !dfs->dfs_is_stadfs_enabled) {
 		bool is_ignore_radar_puncture = false;
