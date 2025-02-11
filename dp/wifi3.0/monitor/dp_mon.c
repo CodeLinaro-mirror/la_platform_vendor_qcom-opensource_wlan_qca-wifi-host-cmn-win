@@ -2735,6 +2735,7 @@ dp_tx_rate_stats_update(struct dp_peer *peer,
 		dp_ath_rate_lpf(mon_peer->stats.tx.avg_tx_rate, ratekbps);
 	ppdu_tx_rate = dp_ath_rate_out(mon_peer->stats.tx.avg_tx_rate);
 	DP_STATS_UPD(mon_peer, tx.rnd_avg_tx_rate, ppdu_tx_rate);
+	DP_STATS_UPD(mon_peer, tx.tx_ratecode, ratecode);
 
 	mon_peer->stats.tx.bw_info = ppdu->bw;
 	mon_peer->stats.tx.gi_info = ppdu->gi;
