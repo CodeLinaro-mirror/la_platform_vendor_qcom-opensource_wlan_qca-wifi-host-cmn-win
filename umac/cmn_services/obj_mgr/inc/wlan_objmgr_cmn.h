@@ -545,6 +545,7 @@ static inline const char *string_from_dbgid(wlan_objmgr_ref_dbgid id)
 					"WLAN_COEX_ID",
 					"WLAN_WIFI_RADAR_ID",
 					"WLAN_MLRECFG_ID",
+					"WLAN_MLME_MLO_ID",
 					};
 
 	if (id >= WLAN_REF_ID_MAX)
