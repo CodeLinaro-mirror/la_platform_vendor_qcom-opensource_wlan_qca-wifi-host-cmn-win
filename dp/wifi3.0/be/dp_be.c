@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1742,8 +1742,9 @@ static QDF_STATUS dp_vdev_detach_be(struct dp_soc *soc, struct dp_vdev *vdev)
 }
 
 #ifdef WLAN_SUPPORT_PPEDS
-static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
-				      uint8_t *peer_mac)
+static QDF_STATUS  dp_soc_txrx_peer_setup_be(struct dp_soc *soc,
+					     uint8_t vdev_id,
+					     uint8_t *peer_mac)
 {
 	struct dp_vdev_be *be_vdev;
 	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
@@ -1757,13 +1758,14 @@ static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 
 	peer = dp_peer_find_hash_find(soc, peer_mac, 0, vdev_id, DP_MOD_ID_CDP);
 	if (!peer)
-		return;
+		return QDF_STATUS_E_FAILURE;
+
 	vdev_opmode = peer->vdev->opmode;
 
 	if (vdev_opmode != wlan_op_mode_ap &&
 	    vdev_opmode != wlan_op_mode_sta) {
 		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
-		return;
+		return QDF_STATUS_E_FAILURE;
 	}
 
 	tgt_peer = dp_get_tgt_peer_from_peer(peer);
@@ -1807,10 +1809,10 @@ static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 
 fail:
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
-	if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
+	if (!QDF_IS_STATUS_SUCCESS(qdf_status))
 		dp_err("Unable to do ppeds peer setup");
-		qdf_assert_always(0);
-	}
+
+	return qdf_status;
 }
 
 static inline
@@ -1821,9 +1823,10 @@ void dp_tx_update_vp_profile(struct dp_soc_be *soc,
 }
 #else
 static inline
-void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
+QDF_STATUS dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 			       uint8_t *peer_mac)
 {
+	return QDF_STATUS_SUCCESS;
 }
 
 static inline
@@ -1847,9 +1850,7 @@ static QDF_STATUS dp_peer_setup_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		return qdf_status;
 	}
 
-	dp_soc_txrx_peer_setup_be(soc, vdev_id, peer_mac);
-
-	return QDF_STATUS_SUCCESS;
+	return dp_soc_txrx_peer_setup_be(soc, vdev_id, peer_mac);
 }
 
 qdf_size_t dp_get_soc_context_size_be(void)

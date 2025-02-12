@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -703,6 +703,21 @@ dp_peer_state_cmp(struct dp_peer *peer,
  * Return: void
  */
 void dp_print_ast_stats(struct dp_soc *soc);
+
+/**
+ * dp_dump_mld_link_peers_info() - Dump link peer info of MLD peer
+ * @mld_peer: DP peer of MLD peer type
+ *
+ * Return: void
+ */
+#ifdef WLAN_FEATURE_11BE_MLO
+void dp_dump_mld_link_peers_info(struct dp_peer *mld_peer);
+#else
+static inline void
+dp_dump_mld_link_peers_info(struct dp_peer *mld_peer)
+{
+}
+#endif
 
 /**
  * dp_rx_peer_map_handler() - handle peer map event from firmware
