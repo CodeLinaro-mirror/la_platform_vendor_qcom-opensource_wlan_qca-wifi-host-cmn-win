@@ -404,6 +404,7 @@ QDF_STATUS mlo_dev_mlpeer_attach(struct wlan_mlo_dev_context *ml_dev,
 {
 	uint8_t hash_index;
 	struct wlan_mlo_peer_list *mlo_peer_list;
+	struct mlo_mgr_context *mlo_mgr_ctx = wlan_objmgr_get_mlo_ctx();
 
 	mlo_peer_list = &ml_dev->mlo_peer_list;
 	ml_peerlist_lock_acquire(mlo_peer_list);
@@ -420,6 +421,8 @@ QDF_STATUS mlo_dev_mlpeer_attach(struct wlan_mlo_dev_context *ml_dev,
 				   ml_peer);
 	ml_peerlist_lock_release(mlo_peer_list);
 
+	qdf_atomic_inc(&mlo_mgr_ctx->ml_peer_count);
+
 	mlo_debug("MLD ID %d ML Peer " QDF_MAC_ADDR_FMT " is attached",
 		  ml_dev->mld_id,
 		  QDF_MAC_ADDR_REF(ml_peer->peer_mld_addr.bytes));
@@ -433,6 +436,7 @@ QDF_STATUS mlo_dev_mlpeer_detach(struct wlan_mlo_dev_context *ml_dev,
 	uint8_t hash_index;
 	QDF_STATUS status;
 	struct wlan_mlo_peer_list *mlo_peer_list;
+	struct mlo_mgr_context *mlo_mgr_ctx = wlan_objmgr_get_mlo_ctx();
 
 	mlo_peer_list = &ml_dev->mlo_peer_list;
 	ml_peerlist_lock_acquire(mlo_peer_list);
@@ -441,6 +445,8 @@ QDF_STATUS mlo_dev_mlpeer_detach(struct wlan_mlo_dev_context *ml_dev,
 					&mlo_peer_list->peer_hash[hash_index],
 					ml_peer);
 	ml_peerlist_lock_release(mlo_peer_list);
+
+	qdf_atomic_dec(&mlo_mgr_ctx->ml_peer_count);
 
 	mlo_debug("MLD ID %d ML Peer " QDF_MAC_ADDR_FMT " is detached",
 		  ml_dev->mld_id,
