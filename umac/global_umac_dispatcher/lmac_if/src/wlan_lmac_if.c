@@ -812,6 +812,7 @@ wlan_lmac_if_mgmt_rx_reo_rx_ops_register(
 	mgmt_rx_reo_rx_ops->host_drop_handler =
 			tgt_mgmt_rx_reo_host_drop_handler;
 	mgmt_rx_reo_rx_ops->release_frames = tgt_mgmt_rx_reo_release_frames;
+	mgmt_rx_reo_rx_ops->flush_list = tgt_mgmt_rx_reo_flush_list;
 
 	return QDF_STATUS_SUCCESS;
 }

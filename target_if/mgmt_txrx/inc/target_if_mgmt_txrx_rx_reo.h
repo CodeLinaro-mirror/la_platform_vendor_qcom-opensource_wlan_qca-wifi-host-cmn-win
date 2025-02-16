@@ -137,6 +137,16 @@ target_if_mgmt_rx_reo_host_drop_handler(struct wlan_objmgr_pdev *pdev,
  * Return: void
  */
 void target_if_mgmt_rx_reo_release_frames(void *arg);
+/**
+ * target_if_mgmt_rx_reo_flush_list() - API to flush all management
+ * frames of a given pdev in reo queue
+ * @pdev: Pointer to given pdev
+ * @mlo_grp_id: MLO group id of which pdev belong to
+ *
+ * Return: void
+ */
+void target_if_mgmt_rx_reo_flush_list(struct wlan_objmgr_pdev *pdev,
+				      uint8_t mlo_grp_id);
 #else
 /**
  * target_if_mgmt_rx_reo_register_event_handlers() - Register management
@@ -220,6 +230,11 @@ target_if_mgmt_rx_reo_host_drop_handler(struct wlan_objmgr_pdev *pdev,
  * Return: void
  */
 static inline void target_if_mgmt_rx_reo_release_frames(void *arg)
+{
+}
+
+static inline void target_if_mgmt_rx_reo_flush_list(struct wlan_objmgr_pdev *pdev,
+						    uint8_t mlo_grp_id)
 {
 }
 #endif /* WLAN_MGMT_RX_REO_SUPPORT */

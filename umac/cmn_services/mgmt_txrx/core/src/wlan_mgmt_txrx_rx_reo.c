@@ -7422,6 +7422,8 @@ mgmt_rx_reo_debug_info_deinit(struct wlan_objmgr_pdev *pdev)
 /**
  * mgmt_rx_reo_flush_list() - Flush all entries in the reorder list
  * @reo_list: Pointer to reorder list
+ * @flush_per_pdev: Flag to indicate flush for all radios or per radio
+ * @pdev_id: Pdev id to be flushed
  *
  * API to flush all the entries of the reorder list. This API would acquire
  * the lock protecting the list.
@@ -7429,7 +7431,8 @@ mgmt_rx_reo_debug_info_deinit(struct wlan_objmgr_pdev *pdev)
  * Return: QDF_STATUS
  */
 static QDF_STATUS
-mgmt_rx_reo_flush_list(struct mgmt_rx_reo_list *reo_list)
+mgmt_rx_reo_flush_list(struct mgmt_rx_reo_list *reo_list, bool flush_per_pdev,
+		       struct wlan_objmgr_pdev *pdev)
 {
 	struct mgmt_rx_reo_list_entry *cur_entry;
 	struct mgmt_rx_reo_list_entry *temp;
@@ -7442,6 +7445,11 @@ mgmt_rx_reo_flush_list(struct mgmt_rx_reo_list *reo_list)
 	qdf_spin_lock_bh(&reo_list->list_lock);
 
 	qdf_list_for_each_del(&reo_list->list, cur_entry, temp, node) {
+
+		if (flush_per_pdev && pdev &&
+		    cur_entry->pdev != pdev)
+			continue;
+
 		free_mgmt_rx_event_params(cur_entry->rx_params);
 		/* Remove the node from the list */
 		qdf_list_remove_node(&reo_list->list, &cur_entry->node);
@@ -7456,6 +7464,38 @@ mgmt_rx_reo_flush_list(struct mgmt_rx_reo_list *reo_list)
 	}
 
 	qdf_spin_unlock_bh(&reo_list->list_lock);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS
+mgmt_rx_reo_flush_list_all(struct mgmt_rx_reo_list *reo_list)
+{
+	return mgmt_rx_reo_flush_list(reo_list, false, NULL);
+}
+
+QDF_STATUS
+mgmt_rx_reo_flush_list_per_pdev(uint8_t ml_grp_id, struct wlan_objmgr_pdev *pdev)
+{
+	QDF_STATUS status;
+	struct mgmt_rx_reo_context *reo_context;
+	struct mgmt_rx_reo_list *reo_ingress_list;
+
+	reo_context = mgmt_rx_reo_get_context(ml_grp_id);
+	if (!reo_context) {
+		mgmt_rx_reo_err("reo context is null");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
+	if (!pdev)
+		return QDF_STATUS_E_NULL_VALUE;
+
+	reo_ingress_list = &reo_context->ingress_list.reo_list;
+	status = mgmt_rx_reo_flush_list(reo_ingress_list, true, pdev);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		mgmt_rx_reo_err("Failed to flush the ingress list");
+		return status;
+	}
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -7482,7 +7522,7 @@ mgmt_rx_reo_ingress_list_deinit(struct mgmt_rx_reo_ingress_list *ingress_list)
 	reo_ingress_list = &ingress_list->reo_list;
 
 	qdf_timer_sync_cancel(&ingress_list->ageout_timer);
-	status = mgmt_rx_reo_flush_list(reo_ingress_list);
+	status = mgmt_rx_reo_flush_list_all(reo_ingress_list);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		mgmt_rx_reo_err("Failed to flush the ingress list");
 		return status;
@@ -7542,7 +7582,7 @@ mgmt_rx_reo_egress_list_deinit(struct mgmt_rx_reo_egress_list *egress_list)
 	reo_egress_list = &egress_list->reo_list;
 
 	qdf_timer_sync_cancel(&egress_list->egress_inactivity_timer);
-	status = mgmt_rx_reo_flush_list(reo_egress_list);
+	status = mgmt_rx_reo_flush_list_all(reo_egress_list);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		mgmt_rx_reo_err("Failed to flush the egress list");
 		return QDF_STATUS_E_FAILURE;

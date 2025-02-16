@@ -551,7 +551,27 @@ wlan_mgmt_rx_reo_print_egress_frame_info(uint8_t ml_grp_id,
  */
 QDF_STATUS
 wlan_mgmt_rx_reo_release_frames(uint8_t mlo_grp_id, uint32_t link_bitmap);
+
+/**
+ * mgmt_rx_reo_flush_list() - Flush all entries in the reorder list
+ * @mlo_grp_id: MLO group id of which pdev belongs to
+ * @pdev_id: Pdev id to be flushed
+ *
+ * API to flush all the entries of the reorder list. This API would acquire
+ * the lock protecting the list.
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+wlan_mgmt_rx_reo_flush_list(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev);
+
 #else
+static inline QDF_STATUS
+wlan_mgmt_rx_reo_flush_list(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
 static inline QDF_STATUS
 wlan_mgmt_rx_reo_validate_mlo_link_info(struct wlan_objmgr_psoc *psoc)
 {

@@ -794,3 +794,31 @@ target_if_mgmt_rx_reo_host_drop_handler(struct wlan_objmgr_pdev *pdev,
 
 	return mgmt_rx_reo_rx_ops->host_drop_handler(pdev, params->reo_params);
 }
+
+void target_if_mgmt_rx_reo_flush_list(struct wlan_objmgr_pdev *pdev, uint8_t mlo_group_id)
+{
+
+	struct wlan_lmac_if_mgmt_rx_reo_rx_ops *mgmt_rx_reo_rx_ops;
+	uint8_t pdev_id;
+	QDF_STATUS status;
+
+	if (!pdev) {
+		mgmt_rx_reo_err("pdev is null");
+		return;
+	}
+
+	pdev_id = wlan_objmgr_pdev_get_pdev_id(pdev);
+
+	mgmt_rx_reo_rx_ops = target_if_mgmt_rx_reo_get_rx_ops(
+					wlan_pdev_get_psoc(pdev));
+	if (!mgmt_rx_reo_rx_ops) {
+		mgmt_rx_reo_err("rx_ops of MGMT Rx REO module is NULL");
+		return;
+	}
+
+	status = mgmt_rx_reo_rx_ops->flush_list(mlo_group_id, pdev);
+	if (status != QDF_STATUS_SUCCESS) {
+		mgmt_rx_reo_err("Flush residual mgmt frames failed for pdev_id %d", pdev_id);
+		return;
+	}
+}

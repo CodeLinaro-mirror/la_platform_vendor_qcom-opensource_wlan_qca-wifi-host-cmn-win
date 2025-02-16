@@ -306,6 +306,12 @@ wlan_mgmt_rx_reo_pdev_detach(struct wlan_objmgr_pdev *pdev)
 qdf_export_symbol(wlan_mgmt_rx_reo_pdev_detach);
 
 QDF_STATUS
+wlan_mgmt_rx_reo_flush_list(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev)
+{
+	return mgmt_rx_reo_flush_list_per_pdev(mlo_grp_id, pdev);
+}
+
+QDF_STATUS
 wlan_mgmt_rx_reo_psoc_detach(struct wlan_objmgr_psoc *psoc)
 {
 	return mgmt_rx_reo_psoc_detach(psoc);
