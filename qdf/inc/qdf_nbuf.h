@@ -242,9 +242,7 @@ enum wsc_op_code {
 
 #define EHT_USER_INFO_LEN 4
 
-#if defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT)
 extern bool is_initial_mem_debug_disabled;
-#endif
 
 /**
  * typedef qdf_nbuf_queue_t - Platform independent packet queue abstraction

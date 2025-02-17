@@ -50,13 +50,8 @@ static bool mem_debug_disabled;
 qdf_declare_param(mem_debug_disabled, bool);
 #endif
 
-#if defined(NBUF_FRAG_MEMORY_DEBUG) || defined(QDF_NBUF_FRAG_GLOBAL_COUNT) || \
-    defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT) || \
-    defined(MEMORY_DEBUG)
 bool is_initial_mem_debug_disabled;
-
 qdf_export_symbol(is_initial_mem_debug_disabled);
-#endif
 
 /* Preprocessor Definitions and Constants */
 #define QDF_MEM_MAX_MALLOC (4096 * 1024) /* 4 Mega Bytes */
@@ -1952,7 +1947,10 @@ void qdf_mem_multi_pages_free_debug(qdf_device_t osdev,
 qdf_export_symbol(qdf_mem_multi_pages_free_debug);
 
 #else
-static void qdf_mem_debug_init(void) {}
+static void qdf_mem_debug_init(void)
+{
+	is_initial_mem_debug_disabled = 0;
+}
 
 static void qdf_mem_debug_exit(void) {}
 
