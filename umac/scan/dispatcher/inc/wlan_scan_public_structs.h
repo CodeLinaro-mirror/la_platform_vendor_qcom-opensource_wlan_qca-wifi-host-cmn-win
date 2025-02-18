@@ -220,6 +220,9 @@ struct channel_info {
  * @muedca: pointer to muedca IE
  * @extender: pointer to extended IE
  * @qcn: pointer to QCN IE
+ * @wifi6_rsno: pointer to Wifi-6 vendor RSNO IE
+ * @rsnxo: pointer to vendor RSNX override IE
+ * @wifi7_rsno: pointer to Wifi-7 vendor RSNO IE
  */
 struct ie_list {
 	uint8_t *tim;
@@ -285,6 +288,9 @@ struct ie_list {
 	uint8_t *t2lm[WLAN_MAX_T2LM_IE];
 #endif
 	uint8_t *qcn;
+	uint8_t *wifi6_rsno;
+	uint8_t *rsnxo;
+	uint8_t *wifi7_rsno;
 
 /*
  * For any new IEs in this structure, add handling in
@@ -353,6 +359,7 @@ struct scan_cache_node {
  * @mcastcipherset: multicast cipher set
  * @mgmtcipherset: mgmt cipher set
  * @rsn_caps: rsn caps of scan entry
+ * @rsn_gen_selected: rsn gen for the security match
  */
 struct security_info {
 	uint32_t authmodeset;
@@ -361,6 +368,7 @@ struct security_info {
 	uint32_t mcastcipherset;
 	uint32_t mgmtcipherset;
 	uint16_t rsn_caps;
+	uint8_t rsn_gen_selected;
 };
 
 /**
@@ -768,6 +776,7 @@ enum dot11_mode_filter {
  * @ccx_validate_bss_arg: Function argument to custom bssid filter
  * @band_bitmap: Allowed band bit map, BIT0: 2G, BIT1: 5G, BIT2: 6G
  * @mld_addr: MLD addr to match if @match_mld_addr is set to true.
+ * @mrsno_gen: MRSNO generation supported
  */
 struct scan_filter {
 	uint8_t enable_adaptive_11r:1,
@@ -807,6 +816,7 @@ struct scan_filter {
 	uint32_t band_bitmap;
 	struct qdf_mac_addr mld_addr;
 #endif
+	uint8_t mrsno_gen;
 };
 
 /**
