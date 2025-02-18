@@ -613,6 +613,19 @@ static inline QDF_STATUS mlme_vdev_dfs_cac_wait_notify(
 }
 
 /**
+ * mlme_vdev_mlo_sync_wait_notify() - Notifies MLO sync wait state
+ * @vdev_mlme:  VDEV MLME comp object
+ *
+ * Return: NO_SUPPORT if the callback is not supported.
+ *         SUCCESS if notification is handled by caller
+ */
+static inline QDF_STATUS mlme_vdev_mlo_sync_wait_notify(
+				struct vdev_mlme_obj *vdev_mlme)
+{
+	return mlme_vdev_dfs_cac_wait_notify(vdev_mlme);
+}
+
+/**
  * mlme_vdev_chan_switch_disable_notify_dfs() - Notifies DFS when channel
  * switch is disabled
  * @vdev_mlme: VDEV MLME comp object
