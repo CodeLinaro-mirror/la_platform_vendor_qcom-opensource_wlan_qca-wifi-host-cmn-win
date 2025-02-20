@@ -384,7 +384,28 @@ enum UCODE_UPLOAD_HEADER_VERSION {
  * @_11az_mode:
  * @_11az_node:
  */
-struct whal_cfir_enhanced_hdr {
+
+struct cfr_enhc_be_specific_hdr {
+	uint32_t amplitude_gain_ratio_0_3;
+	uint16_t rescale_amt_shift_pri80    : 8,
+		 rescale_amt_shift_sec80    : 8;
+	uint16_t cgim_status        : 1,
+		 cgim_filter        : 1,
+		 phy_mode           : 1,
+		 demf_turbo_mode    : 1,
+		 demf_pbs_en        : 2,
+		 leg_cfr_mode       : 2,
+		 puncture_pattern   : 8;
+	uint16_t pri20_location     : 8,
+		 channel_bandwidth  : 3,
+		 _11az_mode         : 4,
+		 _11az_node         : 1;
+	uint16_t rsvd3;
+	uint16_t rsvd4;
+	uint16_t rsvd5;
+} __attribute__ ((__packed__));
+
+struct whal_cfir_enhanced_hdr_v2 {
 	uint16_t tag              :  8,
 		 length           :  6,
 		 rsvd1            :  2;
@@ -410,7 +431,34 @@ struct whal_cfir_enhanced_hdr {
 		 he_ltf_type        :4;
 	uint16_t ext_preamble_type  :1,
 		 rsvd2              :15;
-#ifdef WLAN_FEATURE_11BE
+} __attribute__ ((__packed__));
+
+struct whal_cfir_enhanced_hdr_v3 {
+	uint16_t tag              :  8,
+		 length           :  6,
+		 rsvd1            :  2;
+	uint16_t upload_done        :  1,
+		 capture_type       :  3,
+		 preamble_type      :  2,
+		 nss                :  3,
+		 num_chains         :  3,
+		 upload_pkt_bw      :  3,
+		 sw_peer_id_valid   :  1;
+	uint16_t sw_peer_id         : 16;
+	uint16_t phy_ppdu_id        : 16;
+	uint16_t total_bytes;
+	uint16_t header_version     :4,
+		 target_id          :4,
+		 cfr_fmt            :1,
+		 cir_fmt            :1,
+		 mu_rx_data_incl    :1,
+		 freeze_data_incl   :1,
+		 freeze_tlv_version :4;
+	uint16_t mu_rx_num_users    :8,
+		 decimation_factor  :4,
+		 he_ltf_type        :4;
+	uint16_t ext_preamble_type  :1,
+		 rsvd2              :15;
 	uint32_t amplitude_gain_ratio_0_3;
 	uint16_t rescale_amt_shift_pri80    : 8,
 		 rescale_amt_shift_sec80    : 8;
@@ -428,8 +476,7 @@ struct whal_cfir_enhanced_hdr {
 	uint16_t rsvd3;
 	uint16_t rsvd4;
 	uint16_t rsvd5;
-#endif
-};
+} __attribute__ ((__packed__));
 
 /*
  * freeze_tlv v1/v2 used by Hastings/Cypress/Maple/Spruce/Moselle supports upto
