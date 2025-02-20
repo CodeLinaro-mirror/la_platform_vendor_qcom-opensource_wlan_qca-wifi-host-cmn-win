@@ -3394,8 +3394,13 @@ dp_rx_peer_unmap_handler(struct dp_soc *soc, uint16_t peer_id,
 
 	vdev = peer->vdev;
 
-	/* only if peer is in STA mode and not tdls peer */
-	if (wlan_op_mode_sta == vdev->opmode && !peer->is_tdls_peer) {
+	/*
+	 * reset ast cache idx only for primary peer
+	 * is in STA mode and not tdls peer
+	 */
+	if (wlan_op_mode_sta == vdev->opmode &&
+	    dp_peer_is_primary_link_peer(peer) &&
+	    !peer->is_tdls_peer) {
 		bool peer_map = false;
 
 		dp_tx_cfg_astidx_cache_mapping(soc, vdev, peer_map);
