@@ -983,21 +983,27 @@ static inline void dp_ppeds_stop_soc_be(struct dp_soc *soc)
 
 void dp_reo_shared_qaddr_detach(struct dp_soc *soc)
 {
+	struct reo_queue_ref_table *reo_qref = NULL;
+
+	reo_qref = &soc->reo_qref;
+
 	if (DP_SRNG_ALLOC_CACHED) {
-		qdf_mem_free(soc->reo_qref.mlo_reo_qref_table_vaddr);
-		qdf_mem_free(soc->reo_qref.non_mlo_reo_qref_table_vaddr);
+		qdf_mem_free(reo_qref->mlo_reo_qref_table_vaddr_unaligned);
+		qdf_mem_free(reo_qref->non_mlo_reo_qref_table_vaddr_unaligned);
 	} else {
-		qdf_mem_free_consistent(
-				soc->osdev, soc->osdev->dev,
-				REO_QUEUE_REF_ML_TABLE_SIZE,
-				soc->reo_qref.mlo_reo_qref_table_vaddr,
-				soc->reo_qref.mlo_reo_qref_table_paddr, 0);
-		qdf_mem_free_consistent(
-				soc->osdev, soc->osdev->dev,
-				REO_QUEUE_REF_NON_ML_TABLE_SIZE,
-				soc->reo_qref.non_mlo_reo_qref_table_vaddr,
-				soc->reo_qref.non_mlo_reo_qref_table_paddr, 0);
+		qdf_mem_free_consistent(soc->osdev,
+					soc->osdev->dev,
+					reo_qref->non_mlo_alloc_size,
+					reo_qref->non_mlo_reo_qref_table_vaddr_unaligned,
+					reo_qref->non_mlo_reo_qref_table_paddr_unaligned, 0);
+		qdf_mem_free_consistent(soc->osdev,
+					soc->osdev->dev,
+					reo_qref->mlo_alloc_size,
+					reo_qref->mlo_reo_qref_table_vaddr_unaligned,
+					reo_qref->mlo_reo_qref_table_paddr_unaligned, 0);
 	}
+
+	qdf_mem_zero(reo_qref, sizeof(struct reo_queue_ref_table));
 }
 
 #ifdef QCA_SUPPORT_DP_GLOBAL_CTX

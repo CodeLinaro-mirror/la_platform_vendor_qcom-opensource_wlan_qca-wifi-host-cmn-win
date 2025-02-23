@@ -1059,16 +1059,28 @@ struct hal_rx_pkt_capture_flags {
 /**
  * struct reo_queue_ref_table - Reo qref LUT addr
  * @mlo_reo_qref_table_vaddr: MLO table vaddr
+ * @mlo_reo_qref_table_vaddr_unaligned: MLO table vaddr unaligned
  * @non_mlo_reo_qref_table_vaddr: Non MLO table vaddr
+ * @non_mlo_reo_qref_table_vaddr_unaligned: Non MLO table vaddr unaligned
  * @mlo_reo_qref_table_paddr: MLO table paddr
+ * @mlo_reo_qref_table_paddr_unaligned: MLO table paddr unaligned
  * @non_mlo_reo_qref_table_paddr: Non MLO table paddr
+ * @non_mlo_reo_qref_table_paddr_unaligned: Non MLO table paddr unaligned
+ * @mlo_alloc_size: Max MLO peer LUT size
+ * @non_mlo_alloc_size: Max non MLO peer LUT size
  * @reo_qref_table_en: Enable flag
  */
 struct reo_queue_ref_table {
 	uint64_t *mlo_reo_qref_table_vaddr;
+	uint64_t *mlo_reo_qref_table_vaddr_unaligned;
 	uint64_t *non_mlo_reo_qref_table_vaddr;
+	uint64_t *non_mlo_reo_qref_table_vaddr_unaligned;
 	qdf_dma_addr_t mlo_reo_qref_table_paddr;
+	qdf_dma_addr_t mlo_reo_qref_table_paddr_unaligned;
 	qdf_dma_addr_t non_mlo_reo_qref_table_paddr;
+	qdf_dma_addr_t non_mlo_reo_qref_table_paddr_unaligned;
+	uint32_t mlo_alloc_size;
+	uint32_t non_mlo_alloc_size;
 	uint8_t reo_qref_table_en;
 };
 
