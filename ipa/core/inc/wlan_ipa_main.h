@@ -720,7 +720,7 @@ void wlan_psoc_ipa_evt_wq_detach(struct wlan_objmgr_psoc *psoc);
 
 #else /* Not IPA_OFFLOAD */
 typedef QDF_STATUS (*wlan_ipa_softap_xmit)(qdf_nbuf_t nbuf, qdf_netdev_t dev);
-typedef void (*wlan_ipa_send_to_nw)(qdf_nbuf_t nbuf, qdf_netdev_t dev);
+typedef void (*wlan_ipa_send_to_nw)(qdf_nbuf_t nbuf, struct wlan_objmgr_vdev *vdev);
 typedef void (*wlan_ipa_rps_enable)(uint8_t vdev_id, bool enable);
 typedef bool (*wlan_ipa_driver_unloading)(void);
 

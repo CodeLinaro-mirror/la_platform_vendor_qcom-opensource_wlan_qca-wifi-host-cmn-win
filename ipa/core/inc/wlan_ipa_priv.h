@@ -767,7 +767,7 @@ struct wlan_ipa_tx_desc {
 };
 
 typedef QDF_STATUS (*wlan_ipa_softap_xmit)(qdf_nbuf_t nbuf, qdf_netdev_t dev);
-typedef void (*wlan_ipa_send_to_nw)(qdf_nbuf_t nbuf, qdf_netdev_t dev);
+typedef void (*wlan_ipa_send_to_nw)(qdf_nbuf_t nbuf, struct wlan_objmgr_vdev *vdev);
 typedef bool (*wlan_ipa_driver_unloading)(void);
 
 /**

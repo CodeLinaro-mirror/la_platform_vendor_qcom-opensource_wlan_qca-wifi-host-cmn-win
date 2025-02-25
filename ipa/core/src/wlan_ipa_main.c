@@ -26,6 +26,7 @@
 #include "wlan_ipa_tgt_api.h"
 #include "cfg_ucfg_api.h"
 #include "wlan_ipa_obj_mgmt_api.h"
+#include "ieee80211_cfg80211.h"
 
 static struct wlan_ipa_config *g_ipa_config;
 static bool g_ipa_hw_support;
@@ -1103,9 +1104,28 @@ void ipa_event_wq(struct wlan_objmgr_psoc *psoc, uint8_t *peer_mac_addr,
 	struct wlan_ipa_evt_wq_args *ipa_ctx = NULL;
 	struct wlan_objmgr_pdev *pdev = psoc->soc_objmgr.wlan_pdev_list[0];
 	QDF_STATUS ret;
+	struct net_device *ndev;
+	struct ieee80211vap *vap;
+	osif_dev *osifp;
 
 	if (!ipa_obj) {
 		qdf_err("IPA_object is NULL !!");
+		return;
+	}
+
+	vap = wlan_vdev_get_mlme_ext_obj(vdev);
+	if (!vap) {
+		qdf_err("Invalid vap");
+		return;
+	}
+	osifp = (osif_dev *)vap->iv_ifp;
+	if (!osifp) {
+		qdf_err("Invalid osifp");
+		return;
+	}
+	ndev = get_cfg80211_notification_ndev(osifp);
+	if (!ndev) {
+		qdf_err("Invalid ndev");
 		return;
 	}
 
@@ -1125,7 +1145,7 @@ void ipa_event_wq(struct wlan_objmgr_psoc *psoc, uint8_t *peer_mac_addr,
 	}
 
 	ipa_ctx->pdev_obj = pdev;
-	ipa_ctx->net_dev = vdev->vdev_nif.osdev->wdev->netdev;
+	ipa_ctx->net_dev = ndev;
 	ipa_ctx->ch_freq = vdev->vdev_mlme.bss_chan->ch_freq;
 	ipa_ctx->device_mode = wlan_vdev_mlme_get_opmode(vdev);
 	ipa_ctx->vdev_id = wlan_vdev_get_id(vdev);
