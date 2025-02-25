@@ -42,7 +42,6 @@
 #include "dp_txrx_wds.h"
 #endif
 #include <pld_common.h>
-#include "wlan_dp_ucfg_api.h"
 
 #define IPA_CLK_ENABLE_WAIT_TIME_MS 500
 
