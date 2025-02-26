@@ -2498,7 +2498,7 @@ uint32_t dp_tx_comp_handler_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	uint32_t num_entries;
 	qdf_nbuf_queue_head_t h;
 	QDF_STATUS status;
-	uint16_t comp_index = 0;
+	uint16_t comp_index;
 	struct dp_tx_desc_pool_s *tx_desc_pool = NULL;
 
 	num_entries = hal_srng_get_num_entries(soc->hal_soc, hal_ring_hdl);
@@ -2511,6 +2511,7 @@ more_data:
 	head_desc = NULL;
 	tail_desc = NULL;
 	count = 0;
+	comp_index = 0;
 
 	if (qdf_unlikely(dp_srng_access_start(int_ctx, soc, hal_ring_hdl))) {
 		dp_err("HAL RING Access Failed -- %pK", hal_ring_hdl);
@@ -2573,11 +2574,6 @@ more_data:
 
 			hal_tx_comp_get_htt_desc(tx_comp_hal_desc,
 						 htt_tx_status);
-			/* Collect hw completion contents */
-			hal_tx_comp_desc_sync_wrapper(tx_comp_hal_desc,
-						      tx_desc_pool,
-						      tx_desc, buffer_src,
-						      comp_index, 1);
 			dp_tx_process_htt_completion_be(soc, tx_desc,
 							htt_tx_status,
 							ring_id);
