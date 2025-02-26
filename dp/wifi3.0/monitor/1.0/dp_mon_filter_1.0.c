@@ -101,18 +101,6 @@ static QDF_STATUS dp_mon_filter_check_co_exist(struct dp_pdev *pdev)
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	/*
-	 * Check if the Rx packet log lite or full can co-exist with
-	 * the enable modes.
-	 */
-	if ((mon_pdev->rx_pktlog_mode != DP_RX_PKTLOG_DISABLED) &&
-	    !mon_pdev->rx_pktlog_cbf &&
-	    (mon_mac->mvdev || mon_pdev->monitor_configured)) {
-		dp_mon_filter_err("%pK: Rx pktlog full/lite can't exist with modes\n"
-				  "Monitor Mode:%d", pdev->soc,
-				  mon_pdev->monitor_configured);
-		return QDF_STATUS_E_FAILURE;
-	}
 	return QDF_STATUS_SUCCESS;
 }
 #else

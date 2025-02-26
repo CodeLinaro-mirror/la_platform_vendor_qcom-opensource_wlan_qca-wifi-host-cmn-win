@@ -1194,14 +1194,6 @@ dp_set_hybrid_pktlog_enable(struct dp_pdev *pdev,
 	struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx;
 	struct dp_mon_ops *mon_ops = NULL;
 	uint16_t num_buffers;
-	uint8_t mac_id = 0;
-	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
-
-	/* Nothing needs to be done if monitor mode is
-	 * enabled
-	 */
-	if (mon_mac->mvdev)
-		return false;
 
 	mon_ops = dp_mon_ops_get(pdev->soc);
 	if (!mon_ops) {
@@ -1263,7 +1255,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 	uint8_t mac_id = 0;
 	struct dp_mon_ops *mon_ops;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
-	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
 
 	soc = pdev->soc;
 	mon_ops = dp_mon_ops_get(soc);
@@ -1280,12 +1271,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 	if (enable) {
 		switch (event) {
 		case WDI_EVENT_RX_DESC:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_FULL)
 				break;
 
@@ -1305,17 +1290,10 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			break;
 
 		case WDI_EVENT_LITE_RX:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_LITE)
 				break;
 
 			mon_pdev->rx_pktlog_mode = DP_RX_PKTLOG_LITE;
-
 			/*
 			 * Set the packet log lite mode filter.
 			 */
@@ -1345,12 +1323,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			break;
 
 		case WDI_EVENT_RX_CBF:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_cbf)
 				break;
 
@@ -1359,7 +1331,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			if (mon_ops->mon_vdev_set_monitor_mode_buf_rings)
 				mon_ops->mon_vdev_set_monitor_mode_buf_rings(
 					pdev);
-
 			/*
 			 * Set the packet log lite mode filter.
 			 */
@@ -1391,12 +1362,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 		switch (event) {
 		case WDI_EVENT_RX_DESC:
 		case WDI_EVENT_LITE_RX:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_DISABLED)
 				break;
 
