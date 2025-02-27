@@ -15575,6 +15575,8 @@ QDF_STATUS dp_wds_ext_set_peer_rx(ol_txrx_soc_handle soc,
 	}
 
 	if (rx) {
+		txrx_peer->wds_ext.osif_peer = osif_peer;
+
 		if (txrx_peer->osif_rx) {
 			status = QDF_STATUS_E_ALREADY;
 		} else {
@@ -15588,9 +15590,10 @@ QDF_STATUS dp_wds_ext_set_peer_rx(ol_txrx_soc_handle soc,
 		} else {
 			status = QDF_STATUS_E_ALREADY;
 		}
+
+		txrx_peer->wds_ext.osif_peer = osif_peer;
 	}
 
-	txrx_peer->wds_ext.osif_peer = osif_peer;
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
 
 	return status;
