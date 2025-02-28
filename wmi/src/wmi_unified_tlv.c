@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -23292,7 +23292,7 @@ vbss_set_sta_context_send_tlv(
 	/* Calculate the length of the buffer */
 	len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
 	len += sizeof(wmi_vdev_vbss_peer_pn_info);
-	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * WLAN_MAX_PER_PEER_SN_TIDS);
+	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * vbss_sta_context->num_sn_tids);
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -23336,12 +23336,12 @@ vbss_set_sta_context_send_tlv(
 	WMITLV_SET_HDR(
 		buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 		(sizeof(wmi_vdev_vbss_peer_sn_info) *
-		WLAN_MAX_PER_PEER_SN_TIDS));
+		vbss_sta_context->num_sn_tids));
 	buf_ptr += WMI_TLV_HDR_SIZE;
 
 	/* Fill SN info */
 	sn_info = (wmi_vdev_vbss_peer_sn_info *)buf_ptr;
-	for (i = 0; i < WLAN_MAX_PER_PEER_SN_TIDS; i++) {
+	for (i = 0; i < vbss_sta_context->num_sn_tids; i++) {
 		WMITLV_SET_HDR(&sn_info[i].tlv_header,
 			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_sn_info,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_sn_info));
@@ -23399,6 +23399,7 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	}
 
 	/* Parse SN info */
+	vbss_sta_context->num_sn_tids = param_buf->num_vbss_peer_sn_info;
 	sn_info = param_buf->vbss_peer_sn_info;
 	for (i = 0; i < param_buf->num_vbss_peer_sn_info; i++) {
 		vbss_sta_context->sn[i] = sn_info[i].tid_num;
