@@ -206,6 +206,18 @@ typedef struct ipa_wdi_reg_intf_in_params  __qdf_ipa_wdi_reg_intf_in_params_t;
 	(((struct ipa_wdi_reg_intf_in_params *)(in))->is_rx1_used)
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_MLO(in)	\
+	(((struct ipa_wdi_reg_intf_in_params *)(in))->mld_enabled)
+#else
+struct ipa_wdi_reg_intf_mld_in_params {
+	uint8_t mld_enabled;
+};
+
+#define __QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_MLO(in)	\
+	(((struct ipa_wdi_reg_intf_mld_in_params *)(in))->mld_enabled)
+#endif
+
 typedef struct ipa_ep_cfg __qdf_ipa_ep_cfg_t;
 
 #define __QDF_IPA_EP_CFG_NAT_EN(cfg)	\
@@ -625,13 +637,15 @@ static inline int __qdf_ipa_wdi_opt_dpath_notify_flt_rlsd_per_inst(
  * __qdf_ipa_wdi_dereg_intf - Client Driver should call this
  * function to deregister before unload and after disconnect
  * @hdl: IPA handle
+ * @session_id: Vdev id
  *
  * @Return 0 on success, negative on failure
  */
 static inline int __qdf_ipa_wdi_dereg_intf(const char *netdev_name,
-					   __qdf_ipa_wdi_hdl_t hdl)
+					   __qdf_ipa_wdi_hdl_t hdl,
+					   uint8_t session_id)
 {
-	return ipa_wdi_dereg_intf_per_inst(netdev_name, hdl);
+	return ipa_wdi_dereg_intf_per_inst(netdev_name, hdl, session_id);
 }
 
 /**
