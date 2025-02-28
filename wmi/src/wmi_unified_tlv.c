@@ -23219,7 +23219,7 @@ pdev_power_boost_cmd_send_tlv(wmi_unified_t wmi_handle,
 
 #ifdef WLAN_FEATURE_VBSS
 static QDF_STATUS
-vbss_trigger_move_sta_send_tlv(
+vbss_sta_action_send_tlv(
 		wmi_unified_t wmi_handle,
 		struct win_host_vbss_sta_context *vbss_sta_context)
 {
@@ -23960,7 +23960,7 @@ struct wmi_ops tlv_ops =  {
 	.extract_pdev_power_boost_event = extract_pdev_power_boost_event_tlv,
 	.pdev_power_boost_cmd_send = pdev_power_boost_cmd_send_tlv,
 #ifdef WLAN_FEATURE_VBSS
-	.vbss_trigger_move_sta_send = vbss_trigger_move_sta_send_tlv,
+	.vbss_sta_action_send = vbss_sta_action_send_tlv,
 	.vbss_set_sta_context_send = vbss_set_sta_context_send_tlv,
 	.extract_vbss_sta_context = extract_vbss_sta_context_tlv,
 #endif /* WLAN_FEATURE_VBSS */

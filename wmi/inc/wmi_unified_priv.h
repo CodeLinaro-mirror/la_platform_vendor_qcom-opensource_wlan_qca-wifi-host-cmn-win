@@ -3651,8 +3651,7 @@ QDF_STATUS
 
 #ifdef WLAN_FEATURE_VBSS
 QDF_STATUS
-(*vbss_trigger_move_sta_send)(
-			wmi_unified_t wmi_handle,
+(*vbss_sta_action_send)(wmi_unified_t wmi_handle,
 			struct win_host_vbss_sta_context *vbss_sta_context);
 
 QDF_STATUS

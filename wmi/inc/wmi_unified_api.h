@@ -5519,14 +5519,14 @@ wmi_pdev_power_boost_cmd_send(wmi_unified_t wmi_handle,
 #ifdef WLAN_FEATURE_VBSS
 
 /**
- * wmi_vbss_trigger_move_sta_send - WMI to send VBSS Trigger move STA
+ * wmi_vbss_sta_action_send - WMI to send VBSS STA action
  * @wmi_handle: Handle to WMI
  * @@vbss_sta_context: Pointer to VBSS STA context
  *
  * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
  */
 QDF_STATUS
-wmi_vbss_trigger_move_sta_send(
+wmi_vbss_sta_action_send(
 			wmi_unified_t wmi_handle,
 			struct win_host_vbss_sta_context *vbss_sta_context);
 
