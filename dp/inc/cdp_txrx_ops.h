@@ -1876,6 +1876,8 @@ void (*peer_send_wds_disconnect)(struct cdp_ctrl_objmgr_psoc *psoc,
 #endif
 #if defined(IPA_OFFLOAD) && defined(QCA_IPA_LL_TX_FLOW_CONTROL)
 	uint8_t (*get_mlo_chip_id)(struct cdp_ctrl_objmgr_psoc *psoc);
+	bool (*peer_is_mlo_peer)(struct cdp_ctrl_objmgr_psoc *psoc,
+				 uint8_t *mac_addr, uint8_t *vdev_id);
 #endif
 	void (*dp_print_fisa_stats)(enum cdp_fisa_stats_id stats_id);
 #if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_LOW_MEM)
@@ -2430,7 +2432,7 @@ struct cdp_ipa_ops {
 				      qdf_ipa_client_type_t cons_client,
 				      uint8_t session_id, bool is_ipv6_enabled,
 				      qdf_ipa_wdi_hdl_t hdl);
-	QDF_STATUS (*ipa_cleanup_iface)(char *ifname, bool is_ipv6_enabled,
+	QDF_STATUS (*ipa_cleanup_iface)(void *iface, bool is_ipv6_enabled,
 					qdf_ipa_wdi_hdl_t hdl);
 	QDF_STATUS (*ipa_enable_pipes)(struct cdp_soc_t *soc_hdl,
 				       uint8_t pdev_id, qdf_ipa_wdi_hdl_t hdl);
@@ -2483,6 +2485,8 @@ struct cdp_ipa_ops {
 	void (*ipa_get_wdi_version)(struct cdp_soc_t *soc_hdl,
 				    uint8_t *wdi_ver);
 	bool (*ipa_is_ring_ipa_rx)(struct cdp_soc_t *soc_hdl, uint8_t ring_id);
+	bool (*ipa_get_peer_mlo_state)(struct cdp_soc_t *soc_hdl, uint8_t *peer_mac,
+				       uint8_t *vdev_id);
 };
 #endif
 

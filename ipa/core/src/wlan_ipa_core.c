@@ -2416,7 +2416,7 @@ static void wlan_ipa_cleanup_iface(struct wlan_ipa_iface_context *iface_context,
 	}
 
 	if (cdp_ipa_cleanup_iface(ipa_ctx->dp_soc,
-				  iface_context->dev->name,
+				  iface_context,
 				  wlan_ipa_is_ipv6_enabled(ipa_ctx->config),
 				  ipa_ctx->hdl)) {
 		ipa_err("ipa_cleanup_iface failed");
@@ -2671,7 +2671,7 @@ static QDF_STATUS wlan_ipa_setup_iface(struct wlan_ipa_priv *ipa_ctx,
 
 		status = cdp_ipa_setup_iface(ipa_ctx->dp_soc,
 					     net_dev->name,
-					     (uint8_t *)net_dev->dev_addr,
+					     mac_addr,
 					     iface_context->prod_client,
 					     iface_context->cons_client,
 					     sessid,
@@ -3099,10 +3099,13 @@ void wlan_ipa_uc_bw_monitor(struct wlan_ipa_priv *ipa_ctx, bool stop)
  */
 static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
 				    qdf_ipa_wlan_event type,
-				    const uint8_t *mac_addr)
+				    const uint8_t *mac_addr,
+				    struct wlan_ipa_priv *ipa_ctx)
 {
 	qdf_ipa_msg_meta_t meta;
 	qdf_ipa_wlan_msg_t *msg;
+	uint8_t id = 0xFF;
+	struct cdp_soc_t *cdp_soc;
 
 	QDF_IPA_MSG_META_MSG_LEN(&meta) = sizeof(qdf_ipa_wlan_msg_t);
 
@@ -3118,6 +3121,12 @@ static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
 
 	if (type == QDF_IPA_AP_CONNECT)
 		wlan_ipa_msg_wds_update(ipa_is_wds_enabled(), msg);
+
+	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
+	QDF_IPA_WLAN_MSG_HDL(msg) = ipa_ctx->hdl;
+	QDF_IPA_WLAN_MSG_IS_MLO(msg) =
+		cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &id);
+	QDF_IPA_WLAN_MSG_SESSION_ID(msg) = id;
 
 	ipa_debug("%s: Evt: %d", QDF_IPA_WLAN_MSG_NAME(msg), QDF_IPA_MSG_META_MSG_TYPE(&meta));
 
@@ -3251,6 +3260,7 @@ static QDF_STATUS wlan_ipa_get_ta_peer_id(struct cdp_soc_t *cdp_soc,
  * @net_dev: Interface net device
  * @type: WLAN IPA event
  * @mac_addr: mac_addr of peer
+ * @session_id: vdev_id
  *
  * Return: QDF STATUS
  */
@@ -3259,7 +3269,8 @@ wlan_ipa_set_peer_id(struct wlan_ipa_priv *ipa_ctx,
 		     qdf_ipa_msg_meta_t *meta,
 		     qdf_netdev_t net_dev,
 		     qdf_ipa_wlan_event type,
-		     const uint8_t *mac_addr)
+		     const uint8_t *mac_addr,
+		     uint8_t session_id)
 {
 	uint16_t ta_peer_id;
 	struct cdp_soc_t *cdp_soc;
@@ -3301,6 +3312,10 @@ wlan_ipa_set_peer_id(struct wlan_ipa_priv *ipa_ctx,
 
 	ipa_info("ta_peer_id set to: %d", ta_peer_id);
 	msg_ex->attribs[1].u.ta_peer_id = ta_peer_id;
+	QDF_IPA_WLAN_MSG_EX_HDL(msg_ex) = ipa_ctx->hdl;
+	QDF_IPA_WLAN_MSG_EX_IS_MLO(msg_ex) =
+		cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &session_id);
+	QDF_IPA_WLAN_MSG_EX_SESSION_ID(msg_ex) = session_id;
 
 	if (qdf_ipa_send_msg(meta, msg_ex, wlan_ipa_msg_free_fn)) {
 		ipa_info("%s: Evt: %d send ipa msg fail",
@@ -3318,9 +3333,11 @@ wlan_ipa_set_peer_id(struct wlan_ipa_priv *ipa_ctx,
 		     qdf_ipa_msg_meta_t *meta,
 		     qdf_netdev_t net_dev,
 		     qdf_ipa_wlan_event type,
-		     const uint8_t *mac_addr)
+		     const uint8_t *mac_addr,
+		     uint8_t session_id)
 {
 	qdf_ipa_wlan_msg_ex_t *msg_ex;
+	struct cdp_soc_t *cdp_soc;
 
 	QDF_IPA_MSG_META_MSG_LEN(meta) =
 		(sizeof(qdf_ipa_wlan_msg_ex_t) +
@@ -3342,6 +3359,11 @@ wlan_ipa_set_peer_id(struct wlan_ipa_priv *ipa_ctx,
 	}
 	memcpy(msg_ex->attribs[0].u.mac_addr, mac_addr, IPA_MAC_ADDR_SIZE);
 
+	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
+	QDF_IPA_WLAN_MSG_EX_HDL(msg_ex) = ipa_ctx->hdl;
+	QDF_IPA_WLAN_MSG_EX_IS_MLO(msg_ex) =
+		cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &session_id);
+	QDF_IPA_WLAN_MSG_EX_SESSION_ID(msg_ex) = session_id;
 	if (qdf_ipa_send_msg(meta, msg_ex, wlan_ipa_msg_free_fn)) {
 		ipa_info("%s: Evt: %d send ipa msg fail",
 			 net_dev->name, type);
@@ -3386,6 +3408,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_objmgr_vdev *vdev;
 	bool ipa_wds = false;
+	struct cdp_soc_t *cdp_soc;
 
 	ipa_debug("%s: EVT: %d, MAC: "QDF_MAC_ADDR_FMT", session_id: %u is_2g_iface %u",
 		  net_dev->name, type, QDF_MAC_ADDR_REF(mac_addr), session_id,
@@ -3548,7 +3571,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			}
 			status = wlan_ipa_send_msg(net_dev,
 						   QDF_IPA_STA_DISCONNECT,
-						   mac_addr);
+						   mac_addr, ipa_ctx);
 			if (status != QDF_STATUS_SUCCESS) {
 				ipa_err("QDF_IPA_STA_DISCONNECT send failed %u",
 					status);
@@ -3878,7 +3901,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		QDF_IPA_SET_META_MSG_TYPE(&meta, type);
 
 		status = wlan_ipa_set_peer_id(ipa_ctx, &meta, net_dev,
-					      type, mac_addr);
+					      type, mac_addr, session_id);
 		if (QDF_IS_STATUS_ERROR(status))
 			return QDF_STATUS_E_FAILURE;
 
@@ -4112,6 +4135,14 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 	ipa_debug("%s: Evt: %d", QDF_IPA_WLAN_MSG_NAME(msg),
 		  QDF_IPA_MSG_META_MSG_TYPE(&meta));
+
+	/* Send extra attribute to handle single netdev MLO */
+	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
+	QDF_IPA_WLAN_MSG_HDL(msg) = ipa_ctx->hdl;
+	QDF_IPA_WLAN_MSG_SESSION_ID(msg) = session_id;
+	if (type != WLAN_CLIENT_DISCONNECT)
+		QDF_IPA_WLAN_MSG_IS_MLO(msg) =
+			cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &session_id);
 
 	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
 
@@ -5474,7 +5505,7 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 		evt = iface->device_mode == QDF_STA_MODE ? QDF_IPA_STA_CONNECT :
 		      QDF_IPA_AP_CONNECT;
 
-		status = wlan_ipa_send_msg(iface->dev, evt, iface->mac_addr);
+		status = wlan_ipa_send_msg(iface->dev, evt, iface->mac_addr, ipa_ctx);
 		if (QDF_IS_STATUS_SUCCESS(status))
 			ipa_ctx->stats.num_send_msg++;
 	}
@@ -6137,6 +6168,8 @@ static QDF_STATUS wlan_ipa_uc_send_evt(qdf_netdev_t net_dev,
 	struct wlan_ipa_priv *ipa_ctx;
 	qdf_ipa_msg_meta_t meta;
 	qdf_ipa_wlan_msg_t *msg;
+	struct cdp_soc_t *cdp_soc;
+	uint8_t id = 0xFF;
 
 	if (!ipa_priv)
 		return QDF_STATUS_E_INVAL;
@@ -6153,6 +6186,12 @@ static QDF_STATUS wlan_ipa_uc_send_evt(qdf_netdev_t net_dev,
 		      IPA_RESOURCE_NAME_MAX);
 	qdf_mem_copy(QDF_IPA_WLAN_MSG_MAC_ADDR(msg), mac_addr, QDF_NET_ETH_LEN);
 	QDF_IPA_WLAN_MSG_NETDEV_IF_ID(msg) = net_dev->ifindex;
+
+	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
+	QDF_IPA_WLAN_MSG_HDL(msg) = ipa_ctx->hdl;
+	QDF_IPA_WLAN_MSG_IS_MLO(msg) =
+		cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &id);
+	QDF_IPA_WLAN_MSG_SESSION_ID(msg) = id;
 
 	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
 		ipa_err("%s: Evt: %d fail",

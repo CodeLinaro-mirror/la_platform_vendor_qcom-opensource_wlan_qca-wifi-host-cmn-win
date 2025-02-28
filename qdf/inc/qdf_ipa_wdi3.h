@@ -227,6 +227,9 @@ typedef __qdf_ipa_wdi_reg_intf_in_params_t qdf_ipa_wdi_reg_intf_in_params_t;
 	__QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_RX1_USED(in)
 #endif
 
+#define QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_MLO(in)	\
+	__QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_MLO(in)
+
 /**
  * qdf_ipa_wdi_pipe_setup_info_t - WDI TX/Rx configuration
  */
@@ -388,9 +391,10 @@ static inline int qdf_ipa_wdi_reg_intf(
  * @Return 0 on success, negative on failure
  */
 static inline int qdf_ipa_wdi_dereg_intf(const char *netdev_name,
-					 qdf_ipa_wdi_hdl_t hdl)
+					 qdf_ipa_wdi_hdl_t hdl,
+					 uint8_t session_id)
 {
-	return __qdf_ipa_wdi_dereg_intf(netdev_name, hdl);
+	return __qdf_ipa_wdi_dereg_intf(netdev_name, hdl, session_id);
 }
 
 /**

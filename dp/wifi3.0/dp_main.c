@@ -14601,6 +14601,7 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 #endif
 	.ipa_get_wdi_version = dp_ipa_get_wdi_version,
 	.ipa_is_ring_ipa_rx = dp_ipa_is_ring_ipa_rx,
+	.ipa_get_peer_mlo_state = dp_ipa_is_mlo_peer,
 };
 #endif
 

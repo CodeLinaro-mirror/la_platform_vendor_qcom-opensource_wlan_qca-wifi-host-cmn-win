@@ -1464,6 +1464,25 @@ void dp_peer_unmap_ipa_evt(struct dp_soc *soc, uint16_t peer_id,
 						      mac_addr);
 	}
 }
+
+/**
+ * dp_peer_is_mlo_peer() - Check if peer is MLO peer
+ * @soc: SoC handle
+ * @mac_addr: Peer mac address
+ * @vdev_id: Vdev id
+ *
+ * Return: True if peer is MLO, otherwise False
+ */
+static inline
+bool dp_peer_is_mlo_peer(struct dp_soc *soc, uint8_t *mac_addr,
+			 uint8_t *vdev_id)
+{
+	if (soc->cdp_soc.ol_ops->peer_is_mlo_peer)
+		return soc->cdp_soc.ol_ops->peer_is_mlo_peer(soc->ctrl_psoc,
+							     mac_addr,
+							     vdev_id);
+	return false;
+}
 #else
 static inline
 void dp_peer_unmap_ipa_evt(struct dp_soc *soc, uint16_t peer_id,
