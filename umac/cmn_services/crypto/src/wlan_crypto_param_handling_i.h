@@ -151,8 +151,32 @@ int32_t wlan_crypto_get_cipher_cap(struct wlan_crypto_params *crypto_params);
 QDF_STATUS wlan_crypto_set_rsn_cap(struct wlan_crypto_params *crypto_params,
 					uint32_t ciphers);
 /**
+ * wlan_crypto_set_rsno1_cap() - called by ucfg to configure
+ *                                        RSNO1 caps in vdev
+ * @crypto_params: crypto parameters
+ * @value: RSNO1 capabilities
+ *
+ * This function gets called from ucfg to configure RSNO1 capabilities in vdev
+ *
+ * Return: QDF_STATUS_SUCCESS - in case of success
+ */
+QDF_STATUS wlan_crypto_set_rsno1_cap(struct wlan_crypto_params *crypto_params,
+				    uint32_t value);
+/**
+ * wlan_crypto_set_rsno2_cap() - called by ucfg to configure
+ *                                        RSNO2 caps in vdev
+ * @crypto_params: crypto parameters
+ * @value: RSNO2 capabilities
+ *
+ * This function gets called from ucfg to configure RSNO2 capabilities in vdev
+ *
+ * Return: QDF_STATUS_SUCCESS - in case of success
+ */
+QDF_STATUS wlan_crypto_set_rsno2_cap(struct wlan_crypto_params *crypto_params,
+				     uint32_t value);
+/**
  * wlan_crypto_set_rsnx_cap() - called by ucfg to configure
- *                                        RSNXE cap in vdev
+ *                                        RSNXE caps in vdev
  * @crypto_params: crypto parameters
  * @value: RSNXE Capabilities
  *
@@ -162,17 +186,79 @@ QDF_STATUS wlan_crypto_set_rsn_cap(struct wlan_crypto_params *crypto_params,
  */
 QDF_STATUS wlan_crypto_set_rsnx_cap(struct wlan_crypto_params *crypto_params,
 				    uint32_t value);
+/**
+ * wlan_crypto_set_rsnxo_cap() - called by ucfg to configure
+ *                                        RSNXOE cap in vdev
+ * @crypto_params: crypto parameters
+ * @value: RSNXOE Capabilities
+ *
+ * This function is used to configure RSNXOE capabilities in vdev
+ *
+ * Return: QDF_STATUS_SUCCESS - in case of success
+ */
+QDF_STATUS wlan_crypto_set_rsnxo_cap(struct wlan_crypto_params *crypto_params,
+				     uint32_t value);
 
 /**
  * wlan_crypto_get_rsn_cap() - called by ucfg to get rsn caps from vdev
  * @crypto_params: crypto parameters
  *
- * This function gets called from ucfg to get supported unicast ciphers
+ * This function gets called from ucfg to get RSN capabilities
  *
- * Return: bitmap value of all supported unicast ciphers
+ * Return: RSN capabilities
  */
 int32_t wlan_crypto_get_rsn_cap(struct wlan_crypto_params *crypto_params);
 
+/**
+ * wlan_crypto_get_rsno1_cap() - called by ucfg to get rsno1 caps from vdev
+ * @crypto_params: crypto parameters
+ *
+ * This function gets called from ucfg to get RSNO1 capabilities
+ *
+ * Return: RSNO1 capabilities
+ */
+int32_t wlan_crypto_get_rsno1_cap(struct wlan_crypto_params *crypto_params);
+
+/**
+ * wlan_crypto_get_rsno2_cap() - called by ucfg to get rsno2 caps from vdev
+ * @crypto_params: crypto parameters
+ *
+ * This function gets called from ucfg to get RSNO2 capabilities
+ *
+ * Return: RSNO2 capabilities
+ */
+int32_t wlan_crypto_get_rsno2_cap(struct wlan_crypto_params *crypto_params);
+
+/**
+ * wlan_crypto_get_rsnx_cap() - called by ucfg to get rsnx caps from vdev
+ * @crypto_params: crypto parameters
+ *
+ * This function gets called from ucfg to get rsnx capabilities
+ *
+ * Return: RSNX capabilities
+ */
+int32_t wlan_crypto_get_rsnx_cap(struct wlan_crypto_params *crypto_params);
+
+/**
+ * wlan_crypto_get_rsnxo_cap() - called by ucfg to get rsnxo caps from vdev
+ * @crypto_params: crypto parameters
+ *
+ * This function gets called from ucfg to get rsnxo capabilities
+ *
+ * Return: RSNXO capabilities
+ */
+int32_t wlan_crypto_get_rsnxo_cap(struct wlan_crypto_params *crypto_params);
+
+/**
+ * wlan_crypto_get_rsn_sel_variant() - called by ucfg to get rsn selection
+ * variant from vdev
+ * @crypto_params: crypto parameters
+ *
+ * This function gets called from ucfg to get rsn selection variant
+ *
+ * Return: RSN Selection Variant
+ */
+int32_t wlan_crypto_get_rsn_sel_variant(struct wlan_crypto_params *crypto_params);
 
 /**
  * wlan_crypto_set_key_mgmt() - called by ucfg to configure

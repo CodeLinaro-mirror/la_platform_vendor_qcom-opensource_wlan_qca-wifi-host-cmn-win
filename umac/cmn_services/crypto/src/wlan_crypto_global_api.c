@@ -97,6 +97,34 @@ bool is_gtk(uint16_t keyix)
 }
 
 /**
+ * is_crypto_params_mfp_capabled() - Check if RSN(O1/O2) caps has MFPC set
+ * @rsn_caps: RSN(O1/O2) caps
+ *
+ * This function gets called to check if MFPC bit is set in any of the
+ * RSN variants(RSN/RSNO1/RSNO2)
+ *
+ * Return: true or false
+ */
+bool is_crypto_params_mfp_capable(uint16_t rsn_caps)
+{
+	return (rsn_caps & WLAN_CRYPTO_RSN_CAP_MFP_ENABLED);
+}
+
+/**
+ * is_crypto_params_mfp_required() - Check if RSN(O1/O2) caps has MFPR set
+ * @rsn_caps: RSN(O1/O2) caps
+ *
+ * This function gets called to check if MFPR bit is set in any of the
+ * RSN variants(RSN/RSNO1/RSNO2)
+ *
+ * Return: true or false
+ */
+bool is_crypto_params_mfp_required(uint16_t rsn_caps)
+{
+	return (rsn_caps & WLAN_CRYPTO_RSN_CAP_MFP_REQUIRED);
+}
+
+/**
  * wlan_crypto_vdev_get_comp_params() - called by mlme to get crypto params
  * @vdev: vdev
  * @crypto_priv: location to store pointer to the crypto private data
@@ -183,6 +211,15 @@ static QDF_STATUS wlan_crypto_set_param(struct wlan_crypto_params *crypto_params
 		break;
 	case WLAN_CRYPTO_PARAM_RSN_CAP:
 		status = wlan_crypto_set_rsn_cap(crypto_params,	value);
+		break;
+	case WLAN_CRYPTO_PARAM_RSNO1_CAP:
+		status = wlan_crypto_set_rsno1_cap(crypto_params, value);
+		break;
+	case WLAN_CRYPTO_PARAM_RSNO2_CAP:
+		status = wlan_crypto_set_rsno2_cap(crypto_params, value);
+		break;
+	case WLAN_CRYPTO_PARAM_RSNXO_CAP:
+		status = wlan_crypto_set_rsnxo_cap(crypto_params, value);
 		break;
 	case WLAN_CRYPTO_PARAM_RSNX_CAP:
 		status = wlan_crypto_set_rsnx_cap(crypto_params, value);
@@ -275,8 +312,20 @@ static int32_t wlan_crypto_get_param_value(wlan_crypto_param_type param,
 	case WLAN_CRYPTO_PARAM_RSN_CAP:
 		value = wlan_crypto_get_rsn_cap(crypto_params);
 		break;
+	case WLAN_CRYPTO_PARAM_RSNO1_CAP:
+		value = wlan_crypto_get_rsno1_cap(crypto_params);
+		break;
+	case WLAN_CRYPTO_PARAM_RSNO2_CAP:
+		value = wlan_crypto_get_rsno2_cap(crypto_params);
+		break;
+	case WLAN_CRYPTO_PARAM_RSNXO_CAP:
+		value = wlan_crypto_get_rsnxo_cap(crypto_params);
+		break;
 	case WLAN_CRYPTO_PARAM_KEY_MGMT:
 		value = wlan_crypto_get_key_mgmt(crypto_params);
+		break;
+	case WLAN_CRYPTO_PARAM_RSN_SEL_VARIANT:
+		value = wlan_crypto_get_rsn_sel_variant(crypto_params);
 		break;
 	default:
 		value = -1;
@@ -1976,10 +2025,9 @@ bool wlan_crypto_vdev_is_pmf_enabled(struct wlan_objmgr_vdev *vdev)
 		return false;
 	}
 
-	if ((vdev_crypto_params->rsn_caps &
-					WLAN_CRYPTO_RSN_CAP_MFP_ENABLED)
-		|| (vdev_crypto_params->rsn_caps &
-					WLAN_CRYPTO_RSN_CAP_MFP_REQUIRED)) {
+	if (is_crypto_params_mfp_capable(vdev_crypto_params->rsn_caps) ||
+	    is_crypto_params_mfp_capable(vdev_crypto_params->rsno1_caps) ||
+	    is_crypto_params_mfp_capable(vdev_crypto_params->rsno2_caps)) {
 		return true;
 	}
 
@@ -2001,8 +2049,11 @@ bool wlan_crypto_vdev_is_pmf_required(struct wlan_objmgr_vdev *vdev)
 		return false;
 	}
 
-	if (vdev_crypto_params->rsn_caps & WLAN_CRYPTO_RSN_CAP_MFP_REQUIRED)
+	if (is_crypto_params_mfp_required(vdev_crypto_params->rsn_caps) ||
+	    is_crypto_params_mfp_required(vdev_crypto_params->rsno1_caps) ||
+	    is_crypto_params_mfp_required(vdev_crypto_params->rsno2_caps)) {
 		return true;
+	}
 
 	return false;
 }
@@ -2013,9 +2064,11 @@ bool wlan_crypto_is_pmf_enabled(struct wlan_objmgr_vdev *vdev,
 	struct wlan_crypto_comp_priv *crypto_priv;
 	struct wlan_crypto_params *vdev_crypto_params;
 	struct wlan_crypto_params *peer_crypto_params;
+	int rsn_sel_variant;
 
 	if (!vdev || !peer)
 		return false;
+
 	vdev_crypto_params = wlan_crypto_vdev_get_comp_params(vdev,
 							&crypto_priv);
 	if (!crypto_priv) {
@@ -2029,16 +2082,39 @@ bool wlan_crypto_is_pmf_enabled(struct wlan_objmgr_vdev *vdev,
 		crypto_err("crypto_priv NULL");
 		return false;
 	}
-	if (((vdev_crypto_params->rsn_caps &
-					WLAN_CRYPTO_RSN_CAP_MFP_ENABLED) &&
-		(peer_crypto_params->rsn_caps &
-					WLAN_CRYPTO_RSN_CAP_MFP_ENABLED))
-		|| (vdev_crypto_params->rsn_caps &
-					WLAN_CRYPTO_RSN_CAP_MFP_REQUIRED)) {
-		return true;
+	rsn_sel_variant = wlan_crypto_get_peer_param(peer,
+						     WLAN_CRYPTO_PARAM_RSN_SEL_VARIANT);
+	switch (rsn_sel_variant) {
+	case 1:
+		if (wlan_vdev_mlme_get_opmode(vdev) == QDF_SAP_MODE) {
+			return ((is_crypto_params_mfp_capable(vdev_crypto_params->rsno1_caps) &&
+			       is_crypto_params_mfp_capable(peer_crypto_params->rsn_caps)) ||
+			       is_crypto_params_mfp_required(vdev_crypto_params->rsno1_caps));
+
+		} else if (wlan_vdev_mlme_get_opmode(vdev) == QDF_STA_MODE) {
+			return ((is_crypto_params_mfp_capable(vdev_crypto_params->rsn_caps) &&
+			       is_crypto_params_mfp_capable(peer_crypto_params->rsno1_caps)) ||
+			       is_crypto_params_mfp_required(vdev_crypto_params->rsn_caps));
+
+		}
+		break;
+	case 2:
+		if (wlan_vdev_mlme_get_opmode(vdev) == QDF_SAP_MODE) {
+			return ((is_crypto_params_mfp_capable(vdev_crypto_params->rsno2_caps) &&
+			       is_crypto_params_mfp_capable(peer_crypto_params->rsn_caps)) ||
+			       is_crypto_params_mfp_required(vdev_crypto_params->rsno2_caps));
+
+		} else if (wlan_vdev_mlme_get_opmode(vdev) == QDF_STA_MODE) {
+			return ((is_crypto_params_mfp_capable(vdev_crypto_params->rsn_caps) &&
+			       is_crypto_params_mfp_capable(peer_crypto_params->rsno2_caps)) ||
+			       is_crypto_params_mfp_required(vdev_crypto_params->rsn_caps));
+		}
+		break;
 	}
 
-	return false;
+	return ((is_crypto_params_mfp_capable(vdev_crypto_params->rsn_caps) &&
+	       is_crypto_params_mfp_capable(peer_crypto_params->rsn_caps)) ||
+	       is_crypto_params_mfp_required(vdev_crypto_params->rsn_caps));
 }
 
 bool wlan_crypto_is_key_valid(struct wlan_objmgr_vdev *vdev,
@@ -2800,22 +2876,6 @@ wlan_crypto_store_akm_list_in_order(struct wlan_crypto_params *crypto_params,
 }
 #endif
 
-void wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
-			      const uint8_t *rsnxe)
-{
-	uint8_t i = 0, len = rsnxe[1];
-
-	for (; len > 0 && i < sizeof(crypto_params->rsnx_caps); len--) {
-		((uint8_t *)(&crypto_params->rsnx_caps))[i] = rsnxe[2 + i];
-		i++;
-	}
-	/*First 4bits of RSNX capabilitities field is the length of
-	 *the Extended RSN capabilities field -1
-	 *Hence Ignoring them
-	 */
-	((uint8_t *)(&crypto_params->rsnx_caps))[0] &= 0xf0;
-}
-
 /*
  * wlan_crypto_get_ie_offset() - API to get the RSN(X) data
  * @frm: pointer to the RSN(X) buffer pointer
@@ -2848,6 +2908,111 @@ wlan_crypto_get_ie_offset(const uint8_t **frm, uint8_t *len,
 		return QDF_STATUS_E_INVAL;
 	}
 
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
+			      const uint8_t *rsnxe)
+{
+	uint8_t i = 0, len;
+	QDF_STATUS status;
+	uint8_t elem_id = rsnxe[0];
+
+	status = wlan_crypto_get_ie_offset(&rsnxe, &len, WLAN_ELEMID_RSNXE);
+	if (qdf_unlikely(QDF_IS_STATUS_ERROR(status)))
+		return status;
+
+	for (; len > 0 && i < sizeof(crypto_params->rsnx_caps); len--) {
+		if (elem_id == WLAN_ELEMID_RSNXE)
+			((uint8_t *)(&crypto_params->rsnx_caps))[i] = rsnxe[i];
+		else if (elem_id == WLAN_ELEMID_VENDOR)
+			((uint8_t *)(&crypto_params->rsnxo_caps))[i] = rsnxe[i];
+		i++;
+	}
+	/*First 4bits of RSNX capabilitities field is the length of
+	 *the Extended RSN capabilities field -1
+	 *Hence Ignoring them
+	 */
+	if (elem_id == WLAN_ELEMID_RSNXE)
+		((uint8_t *)(&crypto_params->rsnx_caps))[0] &= 0xf0;
+	else if (elem_id == WLAN_ELEMID_VENDOR)
+		((uint8_t *)(&crypto_params->rsnxo_caps))[0] &= 0xf0;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS wlan_crypto_fill_rsno_caps(struct wlan_crypto_params *crypto_params,
+				      const uint8_t *frm)
+{
+	uint8_t oui_type, len = frm[1];
+	int n;
+	QDF_STATUS status;
+
+	/* Check the length once for fixed parts: OUI, type & version */
+	if (len < 2)
+		return QDF_STATUS_E_INVAL;
+
+	/*Skip Element ID(1B)+len(1B)+oui(3B)*/
+	oui_type = *(uint8_t *)(frm + 2 + 3);
+
+	status = wlan_crypto_get_ie_offset(&frm, &len, WLAN_ELEMID_RSN);
+	if (QDF_IS_STATUS_ERROR(status))
+		return status;
+
+	/* Skip 2bytes of RSN Version */
+	frm += 2, len -= 2;
+
+	if (!len)
+		return QDF_STATUS_SUCCESS;
+	else if (len < 4)
+		return QDF_STATUS_E_INVAL;
+
+	/* Skip 4bytes of multicast/group cipher */
+	frm += 4, len -= 4;
+
+	if (!len)
+		return QDF_STATUS_SUCCESS;
+	else if (len < 2)
+		return QDF_STATUS_E_INVAL;
+
+	/* unicast ciphers */
+	n = LE_READ_2(frm);
+	frm += 2, len -= 2;
+	if (n) {
+		if (len < n * 4)
+			return QDF_STATUS_E_INVAL;
+
+		for (; n > 0; n--)
+			frm += 4, len -= 4;
+	}
+
+	if (!len)
+		return QDF_STATUS_SUCCESS;
+	else if (len < 2)
+		return QDF_STATUS_E_INVAL;
+
+	/* key management algorithms */
+	n = LE_READ_2(frm);
+	frm += 2, len -= 2;
+
+	if (n) {
+		if (len < n * 4)
+			return QDF_STATUS_E_INVAL;
+		for (; n > 0; n--)
+			frm += 4, len -= 4;
+	}
+
+	/* optional capabilities */
+	if (len >= 2) {
+		if (oui_type == RSNO_SUBTYPE_WIFI6_RSN)
+			crypto_params->rsno1_caps = LE_READ_2(frm);
+		else if (oui_type == RSNO_SUBTYPE_WIFI7_RSN)
+			crypto_params->rsno2_caps = LE_READ_2(frm);
+		frm += 2, len -= 2;
+	} else if (len && len < 2)
+		return QDF_STATUS_E_INVAL;
+
+	/*Ignore rest of the frame*/
 	return QDF_STATUS_SUCCESS;
 }
 

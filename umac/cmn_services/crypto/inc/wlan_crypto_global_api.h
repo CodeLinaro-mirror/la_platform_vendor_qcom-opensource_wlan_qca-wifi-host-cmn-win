@@ -51,6 +51,28 @@ bool is_igtk(uint16_t keyix);
 bool is_bigtk(uint16_t keyix);
 
 /**
+ * is_crypto_params_mfp_capable() - Check if RSN(O1/O2) caps has MFPC set
+ * @rsn_caps: RSN(O1/O2) caps
+ *
+ * This function gets called to check if MFPC bit is set in any of the
+ * RSN variants(RSN/RSNO1/RSNO2)
+ *
+ * Return: true or false
+ */
+bool is_crypto_params_mfp_capable(uint16_t rsn_caps);
+
+/**
+ * is_crypto_params_mfp_required() - Check if RSN(O1/O2) caps has MFPR set
+ * @rsn_caps: RSN(O1/O2) caps
+ *
+ * This function gets called to check if MFPR bit is set in any of the
+ * RSN variants(RSN/RSNO1/RSNO2)
+ *
+ * Return: true or false
+ */
+bool is_crypto_params_mfp_required(uint16_t rsn_caps);
+
+/**
  * is_gtk() - Is given key index for GTK
  * @keyix: Key index
  *
@@ -337,6 +359,20 @@ QDF_STATUS wlan_crypto_wpaie_check(struct wlan_crypto_params *crypto_params,
 				   const uint8_t *frm);
 
 /**
+ * wlan_crypto_fill_rsno_caps() - called by mlme to populate RSNO1 capabilities
+ * in crypto params
+ * @crypto_params: crypto params
+ * @frm: rsno1 buffer beginning from RSNO1 element ID
+ *
+ * This function gets called by mlme to populate RSNO1 capabilities
+ * in crypto params
+ *
+ * Return: QDF_STATUS_SUCCESS - in case of success
+ */
+QDF_STATUS wlan_crypto_fill_rsno_caps(struct wlan_crypto_params *crypto_params,
+				      const uint8_t *frm);
+
+/**
  * wlan_crypto_rsnie_check() - called by mlme to check the rsnie
  * @crypto_params: crypto params
  * @frm: rsn buffer beginning from RSN data
@@ -356,10 +392,10 @@ QDF_STATUS wlan_crypto_rsnie_check(struct wlan_crypto_params *crypto_params,
  *
  * This function gets called by mlme to extract rsnx capabilities
  *
- * Return: None
+ * Return: QDF_STATUS_SUCCESS - in case of success
  */
-void wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
-			      const uint8_t *rsnxe);
+QDF_STATUS wlan_crypto_rsnxie_check(struct wlan_crypto_params *crypto_params,
+				    const uint8_t *rsnxe);
 
 /**
  * wlan_crypto_build_wpaie() - called by mlme to build wpaie
