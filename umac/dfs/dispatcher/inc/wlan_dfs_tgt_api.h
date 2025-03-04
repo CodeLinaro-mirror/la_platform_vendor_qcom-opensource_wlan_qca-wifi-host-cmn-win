@@ -144,6 +144,8 @@ extern struct dfs_to_mlme global_dfs_to_mlme;
  * @dfs_ch_op_puncturing:  Puncturing pattern followed in current operating
  *                         channel.
  * @is_channel_updated: Boolean to represent channel update.
+ * @is_user_punctured: Boolean to represent whether puncture is done by user or
+ *                     by radar
  */
 #ifdef CONFIG_CHAN_FREQ_API
 QDF_STATUS
@@ -157,7 +159,8 @@ tgt_dfs_set_current_channel_for_freq(struct wlan_objmgr_pdev *pdev,
 				     uint16_t dfs_ch_mhz_freq_seg1,
 				     uint16_t dfs_ch_mhz_freq_seg2,
 				     uint16_t dfs_ch_op_puncturing,
-				     bool *is_channel_updated);
+				     bool *is_channel_updated,
+				     bool is_user_punctured);
 #endif
 
 /**

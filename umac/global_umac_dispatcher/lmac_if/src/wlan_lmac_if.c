@@ -823,9 +823,28 @@ register_dfs_puncture_rx_ops(struct wlan_lmac_if_dfs_rx_ops *rx_ops)
 	rx_ops->dfs_set_dfs_puncture = ucfg_dfs_set_dfs_puncture;
 	rx_ops->dfs_get_dfs_puncture = ucfg_dfs_get_dfs_puncture;
 }
+
+/* register_dfs_disable_auto_unpuncture_rx_ops() - Register DFS Rx-Ops for DFS Disable Auto
+ *                                                 Unpuncture.
+ * @rx_ops: Pointer to wlan_lmac_if_dfs_rx_ops.
+ */
+static void
+register_dfs_disable_auto_unpuncture_rx_ops(struct wlan_lmac_if_dfs_rx_ops *rx_ops)
+{
+	if (!rx_ops)
+		return;
+
+	rx_ops->dfs_set_dfs_disable_auto_unpuncture = ucfg_dfs_set_dfs_disable_auto_unpuncture;
+	rx_ops->dfs_get_dfs_disable_auto_unpuncture = ucfg_dfs_get_dfs_disable_auto_unpuncture;
+}
+
 #else
 static inline void
 register_dfs_puncture_rx_ops(struct wlan_lmac_if_dfs_rx_ops *rx_ops)
+{
+}
+static inline void
+register_dfs_disable_auto_unpuncture_rx_ops(struct wlan_lmac_if_dfs_rx_ops *rx_ops)
 {
 }
 #endif
@@ -987,6 +1006,11 @@ wlan_lmac_if_umac_dfs_rx_ops_register(struct wlan_lmac_if_rx_ops *rx_ops)
 	register_dfs_chan_postnol_rx_ops(dfs_rx_ops);
 	register_dfs_bw_expand_rx_ops(dfs_rx_ops);
 	register_dfs_puncture_rx_ops(dfs_rx_ops);
+	register_dfs_disable_auto_unpuncture_rx_ops(dfs_rx_ops);
+#ifdef QCA_DFS_BW_PUNCTURE
+	dfs_rx_ops->dfs_check_punc_chan_in_cac =
+		ucfg_dfs_check_punc_chan_in_cac;
+#endif
 
 	return QDF_STATUS_SUCCESS;
 }

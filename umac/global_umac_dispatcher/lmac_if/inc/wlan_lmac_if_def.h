@@ -2665,6 +2665,15 @@ struct wlan_lmac_if_wifi_pos_rx_ops {
  * @dfs_set_dfs_puncture:             API to set DFS puncturing feature.
  * @dfs_get_dfs_puncture:             API to get the status of DFS puncturing
  *                                    feature.
+ * @dfs_set_dfs_disable_auto_unpuncture:
+ *                                    API to set the status of DFS disable
+ *                                    unpuncture option.
+ * @dfs_get_dfs_disable_auto_unpuncture:
+ *                                    API to get the status of DFS disable
+ *                                    unpuncture option.
+ * @dfs_check_punc_chan_in_cac:       Check whether the the channel to be
+ *                                    punctured is already punctured and
+ *                                    has not reached CAC_DONE state.
  * @dfs_set_bw_reduction:
  * @dfs_is_bw_reduction_needed:
  * @dfs_allow_hw_pulses:              Set or unset dfs_allow_hw_pulses which
@@ -2767,7 +2776,8 @@ struct wlan_lmac_if_dfs_rx_ops {
 						uint16_t dfs_ch_mhz_freq_seg1,
 						uint16_t dfs_ch_mhz_freq_seg2,
 						uint16_t dfs_ch_punc_pattern,
-						bool *is_channel_updated);
+						bool *is_channel_updated,
+						bool is_user_punctured);
 #endif
 #ifdef DFS_COMPONENT_ENABLE
 	QDF_STATUS (*dfs_process_radar_ind)(struct wlan_objmgr_pdev *pdev,
@@ -2818,6 +2828,15 @@ struct wlan_lmac_if_dfs_rx_ops {
 	QDF_STATUS (*dfs_get_dfs_puncture)(
 			struct wlan_objmgr_pdev *pdev,
 			bool *value);
+	QDF_STATUS (*dfs_set_dfs_disable_auto_unpuncture)(
+			struct wlan_objmgr_pdev *pdev,
+			bool value);
+	QDF_STATUS (*dfs_get_dfs_disable_auto_unpuncture)(
+			struct wlan_objmgr_pdev *pdev,
+			bool *value);
+	QDF_STATUS (*dfs_check_punc_chan_in_cac)(
+			struct wlan_objmgr_pdev *pdev,
+			uint16_t punc_pattern);
 #endif
 	QDF_STATUS (*dfs_set_bw_reduction)(struct wlan_objmgr_pdev *pdev,
 			bool value);

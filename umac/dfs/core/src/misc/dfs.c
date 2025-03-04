@@ -804,26 +804,14 @@ void dfs_set_current_channel_for_freq(struct wlan_dfs *dfs,
 				      uint16_t dfs_chan_mhz_freq_seg1,
 				      uint16_t dfs_chan_mhz_freq_seg2,
 				      uint16_t dfs_ch_punc_pattern,
-				      bool *is_channel_updated)
+				      bool *is_channel_updated,
+				      bool is_user_punctured)
 {
 	if (is_channel_updated)
 		*is_channel_updated = false;
 
 	if (!dfs) {
 		dfs_err(dfs, WLAN_DEBUG_DFS_ALWAYS,  "dfs is NULL");
-		return;
-	}
-
-	/* Check if the input parameters are the same as that of dfs_curchan */
-	if (dfs_is_curchan_same_as_given_chan(dfs->dfs_curchan,
-					      dfs_chan_freq,
-					      dfs_chan_flags,
-					      dfs_chan_flagext,
-					      dfs_chan_vhtop_freq_seg1,
-					      dfs_chan_vhtop_freq_seg2,
-					      dfs_ch_punc_pattern)) {
-		dfs_info(dfs, WLAN_DEBUG_DFS_ALWAYS,
-			 "dfs_curchan already updated");
 		return;
 	}
 
@@ -850,8 +838,9 @@ void dfs_set_current_channel_for_freq(struct wlan_dfs *dfs,
 
 	if (is_channel_updated)
 		*is_channel_updated = true;
-	if (dfs->dfs_use_puncture)
-		dfs_handle_dfs_puncture_unpuncture(dfs);
+	if (dfs->dfs_use_puncture) {
+		dfs_handle_dfs_puncture_unpuncture(dfs, is_user_punctured);
+	}
 }
 #endif
 

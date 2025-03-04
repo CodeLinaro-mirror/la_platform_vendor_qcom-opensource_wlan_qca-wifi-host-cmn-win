@@ -1390,7 +1390,6 @@ void dfs_punc_sm_stop_all(struct wlan_dfs *dfs);
 void dfs_punc_sm_stop(struct wlan_dfs *dfs,
 		      uint8_t indx,
 		      struct dfs_punc_obj *dfs_punc_arr);
-
 /**
  * dfs_punc_sm_create() - Create DFS puncture state machine.
  * @dfs_punc:             Pointer to DFS puncture state machine object.
@@ -1422,10 +1421,12 @@ void dfs_punc_cac_timer_attach(struct wlan_dfs *dfs,
 /**
  * dfs_handle_dfs_puncture_unpuncture() - Handles DFS puncture and unpuncturing.
  * @dfs:                                  Pointer to wlan_dfs.
+ * @is_user_punctured:                    Status on whether the puncture action was
+ *                                        done by user or by radar.
  *
  * Return: Nothing.
  */
-void dfs_handle_dfs_puncture_unpuncture(struct wlan_dfs *dfs);
+void dfs_handle_dfs_puncture_unpuncture(struct wlan_dfs *dfs, bool is_user_punctured);
 
 /**
  * dfs_punc_cac_timer_reset() - Reset puncture CAC timer.
@@ -1474,6 +1475,7 @@ void dfs_cancel_punc_cac_timer(struct dfs_punc_obj *dfs_punc_arr);
 void utils_dfs_puncturing_sm_deliver_evt(struct wlan_objmgr_pdev *pdev,
 					 uint8_t sm_indx,
 					 enum dfs_punc_sm_evt event);
+
 /**
  * dfs_puncturing_sm_deliver_evt() - API to post events to DFS puncture
  *                                   state machine.
@@ -1568,7 +1570,7 @@ void dfs_punc_cac_timer_attach(struct wlan_dfs *dfs,
 }
 
 static inline
-void dfs_handle_dfs_puncture_unpuncture(struct wlan_dfs *dfs)
+void dfs_handle_dfs_puncture_unpuncture(struct wlan_dfs *dfs, bool is_user_punctured)
 {
 }
 
@@ -1596,7 +1598,8 @@ void dfs_cancel_punc_cac_timer(struct dfs_punc_obj *dfs_punc_arr)
 static inline
 void utils_dfs_puncturing_sm_deliver_evt(struct wlan_objmgr_pdev *pdev,
 					 uint8_t sm_indx,
-					 enum dfs_punc_sm_evt event)
+					 enum dfs_punc_sm_evt event,
+					 bool is_user_punc)
 {
 }
 

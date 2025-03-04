@@ -1029,12 +1029,14 @@ struct dfs_cacelem {
  * @DFS_PUNC_SM_EV_NOL_EXPIRY: NOL expiry event on DFS puncturing SM.
  * @DFS_PUNC_SM_EV_CAC_EXPIRY: CAC expiry event on DFS puncturing SM.
  * @DFS_PUNC_SM_EV_STOP: STOP event on DFS puncturing SM.
+ * @DFS_PUNC_SM_EV_USR_PUNC: User triggered event on DFS puncturing SM.
  */
 enum dfs_punc_sm_evt {
 	DFS_PUNC_SM_EV_RADAR      = 0,
 	DFS_PUNC_SM_EV_NOL_EXPIRY = 1,
 	DFS_PUNC_SM_EV_CAC_EXPIRY = 2,
 	DFS_PUNC_SM_EV_STOP       = 3,
+	DFS_PUNC_SM_EV_USER_PUNC  = 4,
 };
 
 /**
@@ -1043,13 +1045,30 @@ enum dfs_punc_sm_evt {
  * @DFS_S_PUNCTURED:      DFS channel is punctured.
  * @DFS_S_CAC_WAIT:       The channel completed the NOL time and is waiting for
  *                        CAC completion.
+ * @DFS_S_CAC_DONE:       The channel has completed the CAC.
  * @DFS_PUNCTURING_S_MAX: Max (invalid) state.
  */
 enum dfs_punc_sm_state {
 	DFS_S_UNPUNCTURED    = 0,
 	DFS_S_PUNCTURED      = 1,
 	DFS_S_CAC_WAIT       = 2,
-	DFS_PUNCTURING_S_MAX = 3,
+	DFS_S_CAC_DONE       = 3,
+	DFS_PUNCTURING_S_MAX = 4,
+};
+
+/**
+ * enum sm_punc_obj_chan_status - Stats used to identify whether a punctured
+ *  chennal is present in an existing SM Punc Opject.
+ *
+ * @CHAN_OF_SM_PUNC_OBJ_PRESENT: The punctured channel is present in an existing
+ *				 SM Puncture Object
+ *
+ * @CHAN_OF_SM_PUNC_OBJ_NOT_PRESENT: The punctured channel is not present in
+ *				     any existing SM Puncture Object
+ */
+enum sm_punc_obj_chan_status {
+	CHAN_OF_SM_PUNC_OBJ_PRESENT,
+	CHAN_OF_SM_PUNC_OBJ_NOT_PRESENT
 };
 
 /**
@@ -1066,6 +1085,11 @@ enum dfs_punc_sm_state {
  * @dfs_punc_sm_cur_state: Current state of the Puncturing State Machine.
  * @dfs_punc_sm_lock:      Puncturing state machine lock.
  * @dfs_is_unpunctured:    Denotes the SM is unpunctured or not.
+ * @dfs_is_user_punctured: Denotes whether the its user punctured object or not.
+ * @r_found_jiffies:       Time in jiffees at which the SM punc obj got
+ *                         punctured.
+ * @dfs_last_rf_time:      Monotonic timestamp at which the SM punc obj last got
+ *                         punctured by radar.
  */
 struct dfs_punc_obj {
 	qdf_freq_t punc_low_freq;
@@ -1076,6 +1100,9 @@ struct dfs_punc_obj {
 	enum dfs_punc_sm_state dfs_punc_sm_cur_state;
 	qdf_spinlock_t dfs_punc_sm_lock;
 	bool dfs_is_unpunctured;
+	bool dfs_is_user_punctured;
+	qdf_time_t r_found_jiffies;
+	uint64_t dfs_last_rf_time;
 };
 
 /**
@@ -1092,6 +1119,7 @@ struct dfs_punc_unpunc {
  *
  * struct wlan_dfs -                 The main dfs structure.
  * @dfs_debug_mask:                  Current debug bitmask.
+ * @dfs_data_struct_lock:            DFS data structure lock. This is to protect
  * @dfs_curchan_radindex:            Current channel radar index.
  * @dfs_extchan_radindex:            Extension channel radar index.
  * @dfs_ar_state:                    AR state.
@@ -1110,7 +1138,6 @@ struct dfs_punc_unpunc {
  * @dfs_seq_num:                     Sequence number.
  * @dfs_min_sidx:                    Minimum sidx of the received radar pulses.
  * @dfs_max_sidx:                    Maximum sidx of the received radar pulses.
- * @dfs_data_struct_lock:            DFS data structure lock. This is to protect
  *                                   all the filtering data structures. For
  *                                   example: dfs_bin5radars, dfs_filtertype,
  *                                   etc.
@@ -1278,9 +1305,11 @@ struct dfs_punc_unpunc {
  *                                   channel such as: CAC started time, CAC
  *                                   completed time.
  * @dfs_punc_lst:                    List of DFS puncture objects.
+ * @dfs_disable_auto_unpunc:         Disable DFS auto unpuncture.
  */
 struct wlan_dfs {
 	uint32_t       dfs_debug_mask;
+	qdf_spinlock_t dfs_data_struct_lock;
 #ifdef WLAN_DFS_PARTIAL_OFFLOAD
 	int16_t        dfs_curchan_radindex;
 	int16_t        dfs_extchan_radindex;
@@ -1300,7 +1329,6 @@ struct wlan_dfs {
 	uint32_t       dfs_seq_num;
 	int32_t        dfs_min_sidx;
 	int32_t        dfs_max_sidx;
-	qdf_spinlock_t dfs_data_struct_lock;
 	uint16_t       dfs_lowest_pri_limit;
 
 	STAILQ_HEAD(, dfs_event) dfs_eventq;
@@ -1467,6 +1495,7 @@ struct wlan_dfs {
 #endif /* QCA_DFS_BW_PUNCTURE */
 #ifdef QCA_SUPPORT_AGILE_DFS
 #endif
+	bool           dfs_disable_auto_unpunc;
 };
 
 #if defined(QCA_SUPPORT_AGILE_DFS) || defined(ATH_SUPPORT_ZERO_CAC_DFS)
@@ -2871,6 +2900,8 @@ static inline bool dfs_is_en302_502_applicable(struct wlan_dfs *dfs)
  *                          applicable only for 80+80MHZ mode of operation.
  * @dfs_chan_op_puncture_bitmap: Static channel puncturing of current channel.
  * @is_channel_updated: boolean to represent channel update.
+ * @is_user_punctured: Boolean to represent whether puncture is done by user or
+ *                     by radar
  */
 void dfs_set_current_channel_for_freq(struct wlan_dfs *dfs,
 				      uint16_t dfs_chan_freq,
@@ -2882,7 +2913,8 @@ void dfs_set_current_channel_for_freq(struct wlan_dfs *dfs,
 				      uint16_t dfs_chan_mhz_freq_seg1,
 				      uint16_t dfs_chan_mhz_freq_seg2,
 				      uint16_t dfs_chan_op_puncture_bitmap,
-				      bool *is_channel_updated);
+				      bool *is_channel_updated,
+				      bool is_user_punctured);
 #endif
 /**
  * dfs_get_nol_chfreq_and_chwidth() - Get channel freq and width from NOL list.

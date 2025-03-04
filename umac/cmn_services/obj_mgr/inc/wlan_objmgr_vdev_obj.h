@@ -471,6 +471,9 @@ struct wlan_objmgr_vdev_objmgr {
  * @mlo_dev_ctx:    MLO device context
  * @twt_work:	    TWT work
  * @is_ap_suspend:	AP suspend state
+ * @is_user_punc:      Contains status info on whether the current puncture
+ *                     action is done by user or by radar.
+ * @is_prev_user_punc: Contains the previous status of 'is_user_punc'.
  */
 struct wlan_objmgr_vdev {
 	qdf_list_node_t vdev_node;
@@ -488,6 +491,8 @@ struct wlan_objmgr_vdev {
 	qdf_work_t twt_work;
 #endif
 	qdf_atomic_t is_ap_suspend;
+	bool is_user_punc;
+	bool is_prev_user_punc;
 };
 
 /*

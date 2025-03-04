@@ -506,6 +506,13 @@ static QDF_STATUS vdev_mgr_start_param_update(
 	    vdev_mgr_is_opmode_sap_or_p2p_go(op_mode) &&
 	    vdev_mgr_is_49G_5G_chan_freq(des_chan->ch_freq)) {
 		vdev_mgr_set_cur_chan_punc_bitmap(des_chan, &puncture_bitmap);
+		/*
+		 * This code flow is for vdev start where we reinitialize the
+		 * channel configuration and its puncture bitmap.
+		 * Here, when we reinitialize the puncture bitmap, we need to
+		 * know who last punctured the channels in the bitmap and so
+		 * we pass the value of 'is_prev_user_punc' below.
+		 */
 		tgt_dfs_set_current_channel_for_freq(pdev, des_chan->ch_freq,
 						     des_chan->ch_flags,
 						     des_chan->ch_flagext,
@@ -515,7 +522,9 @@ static QDF_STATUS vdev_mgr_start_param_update(
 						     des_chan->ch_cfreq1,
 						     des_chan->ch_cfreq2,
 						     puncture_bitmap,
-						     &is_dfs_chan_updated);
+						     &is_dfs_chan_updated,
+						     vdev->is_prev_user_punc);
+
 		if (des_chan->ch_cfreq2)
 			param->channel.dfs_set_cfreq2 =
 				utils_is_dfs_cfreq2_ch(pdev);
