@@ -433,7 +433,7 @@ free_vdevref:
 	defined(QCA_WIFI_QCA6018) || defined(QCA_WIFI_QCA5018) || \
 	defined(QCA_WIFI_QCA9574) || defined(QCA_WIFI_QCA5332) || \
 	defined(QCA_WIFI_QCA5424) || defined(QCA_WIFI_QCN9000) || \
-	defined(QCA_WIFI_QCN9224))
+	defined(QCA_WIFI_QCN9224)) || defined(QCA_WIFI_QCA8074V2)
 QDF_STATUS target_process_bang_radar_cmd(
 		struct wlan_objmgr_pdev *pdev,
 		struct dfs_emulate_bang_radar_test_cmd *dfs_unit_test)
