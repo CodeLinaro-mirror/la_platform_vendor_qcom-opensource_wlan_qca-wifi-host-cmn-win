@@ -991,6 +991,33 @@ wlan_mld_get_best_primary_umac_w_rssi(
 QDF_STATUS wlan_mlo_wsi_link_info_send_cmd(void);
 
 /**
+ * wlan_mlo_ap_update_max_ml_peer_count() - Update platform Max ML peer count
+ *
+ * API to update Max ML peer count at platform level
+ *
+ * Return: SUCCESS, on updating the ML peer count
+ */
+QDF_STATUS wlan_mlo_ap_update_max_ml_peer_count(uint16_t max_ml_peers);
+
+/**
+ * wlan_mlo_ap_get_max_ml_peer_count() - Get platform max ML peer count
+ *
+ * API to get platform level max ML peer count
+ *
+ * Return: Maximum ML peer count at platform level
+ */
+uint16_t wlan_mlo_ap_get_max_ml_peer_count(void);
+
+/**
+ * wlan_mlo_ap_get_ml_peer_count() - Get platform ML peer count
+ *
+ * API to get platform level ML peer count
+ *
+ * Return: ML peer count at platform level
+ */
+uint16_t wlan_mlo_ap_get_ml_peer_count(void);
+
+/**
  * wlan_mlo_wsi_stats_allow_cmd() - Allow WSI stats to FW
  *
  * API to allows WSI stats WMI commands for all radios of all PSOCs

@@ -378,6 +378,8 @@ struct mlo_wsi_info {
  * @mlo_peer_id_bmap: bitmap to allocate MLO Peer ID
  * @max_mlo_peer_id: Max MLO Peer ID
  * @last_mlo_peer_id: Previously allocated ML peer ID
+ * @max_ml_peer_count: Max MLO peer count
+ * @ml_peer_count: ML peer count
  * @setup_info: Pointer to MLO setup_info of all groups
  * @total_grp: Total number of MLO groups
  * @dynamic_wsi_bypassed: Dynamic bypassed performed
@@ -407,6 +409,8 @@ struct mlo_mgr_context {
 	qdf_bitmap(mlo_peer_id_bmap, MAX_MLO_PEER_ID);
 	uint16_t max_mlo_peer_id;
 	uint16_t last_mlo_peer_id;
+	uint16_t max_ml_peer_count;
+	qdf_atomic_t ml_peer_count;
 #ifdef WLAN_MLO_MULTI_CHIP
 	struct mlo_setup_info *setup_info;
 	uint8_t total_grp;
