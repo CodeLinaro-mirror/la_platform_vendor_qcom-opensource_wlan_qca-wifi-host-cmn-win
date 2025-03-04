@@ -26,6 +26,7 @@
 #include "vdev_mlme_sm.h"
 #include <wlan_utility.h>
 #include <include/wlan_mlme_cmn.h>
+#include <wlan_serialization_api.h>
 
 /**
  * mlme_vdev_set_state() - set mlme state
@@ -1770,6 +1771,36 @@ static void mlme_vdev_subst_mlo_sync_wait_exit(void *ctx)
 #endif
 
 /**
+ * wlan_mlme_check_pending_csa_restart() - API to check for CSA restart in PQ
+ *
+ * @pdev: Pdev object
+ * @object: Vdev object
+ * @arg: Function argument
+ *
+ * API to check for CSA restart in PQ
+ *
+ * Return: None
+ */
+static void
+wlan_mlme_check_pending_csa_restart(struct wlan_objmgr_pdev *pdev,
+				    void *object, void *arg)
+{
+	struct wlan_objmgr_vdev *vdev = object;
+	bool *csa_restart_pending = arg;
+	struct wlan_serialization_command cmd = {0};
+	uint8_t vdev_id = wlan_vdev_get_id(vdev);
+
+	cmd.vdev = vdev;
+	cmd.cmd_id = vdev_id;
+	cmd.cmd_type = WLAN_SER_CMD_PDEV_CSA_RESTART;
+	if (wlan_serialization_is_cmd_present_in_pending_queue(NULL, &cmd)) {
+		mlme_debug("CSA cmd exist in the pending queue vdev:%u",
+			   vdev_id);
+		*csa_restart_pending = true;
+	}
+}
+
+/**
  * mlme_vdev_subst_mlo_sync_wait_event() - Event handler API for mlo sync wait
  *                                         substate
  * @ctx: VDEV MLME object
@@ -1788,6 +1819,7 @@ static bool mlme_vdev_subst_mlo_sync_wait_event(void *ctx, uint16_t event,
 {
 	struct vdev_mlme_obj *vdev_mlme = (struct vdev_mlme_obj *)ctx;
 	bool status;
+	bool csa_restart_pending = false;
 
 	switch (event) {
 	case WLAN_VDEV_SM_EV_START_SUCCESS:
@@ -1797,6 +1829,25 @@ static bool mlme_vdev_subst_mlo_sync_wait_event(void *ctx, uint16_t event,
 					WLAN_VDEV_SM_EV_MLO_SYNC_COMPLETE,
 					event_data_len, event_data);
 		} else {
+			/*
+			 * If any CSA cmd is in pending queue, remove
+			 * WLAN_SER_CMD_VDEV_START_BSS so that CSA can start
+			 * immediately. Otherwise, CSA gets stuck for upto 60s
+			 * in MLO case if there is missing/delayed start on
+			 * partner links.
+			 */
+			if (wlan_serialization_get_vdev_active_cmd_type(
+					vdev_mlme->vdev) ==
+					WLAN_SER_CMD_VDEV_START_BSS) {
+				wlan_objmgr_pdev_iterate_obj_list(
+					wlan_vdev_get_pdev(vdev_mlme->vdev),
+					WLAN_VDEV_OP,
+					wlan_mlme_check_pending_csa_restart,
+					&csa_restart_pending, 0,
+					WLAN_MLME_SER_IF_ID);
+				if (csa_restart_pending)
+					mlme_vdev_notify_start_removal(vdev_mlme);
+			}
 			/*
 			 * Notify MLME about SYNC_WAIT state, MLME can perform
 			 * unblocking of CSA restart commands.

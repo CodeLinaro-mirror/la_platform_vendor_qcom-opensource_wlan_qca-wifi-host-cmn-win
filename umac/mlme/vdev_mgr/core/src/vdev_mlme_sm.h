@@ -650,6 +650,28 @@ static inline void mlme_vdev_init_down(struct vdev_mlme_obj *vdev_mlme)
 		vdev_mlme->ops->mlme_vdev_init_down(vdev_mlme);
 }
 
+/**
+ * mlme_vdev_notify_start_removal() - Notifies to remove start bss
+ * @vdev: Pointer to vdev object
+ *
+ * Notify to remove start bss
+ *
+ * Return: none
+ */
+static inline void mlme_vdev_notify_start_removal(
+				struct vdev_mlme_obj *vdev_mlme)
+{
+	if (!vdev_mlme) {
+		qdf_err("vdev_mlme is null");
+		return;
+	}
+
+	if (vdev_mlme->ops &&
+	    vdev_mlme->ops->mlme_vdev_notify_start_removal)
+		vdev_mlme->ops->mlme_vdev_notify_start_removal(
+					vdev_mlme->vdev);
+}
+
 #ifdef WLAN_FEATURE_11BE_MLO
 /**
  * mlme_vdev_up_notify_mlo_mgr() - notify mlo link is ready to up
