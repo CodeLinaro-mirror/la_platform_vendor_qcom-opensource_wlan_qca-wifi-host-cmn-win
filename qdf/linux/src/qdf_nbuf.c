@@ -5816,9 +5816,10 @@ static unsigned int qdf_nbuf_update_radiotap_ampdu_flags(
 #else
 #ifdef QCA_RSSI_DB2DBM
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
+(((rx_status)->rssi_dbm_support) ? ((rx_status)->rssi_comb) :\
 (((rx_status)->rssi_dbm_conv_support) ? \
 ((rx_status)->rssi_comb + (rx_status)->rssi_offset + (rx_status)->hw_noise_floor) :\
-((rx_status)->rssi_comb + (rx_status)->hw_noise_floor))
+((rx_status)->rssi_comb + (rx_status)->hw_noise_floor)))
 #else
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
 (rx_status->rssi_comb + rx_status->hw_noise_floor)

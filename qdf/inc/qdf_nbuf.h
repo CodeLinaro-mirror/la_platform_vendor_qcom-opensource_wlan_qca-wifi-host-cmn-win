@@ -549,6 +549,7 @@ struct mon_rx_status {
 	bool mon_fcs_cap;
 	int8_t snr_with_offsets;
 	int8_t rssi_region_offset;
+	bool rssi_dbm_support;
 };
 
 /**

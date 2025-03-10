@@ -3771,6 +3771,7 @@ struct dp_soc {
 	struct hal_rx_err_desc_copy *rx_err_desc;
 	uint32_t num_rx_err_desc;
 #endif
+	bool rssi_dbm_support; /* ucode support to pupulate rssi in dbm */
 };
 
 /*

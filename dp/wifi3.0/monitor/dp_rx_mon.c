@@ -2182,6 +2182,8 @@ QDF_STATUS dp_rx_mon_deliver(struct dp_soc *soc, uint32_t mac_id,
 		mon_mac->ppdu_info.rx_status.device_id = soc->device_id;
 		mon_mac->ppdu_info.rx_status.hw_noise_floor =
 			pdev->hw_noise_floor;
+		mon_mac->ppdu_info.rx_status.rssi_dbm_support = soc->rssi_dbm_support;
+
 		dp_handle_tx_capture(soc, pdev, mon_mpdu);
 
 		if (!qdf_nbuf_update_radiotap(&mon_mac->ppdu_info.rx_status,
