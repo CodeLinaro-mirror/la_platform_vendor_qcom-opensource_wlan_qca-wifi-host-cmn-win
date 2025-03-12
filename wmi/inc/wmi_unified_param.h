@@ -7337,6 +7337,9 @@ typedef struct {
 #ifdef DP_TX_PACKET_INSPECT_FOR_ILP
 	uint8_t tx_ilp_enable;
 #endif
+#ifdef QCA_WIFI_QCA5424
+	bool def_flow_override;
+#endif
 	bool rf_path;
 	bool fw_ast_indication_disable;
 	bool is_full_bw_nol_supported;
