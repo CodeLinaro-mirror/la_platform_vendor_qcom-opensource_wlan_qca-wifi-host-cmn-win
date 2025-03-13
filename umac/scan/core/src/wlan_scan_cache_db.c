@@ -1281,9 +1281,8 @@ QDF_STATUS __scm_handle_bcn_probe(struct scan_bcn_probe_event *bcn)
 			continue;
 		}
 		if (util_scan_entry_rsn(scan_entry)) {
-			status = wlan_crypto_rsnie_check(
-					&sec_params,
-					util_scan_entry_rsn(scan_entry));
+			status = util_scan_is_valid_rsn_present(scan_entry,
+								&sec_params);
 			if (QDF_IS_STATUS_ERROR(status) &&
 			    !scm_is_p2p_wildcard_ssid(scan_entry)) {
 				scm_nofl_debug(QDF_MAC_ADDR_FMT ": Drop frame(%d) with invalid RSN IE freq %d, parse status %d",
@@ -1309,8 +1308,8 @@ QDF_STATUS __scm_handle_bcn_probe(struct scan_bcn_probe_event *bcn)
 				qdf_mem_free(scan_node);
 				continue;
 			}
-			status = wlan_crypto_rsnie_check(&sec_params,
-					util_scan_entry_rsn(scan_entry));
+			status = util_scan_is_valid_rsn_present(scan_entry,
+								&sec_params);
 			if (QDF_IS_STATUS_ERROR(status)) {
 				scm_info_rl(QDF_MAC_ADDR_FMT ": Drop frame(%d) with invalid RSN IE in 6GHz(%d), parse status %d",
 					    QDF_MAC_ADDR_REF(
@@ -2287,6 +2286,67 @@ done:
 		scm_purge_scan_results(list);
 
 	return status;
+}
+
+struct scan_cache_entry *
+scm_scan_get_entry_by_bssid_and_security(struct wlan_objmgr_pdev *pdev,
+					 struct qdf_mac_addr *bssid,
+					 uint8_t vdev_id)
+{
+	struct scan_filter *filter;
+	qdf_list_t *list = NULL;
+	struct scan_cache_node *first_node = NULL;
+	qdf_list_node_t *cur_node = NULL;
+	struct scan_cache_entry *scan_entry = NULL;
+	struct wlan_objmgr_vdev *vdev;
+
+	filter = qdf_mem_malloc(sizeof(*filter));
+	if (!filter)
+		return NULL;
+
+	filter->num_of_bssid = 1;
+	qdf_copy_macaddr(&filter->bssid_list[0], bssid);
+
+	vdev = wlan_objmgr_get_vdev_by_id_from_pdev(pdev, vdev_id,
+						    WLAN_SCAN_ID);
+	if (!vdev) {
+		qdf_mem_free(filter);
+		return NULL;
+	}
+
+	filter->authmodeset =
+		wlan_crypto_get_param(vdev, WLAN_CRYPTO_PARAM_AUTH_MODE);
+	filter->ucastcipherset =
+		wlan_crypto_get_param(vdev, WLAN_CRYPTO_PARAM_UCAST_CIPHER);
+	filter->key_mgmt =
+		wlan_crypto_get_param(vdev, WLAN_CRYPTO_PARAM_KEY_MGMT);
+	filter->mcastcipherset =
+		wlan_crypto_get_param(vdev, WLAN_CRYPTO_PARAM_MCAST_CIPHER);
+	filter->mgmtcipherset =
+		wlan_crypto_get_param(vdev, WLAN_CRYPTO_PARAM_MGMT_CIPHER);
+	filter->ignore_pmf_cap = true;
+	filter->mrsno_gen = wlan_vdev_get_rsno_gen_supported(vdev);
+
+	list = scm_get_scan_result(pdev, filter);
+	qdf_mem_free(filter);
+	if (!list || (list && !qdf_list_size(list))) {
+		scm_debug("Scan entry for bssid:" QDF_MAC_ADDR_FMT "not found",
+			  QDF_MAC_ADDR_REF(bssid->bytes));
+		goto done;
+	}
+
+	qdf_list_peek_front(list, &cur_node);
+	first_node = qdf_container_of(cur_node,	struct scan_cache_node, node);
+	if (first_node && first_node->entry)
+		scan_entry = util_scan_copy_cache_entry(first_node->entry);
+
+done:
+	if (list)
+		scm_purge_scan_results(list);
+
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_SCAN_ID);
+
+	return scan_entry;
 }
 
 #ifdef WLAN_FEATURE_11BE_MLO
