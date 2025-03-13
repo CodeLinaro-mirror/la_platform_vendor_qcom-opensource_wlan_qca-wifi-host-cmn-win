@@ -927,11 +927,13 @@ static void wlan_ipa_pm_flush(void *data)
 {
 	struct wlan_ipa_priv *ipa_ctx = (struct wlan_ipa_priv *)data;
 	struct wlan_ipa_pm_tx_cb *pm_tx_cb = NULL;
+	struct wlan_objmgr_vdev *vdev = NULL;
+	struct wlan_objmgr_psoc *psoc = NULL;
 	qdf_nbuf_t skb;
 	uint32_t dequeued = 0;
-	qdf_netdev_t ndev;
 
 	qdf_spin_lock_bh(&ipa_ctx->pm_lock);
+	psoc = ipa_ctx->psoc;
 	while (((skb = qdf_nbuf_queue_remove(&ipa_ctx->pm_queue_head)) !=
 	       NULL)) {
 		qdf_spin_unlock_bh(&ipa_ctx->pm_lock);
@@ -949,14 +951,15 @@ static void wlan_ipa_pm_flush(void *data)
 				wlan_ipa_skb_free(skb);
 			}
 		} else if (pm_tx_cb->send_to_nw) {
-			ndev = pm_tx_cb->iface_context->dev;
-
-			if (ipa_ctx->send_to_nw && ndev) {
-				ipa_ctx->send_to_nw(skb, ndev);
+			vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, 0,
+								    WLAN_IPA_ID);
+			if (ipa_ctx->send_to_nw && vdev) {
+				ipa_ctx->send_to_nw(skb, vdev);
 				ipa_ctx->ipa_rx_net_send_count++;
 			} else {
 				wlan_ipa_skb_free(skb);
 			}
+			wlan_objmgr_vdev_release_ref(vdev, WLAN_IPA_ID);
 		} else {
 			wlan_ipa_send_pkt_to_tl(pm_tx_cb->iface_context,
 						pm_tx_cb->ipa_tx_desc);
@@ -1293,6 +1296,7 @@ static int wlan_ipa_send_sta_eapol_to_nw(qdf_nbuf_t skb,
 
 	if (!vdev) {
 		ipa_err_rl("Invalid vdev");
+		wlan_objmgr_vdev_release_ref(vdev, WLAN_IPA_ID);
 		return -EINVAL;
 	}
 
@@ -1305,7 +1309,7 @@ static int wlan_ipa_send_sta_eapol_to_nw(qdf_nbuf_t skb,
 	skb->destructor = wlan_ipa_uc_rt_debug_destructor;
 
 	if (ipa_ctx->send_to_nw)
-		ipa_ctx->send_to_nw(skb, vdev->vdev_nif.osdev->wdev->netdev);
+		ipa_ctx->send_to_nw(skb, vdev);
 
 	ipa_ctx->ipa_rx_net_send_count++;
 	ipa_ctx->stats.num_rx_no_iface_eapol++;
@@ -1433,8 +1437,8 @@ wlan_ipa_send_skb_to_network(qdf_nbuf_t skb, uint8_t peer_id,
 			     struct wlan_ipa_iface_context *iface_ctx)
 {
 	struct wlan_ipa_priv *ipa_ctx;
-
-	ipa_ctx = iface_ctx->ipa_ctx;
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_objmgr_vdev *vdev = NULL;
 
 	if (!iface_ctx->dev) {
 		ipa_debug_rl("Invalid interface");
@@ -1443,6 +1447,19 @@ wlan_ipa_send_skb_to_network(qdf_nbuf_t skb, uint8_t peer_id,
 		return;
 	}
 
+	ipa_ctx = iface_ctx->ipa_ctx;
+	if (!ipa_ctx) {
+		ipa_err("Invalid ipa_ctx");
+		return;
+	}
+	psoc = ipa_ctx->psoc;
+	if (!psoc) {
+		ipa_err("Invalid psoc");
+		return;
+	}
+	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, iface_ctx->session_id,
+						    WLAN_IPA_ID);
+
 	skb->destructor = wlan_ipa_uc_rt_debug_destructor;
 
 	if (wlan_ipa_send_to_nw_defer(iface_ctx, skb)) {
@@ -1450,10 +1467,11 @@ wlan_ipa_send_skb_to_network(qdf_nbuf_t skb, uint8_t peer_id,
 	} else {
 		if (!cdp_ipa_rx_wdsext_iface(ipa_ctx->dp_soc, peer_id, skb)) {
 			if (ipa_ctx->send_to_nw)
-				ipa_ctx->send_to_nw(skb, iface_ctx->dev);
+				ipa_ctx->send_to_nw(skb, vdev);
 		}
 		ipa_ctx->ipa_rx_net_send_count++;
 	}
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_IPA_ID);
 }
 #else
 /**
@@ -1472,8 +1490,8 @@ wlan_ipa_send_skb_to_network(qdf_nbuf_t skb, uint8_t peer_id,
 			     struct wlan_ipa_iface_context *iface_ctx)
 {
 	struct wlan_ipa_priv *ipa_ctx;
-
-	ipa_ctx = iface_ctx->ipa_ctx;
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_objmgr_vdev *vdev = NULL;
 
 	if (!iface_ctx->dev) {
 		ipa_debug_rl("Invalid interface");
@@ -1482,16 +1500,31 @@ wlan_ipa_send_skb_to_network(qdf_nbuf_t skb, uint8_t peer_id,
 		return;
 	}
 
+	ipa_ctx = iface_ctx->ipa_ctx;
+	if (!ipa_ctx) {
+		ipa_err("Invalid ipa_ctx");
+		return;
+	}
+	psoc = ipa_ctx->psoc;
+	if (!psoc) {
+		ipa_err("Invalid psoc");
+		return;
+	}
+
+	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, iface_ctx->session_id,
+						    WLAN_IPA_ID);
+
 	skb->destructor = wlan_ipa_uc_rt_debug_destructor;
 
 	if (wlan_ipa_send_to_nw_defer(iface_ctx, skb)) {
 		wlan_ipa_send_to_nw_queue(iface_ctx, skb);
 	} else {
 		if (ipa_ctx->send_to_nw)
-			ipa_ctx->send_to_nw(skb, iface_ctx->dev);
+			ipa_ctx->send_to_nw(skb, vdev);
 
 		ipa_ctx->ipa_rx_net_send_count++;
 	}
+	wlan_objmgr_vdev_release_ref(vdev, WLAN_IPA_ID);
 }
 #endif
 
