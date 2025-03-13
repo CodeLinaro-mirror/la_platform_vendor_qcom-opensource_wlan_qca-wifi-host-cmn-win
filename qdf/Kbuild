@@ -40,6 +40,9 @@ inc_var := $(shell echo $(INCS) > $(inc_file))
 var := "@$(inc_file)"
 
 EXTRA_CFLAGS+= $(var) $(COPTS) -Wno-unused-function
+ifeq ($(CONFIG_SDX_WAIKIKI), 1)
+EXTRA_CFLAGS+= -Wno-unused-but-set-variable -Wno-format-security
+endif
 
 ifeq ($(QCA_GCC13_0_SUPPORT), 1)
 ccflags-y+= -Wno-enum-conversion
