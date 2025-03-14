@@ -2941,7 +2941,7 @@ static void dp_ipa_set_rx_alt_pipe_db(struct dp_ipa_resources *res,
 
 	res->rx_alt_ready_doorbell_paddr =
 			QDF_IPA_WDI_CONN_OUT_PARAMS_RX_ALT_UC_DB_PA(out);
-	dp_debug("Setting DB 0x%x for RX alt pipe",
+	dp_debug("Setting DB 0x%llx for RX alt pipe",
 		 res->rx_alt_ready_doorbell_paddr);
 }
 #else
@@ -3727,9 +3727,6 @@ QDF_STATUS dp_ipa_disable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
 	QDF_STATUS result;
-	struct dp_ipa_resources *ipa_res;
-
-	ipa_res = &soc->ipa_resource;
 
 	qdf_sleep(TX_COMP_DRAIN_WAIT_TIMEOUT_MS);
 	/*
@@ -3737,7 +3734,7 @@ QDF_STATUS dp_ipa_disable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	 * pipes API to ensure that there is no access to IPA tx doorbell
 	 * address post disable pipes.
 	 */
-	DP_IPA_RESET_TX_DB_PA(soc, ipa_res);
+	DP_IPA_RESET_TX_DB_PA(soc, &soc->ipa_resource);
 
 	result = qdf_ipa_wdi_disable_pipes(hdl);
 	if (result) {
@@ -4979,12 +4976,9 @@ static inline
 void dp_ipa_aggregate_vdev_stats(struct dp_vdev *vdev,
 				 struct cdp_vdev_stats *vdev_stats)
 {
-	struct dp_soc *soc = NULL;
-
 	if (!vdev || !vdev->pdev)
 		return;
 
-	soc = vdev->pdev->soc;
 	dp_update_vdev_ingress_stats(vdev);
 	dp_copy_vdev_stats_to_tgt_buf(vdev_stats, &vdev->stats, DP_XMIT_LINK);
 	dp_vdev_iterate_peer(vdev, dp_ipa_update_vdev_stats, vdev_stats,
@@ -5016,7 +5010,6 @@ static inline
 void dp_ipa_aggregate_pdev_stats(struct dp_pdev *pdev)
 {
 	struct dp_vdev *vdev = NULL;
-	struct dp_soc *soc;
 	struct cdp_vdev_stats *vdev_stats =
 			qdf_mem_malloc_atomic(sizeof(struct cdp_vdev_stats));
 
@@ -5025,8 +5018,6 @@ void dp_ipa_aggregate_pdev_stats(struct dp_pdev *pdev)
 		       pdev->soc);
 		return;
 	}
-
-	soc = pdev->soc;
 
 	qdf_mem_zero(&pdev->stats.tx, sizeof(pdev->stats.tx));
 	qdf_mem_zero(&pdev->stats.rx, sizeof(pdev->stats.rx));
@@ -5096,14 +5087,12 @@ dp_ipa_txrx_get_vdev_stats(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 			   void *buf, bool is_aggregate)
 {
 	struct dp_soc *soc = cdp_soc_t_to_dp_soc(soc_hdl);
-	struct cdp_vdev_stats *vdev_stats;
 	struct dp_vdev *vdev = dp_vdev_get_ref_by_id(soc, vdev_id,
 						     DP_MOD_ID_IPA);
 
 	if (!vdev)
 		return QDF_STATUS_E_RESOURCES;
 
-	vdev_stats = (struct cdp_vdev_stats *)buf;
 	dp_ipa_aggregate_vdev_stats(vdev, buf);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
 

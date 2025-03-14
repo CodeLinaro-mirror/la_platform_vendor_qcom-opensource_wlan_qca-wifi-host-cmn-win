@@ -1691,9 +1691,7 @@ void *hal_srng_dst_get_next(void *hal_soc,
 	if (srng->flags & HAL_SRNG_CACHED_DESC) {
 		struct hal_soc *soc = (struct hal_soc *)hal_soc;
 		uint32_t *desc_next;
-		uint32_t tp;
 
-		tp = srng->u.dst_ring.tp;
 		desc_next = &srng->ring_base_vaddr[srng->u.dst_ring.tp];
 		hal_mem_dma_cache_sync(soc, desc_next, srng->entry_size);
 		qdf_prefetch(desc_next);
