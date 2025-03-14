@@ -1092,7 +1092,7 @@ static QDF_STATUS mlo_peer_attach_link_peer(
 		peer_entry->hw_link_id = wlan_mlo_get_pdev_hw_link_id(pdev);
 		/* Increment pdev ML peer count */
 		qdf_atomic_inc(&pdev->pdev_objmgr.ml_peer_count);
-		mlo_err("PDEV: %d ML peer count: %d",
+		mlo_debug("PDEV: %d ML peer count: %d",
 			wlan_objmgr_pdev_get_pdev_id(pdev),
 			qdf_atomic_read(&pdev->pdev_objmgr.ml_peer_count));
 
@@ -1220,7 +1220,7 @@ static QDF_STATUS mlo_peer_detach_link_peer(
 		pdev = wlan_vdev_get_pdev(wlan_peer_get_vdev(link_peer));
 		if (pdev) {
 			qdf_atomic_dec(&pdev->pdev_objmgr.ml_peer_count);
-			mlo_err("PDEV:%d ML peer count: %d",
+			mlo_debug("PDEV:%d ML peer count: %d",
 				wlan_objmgr_pdev_get_pdev_id(pdev),
 				qdf_atomic_read(&pdev->pdev_objmgr.
 							ml_peer_count));
