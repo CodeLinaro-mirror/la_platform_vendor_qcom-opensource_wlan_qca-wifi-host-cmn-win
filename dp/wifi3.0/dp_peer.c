@@ -1415,11 +1415,13 @@ void dp_peer_map_ipa_evt(struct dp_soc *soc, struct dp_peer *peer,
 			else
 				qdf_err("%pK Failed to create WDS EXT Netdev", soc);
 		}
-		if (soc->cdp_soc.ol_ops->peer_map_event) {
-			soc->cdp_soc.ol_ops->peer_map_event(
-			soc->ctrl_psoc, ast_entry->peer_id,
-			ast_entry->ast_idx, ast_entry->vdev_id,
-			mac_addr, ast_entry->type, ast_entry->ast_hash_value);
+		if (IS_DP_LEGACY_PEER(peer) || (peer->primary_link == 1)) {
+			if (soc->cdp_soc.ol_ops->peer_map_event) {
+				soc->cdp_soc.ol_ops->peer_map_event(
+				soc->ctrl_psoc, ast_entry->peer_id,
+				ast_entry->ast_idx, ast_entry->vdev_id,
+				mac_addr, ast_entry->type, ast_entry->ast_hash_value);
+			}
 		}
 	} else {
 		dp_peer_info("%pK: AST entry not found", soc);
