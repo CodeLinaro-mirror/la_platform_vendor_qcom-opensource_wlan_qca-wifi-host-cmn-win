@@ -2848,6 +2848,9 @@ wlan_mlo_ap_update_max_ml_peer_count(uint16_t max_ml_peers)
 		if (!current_psoc)
 			continue;
 
+		if (!wlan_mlo_get_psoc_capable(current_psoc))
+			continue;
+
 		/* Acquire lock for the current psoc */
 		qdf_spin_lock_bh(&current_psoc->psoc_lock);
 
