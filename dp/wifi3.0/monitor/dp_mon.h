@@ -78,6 +78,47 @@ extern const struct dp_rx_defrag_cipher dp_f_wep;
 
 extern const struct dp_rx_defrag_cipher dp_f_gcmp;
 
+enum bw_index {
+	bw_20_MHz,
+	bw_40_MHz,
+	bw_80_MHz,
+	bw_160_MHz,
+	bw_240_MHz,
+	bw_320_MHz,
+};
+
+#define DP_RC_FLAG_SGI        0x08
+#define DP_RC_FLAG_20MHZ      0x00
+#define DP_RC_FLAG_40MHZ      0x20
+#define DP_RC_FLAG_80MHZ      0x40
+#define DP_RC_FLAG_160MHZ     0x80
+#define DP_RC_FLAG_240MHZ     0x100
+#define DP_RC_FLAG_320MHZ     0x200
+
+#define DP_MAP_BW_IDX_2_RC_FLAG(_flag, _index) do {  \
+	switch ((_index)) {  \
+	case bw_20_MHz:	 \
+		(_flag) |= DP_RC_FLAG_20MHZ;  \
+		break;  \
+	case bw_40_MHz:    \
+		(_flag) |= DP_RC_FLAG_40MHZ;  \
+		break;  \
+	case bw_80_MHz:   \
+		(_flag) |= DP_RC_FLAG_80MHZ;  \
+		break;  \
+	case bw_160_MHz:   \
+		(_flag) |= DP_RC_FLAG_160MHZ;  \
+		break; \
+	case bw_240_MHz:   \
+		(_flag) |= DP_RC_FLAG_240MHZ;  \
+		break; \
+	case bw_320_MHz:   \
+		(_flag) |= DP_RC_FLAG_320MHZ;  \
+		break; \
+	default: \
+		(_flag) |= DP_RC_FLAG_20MHZ; }  \
+	} while (0)
+
 #ifdef QCA_ENHANCED_STATS_SUPPORT
 typedef struct dp_peer_extd_tx_stats dp_mon_peer_tx_stats;
 typedef struct dp_peer_extd_rx_stats dp_mon_peer_rx_stats;

@@ -2707,6 +2707,12 @@ dp_tx_rate_stats_update(struct dp_peer *peer,
 	mon_peer->stats.tx.nss_info = ppdu->nss;
 	mon_peer->stats.tx.mcs_info = ppdu->mcs;
 	mon_peer->stats.tx.preamble_info = ppdu->preamble;
+	mon_peer->stats.tx.tx_flags = 0;
+	mon_peer->stats.tx.tx_pwr = ppdu->tx_pwr;
+	/* Here gi value is 0 for legacy GI, so mark only HT SGI and above */
+	if (ppdu->gi)
+		mon_peer->stats.tx.tx_flags |= DP_RC_FLAG_SGI;
+	DP_MAP_BW_IDX_2_RC_FLAG(mon_peer->stats.tx.tx_flags, ppdu->bw);
 	if (peer->vdev) {
 		/*
 		 * In STA mode:
@@ -6888,6 +6894,12 @@ dp_mon_peer_get_stats_param(struct dp_peer *peer, enum cdp_peer_stats_type type,
 		break;
 	case cdp_peer_tx_ratecode:
 		buf->tx_ratecode = mon_peer->stats.tx.tx_ratecode;
+		break;
+	case cdp_peer_tx_flags:
+		buf->tx_flags = mon_peer->stats.tx.tx_flags;
+		break;
+	case cdp_peer_tx_power:
+		buf->tx_power = mon_peer->stats.tx.tx_pwr;
 		break;
 	case cdp_peer_rx_rate:
 		buf->rx_rate = mon_peer->stats.rx.rx_rate;

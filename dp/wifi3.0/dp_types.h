@@ -5158,6 +5158,7 @@ struct dp_peer_per_pkt_tx_stats {
  * @rnd_avg_tx_rate: Rounded average tx rate
  * @avg_tx_rate: Average TX rate
  * @tx_ratecode: Tx rate code of last frame
+ * @tx_flags: Tx BW and sgi values
  * @pream_punct_cnt: Preamble Punctured count
  * @sgi_count: SGI count
  * @nss: Packet count for different num_spatial_stream values
@@ -5177,6 +5178,8 @@ struct dp_peer_per_pkt_tx_stats {
  *       <enum 1 bw_40_MHz>
  *       <enum 2 bw_80_MHz>
  *       <enum 3 bw_160_MHz>
+ *       <enum 4 bw_240_MHz>
+ *       <enum 5 bw_320_MHz>
  * @gi_info: <enum 0     0_8_us_sgi > Legacy normal GI
  *       <enum 1     0_4_us_sgi > Legacy short GI
  *       <enum 2     1_6_us_sgi > HE related GI
@@ -5196,6 +5199,7 @@ struct dp_peer_per_pkt_tx_stats {
  * @rssi_chain: rssi chain
  * @wme_ac_type_bytes: Wireless Multimedia bytes Count
  * @tx_ppdu_duration: Tx PPDU Duration
+ * @tx_pwr: Tx Power
  */
 struct dp_peer_extd_tx_stats {
 	uint32_t stbc;
@@ -5219,6 +5223,7 @@ struct dp_peer_extd_tx_stats {
 	uint64_t rnd_avg_tx_rate;
 	uint64_t avg_tx_rate;
 	uint16_t tx_ratecode;
+	uint32_t tx_flags;
 
 	uint32_t sgi_count[MAX_GI];
 	uint32_t pream_punct_cnt;
@@ -5257,6 +5262,7 @@ struct dp_peer_extd_tx_stats {
 	int32_t rssi_chain[CDP_RSSI_CHAIN_LEN];
 	uint64_t wme_ac_type_bytes[WME_AC_MAX];
 	uint64_t tx_ppdu_duration;
+	int8_t   tx_pwr;
 };
 
 /**

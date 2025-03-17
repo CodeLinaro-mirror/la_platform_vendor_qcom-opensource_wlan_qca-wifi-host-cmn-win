@@ -2305,6 +2305,7 @@ struct wlan_lmac_if_p2p_rx_ops {
  * @atf_get_vdev_blk_txtraffic:        Get vdev tx traffic block state
  * @atf_get_sched:                     Get ATF scheduled policy
  * @atf_get_peer_stats:                Get atf peer stats
+ * @atf_get_peer_airtime:              Get atf peer airtime
  * @atf_get_token_allocated:           Get atf token allocated
  * @atf_get_token_utilized:            Get atf token utilized
  * @atf_set_sched:                     Set ATF schedule policy
@@ -2341,6 +2342,7 @@ struct wlan_lmac_if_atf_rx_ops {
 	uint32_t (*atf_get_sched)(struct wlan_objmgr_pdev *pdev);
 	void (*atf_get_peer_stats)(struct wlan_objmgr_peer *peer,
 				   struct atf_stats *stats);
+	uint32_t (*atf_get_peer_airtime)(struct wlan_objmgr_peer *peer);
 	uint16_t (*atf_get_token_allocated)(struct wlan_objmgr_peer *peer);
 	uint16_t (*atf_get_token_utilized)(struct wlan_objmgr_peer *peer);
 	void (*atf_set_sched)(struct wlan_objmgr_pdev *pdev, uint32_t value);

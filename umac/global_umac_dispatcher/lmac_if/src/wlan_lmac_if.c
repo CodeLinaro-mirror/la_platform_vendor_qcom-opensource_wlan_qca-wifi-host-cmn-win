@@ -222,6 +222,7 @@ wlan_lmac_if_atf_rx_ops_register(struct wlan_lmac_if_rx_ops *rx_ops)
 	atf_rx_ops->atf_get_vdev_blk_txtraffic = tgt_atf_get_vdev_blk_txtraffic;
 	atf_rx_ops->atf_get_sched = tgt_atf_get_sched;
 	atf_rx_ops->atf_get_peer_stats = tgt_atf_get_peer_stats;
+	atf_rx_ops->atf_get_peer_airtime = tgt_atf_get_peer_airtime;
 	atf_rx_ops->atf_get_token_allocated = tgt_atf_get_token_allocated;
 	atf_rx_ops->atf_get_token_utilized = tgt_atf_get_token_utilized;
 
