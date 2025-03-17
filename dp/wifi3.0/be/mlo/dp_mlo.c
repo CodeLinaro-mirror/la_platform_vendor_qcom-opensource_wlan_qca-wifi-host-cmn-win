@@ -709,8 +709,11 @@ static QDF_STATUS dp_mlo_get_mld_vdev_stats(struct cdp_soc_t *soc_hdl,
 	if (!vdev)
 		return QDF_STATUS_E_FAILURE;
 
+	qdf_spin_lock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
+
 	vdev_be = dp_get_be_vdev_from_dp_vdev(vdev);
 	if (!vdev_be || !vdev_be->mlo_dev_ctxt) {
+		qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_GENERIC_STATS);
 		return QDF_STATUS_E_FAILURE;
 	}
@@ -760,6 +763,7 @@ static QDF_STATUS dp_mlo_get_mld_vdev_stats(struct cdp_soc_t *soc_hdl,
 	}
 
 complete:
+	qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_GENERIC_STATS);
 	return ret;
 }
