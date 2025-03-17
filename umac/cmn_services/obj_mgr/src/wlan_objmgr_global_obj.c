@@ -32,6 +32,7 @@
 struct wlan_objmgr_global *g_umac_glb_obj;
 
 qdf_export_symbol(g_umac_glb_obj);
+extern unsigned int parallel_probe_enabled;
 
 /*
  * APIs to Create/Delete Global object APIs
@@ -827,10 +828,24 @@ QDF_STATUS wlan_objmgr_unregister_peer_phymode_change_notify_handler(
 	return QDF_STATUS_SUCCESS;
 }
 
-QDF_STATUS wlan_objmgr_psoc_object_attach(struct wlan_objmgr_psoc *psoc)
+QDF_STATUS wlan_objmgr_psoc_object_attach(struct wlan_objmgr_psoc *psoc,
+					  uint32_t soc_id)
 {
-	uint8_t index = 0;
 	QDF_STATUS status = QDF_STATUS_E_FAILURE;
+	uint8_t index = 0;
+
+	if (parallel_probe_enabled) {
+		qdf_spin_lock_bh(&g_umac_glb_obj->global_lock);
+		if (soc_id < WLAN_OBJMGR_MAX_DEVICES) {
+			if (!g_umac_glb_obj->psoc[soc_id]) {
+				g_umac_glb_obj->psoc[soc_id] = psoc;
+				psoc->soc_objmgr.psoc_id = soc_id;
+				status = QDF_STATUS_SUCCESS;
+			}
+		}
+		qdf_spin_unlock_bh(&g_umac_glb_obj->global_lock);
+		return status;
+	}
 
 	qdf_spin_lock_bh(&g_umac_glb_obj->global_lock);
 	/* Find free slot in PSOC table, store the PSOC */
