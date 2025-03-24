@@ -8634,12 +8634,14 @@ enum wmi_host_hw_mode_config_type {
  * @WMI_HOST_DYNAMIC_HW_MODE_DISABLED: hw mode switch is disabled
  * @WMI_HOST_DYNAMIC_HW_MODE_SLOW: hw mode switch with interface down/up
  * @WMI_HOST_DYNAMIC_HW_MODE_FAST: hw mode switch without interface down/up
+ * @WMI_HOST_DYNAMIC_HW_MODE_FW_DL: hw mode switch using FW download
  * @WMI_HOST_DYNAMIC_HW_MODE_MAX: Max value to indicate invalid mode
  */
 enum wmi_host_dynamic_hw_mode_config_type {
 	WMI_HOST_DYNAMIC_HW_MODE_DISABLED = 0,
 	WMI_HOST_DYNAMIC_HW_MODE_SLOW     = 1,
 	WMI_HOST_DYNAMIC_HW_MODE_FAST     = 2,
+	WMI_HOST_DYNAMIC_HW_MODE_FW_DL    = 3,
 	WMI_HOST_DYNAMIC_HW_MODE_MAX,
 };
 
