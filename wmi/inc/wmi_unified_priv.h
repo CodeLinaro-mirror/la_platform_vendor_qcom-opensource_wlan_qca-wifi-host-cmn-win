@@ -3649,6 +3649,24 @@ QDF_STATUS
 (*pdev_power_boost_cmd_send)(wmi_unified_t wmi_handle,
 			     struct wmi_host_pdev_power_boost_cmd_params *pb_cmd_params);
 
+#ifdef WLAN_FEATURE_VBSS
+QDF_STATUS
+(*vbss_trigger_move_sta_send)(
+			wmi_unified_t wmi_handle,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+
+QDF_STATUS
+(*vbss_set_sta_context_send)(
+			wmi_unified_t wmi_handle,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+
+QDF_STATUS
+(*extract_vbss_sta_context)(
+			wmi_unified_t wmi_handle,
+			void *evt_buf,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+#endif /* WLAN_FEATURE_VBSS */
+
 };
 
 /* Forward declaration for psoc*/

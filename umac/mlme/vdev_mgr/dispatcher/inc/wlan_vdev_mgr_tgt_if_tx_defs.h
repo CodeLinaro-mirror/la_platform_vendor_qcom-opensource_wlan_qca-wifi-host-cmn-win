@@ -143,6 +143,20 @@ enum wlan_mlme_host_vdev_start_status {
 	WLAN_MLME_HOST_VDEV_START_MAX_REASON,
 };
 
+#ifdef WLAN_FEATURE_VBSS
+/**
+ * enum wlan_vdev_up_flags - vdev up flags
+ * @WLAN_VDEV_UP_FLAG_EMA_MBSSID_AP:
+ * @WLAN_VDEV_UP_FLAG_VBSS_ACTIVE: VBSS vap active state
+ * @WLAN_VDEV_UP_FLAG_VBSS_PASSIVE: VBSS vap passive state
+ */
+enum wlan_vdev_up_flags {
+	WLAN_VDEV_UP_FLAG_EMA_MBSSID_AP = 0x00000001,
+	WLAN_VDEV_UP_FLAG_VBSS_ACTIVE = 0x00000002,
+	WLAN_VDEV_UP_FLAG_VBSS_PASSIVE = 0x00000004,
+};
+#endif /* WLAN_FEATURE_VBSS */
+
 /**
  * string_from_start_rsp_status() - Convert start response status to string
  * @start_rsp: start response status
@@ -643,6 +657,7 @@ struct vdev_scan_nac_rssi_params {
  * @emlsr_support: indicate non AP MLD STA supports eMLSR mode
  * @mlo_link_add: Dynamic link addition
  * @is_bridge_vdev: Indicate the vdev is a bridge vdev
+ * @mlo_ieee_link_id_valid: flag to indicate if the ieee_link_id is valid
  * @rsvd: reserved bits
  */
 struct mlo_vdev_start_flags {
@@ -652,7 +667,8 @@ struct mlo_vdev_start_flags {
 		 emlsr_support:1,
 		 mlo_link_add:1,
 		 is_bridge_vdev:1,
-		 rsvd:26;
+		 mlo_ieee_link_id_valid:1,
+		 rsvd:25;
 };
 
 /**
@@ -661,12 +677,16 @@ struct mlo_vdev_start_flags {
  * @hw_mld_link_id: unique hw link id across SoCs
  * @mac_addr: Partner mac address
  * @is_bridge_vdev: Indicate the vdev is bridge vdev
+ * @ieee_link_id: IEEE link id of the vdev
+ * @ieee_link_id_valid: flag to indicate if the ieee_link_id is valid
  */
 struct ml_vdev_start_partner_info {
 	uint32_t vdev_id;
 	uint32_t hw_mld_link_id;
 	uint8_t mac_addr[QDF_MAC_ADDR_SIZE];
 	bool is_bridge_vdev;
+	uint32_t ieee_link_id;
+	bool ieee_link_id_valid;
 };
 
 /**
@@ -711,6 +731,7 @@ struct mlo_vdev_start_partner_links {
  * @mbssid_multi_group_id: Group id of current vdev
  * @target_tsf_us_lo: Target TSF value of current vdev from bits 31:0
  * @target_tsf_us_hi: Target TSF value of current vdev from bits 63:32
+ * @ieee_link_id: IEEE link id of the vdev
  */
 struct vdev_start_params {
 	uint8_t vdev_id;
@@ -743,6 +764,7 @@ struct vdev_start_params {
 	uint32_t mbssid_multi_group_id;
 	uint32_t target_tsf_us_lo;
 	uint32_t target_tsf_us_hi;
+	uint32_t ieee_link_id;
 };
 
 /**
@@ -912,6 +934,7 @@ struct vdev_stop_params {
  * @profile_num: the total profile numbers of non-trans aps (mbssid case).
  *		0 means non-MBSS AP.
  * @trans_bssid: bssid of transmitted AP (MBSS IE case)
+ * @flags: bit-wise ORed flags from enum wlan_vdev_up_flags
  */
 struct vdev_up_params {
 	uint8_t vdev_id;
@@ -919,6 +942,9 @@ struct vdev_up_params {
 	uint32_t profile_idx;
 	uint32_t profile_num;
 	uint8_t trans_bssid[QDF_MAC_ADDR_SIZE];
+#ifdef WLAN_FEATURE_VBSS
+	uint32_t flags;
+#endif
 };
 
 /**

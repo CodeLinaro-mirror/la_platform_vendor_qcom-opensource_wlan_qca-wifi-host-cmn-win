@@ -308,6 +308,9 @@ mlo_ap_append_bridge_vdevs(struct wlan_objmgr_vdev *vdev,
 			wlan_vdev_get_id(bridge_vdev_list[i]);
 		mlo_ptr->partner_info[p_idx].hw_mld_link_id =
 			wlan_mlo_get_pdev_hw_link_id(pdev);
+		mlo_ptr->partner_info[p_idx].ieee_link_id =
+			wlan_vdev_get_link_id(bridge_vdev_list[i]);
+		mlo_ptr->partner_info[p_idx].ieee_link_id_valid = true;
 		mlo_ptr->partner_info[p_idx].is_bridge_vdev =
 			wlan_vdev_mlme_is_mlo_bridge_vdev(bridge_vdev_list[i]);
 		qdf_mem_copy(mlo_ptr->partner_info[p_idx].mac_addr,
@@ -370,6 +373,9 @@ vdev_mgr_start_param_update_mlo_partner(struct wlan_objmgr_vdev *vdev,
 			wlan_vdev_get_id(vdev_list[i]);
 		mlo_ptr->partner_info[p_idx].hw_mld_link_id =
 			wlan_mlo_get_pdev_hw_link_id(pdev);
+		mlo_ptr->partner_info[p_idx].ieee_link_id =
+			wlan_vdev_get_link_id(vdev_list[i]);
+		mlo_ptr->partner_info[p_idx].ieee_link_id_valid = true;
 		qdf_mem_copy(mlo_ptr->partner_info[p_idx].mac_addr,
 			     wlan_vdev_mlme_get_macaddr(vdev_list[i]),
 			     QDF_MAC_ADDR_SIZE);
@@ -578,6 +584,9 @@ static QDF_STATUS vdev_mgr_start_param_update(
 	}
 	wlan_vdev_mlme_get_ssid(vdev, param->ssid.ssid, &param->ssid.length);
 
+	param->ieee_link_id = wlan_vdev_get_link_id(vdev);
+	param->mlo_flags.mlo_ieee_link_id_valid = true;
+
 	wlan_objmgr_pdev_release_ref(pdev, WLAN_MLME_SB_ID);
 	return QDF_STATUS_SUCCESS;
 }
@@ -762,6 +771,28 @@ static QDF_STATUS vdev_mgr_sta_ps_param_update(
 	return QDF_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_VBSS
+static void
+wlan_set_vbss_state_to_vdev_up_flags(struct wlan_objmgr_vdev *vdev,
+				     struct vdev_up_params *param)
+{
+	if (!wlan_vdev_mlme_feat_ext2_cap_get(vdev, WLAN_VDEV_FEXT2_VBSS))
+		return;
+
+	if (wlan_vdev_mlme_feat_ext2_cap_get(vdev,
+					     WLAN_VDEV_FEXT2_VBSS_PASSIVE))
+		param->flags |= WLAN_VDEV_UP_FLAG_VBSS_PASSIVE;
+	else
+		param->flags |= WLAN_VDEV_UP_FLAG_VBSS_ACTIVE;
+}
+#else
+static void
+wlan_set_vbss_state_to_vdev_up_flags(struct wlan_objmgr_vdev *vdev,
+				     struct vdev_up_params *param)
+{
+}
+#endif /* WLAN_FEATURE_VBSS */
+
 static QDF_STATUS vdev_mgr_up_param_update(
 				struct vdev_mlme_obj *mlme_obj,
 				struct vdev_up_params *param)
@@ -774,6 +805,7 @@ static QDF_STATUS vdev_mgr_up_param_update(
 	vdev = mlme_obj->vdev;
 	param->vdev_id = wlan_vdev_get_id(vdev);
 	param->assoc_id = mlme_obj->proto.sta.assoc_id;
+	wlan_set_vbss_state_to_vdev_up_flags(vdev, param);
 
 	mbss = &mlme_obj->mgmt.mbss_11ax;
 	wlan_vdev_mgr_get_param_bssid(vdev, bssid);

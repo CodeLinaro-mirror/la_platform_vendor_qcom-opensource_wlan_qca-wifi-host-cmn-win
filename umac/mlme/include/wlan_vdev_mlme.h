@@ -53,6 +53,7 @@ struct ml_rv_info;
 #define WLAN_VDEV_MLME_SUBTYPE_MESH_11S   0x6
 #define WLAN_VDEV_MLME_SUBTYPE_SMART_MONITOR 0x7
 #define WLAN_VDEV_MLME_SUBTYPE_MLO_BRIDGE 0x8
+#define WLAN_VDEV_MLME_SUBTYPE_VBSS 0x9
 
 /* vdev control flags (per bits) */
 #define WLAN_VDEV_MLME_FLAGS_NON_MBSSID_AP      0x00000001

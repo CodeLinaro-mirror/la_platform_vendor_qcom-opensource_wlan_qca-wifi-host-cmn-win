@@ -182,6 +182,14 @@ bool reg_is_5ghz_op_class(const uint8_t *country, uint8_t op_class);
  */
 bool reg_is_2ghz_op_class(const uint8_t *country, uint8_t op_class);
 
+/**
+ * reg_get_class_from_country()- Get Class from country.
+ * @country: Country ISO.
+ *
+ * Return: pointer to opclass table.
+ */
+const struct reg_dmn_op_class_map_t *
+reg_get_class_from_country(const uint8_t *country);
 #ifdef CONFIG_CHAN_FREQ_API
 
 /**
@@ -342,7 +350,45 @@ uint16_t reg_chan_opclass_to_freq(uint8_t chan,
 qdf_freq_t reg_chan_opclass_to_freq_auto(uint8_t chan, uint8_t op_class,
 					 bool global_tbl_lookup);
 
+/**
+ * reg_get_chanwidth_and_behav_limit_from_opclass() - Get Channel Width and
+ * Behavior Limit from Operating Class
+ * @pdev: Pointer to pdev
+ * @opclass: Operating Class
+ * @channel: IEEE channel number
+ * @behav_limit: Behavior Limit
+ * @chan_width: Channel Width
+ * Return: None
+ *
+ * This API invokes reg_get_opclass_from_map function to fetch the opclass
+ * table based on the "channel_map" global variable. This channel_map
+ * variable is set according to the DFS domain received from the
+ * firmware in the WMI_REG_CHAN_LIST_CC_EXT_EVENTID.
+ * On the STA side, CSA from the Root AP, the ECSA includes an opclass
+ * value. We first attempt to find this opclass value in the opclass
+ * table pointed to by channel_map. If it is not found there, we then
+ * check if the opclass value is present in any opclass table (opclass_tbl).
+ * This discrepancy can occur if the AP and the STA are configured with
+ * different opclass table indices using the "cfg80211tool wifix
+ * set_opclass_tbl "value" " command.
+ */
+void
+reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+					       uint8_t opclass,
+					       uint8_t channel,
+					       uint16_t *behav_limit,
+					       uint16_t *chan_width);
+
 #else
+
+static inline void
+reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+					       uint8_t opclass,
+					       uint8_t channel,
+					       uint16_t *behav_limit,
+					       uint16_t *chan_width)
+{
+}
 
 static inline uint16_t reg_dmn_get_chanwidth_from_opclass(
 		uint8_t *country, uint8_t channel, uint8_t opclass)
@@ -600,4 +646,14 @@ QDF_STATUS reg_enable_disable_opclass_chans(struct wlan_objmgr_pdev *pdev,
 					    uint8_t chan_list_size,
 					    bool global_tbl_lookup);
 #endif
+
+/**
+ * reg_is_opclass_entry_80p80() - Return true if the opclass entry is
+ * 80P80 false otherwise.
+ * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
+ *
+ * Return - true if opclass entry is 80p80, otherwise false.
+ */
+bool
+reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl);
 #endif

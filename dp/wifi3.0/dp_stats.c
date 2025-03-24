@@ -7011,6 +7011,9 @@ dp_print_ring_stats(struct dp_pdev *pdev)
 	if (pdev->soc->arch_ops.dp_txrx_ppeds_rings_status)
 		pdev->soc->arch_ops.dp_txrx_ppeds_rings_status(pdev->soc);
 #endif
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx)))
+		dp_print_ring_util_stats(soc);
 	hif_rtpm_put(HIF_RTPM_PUT_ASYNC, HIF_RTPM_ID_DP_RING_STATS);
 }
 
@@ -9075,6 +9078,10 @@ static inline void dp_rx_basic_fst_stats(struct dp_pdev *pdev)
 			       pdev->soc->rx_fst->ipv4_fse_cnt);
 		DP_PRINT_STATS("\tNo of IPv6 Flow entries inserted = %d",
 			       pdev->soc->rx_fst->ipv6_fse_cnt);
+		DP_PRINT_STATS("\tNo of Flow entries created = %d",
+			       pdev->soc->rx_fst->fse_flow_create_cnt);
+		DP_PRINT_STATS("\tNo of Flow entries destroyed = %d",
+			       pdev->soc->rx_fst->fse_flow_del_cnt);
 	}
 }
 #else
@@ -9184,20 +9191,26 @@ dp_print_pdev_rx_stats(struct dp_pdev *pdev)
 #ifdef WLAN_SUPPORT_PPEDS
 void dp_print_tx_ppeds_stats(struct dp_soc *soc)
 {
+	if (!wlan_cfg_get_dp_soc_ppeds_enable(soc->wlan_cfg_ctx))
+		return;
+
 	if (soc->arch_ops.dp_tx_ppeds_inuse_desc)
 		soc->arch_ops.dp_tx_ppeds_inuse_desc(soc);
 
 	DP_PRINT_STATS("PPE-DS Tx desc fw2wbm_tx_drop %u",
 		       soc->stats.tx.fw2wbm_tx_drop);
-
-	if (soc->arch_ops.dp_txrx_ppeds_rings_stats)
-		soc->arch_ops.dp_txrx_ppeds_rings_stats(soc);
 }
 #else
 void dp_print_tx_ppeds_stats(struct dp_soc *soc)
 {
 }
 #endif
+
+void dp_print_ring_util_stats(struct dp_soc *soc)
+{
+	if (soc->arch_ops.dp_txrx_rings_util_stats)
+		soc->arch_ops.dp_txrx_rings_util_stats(soc);
+}
 
 #ifdef QCA_SUPPORT_DP_GLOBAL_CTX
 void dp_print_global_desc_count(void)
@@ -10059,6 +10072,8 @@ void dp_update_pdev_stats(struct dp_pdev *tgtobj,
 			srcobj->tx.ru_loc[i].mpdu_tried;
 	}
 
+	for (i = 0; i < CDP_RSSI_CHAIN_LEN; i++)
+		tgtobj->stats.tx.rssi_chain[i] = srcobj->tx.rssi_chain[i];
 	tgtobj->stats.tx.tx_ppdus += srcobj->tx.tx_ppdus;
 	tgtobj->stats.tx.tx_mpdus_success += srcobj->tx.tx_mpdus_success;
 	tgtobj->stats.tx.tx_mpdus_tried += srcobj->tx.tx_mpdus_tried;

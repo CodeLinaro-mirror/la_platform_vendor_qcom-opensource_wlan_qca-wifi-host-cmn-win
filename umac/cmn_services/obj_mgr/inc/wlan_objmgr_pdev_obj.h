@@ -936,6 +936,21 @@ static inline uint8_t wlan_pdev_get_max_vdev_count(
 }
 
 /**
+ *
+ * wlan_pdev_get_connected_peer_count() - get number of peers in connected state
+ * @pdev: PDEV object
+ *
+ * API to get number of peers in connected state
+ *
+ * Return: number of peers in connected state
+ */
+
+uint16_t
+wlan_pdev_get_connected_peer_count(struct wlan_objmgr_pdev *pdev);
+
+
+
+/**
  * wlan_pdev_set_max_num_ml_peers() - Set PDEV Max ML Peers from PSOC Cap
  * @pdev: PDEV Object
  * @max_psoc_num_ml_peers: Max number of ML Peers for the PSOC

@@ -457,6 +457,27 @@ cdp_vdev_recovery_flush_peers(ol_txrx_soc_handle soc,
 							      vdev_id,
 							      mlo_peers_only);
 }
+
+/**
+ * cdp_peer_recovery_flush() - API to flush the link peers.
+ * This should be used only during the recovery cases.
+ */
+static inline void
+cdp_peer_recovery_flush(ol_txrx_soc_handle soc, uint8_t *peer_mac)
+{
+	if (!soc || !soc->ops) {
+		dp_cdp_debug("Invalid Instance:");
+		QDF_BUG(0);
+		return;
+	}
+
+	if (!soc->ops->cmn_drv_ops ||
+	    !soc->ops->cmn_drv_ops->txrx_recovery_peer_flush)
+		return;
+
+	soc->ops->cmn_drv_ops->txrx_recovery_peer_flush(soc, peer_mac);
+}
+
 #endif
 #endif
 

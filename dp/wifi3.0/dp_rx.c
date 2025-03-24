@@ -571,6 +571,11 @@ __dp_rx_buffers_no_map_replenish(struct dp_soc *soc, uint32_t mac_id,
 	nbuf = nbuf_head;
 	hal_srng_access_start(soc->hal_soc, rxdma_srng);
 
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx)))
+		hal_update_ring_util(soc->hal_soc, rxdma_srng, RXDMA_BUF,
+				     &dp_rxdma_srng->stats);
+
 	for (count = 0; count < num_req_buffers; count++) {
 		next = (*desc_list)->next;
 		nbuf_next = nbuf->next;
@@ -701,7 +706,6 @@ __dp_rx_comp2refill_replenish(struct dp_soc *soc, uint32_t mac_id,
 
 		nbuf = cur->rx_desc.reuse_nbuf;
 
-		cur->rx_desc.nbuf = NULL;
 		cur->rx_desc.in_use = 0;
 		cur->rx_desc.has_reuse_nbuf = false;
 		cur->rx_desc.reuse_nbuf = NULL;
@@ -2786,19 +2790,24 @@ void dp_rx_msdu_stats_update(struct dp_soc *soc, qdf_nbuf_t nbuf,
 	uint16_t msdu_len = QDF_NBUF_CB_RX_PKT_LEN(nbuf);
 
 	dp_rx_msdu_stats_update_prot_cnts(vdev, nbuf, txrx_peer);
-	is_not_amsdu = qdf_nbuf_is_rx_chfrag_start(nbuf) &
-			qdf_nbuf_is_rx_chfrag_end(nbuf);
 	DP_PEER_PER_PKT_STATS_INC_PKT(txrx_peer, rx.rcvd_reo[ring_id], 1,
 				      msdu_len, link_id);
-	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.non_amsdu_cnt, 1,
-				   is_not_amsdu, link_id);
-	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.amsdu_cnt, 1,
-				   !is_not_amsdu, link_id);
-	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.rx_retries, 1,
-				   qdf_nbuf_is_rx_retry_flag(nbuf), link_id);
-	dp_peer_update_rx_pkt_per_lmac(txrx_peer, nbuf, link_id);
-	tid_stats->msdu_cnt++;
 	enh_flag = vdev->pdev->enhanced_stats_en;
+
+	if (qdf_unlikely(!enh_flag))
+		return;
+
+	is_not_amsdu = qdf_nbuf_is_rx_chfrag_start(nbuf) &
+		qdf_nbuf_is_rx_chfrag_end(nbuf);
+	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.non_amsdu_cnt, 1,
+			is_not_amsdu, link_id);
+	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.amsdu_cnt, 1,
+			!is_not_amsdu, link_id);
+	DP_PEER_PER_PKT_STATS_INCC(txrx_peer, rx.rx_retries, 1,
+			qdf_nbuf_is_rx_retry_flag(nbuf), link_id);
+	dp_peer_update_rx_pkt_per_lmac(txrx_peer, nbuf, link_id);
+
+	tid_stats->msdu_cnt++;
 	if (qdf_unlikely(qdf_nbuf_is_da_mcbc(nbuf) &&
 			 (vdev->rx_decap_type == htt_cmn_pkt_type_ethernet))) {
 		eh = (qdf_ether_header_t *)qdf_nbuf_data(nbuf);

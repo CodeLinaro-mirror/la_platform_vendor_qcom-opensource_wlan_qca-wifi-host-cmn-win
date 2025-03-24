@@ -48,6 +48,8 @@
 	__QDF_TRACE_RL(QDF_TRACE_LEVEL_INFO_HIGH, QDF_MODULE_ID_DP_RX_ERROR, ## params)
 #define dp_rx_err_debug(params...) QDF_TRACE_DEBUG(QDF_MODULE_ID_DP_RX_ERROR, params)
 
+#define MAX_RING_FULL_WAIT_CNT 200
+
 #ifndef QCA_HOST_MODE_WIFI_DISABLED
 
 
@@ -196,6 +198,7 @@ dp_rx_link_desc_return_by_addr(struct dp_soc *soc,
 	hal_soc_handle_t hal_soc = soc->hal_soc;
 	QDF_STATUS status = QDF_STATUS_E_FAILURE;
 	void *src_srng_desc;
+	uint16_t wait_cnt;
 
 	if (!wbm_rel_srng) {
 		dp_rx_err_err("%pK: WBM RELEASE RING not initialized", soc);
@@ -221,6 +224,19 @@ dp_rx_link_desc_return_by_addr(struct dp_soc *soc,
 		goto done;
 	}
 	src_srng_desc = hal_srng_src_get_next(hal_soc, wbm_rel_srng);
+
+	if (qdf_unlikely(!src_srng_desc)) {
+		for (wait_cnt = 0;
+		     wait_cnt < MAX_RING_FULL_WAIT_CNT; wait_cnt++) {
+			hal_srng_access_start_unlocked(hal_soc, wbm_rel_srng);
+			src_srng_desc =
+				hal_srng_src_get_next(hal_soc, wbm_rel_srng);
+			if (qdf_likely(src_srng_desc))
+				break;
+			hal_srng_access_end_unlocked(hal_soc, wbm_rel_srng);
+		}
+	}
+
 	if (qdf_likely(src_srng_desc)) {
 		/* Return link descriptor through WBM ring (SW2WBM)*/
 		hal_rx_msdu_link_desc_set(hal_soc,
@@ -2143,6 +2159,7 @@ dp_rx_err_process(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct hal_buf_info hbi;
 	struct dp_pdev *dp_pdev;
 	struct dp_srng *dp_rxdma_srng;
+	struct dp_srng *srng;
 	struct rx_desc_pool *rx_desc_pool;
 	void *link_desc_va;
 	struct hal_rx_msdu_list msdu_list; /* MSDU's per MPDU */
@@ -2181,6 +2198,15 @@ more_data:
 		dp_rx_err_err("%pK: HAL RING Access Failed -- %pK", soc,
 			      hal_ring_hdl);
 		goto done;
+	}
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->reo_exception_ring;
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     REO_EXCEPTION,
+					     &srng->stats);
 	}
 
 	while (qdf_likely(quota-- && (ring_desc =

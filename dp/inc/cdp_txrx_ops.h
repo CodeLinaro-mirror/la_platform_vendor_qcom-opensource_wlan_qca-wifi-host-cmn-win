@@ -745,6 +745,8 @@ struct cdp_cmn_ops {
 	void (*txrx_recovery_vdev_flush_peers)(struct cdp_soc_t *soc,
 					       uint8_t vdev_id,
 					       bool mlo_peers_only);
+	void (*txrx_recovery_peer_flush)(struct cdp_soc_t *soc,
+					 uint8_t *peer_mac);
 #endif
 #endif
 	QDF_STATUS (*txrx_umac_reset_deinit)(ol_txrx_soc_handle soc,
@@ -1143,7 +1145,7 @@ struct cdp_mon_ops {
 	int
 		(*txrx_update_filter_neighbour_peers)(
 				struct cdp_soc_t *soc, uint8_t vdev_id,
-				uint32_t cmd, uint8_t *macaddr);
+				uint32_t cmd, uint8_t *macaddr, bool is_vbss_peer);
 
 #ifdef ATH_SUPPORT_NAC_RSSI
 	QDF_STATUS (*txrx_vdev_config_for_nac_rssi)(struct cdp_soc_t *cdp_soc,

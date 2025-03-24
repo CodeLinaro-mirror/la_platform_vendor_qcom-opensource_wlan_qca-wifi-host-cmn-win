@@ -1114,6 +1114,23 @@ uint16_t wlan_reg_dmn_get_chanwidth_from_opclass(uint8_t *country,
 						 uint8_t opclass);
 
 /**
+ * wlan_reg_get_chanwidth_and_behav_limit_from_opclass() - get channel width
+ * and behaviour limit from operating class.
+ * @pdev: Pointer to pdev.
+ * @opclass: Operating class.
+ * @channel: Channel number.
+ * @behav_limit: Pointer to behaviour limit.
+ * @ch_width: Pointer to channel width.
+ * Return: None
+ */
+void
+wlan_reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+						    uint8_t opclass,
+						    uint8_t channel,
+						    uint16_t *behav_limit,
+						    uint16_t *ch_width);
+
+/**
  * wlan_reg_dmn_get_chanwidth_from_opclass_auto() - get channel width from
  * operating class. If opclass not found then search in global opclass.
  * @country: country alpha2
@@ -3128,4 +3145,23 @@ bool wlan_reg_is_vlp_depriority_freq(struct wlan_objmgr_pdev *pdev,
 	return false;
 }
 #endif
+
+/**
+ * wlan_reg_is_opclass_entry_80p80() - Return true if the opclass entry is
+ * 80P80 false otherwise.
+ * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
+ *
+ * Return - true if opclass entry is 80p80, otherwise false.
+ */
+bool
+wlan_reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl);
+
+/**
+ * wlan_reg_get_class_from_country()- Get Class from country.
+ * @country: Country ISO.
+ *
+ * Return: pointer to opclass table.
+ */
+const struct reg_dmn_op_class_map_t *
+wlan_reg_get_class_from_country(const uint8_t *country);
 #endif

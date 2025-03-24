@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -39,15 +39,19 @@
 #include <ppe_drv_sc.h>
 #endif
 
-#ifdef WLAN_SUPPORT_PPEDS
 static const char *ring_usage_dump[RING_USAGE_MAX] = {
 	"100%",
-	"Greater than 90%",
-	"70 to 90%",
-	"50 to 70%",
-	"Less than 50%"
+	"90_100%",
+	"80_90%",
+	"70_80%",
+	"60_70%",
+	"50_60%",
+	"40_50%",
+	"30_40%",
+	"20_10%",
+	"10_20%",
+	"Less than 10%"
 };
-#endif
 
 /* Generic AST entry aging timer value */
 #define DP_AST_AGING_TIMER_DEFAULT_MS	5000
@@ -83,6 +87,31 @@ static struct wlan_cfg_tcl_wbm_ring_num_map g_tcl_wbm_map_array[MAX_TCL_DATA_RIN
 	{4, 4, HAL_BE_WBM_SW4_BM_ID, 0}
 };
 #endif
+
+static void dp_print_util_stats_header(void)
+{
+	DP_PRINT_STATS("\t\t\t  %-15s %-10s %-10s %-10s %-10s %-10s %-10s %-10s"
+		       " %-10s %-10s %-10s",
+		       ring_usage_dump[10], ring_usage_dump[9],
+		       ring_usage_dump[8], ring_usage_dump[7],
+		       ring_usage_dump[6], ring_usage_dump[5],
+		       ring_usage_dump[4], ring_usage_dump[3],
+		       ring_usage_dump[2], ring_usage_dump[1],
+		       ring_usage_dump[0]);
+}
+
+static void dp_print_util_stats(struct dp_srng *srng, const char *ring_name)
+{
+	DP_PRINT_STATS("%-25s: %-15u %-10u %-10u %-10u %-10u %-10u %-10u %-10u "
+		       "%-10u %-10u %-10u",
+		       ring_name,
+		       srng->stats.util[10], srng->stats.util[9],
+		       srng->stats.util[8], srng->stats.util[7],
+		       srng->stats.util[6], srng->stats.util[5],
+		       srng->stats.util[4], srng->stats.util[3],
+		       srng->stats.util[2], srng->stats.util[1],
+		       srng->stats.util[0]);
+}
 
 #ifdef WLAN_SUPPORT_PPEDS
 static struct cdp_ppeds_txrx_ops dp_ops_ppeds_be = {
@@ -197,31 +226,18 @@ static void dp_ppeds_clear_stats(struct dp_soc *soc)
 	dp_ppeds_clear_assert_war_stats(be_soc);
 }
 
-static void dp_ppeds_rings_stats(struct dp_soc *soc)
+static void dp_ppeds_rings_util_stats(struct dp_soc *soc)
 {
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-	int i = 0;
 
-	DP_PRINT_STATS("Ring utilization statistics");
-	DP_PRINT_STATS("WBM2SW_RELEASE");
-
-	for (i = 0; i < RING_USAGE_MAX; i++)
-		DP_PRINT_STATS("\t %s utilized %d instances",
-			       ring_usage_dump[i],
-			       be_soc->ppeds_wbm_release_ring.stats.util[i]);
-
-	DP_PRINT_STATS("PPE2TCL");
-
-	for (i = 0; i < RING_USAGE_MAX; i++)
-		DP_PRINT_STATS("\t %s utilized %d instances",
-			       ring_usage_dump[i],
-			       be_soc->ppe2tcl_ring.stats.util[i]);
+	dp_print_util_stats(&be_soc->ppeds_wbm_release_ring,
+			    "DS:WBM2SW_RELEASE");
+	dp_print_util_stats(&be_soc->ppe2tcl_ring,
+			    "DS:PPE2TCL");
 }
 
-static void dp_ppeds_clear_rings_stats(struct dp_soc *soc)
+static void dp_ppeds_ring_util_stats_clear(struct dp_soc_be *be_soc)
 {
-	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-
 	memset(&be_soc->ppeds_wbm_release_ring.stats, 0,
 	       sizeof(struct ring_util_stats));
 	memset(&be_soc->ppe2tcl_ring.stats, 0, sizeof(struct ring_util_stats));
@@ -249,7 +265,72 @@ void dp_vdev_detach_vp_profiles(struct dp_soc_be *be_soc,
 				struct dp_vdev_be *be_vdev)
 {
 }
+
+static void dp_ppeds_rings_util_stats(struct dp_soc *soc)
+{
+}
+
+static void dp_ppeds_ring_util_stats_clear(struct dp_soc_be *be_soc)
+{
+}
 #endif
+static void dp_rings_util_stats(struct dp_soc *soc)
+{
+	int i = 0;
+
+	DP_PRINT_STATS("");
+	DP_PRINT_STATS("Ring utilization statistics\n");
+	dp_print_util_stats_header();
+
+	/* Print DS ring stats */
+	if (wlan_cfg_get_dp_soc_ppeds_enable(soc->wlan_cfg_ctx))
+		dp_ppeds_rings_util_stats(soc);
+
+	/* Print SFE ring stats */
+	for (i = 0; i < soc->num_tx_comp_rings; i++)
+		dp_print_util_stats(&soc->tx_comp_ring[i],
+				    "WBM2SW_RELEASE(TX_COMP)");
+
+	for (i = 0; i < soc->num_rx_refill_buf_rings; i++)
+		dp_print_util_stats(&soc->rx_refill_buf_ring[i],
+				    "RXDMA_BUF_REFILL");
+
+	for (i = 0; i < soc->num_reo_dest_rings; i++)
+		dp_print_util_stats(&soc->reo_dest_ring[i],
+				    "REO_DST");
+
+	dp_print_util_stats(&soc->reo_exception_ring,
+			    "REO_EXCEPTION");
+
+	dp_print_util_stats(&soc->rx_rel_ring, "WBM2SW_RELEASE");
+}
+
+static void dp_clear_ring_util_stats(struct dp_soc *soc)
+{
+	int i = 0;
+	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
+
+	/* Clear DS ring stats */
+	if (wlan_cfg_get_dp_soc_ppeds_enable(soc->wlan_cfg_ctx))
+		dp_ppeds_ring_util_stats_clear(be_soc);
+
+	/* Clear SFE ring stats */
+	for (i = 0; i < soc->num_tx_comp_rings; i++)
+		memset(&soc->tx_comp_ring[i].stats, 0,
+		       sizeof(struct ring_util_stats));
+
+	for (i = 0; i < soc->num_rx_refill_buf_rings; i++)
+		memset(&soc->rx_refill_buf_ring[i].stats, 0,
+		       sizeof(struct ring_util_stats));
+
+	for (i = 0; i < soc->num_reo_dest_rings; i++)
+		 memset(&soc->reo_dest_ring[i].stats, 0,
+			sizeof(struct ring_util_stats));
+
+	memset(&soc->reo_exception_ring.stats, 0,
+	       sizeof(struct ring_util_stats));
+	memset(&soc->rx_rel_ring.stats, 0, sizeof(struct ring_util_stats));
+}
 
 static void dp_soc_cfg_attach_be(struct dp_soc *soc)
 {
@@ -519,9 +600,9 @@ dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 	cc_ctx->desc_type = ((desc_type == QDF_DP_TX_DESC_TYPE) ?
 			     QDF_DP_TX_HW_CC_SPT_PAGE_TYPE :
 			     QDF_DP_RX_HW_CC_SPT_PAGE_TYPE);
-	dp_desc_multi_pages_mem_alloc(soc, cc_ctx->desc_type,
-				      &cc_ctx->page_pool, qdf_page_size,
-				      num_spt_pages, 0, true);
+	qdf_mem_multi_pages_alloc_no_header(soc->osdev, &cc_ctx->page_pool,
+					    qdf_page_size,
+					    num_spt_pages);
 	if (!cc_ctx->page_pool.cacheable_pages) {
 		dp_err("spt memory allocation failed");
 		return QDF_STATUS_E_RESOURCES;
@@ -552,8 +633,7 @@ dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 
 	return QDF_STATUS_SUCCESS;
 fail_0:
-	dp_desc_multi_pages_mem_free(soc, cc_ctx->desc_type,
-				     &cc_ctx->page_pool, 0, true);
+	qdf_mem_multi_pages_free_no_header(soc->osdev, &cc_ctx->page_pool);
 
 	return QDF_STATUS_E_FAILURE;
 }
@@ -564,8 +644,7 @@ dp_hw_cookie_conversion_detach(struct dp_soc_be *be_soc,
 {
 	struct dp_soc *soc = DP_SOC_BE_GET_SOC(be_soc);
 
-	dp_desc_multi_pages_mem_free(soc, cc_ctx->desc_type,
-				     &cc_ctx->page_pool, 0, true);
+	qdf_mem_multi_pages_free_no_header(soc->osdev, &cc_ctx->page_pool);
 	if (cc_ctx->page_desc_base)
 		qdf_spinlock_destroy(&cc_ctx->cc_lock);
 
@@ -1663,8 +1742,9 @@ static QDF_STATUS dp_vdev_detach_be(struct dp_soc *soc, struct dp_vdev *vdev)
 }
 
 #ifdef WLAN_SUPPORT_PPEDS
-static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
-				      uint8_t *peer_mac)
+static QDF_STATUS  dp_soc_txrx_peer_setup_be(struct dp_soc *soc,
+					     uint8_t vdev_id,
+					     uint8_t *peer_mac)
 {
 	struct dp_vdev_be *be_vdev;
 	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
@@ -1678,13 +1758,14 @@ static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 
 	peer = dp_peer_find_hash_find(soc, peer_mac, 0, vdev_id, DP_MOD_ID_CDP);
 	if (!peer)
-		return;
+		return QDF_STATUS_E_FAILURE;
+
 	vdev_opmode = peer->vdev->opmode;
 
 	if (vdev_opmode != wlan_op_mode_ap &&
 	    vdev_opmode != wlan_op_mode_sta) {
 		dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
-		return;
+		return QDF_STATUS_E_FAILURE;
 	}
 
 	tgt_peer = dp_get_tgt_peer_from_peer(peer);
@@ -1728,10 +1809,10 @@ static void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 
 fail:
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
-	if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
+	if (!QDF_IS_STATUS_SUCCESS(qdf_status))
 		dp_err("Unable to do ppeds peer setup");
-		qdf_assert_always(0);
-	}
+
+	return qdf_status;
 }
 
 static inline
@@ -1742,9 +1823,10 @@ void dp_tx_update_vp_profile(struct dp_soc_be *soc,
 }
 #else
 static inline
-void dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
+QDF_STATUS dp_soc_txrx_peer_setup_be(struct dp_soc *soc, uint8_t vdev_id,
 			       uint8_t *peer_mac)
 {
+	return QDF_STATUS_SUCCESS;
 }
 
 static inline
@@ -1768,9 +1850,7 @@ static QDF_STATUS dp_peer_setup_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
 		return qdf_status;
 	}
 
-	dp_soc_txrx_peer_setup_be(soc, vdev_id, peer_mac);
-
-	return QDF_STATUS_SUCCESS;
+	return dp_soc_txrx_peer_setup_be(soc, vdev_id, peer_mac);
 }
 
 qdf_size_t dp_get_soc_context_size_be(void)
@@ -4104,6 +4184,8 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 					dp_peer_rx_reorder_queue_setup_be;
 	arch_ops->dp_rx_peer_set_link_id = dp_rx_set_link_id_be;
 	arch_ops->txrx_print_peer_stats = dp_print_peer_txrx_stats_be;
+	arch_ops->dp_txrx_rings_util_stats = dp_rings_util_stats;
+	arch_ops->dp_txrx_clear_rings_util_stats = dp_clear_ring_util_stats;
 
 #ifdef WLAN_SUPPORT_PPEDS
 	arch_ops->ppeds_handle_attached = dp_ppeds_handle_attached;
@@ -4114,8 +4196,6 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 	arch_ops->dp_free_ppeds_interrupts = dp_free_ppeds_interrupts;
 	arch_ops->dp_tx_ppeds_inuse_desc = dp_ppeds_inuse_desc;
 	arch_ops->dp_ppeds_clear_stats = dp_ppeds_clear_stats;
-	arch_ops->dp_txrx_ppeds_rings_stats = dp_ppeds_rings_stats;
-	arch_ops->dp_txrx_ppeds_clear_rings_stats = dp_ppeds_clear_rings_stats;
 	arch_ops->dp_tx_ppeds_cfg_astidx_cache_mapping =
 				dp_tx_ppeds_cfg_astidx_cache_mapping;
 	arch_ops->dp_tx_update_ppeds_tx_comp_stats =

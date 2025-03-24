@@ -5251,6 +5251,24 @@ reg_get_20mhz_channel_state_based_on_nol(struct wlan_objmgr_pdev *pdev,
 #define MAX_NUM_BONDED_PAIR 2
 
 /**
+ * reg_is_freq_within_bondedpair() - check that provided frequency
+ * lies within a particular range (bonded pair) or not.
+ *
+ * @freq: Input frequency in MHZ
+ * @bonded_chan_entry: Pointer to bonded channel pair.
+ *
+ * Return: Returns true if the frequency falls between the
+ * specified channel pair; otherwise, it returns false.
+ */
+static bool
+reg_is_freq_within_bondedpair(qdf_freq_t freq,
+			      const struct bonded_channel_freq *bonded_chan_entry)
+{
+	return ((freq >= bonded_chan_entry->start_freq) &&
+		(freq <= bonded_chan_entry->end_freq));
+}
+
+/**
  * reg_get_320_bonded_chan_array() - Fetches a list of bonded channel pointers
  * for the given bonded channel array. If 320 band center is specified,
  * return the bonded channel pointer comprising of given band center else
@@ -5281,8 +5299,7 @@ reg_get_320_bonded_chan_array(struct wlan_objmgr_pdev *pdev,
 	if (!band_center_320) {
 		for (i = 0 ; i < array_size &&
 		     num_bonded_pairs < MAX_NUM_BONDED_PAIR; i++) {
-			if ((freq >= bonded_chan_ar[i].start_freq) &&
-			    (freq <= bonded_chan_ar[i].end_freq)) {
+			if (reg_is_freq_within_bondedpair(freq, &bonded_chan_ar[i])) {
 				bonded_chan_ptr[num_bonded_pairs] =
 					&bonded_chan_ar[i];
 				num_bonded_pairs++;
@@ -5291,8 +5308,11 @@ reg_get_320_bonded_chan_array(struct wlan_objmgr_pdev *pdev,
 	} else {
 		/* Fetch the bonded channel pointer for the given band_center */
 		for (i = 0; i < array_size; i++) {
-			qdf_freq_t bandstart = bonded_chan_ar[i].start_freq;
+			qdf_freq_t bandstart;
+			if (!reg_is_freq_within_bondedpair(freq, &bonded_chan_ar[i]))
+				continue;
 
+			bandstart = bonded_chan_ar[i].start_freq;
 			if (band_center_320 ==
 			    reg_get_band_cen_from_bandstart(BW_320_MHZ,
 							    bandstart)) {

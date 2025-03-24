@@ -3948,6 +3948,14 @@ void dp_print_soc_interrupt_stats(struct dp_soc *soc);
 
 void dp_print_tx_ppeds_stats(struct dp_soc *soc);
 
+/**
+ * dp_print_ring_util_stats() - Print SRNG utilization stats for the soc
+ * @soc: dp_soc handle
+ *
+ * Return: None
+ */
+void dp_print_ring_util_stats(struct dp_soc *soc);
+
 /* REO destination ring's watermark mask */
 #define DP_SRNG_WM_MASK_REO_DST  BIT(REO_DST)
 /* TX completion ring's watermark mask */
@@ -6278,10 +6286,8 @@ dp_get_ring_stats_from_hal(struct dp_soc *soc,  struct dp_srng *srng,
 	uint32_t headp;
 	int32_t hw_headp = -1;
 	int32_t hw_tailp = -1;
-	struct hal_soc *hal_soc;
 
 	if (soc && srng && srng->hal_srng) {
-		hal_soc = (struct hal_soc *)soc->hal_soc;
 		hal_get_sw_hptp(soc->hal_soc, srng->hal_srng, &tailp, &headp);
 		*_headp = headp;
 		*_tailp = tailp;

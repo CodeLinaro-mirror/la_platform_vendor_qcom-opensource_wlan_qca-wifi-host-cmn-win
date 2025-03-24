@@ -2187,7 +2187,9 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 			     qdf_nbuf_t nbuf, uint8_t *tid, uint8_t *sawf_tid)
 {
 	hal_tx_desc[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc[1] = tx_desc->id <<
+	hal_tx_desc[1] = (((uint64_t)tx_desc->dma_addr) >> 32) &
+		TCL_DATA_CMD_BUF_ADDR_INFO_BUFFER_ADDR_39_32_MASK;
+	hal_tx_desc[1] |= tx_desc->id <<
 		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
 
 	/* bank_id */
@@ -2216,6 +2218,8 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 		hal_tx_desc[5] |= 1 << TCL_DATA_CMD_HLOS_TID_OVERWRITE_LSB;
 	}
 
+	/* reset the word6 as well */
+	hal_tx_desc[6] = 0;
 	if (vdev->opmode == wlan_op_mode_sta)
 		hal_tx_desc[6] = vdev->bss_ast_idx |
 			((vdev->bss_ast_hash & 0xF) <<
@@ -2240,7 +2244,9 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 
 	hal_tx_desc_cached = (void *)cached_desc;
 	hal_tx_desc_cached[0] = (uint32_t)tx_desc->dma_addr;
-	hal_tx_desc_cached[1] = tx_desc->id <<
+	hal_tx_desc_cached[1] = (((uint64_t)tx_desc->dma_addr) >> 32) &
+		TCL_DATA_CMD_BUF_ADDR_INFO_BUFFER_ADDR_39_32_MASK;
+	hal_tx_desc_cached[1] |= tx_desc->id <<
 		TCL_DATA_CMD_BUF_ADDR_INFO_SW_BUFFER_COOKIE_LSB;
 
 	/* bank_id */
@@ -2484,6 +2490,7 @@ uint32_t dp_tx_comp_handler_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct dp_tx_desc_s *tail_desc = NULL;
 	struct dp_tx_desc_s *fast_head_desc = NULL;
 	struct dp_tx_desc_s *fast_tail_desc = NULL;
+	struct dp_srng *srng;
 	uint32_t num_processed = 0;
 	uint32_t fast_desc_count = 0;
 	uint32_t count;
@@ -2526,6 +2533,15 @@ more_data:
 
 	/* get tx_desc pool from first sw desc */
 	tx_desc_pool = dp_get_tx_desc_pool_wrapper(soc);
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->tx_comp_ring[ring_id];
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     WBM2SW_RELEASE,
+					     &srng->stats);
+	}
 
 	/* Find head descriptor from completion ring */
 	while (qdf_likely(num_avail_for_reap--)) {
@@ -2636,13 +2652,13 @@ add_to_pool2:
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS) {
 				dp_tx_nbuf_dev_queue_free(&h, tx_desc);
 				fast_desc_count++;
-				if (!fast_head_desc) {
-					fast_head_desc = tx_desc;
+				if (!fast_tail_desc) {
 					fast_tail_desc = tx_desc;
 				}
-				fast_tail_desc->next = tx_desc;
-				fast_tail_desc = tx_desc;
+
 				dp_tx_desc_clear(tx_desc);
+				tx_desc->next = fast_head_desc;
+				fast_head_desc = tx_desc;
 			} else {
 				if (!head_desc) {
 					head_desc = tx_desc;

@@ -5516,4 +5516,42 @@ QDF_STATUS
 wmi_pdev_power_boost_cmd_send(wmi_unified_t wmi_handle,
 				struct wmi_host_pdev_power_boost_cmd_params *pb_cmd_params);
 
+#ifdef WLAN_FEATURE_VBSS
+
+/**
+ * wmi_vbss_trigger_move_sta_send - WMI to send VBSS Trigger move STA
+ * @wmi_handle: Handle to WMI
+ * @@vbss_sta_context: Pointer to VBSS STA context
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_vbss_trigger_move_sta_send(
+			wmi_unified_t wmi_handle,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+
+/**
+ * wmi_vbss_set_sta_context_send - WMI to send VBSS set STA context
+ * @wmi_handle: Handle to WMI
+ * @@vbss_sta_context: Pointer to VBSS STA context
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_vbss_set_sta_context_send(
+			wmi_unified_t wmi_handle,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+
+/**
+ * wmi_extract_vbss_sta_context - WMI to extract VBSS STA context from FW
+ * @wmi_handle: Handle to WMI
+ * @@vbss_sta_context: Pointer to VBSS STA context
+ *
+ * Return: QDF_STATUS_SUCCESS on success and QDF_STATUS_E_FAILURE for failure
+ */
+QDF_STATUS
+wmi_extract_vbss_sta_context(
+			wmi_unified_t wmi_handle, uint8_t *evt_buf,
+			struct win_host_vbss_sta_context *vbss_sta_context);
+#endif /* WLAN_FEATURE_VBSS */
 #endif /* _WMI_UNIFIED_API_H_ */

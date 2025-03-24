@@ -1023,53 +1023,55 @@ hal_txmon_get_user_desc_common(void *tx_tlv,
  * hal_txmon_populate_he_data_common() - populate he data common information
  *
  * @usr_common: pointer to hal_txmon_usr_desc_common
- * @user_id: user index
  * @ppdu_info: pointer to hal_tx_ppdu_info
  *
  * Return: void
  */
 static inline void
 hal_txmon_populate_he_data_common(struct hal_txmon_usr_desc_common *usr_common,
-				  uint32_t user_id,
 				  struct hal_tx_ppdu_info *ppdu_info)
 {
+	uint16_t he_data1;
+	uint16_t he_data2;
+	uint16_t he_data5;
+	uint16_t he_data6;
+	uint16_t i = 0;
+
 	/* HE data 1 */
-	TXMON_HAL_USER(ppdu_info,
-		       user_id, he_data1) |= QDF_MON_STATUS_HE_DOPPLER_KNOWN;
-
+	he_data1 = QDF_MON_STATUS_HE_DOPPLER_KNOWN;
 	/* HE data 2 */
-	TXMON_HAL_USER(ppdu_info, user_id,
-		       he_data2) |= (QDF_MON_STATUS_PE_DISAMBIGUITY_KNOWN |
-				     QDF_MON_STATUS_LTF_SYMBOLS_KNOWN);
-
+	he_data2 = (QDF_MON_STATUS_PE_DISAMBIGUITY_KNOWN |
+		    QDF_MON_STATUS_LTF_SYMBOLS_KNOWN);
 	/* HE data 5 */
-	TXMON_HAL_USER(ppdu_info, user_id, he_data5) |=
-		(usr_common->pkt_extn_pe <<
-		 QDF_MON_STATUS_PE_DISAMBIGUITY_SHIFT) |
-		(usr_common->a_factor << QDF_MON_STATUS_PRE_FEC_PAD_SHIFT) |
-		((1 + usr_common->ltf_size) <<
-		 QDF_MON_STATUS_HE_LTF_SIZE_SHIFT) |
-		(usr_common->num_ltf_symbols <<
-		 QDF_MON_STATUS_HE_LTF_SYM_SHIFT);
-
+	he_data5 = ((usr_common->pkt_extn_pe <<
+		     QDF_MON_STATUS_PE_DISAMBIGUITY_SHIFT) |
+		    (usr_common->a_factor << QDF_MON_STATUS_PRE_FEC_PAD_SHIFT) |
+		    ((1 + usr_common->ltf_size) <<
+		     QDF_MON_STATUS_HE_LTF_SIZE_SHIFT) |
+		    (usr_common->num_ltf_symbols <<
+		     QDF_MON_STATUS_HE_LTF_SYM_SHIFT));
 	/* HE data 6 */
-	TXMON_HAL_USER(ppdu_info, user_id,
-		       he_data6) |= (usr_common->doppler_indication <<
-				     QDF_MON_STATUS_DOPPLER_SHIFT);
+	he_data6 = (usr_common->doppler_indication <<
+		    QDF_MON_STATUS_DOPPLER_SHIFT);
+
+	for (i = 0; i < usr_common->num_users; i++) {
+		TXMON_HAL_USER(ppdu_info, i, he_data1) |= he_data1;
+		TXMON_HAL_USER(ppdu_info, i, he_data2) |= he_data2;
+		TXMON_HAL_USER(ppdu_info, i, he_data5) |= he_data5;
+		TXMON_HAL_USER(ppdu_info, i, he_data6) |= he_data6;
+	}
 }
 
 /**
  * hal_txmon_populate_he_mu_common() - populate he mu common information
  *
  * @usr_common: pointer to hal_txmon_usr_desc_common
- * @user_id: user index
  * @ppdu_info: pointer to hal_tx_ppdu_info
  *
  * Return: void
  */
 static inline void
 hal_txmon_populate_he_mu_common(struct hal_txmon_usr_desc_common *usr_common,
-				uint32_t user_id,
 				struct hal_tx_ppdu_info *ppdu_info)
 {
 	uint16_t he_mu_flag_1 = 0;
@@ -1114,14 +1116,12 @@ hal_txmon_populate_he_mu_common(struct hal_txmon_usr_desc_common *usr_common,
  * hal_txmon_populate_eht_sig_common() - populate eht sig common information
  *
  * @usr_common: pointer to hal_txmon_usr_desc_common
- * @user_id: user index
  * @ppdu_info: pointer to hal_tx_ppdu_info
  *
  * Return: void
  */
 static inline void
 hal_txmon_populate_eht_sig_common(struct hal_txmon_usr_desc_common *usr_common,
-				  uint32_t user_id,
 				  struct hal_tx_ppdu_info *ppdu_info)
 {
 	uint32_t eht_known = 0;
@@ -1203,16 +1203,18 @@ hal_txmon_populate_eht_sig_common(struct hal_txmon_usr_desc_common *usr_common,
  * hal_txmon_parse_user_desc_common() - parse mactx user desc common tlv
  *
  * @tx_tlv: pointer to mactx_user_desc_common tlv
- * @user_id: user index
  * @ppdu_info: pointer to hal_tx_ppdu_info
  *
  * Return: void
  */
 static inline void
-hal_txmon_parse_user_desc_common(void *tx_tlv, uint32_t user_id,
+hal_txmon_parse_user_desc_common(void *tx_tlv,
 				 struct hal_tx_ppdu_info *ppdu_info)
 {
 	struct hal_txmon_usr_desc_common usr_common = {0};
+	uint8_t su_or_mu = TXMON_HAL(ppdu_info, su_or_mu);
+	uint8_t mu_type = TXMON_HAL(ppdu_info, mu_type);
+	uint8_t num_users = TXMON_HAL(ppdu_info, num_users);
 
 	usr_common.num_users = TXMON_HAL(ppdu_info, num_users);
 	hal_txmon_get_user_desc_common(tx_tlv, &usr_common);
@@ -1224,14 +1226,23 @@ hal_txmon_parse_user_desc_common(void *tx_tlv, uint32_t user_id,
 
 		if (TXMON_HAL_STATUS(ppdu_info, he_flags))
 			hal_txmon_populate_he_data_common(&usr_common,
-							  user_id, ppdu_info);
+							  ppdu_info);
 		if (TXMON_HAL_STATUS(ppdu_info, he_mu_flags))
-			hal_txmon_populate_he_mu_common(&usr_common,
-							user_id, ppdu_info);
+			hal_txmon_populate_he_mu_common(&usr_common, ppdu_info);
 		break;
 	case TXMON_PKT_TYPE_11BE:
-		hal_txmon_populate_eht_sig_common(&usr_common,
-						  user_id, ppdu_info);
+		hal_txmon_populate_eht_sig_common(&usr_common, ppdu_info);
+		/*
+		 * update number of non ofdma user if trasmission
+		 * type is SU or MU-MIMO
+		 */
+		if (!su_or_mu || !mu_type) {
+			TXMON_HAL_STATUS(ppdu_info, eht_known) |=
+				QDF_MON_STATUS_EHT_NUM_NON_OFDMA_USERS_KNOWN;
+			TXMON_HAL_STATUS(ppdu_info, eht_data[7]) |=
+				num_users <<
+				QDF_MON_STATUS_EHT_NUM_NON_OFDMA_USERS_SHIFT;
+		}
 		break;
 	}
 }
@@ -2536,6 +2547,10 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 
 	case WIFIMACTX_HE_SIG_A_SU_E:
 	{
+		uint16_t he_data1;
+		uint16_t he_data2;
+		uint16_t he_data3;
+		uint16_t he_data6;
 		uint16_t he_mu_flag_1 = 0;
 		uint16_t he_mu_flag_2 = 0;
 		uint16_t num_users = 0;
@@ -2614,40 +2629,42 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 
 		TXMON_HAL_STATUS(ppdu_info,
 				 he_mu_flags) = IS_MULTI_USERS(num_users);
+		/* HE data 1 */
+		he_data1 = (QDF_MON_STATUS_HE_BSS_COLOR_KNOWN |
+			    QDF_MON_STATUS_HE_CODING_KNOWN);
+		/* HE data 2 */
+		he_data2 = (QDF_MON_STATUS_TXBF_KNOWN |
+			    QDF_MON_STATUS_PE_DISAMBIGUITY_KNOWN |
+			    QDF_MON_STATUS_TXOP_KNOWN |
+			    QDF_MON_STATUS_PRE_FEC_PADDING_KNOWN |
+			    QDF_MON_STATUS_MIDABLE_PERIODICITY_KNOWN);
+		/* HE data 3 */
+		he_data3 = (bss_color_id |
+			    (beam_change << QDF_MON_STATUS_BEAM_CHANGE_SHIFT) |
+			    (coding << QDF_MON_STATUS_CODING_SHIFT) |
+			    (stbc << QDF_MON_STATUS_STBC_SHIFT));
+		/* HE data 6 */
+		he_data6 = (txop << QDF_MON_STATUS_TXOP_SHIFT);
+
 		for (i = 0; i < num_users; i++) {
 			TXMON_HAL_USER(ppdu_info, i, he_flags1) |= he_mu_flag_1;
 			TXMON_HAL_USER(ppdu_info, i, he_flags2) |= he_mu_flag_2;
+
+			TXMON_HAL_USER(ppdu_info, i, he_data1) |= he_data1;
+			TXMON_HAL_USER(ppdu_info, i, he_data2) |= he_data2;
+			TXMON_HAL_USER(ppdu_info, i, he_data3) |= he_data3;
+			TXMON_HAL_USER(ppdu_info, i, he_data6) |= he_data6;
 		}
-
-		/* HE data 1 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data1) |=
-			QDF_MON_STATUS_HE_BSS_COLOR_KNOWN |
-			QDF_MON_STATUS_HE_CODING_KNOWN;
-
-		/* HE data 2 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data2) |=
-			QDF_MON_STATUS_TXBF_KNOWN |
-			QDF_MON_STATUS_PE_DISAMBIGUITY_KNOWN |
-			QDF_MON_STATUS_TXOP_KNOWN |
-			QDF_MON_STATUS_PRE_FEC_PADDING_KNOWN |
-			QDF_MON_STATUS_MIDABLE_PERIODICITY_KNOWN;
-
-		/* HE data 3 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data3) |=
-			bss_color_id |
-			(beam_change << QDF_MON_STATUS_BEAM_CHANGE_SHIFT) |
-			(coding << QDF_MON_STATUS_CODING_SHIFT) |
-			(stbc << QDF_MON_STATUS_STBC_SHIFT);
-
-		/* HE data 6 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data6) |=
-				(txop << QDF_MON_STATUS_TXOP_SHIFT);
 
 		SHOW_DEFINED(WIFIMACTX_HE_SIG_A_SU_E);
 		break;
 	}
 	case WIFIMACTX_HE_SIG_A_MU_DL_E:
 	{
+		uint16_t he_data1;
+		uint16_t he_data2;
+		uint16_t he_data3;
+		uint16_t he_data6;
 		uint16_t he_mu_flag_1 = 0;
 		uint16_t he_mu_flag_2 = 0;
 		uint16_t num_users = 0;
@@ -2720,28 +2737,27 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 		he_mu_flag_2 |=
 			punc_bw << QDF_MON_STATUS_SIG_A_PUNC_BANDWIDTH_SHIFT;
 
+		/* HE data 1 */
+		he_data1 = QDF_MON_STATUS_HE_BSS_COLOR_KNOWN;
+		/* HE data 2 */
+		he_data2 = QDF_MON_STATUS_TXOP_KNOWN;
+		/* HE data 3 */
+		he_data3 = bss_color_id;
+		/* HE data 6 */
+		he_data6 = (txop << QDF_MON_STATUS_TXOP_SHIFT);
+
 		/* copy per user info to all user */
 		TXMON_HAL_STATUS(ppdu_info,
 				 he_mu_flags) = IS_MULTI_USERS(num_users);
 		for (i = 0; i < num_users; i++) {
 			TXMON_HAL_USER(ppdu_info, i, he_flags1) |= he_mu_flag_1;
 			TXMON_HAL_USER(ppdu_info, i, he_flags2) |= he_mu_flag_2;
+
+			TXMON_HAL_USER(ppdu_info, i, he_data1) |= he_data1;
+			TXMON_HAL_USER(ppdu_info, i, he_data2) |= he_data2;
+			TXMON_HAL_USER(ppdu_info, i, he_data3) |= he_data3;
+			TXMON_HAL_USER(ppdu_info, i, he_data6) |= he_data6;
 		}
-
-		/* HE data 1 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data1) |=
-				QDF_MON_STATUS_HE_BSS_COLOR_KNOWN;
-
-		/* HE data 2 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data2) |=
-				QDF_MON_STATUS_TXOP_KNOWN;
-
-		/* HE data 3 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data3) |= bss_color_id;
-
-		/* HE data 6 */
-		TXMON_HAL_USER(ppdu_info, user_id, he_data6) |=
-				(txop << QDF_MON_STATUS_TXOP_SHIFT);
 
 		SHOW_DEFINED(WIFIMACTX_HE_SIG_A_MU_DL_E);
 		break;
@@ -3187,7 +3203,7 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 	}
 	case WIFIMACTX_USER_DESC_COMMON_E:
 	{
-		hal_txmon_parse_user_desc_common(tx_tlv, user_id, ppdu_info);
+		hal_txmon_parse_user_desc_common(tx_tlv, ppdu_info);
 
 		/* copy per user info to all user */
 		SHOW_DEFINED(WIFIMACTX_USER_DESC_COMMON_E);
@@ -3218,6 +3234,17 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 		num_users = TXMON_HAL(ppdu_info, num_users);
 		TXMON_HAL(ppdu_info, su_or_mu) =
 			HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, SU_OR_MU);
+		/*
+		 * mu_type is valid only for
+		 * SU_or_MU == MU_transmission (1)
+		 * SU_or_MU == MU_SU_transmission (2)
+		 *
+		 */
+		if (TXMON_HAL(ppdu_info, su_or_mu)) {
+			TXMON_HAL(ppdu_info, mu_type) =
+				HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC,
+						   MU_TYPE);
+		}
 		pkt_type = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, PKT_TYPE);
 		is_stbc = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC, STBC);
 		is_triggered = HAL_TX_DESC_GET_64(tx_tlv, MACTX_PHY_DESC,
@@ -3289,6 +3316,23 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 		he_data1 |= QDF_MON_STATUS_HE_STBC_KNOWN;
 		he_data3 |= (is_stbc << QDF_MON_STATUS_STBC_SHIFT);
 
+		/* GI mapping for radiotap */
+		switch (gi) {
+		case HE_GI_0_8:
+			gi = HE_GI_RADIOTAP_0_8;
+			break;
+		case HE_GI_0_4:
+			gi = HE_GI_RADIOTAP_0_8;
+			break;
+		case HE_GI_1_6:
+			gi = HE_GI_RADIOTAP_1_6;
+			break;
+		case HE_GI_3_2:
+			gi = HE_GI_RADIOTAP_3_2;
+			break;
+		default:
+			gi = HE_GI_RADIOTAP_RESERVED;
+		}
 		/* GI */
 		he_data2 |= QDF_MON_STATUS_HE_GI_KNOWN;
 		he_data5 |= (gi << QDF_MON_STATUS_GI_SHIFT);

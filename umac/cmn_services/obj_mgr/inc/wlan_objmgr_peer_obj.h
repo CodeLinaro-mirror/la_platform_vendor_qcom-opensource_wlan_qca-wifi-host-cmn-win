@@ -140,6 +140,7 @@ enum wlan_peer_state {
  * @rssi:            Last received RSSI value
  * @is_authenticated: true if peer is authenticated
  * @assoc_peer:      assoc req/response is handled in this peer
+ * @skip_pumac_cnt: Counter to skip peer to be selected as pumac
  */
 struct wlan_objmgr_peer_mlme {
 	uint32_t peer_capinfo;
@@ -154,6 +155,9 @@ struct wlan_objmgr_peer_mlme {
 	bool is_authenticated;
 #ifdef WLAN_FEATURE_11BE_MLO
 	bool assoc_peer;
+#endif
+#ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
+	qdf_atomic_t skip_pumac_cnt;
 #endif
 };
 
@@ -1444,6 +1448,82 @@ wlan_objmgr_peer_trace_del_ref_list(struct wlan_objmgr_peer *peer)
 static inline void
 wlan_objmgr_peer_trace_del_ref_list(struct wlan_objmgr_peer *peer)
 {
+}
+#endif
+
+#ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
+/**
+ * wlan_peer_init_skip_pumac_cnt() - Initialize skip_pumac_cnt
+ * @peer: peer object
+ *
+ * API to initialize skip_pumac_cnt
+ *
+ * Return: void
+ */
+static inline void
+wlan_peer_init_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{
+	qdf_atomic_init(&peer->peer_mlme.skip_pumac_cnt);
+}
+
+/**
+ * wlan_peer_inc_skip_pumac_cnt() - Increment skip_pumac_cnt
+ * @peer: peer object
+ *
+ * API to increment skip_pumac_cnt
+ *
+ * Return: void
+ */
+static inline void
+wlan_peer_inc_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{
+	qdf_atomic_inc(&peer->peer_mlme.skip_pumac_cnt);
+}
+
+/**
+ * wlan_peer_dec_skip_pumac_cnt() - Decrement skip_pumac_cnt
+ * @peer: peer object
+ *
+ * API to decrement skip_pumac_cnt
+ *
+ * Return: void
+ */
+static inline void
+wlan_peer_dec_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{
+	qdf_atomic_dec(&peer->peer_mlme.skip_pumac_cnt);
+}
+
+/**
+ * wlan_peer_read_skip_pumac_cnt() - Read skip_pumac_cnt
+ * @peer: peer object
+ *
+ * API to read skip_pumac_cnt value
+ *
+ * Return: skip_pumac_cnt value
+ */
+static inline int32_t
+wlan_peer_read_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{
+	return qdf_atomic_read(&peer->peer_mlme.skip_pumac_cnt);
+}
+#else
+static inline void
+wlan_peer_init_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{ }
+
+static inline void
+wlan_peer_inc_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{ }
+
+static inline void
+wlan_peer_dec_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{ }
+
+static inline int32_t
+wlan_peer_read_skip_pumac_cnt(struct wlan_objmgr_peer *peer)
+{
+	return 0;
 }
 #endif
 

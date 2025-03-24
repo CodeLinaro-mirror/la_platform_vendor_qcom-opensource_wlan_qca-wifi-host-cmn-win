@@ -379,6 +379,21 @@ typedef QDF_STATUS
  */
 typedef struct net_device *
 	(*osif_cm_get_mld_netdev_cb)(struct wlan_objmgr_vdev *vdev);
+
+/*
+ * typedef osif_cm_set_unassoc_link_ieee_id_cb: Callback to set unassociated
+ * link's ieee_link_id as INVALID
+ * @vdev: vdev pointer
+ *
+ * This callback sets ieee_link_id as INVALID for those links that are not
+ * associated.
+ *
+ * Return: QDF_STATUS
+ *
+ * NB: kernel-doc Cannot parse typedef
+ */
+typedef QDF_STATUS
+	(*osif_cm_set_unassoc_link_ieee_id_cb)(struct wlan_objmgr_vdev *vdev);
 #endif
 
 /**
@@ -405,6 +420,7 @@ typedef struct net_device *
  * parameters to upper layer
  * @perfd_set_cpufreq_cb: callback to update CPU min freq
  * @osif_get_mld_netdev_cb: callback to get ML netdev from vdev
+ * osif_set_unassoc_link_ieee_id_cb: callback to update ieee_link_id for unassociated links
  */
 struct osif_cm_ops {
 #ifdef CONN_MGR_ADV_FEATURE
@@ -439,6 +455,7 @@ struct osif_cm_ops {
 #endif
 #ifdef ENABLE_CFG80211_BACKPORTS_MLO
 	osif_cm_get_mld_netdev_cb osif_get_mld_netdev_cb;
+	osif_cm_set_unassoc_link_ieee_id_cb osif_set_unassoc_link_ieee_id_cb;
 #endif
 };
 
@@ -478,6 +495,17 @@ QDF_STATUS osif_cm_connect_comp_ind(struct wlan_objmgr_vdev *vdev,
  * Return: ML net device
  */
 struct net_device *osif_cm_get_mld_netdev(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * osif_cm_set_unassoc_link_ieee_id() - Function to set unassociated link's
+ * ieee_link_id
+ * @vdev: vdev pointer
+ *
+ * This function sets ieee_link_id of unassociated links as INVALID
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS osif_cm_set_unassoc_link_ieee_id(struct wlan_objmgr_vdev *vdev);
 #endif
 
 #ifdef WLAN_VENDOR_HANDOFF_CONTROL

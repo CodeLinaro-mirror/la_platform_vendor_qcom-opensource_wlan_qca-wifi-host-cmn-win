@@ -45,7 +45,7 @@
 
 static inline void
 dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
-		       uint8_t *rx_tlv_hdr, int32_t tid)
+		       uint8_t *rx_tlv_hdr, int32_t tid, bool *flow_invalid_idx)
 {
 	uint32_t fse_metadata;
 	uint32_t vp_num;
@@ -57,6 +57,7 @@ dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
 	hal_rx_msdu_get_flow_params_be(rx_tlv_hdr, &flow_invalid,
 				       &flow_timeout, &flow_index);
 
+	*flow_invalid_idx = flow_invalid;
 	/* Set the flow idx valid flag only when there is no timeout */
 	if (flow_timeout)
 		return;
@@ -127,13 +128,12 @@ dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
 		return;
 	}
 
-	qdf_nbuf_set_rx_flow_idx_valid(nbuf,
-				 !hal_rx_msdu_flow_idx_invalid_be(rx_tlv_hdr));
+	qdf_nbuf_set_rx_flow_idx_valid(nbuf, !flow_invalid);
 }
 #else
 static inline void
 dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
-		       uint8_t *rx_tlv_hdr, int32_t tid)
+		       uint8_t *rx_tlv_hdr, int32_t tid, bool *flow_invalid_idx)
 {
 }
 #endif
@@ -402,6 +402,33 @@ dp_rx_update_protocol_stats_wrapper(struct dp_soc *soc,
 }
 #endif /* QCA_DP_PROTOCOL_STATS */
 
+/**
+ * dp_rx_trace_pkt() - Trace RX packet at DP layer
+ * * @skb: skb to be traced
+ *
+ * Return: None
+ */
+
+#ifdef DP_DISABLE_PKT_TRACE
+static inline void
+dp_rx_trace_pkt(struct dp_txrx_peer *txrx_peer, qdf_nbuf_t skb)
+{
+}
+#else
+static inline void
+dp_rx_trace_pkt(struct dp_txrx_peer *txrx_peer, qdf_nbuf_t skb)
+{
+       if (txrx_peer) {
+               QDF_NBUF_CB_DP_TRACE_PRINT(skb) = false;
+               qdf_dp_trace_set_track(skb, QDF_RX);
+               QDF_NBUF_CB_RX_DP_TRACE(skb) = 1;
+               QDF_NBUF_CB_RX_PACKET_TRACK(skb) =
+                       QDF_NBUF_RX_PKT_DATA_TRACK;
+       }
+}
+#endif
+
+
 uint32_t dp_rx_process_be(struct dp_intr *int_ctx,
 			  hal_ring_handle_t hal_ring_hdl, uint8_t reo_ring_num,
 			  uint32_t quota)
@@ -462,6 +489,7 @@ uint32_t dp_rx_process_be(struct dp_intr *int_ctx,
 	uint8_t link_id = 0;
 	uint16_t buf_size;
 	uint8_t is_ctrl_refill = 0;
+	bool flow_invalid_idx = 1;
 
 	DP_HIST_INIT();
 
@@ -530,6 +558,13 @@ more_data:
 	last_prefetched_hw_desc = dp_srng_dst_prefetch_32_byte_desc(hal_soc,
 							    hal_ring_hdl,
 							    num_pending);
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx)) &&
+	    rx_ring)
+		hal_update_ring_util(soc->hal_soc, rx_ring->hal_srng,
+				     REO_DST,
+				     &rx_ring->stats);
 	/*
 	 * start reaping the buffers from reo ring and queue
 	 * them in per vdev queue.
@@ -848,15 +883,7 @@ done:
 			}
 			enh_flag = rx_pdev->enhanced_stats_en;
 		}
-
-		if (txrx_peer) {
-			QDF_NBUF_CB_DP_TRACE_PRINT(nbuf) = false;
-			qdf_dp_trace_set_track(nbuf, QDF_RX);
-			QDF_NBUF_CB_RX_DP_TRACE(nbuf) = 1;
-			QDF_NBUF_CB_RX_PACKET_TRACK(nbuf) =
-				QDF_NBUF_RX_PKT_DATA_TRACK;
-		}
-
+		dp_rx_trace_pkt(txrx_peer, nbuf);
 		rx_bufs_used++;
 
 		/* MLD Link Peer Statistics support */
@@ -1022,7 +1049,7 @@ done:
 		}
 
 		dp_rx_cksum_offload(vdev->pdev, nbuf, rx_tlv_hdr);
-		dp_rx_update_flow_info(vdev->pdev, nbuf, rx_tlv_hdr, tid);
+		dp_rx_update_flow_info(vdev->pdev, nbuf, rx_tlv_hdr, tid, &flow_invalid_idx);
 
 		if (qdf_unlikely(!rx_pdev->rx_fast_flag)) {
 			/*
@@ -1084,32 +1111,35 @@ done:
 			}
 		}
 
-		if (qdf_likely(vdev->rx_decap_type ==
-			       htt_cmn_pkt_type_ethernet) &&
-		    qdf_likely(!vdev->mesh_vdev)) {
-			dp_rx_wds_learn(soc, vdev,
-					rx_tlv_hdr,
-					txrx_peer,
-					nbuf);
+		if (flow_invalid_idx) {
+			if (qdf_likely(vdev->rx_decap_type ==
+						htt_cmn_pkt_type_ethernet) &&
+					qdf_likely(!vdev->mesh_vdev)) {
+				dp_rx_wds_learn(soc, vdev,
+						rx_tlv_hdr,
+						txrx_peer,
+						nbuf);
+			}
+
+			if (qdf_likely(vdev->rx_decap_type ==
+						htt_cmn_pkt_type_ethernet) &&
+					qdf_likely(!vdev->mesh_vdev)) {
+				/* Intrabss-fwd */
+				if (dp_rx_check_ap_bridge(vdev))
+					if (dp_rx_intrabss_fwd_be(soc, txrx_peer,
+								rx_tlv_hdr,
+								nbuf,
+								link_id)) {
+						nbuf = next;
+						tid_stats->intrabss_cnt++;
+						continue; /* Get next desc */
+					}
+			}
 		}
 
 		dp_rx_msdu_stats_update(soc, nbuf, rx_tlv_hdr, txrx_peer,
 					reo_ring_num, tid_stats, link_id);
 
-		if (qdf_likely(vdev->rx_decap_type ==
-			       htt_cmn_pkt_type_ethernet) &&
-		    qdf_likely(!vdev->mesh_vdev)) {
-			/* Intrabss-fwd */
-			if (dp_rx_check_ap_bridge(vdev))
-				if (dp_rx_intrabss_fwd_be(soc, txrx_peer,
-							  rx_tlv_hdr,
-							  nbuf,
-							  link_id)) {
-					nbuf = next;
-					tid_stats->intrabss_cnt++;
-					continue; /* Get next desc */
-				}
-		}
 
 		dp_rx_fill_gro_info(soc, rx_tlv_hdr, nbuf, &rx_ol_pkt_cnt);
 
@@ -2343,6 +2373,7 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 	bool process_sg_buf = false;
 	QDF_STATUS status;
 	struct dp_soc *replenish_soc;
+	struct dp_srng *srng;
 	uint8_t chip_id;
 	union hal_wbm_err_info_u wbm_err = { 0 };
 	union dp_rx_desc_list_elem_t
@@ -2366,6 +2397,15 @@ dp_rx_wbm_err_reap_desc_be(struct dp_intr *int_ctx, struct dp_soc *soc,
 		dp_rx_err_err("%pK: HAL RING Access Failed -- %pK",
 			      soc, hal_ring_hdl);
 		goto done;
+	}
+
+	if (qdf_unlikely(
+	    wlan_cfg_is_dp_ring_util_stats_enabled(soc->wlan_cfg_ctx))) {
+		srng = &soc->rx_rel_ring;
+		if (srng)
+			hal_update_ring_util(soc->hal_soc, srng->hal_srng,
+					     WBM2SW_RELEASE,
+					     &srng->stats);
 	}
 
 	while (qdf_likely(quota)) {

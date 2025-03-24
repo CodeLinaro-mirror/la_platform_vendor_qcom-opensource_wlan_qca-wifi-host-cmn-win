@@ -1217,6 +1217,7 @@ enum recfg_state {
 	RECFG_S_CHECK_PEER_DEL,
 	RECFG_S_DO_PEER_DEL,
 	RECFG_S_COMPL,
+	RECFG_S_DISCONNECT,
 	RECFG_S_MAX,
 	RECFG_SS_DEFAULT,
 	RECFG_SS_VALIDATION,
@@ -1286,6 +1287,7 @@ enum recfg_ev {
 	RECFG_EV_APP_OP_COMPL_TIMEOUT,
 	RECFG_EV_APP_OP_COMPL,
 	RECFG_EV_COMPL,
+	RECFG_EV_DISCONNECT,
 	RECFG_EV_WAIT_FOR_NEW_REQ,
 };
 
@@ -1310,8 +1312,7 @@ struct recfg_sm {
 	qdf_bitmap(app_op_resp_pending, MAX_MLO_LINK_ID + 1);
 	struct mlrecfg_os_cont app_os_cont;
 	qdf_event_t link_create_compl[MAX_MLO_LINK_ID + 1];
-	void *app_resp_frame;
-	uint16_t app_resp_frame_len;
+	qdf_nbuf_t app_resp_wbuf;
 	bool resp_tx_compl_pending;
 	struct mlrecfg_os_cont comb_os_cont;
 	struct key_cache ptk_cache;
@@ -1320,8 +1321,8 @@ struct recfg_sm {
 
 struct recfg_cb {
 	QDF_STATUS(*resp_ready)(void *arg, uint8_t req_id,
-				void *app_resp_frame,
-				uint16_t app_resp_frame_len);
+				qdf_nbuf_t app_resp_wbuf,
+				struct mlrecfg_os_cont *status_container);
 	QDF_STATUS(*compl)(void *arg, uint8_t req_id);
 	void *arg;
 };
@@ -1465,7 +1466,9 @@ enum mlreconfig_operation_type {
 	MLRECONFIG_OPERATION_TYPE_DELETE_LINK = 3,
 	MLRECONFIG_OPERATION_TYPE_MAX = 4,
 };
+#endif
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
 /**
  * struct mlreconfig_setup_link_info - ml setup link information
  * @link_id: setup link id
@@ -1484,6 +1487,26 @@ struct mlreconfig_setup_link_info {
 struct mlreconfig_setup_links_req {
 	struct mlreconfig_setup_link_info
 		setup_link_info[WLAN_UMAC_MLO_MAX_VDEVS];
+};
+
+/**
+ * struct mlreconfig_kde - Group key data
+ * @len: key data len
+ * @data: key data
+ */
+struct mlreconfig_kde {
+	uint8_t len;
+	uint8_t *data;
+};
+
+/**
+ * struct mlreconfig_setup_links_resp - link reconfig response information
+ * @status_container: setup link status code container
+ * @kde: accepted add links group key data
+ */
+struct mlreconfig_setup_links_resp {
+	struct mlrecfg_os_cont status_container;
+	struct mlreconfig_kde kde;
 };
 
 /**
@@ -1506,6 +1529,7 @@ enum mlreconfig_setup_links_category {
  * @num_operations: Number of reconfiguration operations
  * @reconfig_optype: reconfiguration operation type
  * @mlreconfig_link_req: setup link request information
+ * @mlreconfig_link_resp: setup link response information
  */
 struct mlreconfig_setup_links_action {
 	uint8_t dialog_token;
@@ -1513,9 +1537,10 @@ struct mlreconfig_setup_links_action {
 	int num_operations;
 	union {
 		struct mlreconfig_setup_links_req mlreconfig_link_req;
+		struct mlreconfig_setup_links_resp mlreconfig_link_resp;
 	};
 };
-#endif
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 /**
  * struct wlan_mlo_peer_context - MLO peer context
@@ -1557,6 +1582,7 @@ struct mlreconfig_setup_links_action {
  * @ttlm_request_timer: TTLM request timer
  * @peer_ptqm_migrate_ctx: PTQM migration peer context
  * @mlrecfg_plink_resel_mode: MLO reconfiguration primary link reselection mode
+ * @recov_peer_hw_link_id_bmap: HW link id bitmap of peer handled through recovery for mlo peer delete
  * @assoc_wbuf: Cached link specific association request
  */
 struct wlan_mlo_peer_context {
@@ -1592,7 +1618,9 @@ struct wlan_mlo_peer_context {
 #ifdef WLAN_FEATURE_11BE
 	struct wlan_mlo_peer_t2lm_policy t2lm_policy;
 	struct wlan_mlo_peer_epcs_info epcs_info;
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
 	struct mlreconfig_setup_links_action setup_links_action_info;
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 #endif
 	bool msd_cap_present;
 	struct wlan_mlo_eml_cap mlpeer_emlcap;
@@ -1613,6 +1641,7 @@ struct wlan_mlo_peer_context {
 	struct ptqm_migrate_peer_context *peer_ptqm_migrate_ctx;
 	enum mlrecfg_plink_resel_mode mlrecfg_plink_resel_mode;
 #endif
+	uint32_t recov_peer_hw_link_id_bmap;
 	qdf_nbuf_t assoc_wbuf;
 };
 
@@ -1822,6 +1851,8 @@ struct mlo_mlme_ext_ops {
 					   int link);
 	bool (*is_mlrecfg_del_op_rejected)(struct wlan_mlo_peer_context *mlpeer,
 					   int link);
+	QDF_STATUS (*mlo_mlme_ext_mlpeer_disconnect)(
+				struct wlan_mlo_peer_context *ml_peer);
 #endif /* WLAN_MLO_SETUP_LINK_RECFG */
 };
 
@@ -2234,6 +2265,7 @@ enum primary_link_peer_migration_evenr_status {
 	PRIMARY_LINK_PEER_MIGRATION_DELETED,
 	PRIMARY_LINK_PEER_MIGRATION_TX_PIPES_FAILED,
 	PRIMARY_LINK_PEER_MIGRATION_RX_PIPES_FAILED,
+	PRIMARY_LINK_PEER_MIGRATION_NOT_REQUIRED,
 
 	/* Add any new status above this line */
 	PRIMARY_LINK_PEER_MIGRATION_FAIL = 255,

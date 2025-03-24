@@ -5059,7 +5059,7 @@ dp_lite_mon_vdev_delete(struct dp_pdev *pdev, struct dp_vdev *vdev)
 static inline int
 dp_lite_mon_config_nac_peer(struct cdp_soc_t *soc_hdl,
 			    uint8_t vdev_id,
-			    uint32_t cmd, uint8_t *macaddr)
+			    uint32_t cmd, uint8_t *macaddr, bool is_vbss_peer)
 {
 	return 0;
 }

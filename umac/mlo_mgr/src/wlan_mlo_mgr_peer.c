@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -286,6 +286,44 @@ struct wlan_objmgr_peer *wlan_mlo_peer_get_assoc_peer(
 
 qdf_export_symbol(wlan_mlo_peer_get_assoc_peer);
 
+struct wlan_objmgr_peer *wlan_mlo_peer_get_peer_by_hw_link_id(
+					struct wlan_mlo_peer_context *ml_peer,
+					uint8_t hw_link_id)
+{
+	struct wlan_mlo_link_peer_entry *peer_entry = NULL;
+	struct wlan_objmgr_peer *required_peer = NULL;
+	struct wlan_objmgr_peer *link_peer = NULL;
+	int i = 0;
+
+	if (!ml_peer)
+		return NULL;
+
+	mlo_peer_lock_acquire(ml_peer);
+
+	for (i = 0; i < QDF_ARRAY_SIZE(ml_peer->peer_list); i++) {
+		peer_entry = &ml_peer->peer_list[i];
+		if (!peer_entry)
+			continue;
+
+		link_peer = peer_entry->link_peer;
+		if (!link_peer)
+			continue;
+
+		if ((peer_entry->hw_link_id == hw_link_id) &&
+		    (wlan_peer_get_peer_type(link_peer) !=
+		     WLAN_PEER_MLO_BRIDGE)) {
+			required_peer = link_peer;
+			break;
+		}
+	}
+
+	mlo_peer_lock_release(ml_peer);
+
+	return required_peer;
+}
+
+qdf_export_symbol(wlan_mlo_peer_get_peer_by_hw_link_id);
+
 struct wlan_objmgr_peer *wlan_mlo_peer_get_peer_by_linkix(
 					struct wlan_mlo_peer_context *ml_peer,
 					uint8_t link_ix)
@@ -553,10 +591,12 @@ void wlan_mlo_partner_peer_assoc_post(struct wlan_objmgr_peer *assoc_peer)
 	if (!ml_peer)
 		return;
 
+	wlan_mlo_peer_get_ref(ml_peer);
 	mlo_peer_lock_acquire(ml_peer);
 
 	if (ml_peer->mlpeer_state != ML_PEER_CREATED) {
 		mlo_peer_lock_release(ml_peer);
+		wlan_mlo_peer_release_ref(ml_peer);
 		return;
 	}
 
@@ -594,6 +634,7 @@ void wlan_mlo_partner_peer_assoc_post(struct wlan_objmgr_peer *assoc_peer)
 		/* Prepare and queue message */
 		mlo_link_peer_assoc_notify(ml_dev, link_peers[i]);
 	}
+	wlan_mlo_peer_release_ref(ml_peer);
 }
 
 void wlan_mlo_link_peer_assoc_set(struct wlan_objmgr_peer *peer, bool is_sent)
@@ -699,6 +740,15 @@ wlan_mlo_peer_deauth_init(struct wlan_mlo_peer_context *ml_peer,
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
 
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
+
 	mlo_peer_lock_release(ml_peer);
 
 	for (i = 0; i < MAX_MLO_LINK_PEERS; i++) {
@@ -756,6 +806,15 @@ void wlan_mlo_peer_delete(struct wlan_mlo_peer_context *ml_peer)
 	}
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 	mlo_peer_lock_release(ml_peer);
 
@@ -853,6 +912,15 @@ void wlan_mlo_partner_peer_disconnect_notify(struct wlan_objmgr_peer *src_peer)
 	wlan_mlo_peer_wsi_link_delete(ml_peer);
 
 	ml_peer->mlpeer_state = ML_PEER_DISCONN_INITIATED;
+
+#ifdef WLAN_MLO_SETUP_LINK_RECFG
+	/* Notify Reconfig SM to Disconnect State */
+	if (mlo_mlme_mlpeer_disconnect(ml_peer) != QDF_STATUS_SUCCESS) {
+		mlo_peer_lock_release(ml_peer);
+		mlo_err("Peer disconnect failed");
+		return;
+	}
+#endif /* WLAN_MLO_SETUP_LINK_RECFG */
 
 	if (wlan_vdev_mlme_get_opmode(vdev) == QDF_STA_MODE) {
 		mlo_peer_lock_release(ml_peer);
@@ -1387,6 +1455,10 @@ wlan_mlo_get_bridge_peer_psoc_id(struct wlan_objmgr_vdev *vdev,
 		else
 			ml_vdev = ml_dev->wlan_vdev_list[i];
 		if (!ml_vdev)
+			continue;
+
+		if ((wlan_vdev_is_up(ml_vdev) != QDF_STATUS_SUCCESS) &&
+		    wlan_vdev_is_dfs_cac_wait(ml_vdev) != QDF_STATUS_SUCCESS)
 			continue;
 		comp_psoc_id = wlan_vdev_get_psoc_id(ml_vdev);
 		if ((comp_psoc_id != psoc_ids[0]) &&

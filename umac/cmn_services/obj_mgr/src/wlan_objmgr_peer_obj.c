@@ -262,6 +262,8 @@ struct wlan_objmgr_peer *wlan_objmgr_peer_obj_create(
 		wlan_objmgr_peer_get_ref(wlan_vdev_get_bsspeer(vdev),
 					 WLAN_OBJMGR_ID);
 	/* TODO init other parameters */
+	wlan_peer_init_skip_pumac_cnt(peer);
+
 	/* Invoke registered create handlers */
 	for (id = 0; id < WLAN_UMAC_MAX_COMPONENTS; id++) {
 		handler = g_umac_glb_obj->peer_create_handler[id];

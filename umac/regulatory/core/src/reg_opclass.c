@@ -524,8 +524,8 @@ static const struct reg_dmn_op_class_map_t china_op_class[] = {
  *
  * Return: class.
  */
-static const struct reg_dmn_op_class_map_t
-*reg_get_class_from_country(const uint8_t *country)
+const struct reg_dmn_op_class_map_t *
+reg_get_class_from_country(const uint8_t *country)
 {
 	const struct reg_dmn_op_class_map_t *class = NULL;
 
@@ -1368,6 +1368,85 @@ void reg_freq_to_chan_op_class(struct wlan_objmgr_pdev *pdev,
 					chan_num);
 }
 
+/**
+ * reg_is_opclass_present_in_map() - Check if the given opclass is present in
+ * the given map.
+ * @class: Pointer to the map
+ * @opclass: Opclass number
+ * Return: True if the opclass is present in the map, else false
+ */
+static bool
+reg_is_opclass_present_in_map(const struct reg_dmn_op_class_map_t *class,
+			      uint8_t opclass)
+{
+	while (class->op_class) {
+		if (opclass == class->op_class)
+			return true;
+		class++;
+	}
+
+	return false;
+}
+
+/**
+ * reg_find_alternate_opclass_map() - Find alternate opclass map
+ * @class: Pointer to the map
+ * @opclass: Opclass number
+ * Return: Void
+ */
+
+static void
+reg_find_alternate_opclass_map(const struct reg_dmn_op_class_map_t **class,
+			       uint8_t opclass)
+{
+	static const struct reg_dmn_op_class_map_t *map_array[] = {
+		channel_map_us, global_op_class, channel_map_eu, channel_map_china,
+		channel_map_jp};
+	uint8_t i;
+
+	for (i = 0; i < ARRAY_SIZE(map_array); i++) {
+		if (reg_is_opclass_present_in_map(map_array[i], opclass)) {
+			*class = map_array[i];
+			return;
+		}
+	}
+	*class = NULL;
+}
+
+void
+reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+					       uint8_t opclass,
+					       uint8_t channel,
+					       uint16_t *behav_limit,
+					       uint16_t *chan_width)
+{
+	const struct reg_dmn_op_class_map_t *class;
+	uint16_t i;
+	bool global_tbl_lookup = reg_is_country_opclass_global(pdev);
+
+	reg_get_opclass_from_map(&class, global_tbl_lookup);
+	if (!reg_is_opclass_present_in_map(class, opclass))
+		reg_find_alternate_opclass_map(&class, opclass);
+	while (class && class->op_class) {
+		if (opclass == class->op_class) {
+			for (i = 0; (i < REG_MAX_CHANNELS_PER_OPERATING_CLASS &&
+				     class->channels[i]); i++) {
+				if (channel == class->channels[i]) {
+					*chan_width = class->chan_spacing;
+					*behav_limit = class->behav_limit;
+					return;
+				}
+			}
+		}
+		class++;
+	}
+
+	*behav_limit = BEHAV_NONE;
+	*chan_width = BW_20_MHZ;
+	reg_err_rl("Channel width and behav limit not found for chan %d, opclass: %d",
+		   channel, opclass);
+}
+
 bool reg_is_freq_in_country_opclass(struct wlan_objmgr_pdev *pdev,
 				    const uint8_t country[3],
 				    uint8_t op_class,
@@ -1550,6 +1629,12 @@ reg_chan_opclass_to_freq_prefer_global(struct wlan_objmgr_pdev *pdev,
 }
 #endif
 
+/**
+ * reg_get_op_class_tbl_by_chan_map() - Get the op class table based on the
+ * channel map
+ * @op_class_tbl: Pointer to the op class table
+ * Return: Void
+ */
 static void
 reg_get_op_class_tbl_by_chan_map(const struct
 				 reg_dmn_op_class_map_t **op_class_tbl)
@@ -1827,7 +1912,7 @@ static bool reg_is_cfi_supported(struct wlan_objmgr_pdev *pdev,
  * 80P80 false otherwise.
  * @op_class_tbl: Pointer to struct reg_dmn_op_class_map_t
  */
-static bool
+bool
 reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl)
 {
 	return (op_class_tbl->chan_spacing == BW_80_MHZ &&

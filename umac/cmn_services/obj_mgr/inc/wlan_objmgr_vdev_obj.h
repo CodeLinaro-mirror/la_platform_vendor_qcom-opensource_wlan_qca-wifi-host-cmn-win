@@ -170,6 +170,10 @@
 #define WLAN_VDEV_FEXT2_20TU_PRB_RESP       0x00000008
 	/* STA VDEV is TDLS link type */
 #define WLAN_VDEV_FEXT2_MLO_STA_TDLS        0x00000010
+	/* VBSS Vap */
+#define WLAN_VDEV_FEXT2_VBSS                0x00000020
+	/* Passive VBSS Vap */
+#define WLAN_VDEV_FEXT2_VBSS_PASSIVE        0x00000040
 
 /* VDEV OP flags  */
   /* if the vap destroyed by user */
@@ -1700,6 +1704,19 @@ wlan_objmgr_vdev_find_peer_by_mac(struct wlan_objmgr_vdev *vdev,
 				  wlan_objmgr_ref_dbgid dbg_id);
 
 /**
+ *
+ * wlan_vdev_get_connected_peer_count() - get number of peers in connected state
+ * @vdev: VDEV object
+ *
+ * API to get number of peers in connected state
+ *
+ * Return: number of peers in connected state
+ */
+
+uint16_t
+wlan_vdev_get_connected_peer_count(struct wlan_objmgr_vdev *vdev);
+
+/**
  * wlan_objmgr_vdev_try_get_bsspeer() - get and increment ref count of BSS peer
  * of VDEV
  * @vdev: VDEV object
@@ -2438,6 +2455,18 @@ struct wlan_objmgr_vdev *wlan_pdev_vdev_list_peek_active_head(
 				qdf_list_t *vdev_list,
 				wlan_objmgr_ref_dbgid dbg_id);
 #endif
+
+/**
+ * wlan_objmgr_vdev_read_ref() - read vdev reference id
+ * @vdev: VDEV object
+ * @id:   Object Manager ref debug id
+ *
+ * API to read vdev reference id
+ *
+ * Return: vdev reference id
+ */
+int32_t wlan_objmgr_vdev_read_ref(struct wlan_objmgr_vdev *vdev,
+				  wlan_objmgr_ref_dbgid id);
 
 /**
  * wlan_objmgr_vdev_peer_freed_notify() - Notifies modules about peer freed

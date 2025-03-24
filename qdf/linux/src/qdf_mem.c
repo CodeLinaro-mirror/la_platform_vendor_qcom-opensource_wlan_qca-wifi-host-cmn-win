@@ -1521,6 +1521,60 @@ static void qdf_mem_debug_exit(void)
 	qdf_spinlock_destroy(&qdf_mem_dma_list_lock);
 }
 
+void *__qdf_mem_malloc_no_header(size_t size, const char *func, uint32_t line,
+				 void *caller, uint32_t flag)
+{
+	QDF_STATUS status;
+	enum qdf_debug_domain current_domain = qdf_debug_domain_get();
+	qdf_list_t *mem_list = qdf_mem_list_get(current_domain);
+	struct qdf_mem_header *header;
+	void *ptr;
+	unsigned long start, duration;
+
+	if (is_initial_mem_debug_disabled)
+		return __qdf_mem_malloc(size, func, line);
+
+	if (!size || size > QDF_MEM_MAX_MALLOC) {
+		qdf_err("Cannot malloc %zu bytes @ %s:%d", size, func, line);
+		return NULL;
+	}
+
+	ptr = qdf_mem_prealloc_get(size);
+	if (ptr)
+		return ptr;
+
+	if (!flag)
+		flag = qdf_mem_malloc_flags();
+
+	start = qdf_mc_timer_get_system_time();
+	ptr = kzalloc(size + QDF_DMA_MEM_DEBUG_SIZE, flag);
+	duration = qdf_mc_timer_get_system_time() - start;
+
+	if (duration > QDF_MEM_WARN_THRESHOLD)
+		qdf_warn("Malloc slept; %lums, %zuB @ %s:%d",
+			 duration, size, func, line);
+
+	if (!ptr) {
+		qdf_warn("Failed to malloc %zuB @ %s:%d", size, func, line);
+		return NULL;
+	}
+
+	header = qdf_mem_dma_get_header(ptr, size);
+	qdf_mem_header_init(header, size, func, line, caller);
+
+	qdf_spin_lock_irqsave(&qdf_mem_list_lock);
+	status = qdf_list_insert_front(mem_list, &header->node);
+	qdf_spin_unlock_irqrestore(&qdf_mem_list_lock);
+	if (QDF_IS_STATUS_ERROR(status))
+		qdf_err("Failed to insert memory header; status %d", status);
+
+	qdf_mem_kmalloc_inc(size);
+
+	return ptr;
+}
+
+qdf_export_symbol(__qdf_mem_malloc_no_header);
+
 void *qdf_mem_malloc_debug(size_t size, const char *func, uint32_t line,
 			   void *caller, uint32_t flag)
 {
@@ -1655,6 +1709,53 @@ void *qdf_mem_malloc_atomic_debug_fl(size_t size, const char *func,
 }
 
 qdf_export_symbol(qdf_mem_malloc_atomic_debug_fl);
+
+void __qdf_mem_free_no_header(void *ptr, size_t size, const char *func,
+			      uint32_t line)
+{
+	enum qdf_debug_domain current_domain = qdf_debug_domain_get();
+	struct qdf_mem_header *header;
+	enum qdf_mem_validation_bitmap error_bitmap;
+
+	if (is_initial_mem_debug_disabled) {
+		__qdf_mem_free(ptr);
+		return;
+	}
+
+	/* freeing a null pointer is valid */
+	if (qdf_unlikely(!ptr))
+		return;
+
+	if (qdf_mem_prealloc_put(ptr))
+		return;
+
+	if (qdf_unlikely((qdf_size_t)ptr <= sizeof(*header)))
+		QDF_MEMDEBUG_PANIC("Failed to free invalid memory location %pK",
+				   ptr);
+
+	qdf_talloc_assert_no_children_fl(ptr, func, line);
+
+	qdf_spin_lock_irqsave(&qdf_mem_list_lock);
+	header = qdf_mem_dma_get_header(ptr, size);
+	error_bitmap = qdf_mem_header_validate(header, current_domain);
+
+	if (!error_bitmap)
+		header->freed = true;
+
+	if (error_bitmap != QDF_MEM_BAD_NODE)
+		qdf_list_remove_node(qdf_mem_list_get(header->domain),
+				     &header->node);
+
+	qdf_spin_unlock_irqrestore(&qdf_mem_list_lock);
+
+	qdf_mem_header_assert_valid(header, current_domain, error_bitmap,
+				    func, line);
+
+	qdf_mem_kmalloc_dec(header->size);
+	kfree(ptr);
+}
+
+qdf_export_symbol(__qdf_mem_free_no_header);
 
 void qdf_mem_free_debug(void *ptr, const char *func, uint32_t line)
 {
@@ -2170,6 +2271,81 @@ pages_free_default:
 #endif
 qdf_export_symbol(qdf_mem_multi_pages_free);
 #endif
+
+void qdf_mem_multi_pages_alloc_no_header(qdf_device_t osdev,
+					 struct qdf_mem_multi_page_t *pages,
+					 size_t element_size,
+					 uint32_t element_num)
+{
+	uint16_t page_idx;
+	void **cacheable_pages = NULL;
+	uint16_t i;
+
+	if (!pages->page_size)
+		pages->page_size = qdf_page_size;
+
+	pages->num_element_per_page = pages->page_size / element_size;
+	if (!pages->num_element_per_page) {
+		qdf_print("Invalid page %d or element size %d",
+				(int)pages->page_size, (int)element_size);
+		goto out_fail;
+	}
+
+	pages->num_pages = element_num / pages->num_element_per_page;
+	if (element_num % pages->num_element_per_page)
+		pages->num_pages++;
+
+	/* Pages information storage */
+	pages->cacheable_pages = qdf_mem_malloc(
+			pages->num_pages * sizeof(pages->cacheable_pages));
+	if (!pages->cacheable_pages)
+		goto out_fail;
+
+	cacheable_pages = pages->cacheable_pages;
+	for (page_idx = 0; page_idx < pages->num_pages; page_idx++) {
+		cacheable_pages[page_idx] =
+			qdf_mem_malloc_no_header(pages->page_size);
+		if (!cacheable_pages[page_idx])
+			goto page_alloc_fail;
+	}
+	pages->dma_pages = NULL;
+	return;
+
+page_alloc_fail:
+		for (i = 0; i < page_idx; i++)
+			qdf_mem_free_no_header(pages->cacheable_pages[i],
+					       pages->page_size);
+		qdf_mem_free(pages->cacheable_pages);
+
+out_fail:
+	pages->cacheable_pages = NULL;
+	pages->dma_pages = NULL;
+	pages->num_pages = 0;
+	return;
+}
+
+qdf_export_symbol(qdf_mem_multi_pages_alloc_no_header);
+
+void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
+					struct qdf_mem_multi_page_t *pages)
+{
+	unsigned int page_idx;
+
+	if (!pages->page_size)
+		pages->page_size = qdf_page_size;
+
+	for (page_idx = 0; page_idx < pages->num_pages; page_idx++)
+		qdf_mem_free_no_header(pages->cacheable_pages[page_idx],
+				       pages->page_size);
+	qdf_mem_free(pages->cacheable_pages);
+
+	pages->cacheable_pages = NULL;
+	pages->dma_pages = NULL;
+	pages->num_pages = 0;
+	return;
+}
+
+qdf_export_symbol(qdf_mem_multi_pages_free_no_header);
 
 void qdf_mem_multi_pages_zero(struct qdf_mem_multi_page_t *pages,
 			      bool cacheable)

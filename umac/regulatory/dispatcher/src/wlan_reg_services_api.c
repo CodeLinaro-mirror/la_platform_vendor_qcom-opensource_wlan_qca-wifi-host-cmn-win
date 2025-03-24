@@ -249,6 +249,19 @@ uint16_t wlan_reg_dmn_get_chanwidth_from_opclass(uint8_t *country,
 						  opclass);
 }
 
+void
+wlan_reg_get_chanwidth_and_behav_limit_from_opclass(struct wlan_objmgr_pdev *pdev,
+						    uint8_t opclass,
+						    uint8_t channel,
+						    uint16_t *behav_limit,
+						    uint16_t *ch_width)
+{
+	return reg_get_chanwidth_and_behav_limit_from_opclass(pdev, opclass,
+							      channel,
+							      behav_limit,
+							      ch_width);
+}
+
 uint16_t wlan_reg_dmn_get_chanwidth_from_opclass_auto(uint8_t *country,
 						      uint8_t channel,
 						      uint8_t opclass)
@@ -1589,6 +1602,18 @@ bool wlan_reg_is_6ghz_op_class(struct wlan_objmgr_pdev *pdev,
 }
 
 qdf_export_symbol(wlan_reg_is_6ghz_op_class);
+
+bool
+wlan_reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tbl)
+{
+	return reg_is_opclass_entry_80p80(op_class_tbl);
+}
+
+const struct reg_dmn_op_class_map_t *
+wlan_reg_get_class_from_country(const uint8_t *country)
+{
+	return reg_get_class_from_country(country);
+}
 
 bool wlan_reg_is_5dot9_ghz_supported(struct wlan_objmgr_psoc *psoc)
 {

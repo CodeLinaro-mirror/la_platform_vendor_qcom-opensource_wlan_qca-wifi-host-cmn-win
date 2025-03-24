@@ -527,7 +527,68 @@ static void dump_enh_dma_hdr(struct whal_cfir_enhanced_hdr *dma_hdr,
 				  dma_hdr->freeze_tlv_version,
 				  dma_hdr->rsvd3,
 				  dma_hdr->rsvd4);
-
+		} else if (dma_hdr->header_version == UPLOAD_HEADER_VERSION_3) {
+			cfr_debug("<DBRCOMP><%u>\n"
+				  "Tag: 0x%02x Length: %d udone: %d\n"
+				  "ctype: %d preamble: %d Nss: %d\n"
+				  "num_chains: %d bw: %d peervalid: %d\n"
+				  "peer_id: %d ppdu_id: 0x%04x\n"
+				  "total_bytes: %d header_version: %d\n"
+				  "target_id: %d cfr_fmt: %d cir_fmt: %d\n"
+				  "mu_rx_data_incl: %d freeze_data_incl: %d\n"
+				  "mu_rx_num_users: %d decimation_factor: %d\n"
+				  "freeze_tlv_version: %d\n"
+				  "he_ltf_type: %u ext_preamble_type = %u\n"
+				  "rsvd2: %d  amplitude_gain_ratio_0_3: %u\n"
+				  "rescale_amt_shift: pri80: %d  sec80: %d\n"
+				  "cgim_status: %d  cgim_filter: %d  phy_mode: %d\n"
+				  "demf_turbo_mode: %d  demf_pbs_en: %d\n"
+				  "leg_cfr_mode: %d  puncture_pattern: %d\n"
+				  "pri20_location: %d  channel_bw: %d\n"
+				  "_11az_mode: %d  _11az_node: %d\n"
+				  "rsvd3: %u  rsvd4: %u  rsvd5: %u\n",
+				  cookie,
+				  dma_hdr->tag,
+				  dma_hdr->length,
+				  dma_hdr->upload_done,
+				  dma_hdr->capture_type,
+				  dma_hdr->preamble_type,
+				  dma_hdr->nss,
+				  dma_hdr->num_chains,
+				  dma_hdr->upload_pkt_bw,
+				  dma_hdr->sw_peer_id_valid,
+				  dma_hdr->sw_peer_id,
+				  dma_hdr->phy_ppdu_id,
+				  dma_hdr->total_bytes,
+				  dma_hdr->header_version,
+				  dma_hdr->target_id,
+				  dma_hdr->cfr_fmt,
+				  dma_hdr->cir_fmt,
+				  dma_hdr->mu_rx_data_incl,
+				  dma_hdr->freeze_data_incl,
+				  dma_hdr->mu_rx_num_users,
+				  dma_hdr->decimation_factor,
+				  dma_hdr->freeze_tlv_version,
+				  dma_hdr->he_ltf_type,
+				  dma_hdr->ext_preamble_type,
+				  dma_hdr->rsvd2,
+				  dma_hdr->amplitude_gain_ratio_0_3,
+				  dma_hdr->rescale_amt_shift_pri80,
+				  dma_hdr->rescale_amt_shift_sec80,
+				  dma_hdr->cgim_status,
+				  dma_hdr->cgim_filter,
+				  dma_hdr->phy_mode,
+				  dma_hdr->demf_turbo_mode,
+				  dma_hdr->demf_pbs_en,
+				  dma_hdr->leg_cfr_mode,
+				  dma_hdr->puncture_pattern,
+				  dma_hdr->pri20_location,
+				  dma_hdr->channel_bandwidth,
+				  dma_hdr->_11az_mode,
+				  dma_hdr->_11az_node,
+				  dma_hdr->rsvd3,
+				  dma_hdr->rsvd4,
+				  dma_hdr->rsvd5);
 		} else {
 			cfr_debug("<DBRCOMP><%u>\n"
 				  "Tag: 0x%02x Length: %d udone: %d\n"

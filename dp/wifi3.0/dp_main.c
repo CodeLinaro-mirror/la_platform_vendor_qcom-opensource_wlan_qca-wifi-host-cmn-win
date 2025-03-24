@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1393,6 +1393,34 @@ static void dp_print_peer_table(struct dp_vdev *vdev)
 	dp_vdev_iterate_peer(vdev, dp_print_peer_info, NULL,
 			     DP_MOD_ID_GENERIC_STATS);
 }
+
+#ifdef WLAN_FEATURE_11BE_MLO
+void dp_dump_mld_link_peers_info(struct dp_peer *mld_peer)
+{
+	uint8_t i = 0;
+	struct dp_peer_link_info *link_peer_info;
+
+	if (!IS_MLO_DP_MLD_PEER(mld_peer))
+		return;
+
+	DP_PRINT_STATS("Dumping link peer info of MLD peer: " QDF_MAC_ADDR_FMT,
+		       QDF_MAC_ADDR_REF(mld_peer->mac_addr.raw));
+
+	for (i = 0; i < DP_MAX_MLO_LINKS; i++)  {
+		link_peer_info = &mld_peer->link_peers[i];
+		if (link_peer_info->is_valid) {
+			DP_PRINT_STATS("link_peer mac" QDF_MAC_ADDR_FMT
+				       "vdev_id = %u chip_id = %u "
+				       "is_bridge_peer = %u",
+				       QDF_MAC_ADDR_REF
+				       (link_peer_info->mac_addr.raw),
+				       link_peer_info->vdev_id,
+				       link_peer_info->chip_id,
+				       link_peer_info->is_bridge_peer);
+		}
+	}
+}
+#endif
 
 /**
  * dp_print_vlan_group_idx_table() - Dump vlan- group idx table
@@ -6416,12 +6444,30 @@ QDF_STATUS dp_peer_mlo_setup(
 					   peer, NULL, vdev_id, setup_info);
 
 	/* if this is the first link peer */
-	if (setup_info->is_first_link)
+	if (setup_info->is_first_link) {
+
+		/* Check if MLD peer already exist with same MAC address */
+		mld_peer = dp_mld_peer_find_hash_find(soc,
+						      setup_info->mld_peer_mac,
+						      0, vdev_id, DP_MOD_ID_CDP);
+		if (mld_peer) {
+			dp_peer_alert("Peer setup failed as DP mld peer already"
+				      " exists with MAC " QDF_MAC_ADDR_FMT
+				      "current peer mac " QDF_MAC_ADDR_FMT,
+				       QDF_MAC_ADDR_REF
+					(setup_info->mld_peer_mac),
+				       QDF_MAC_ADDR_REF(peer->mac_addr.raw));
+			dp_dump_mld_link_peers_info(mld_peer);
+			dp_peer_unref_delete(mld_peer, DP_MOD_ID_CDP);
+			return QDF_STATUS_E_FAILURE;
+		}
+
 		/* create MLD peer */
 		dp_peer_create_wifi3((struct cdp_soc_t *)soc,
 				     vdev_id,
 				     setup_info->mld_peer_mac,
 				     CDP_MLD_PEER_TYPE);
+	}
 
 	if (peer->vdev->opmode == wlan_op_mode_sta &&
 	    setup_info->is_primary_link) {
@@ -8019,24 +8065,20 @@ static inline void dp_srng_clear_ring_usage_wm_stats(struct dp_soc *soc)
 }
 #endif
 
+static void dp_clear_rings_util_stats(struct dp_soc *soc)
+{
+	if (soc->arch_ops.dp_txrx_clear_rings_util_stats)
+		soc->arch_ops.dp_txrx_clear_rings_util_stats(soc);
+}
+
 #ifdef WLAN_SUPPORT_PPEDS
 static void dp_clear_tx_ppeds_stats(struct dp_soc *soc)
 {
 	if (soc->arch_ops.dp_ppeds_clear_stats)
 		soc->arch_ops.dp_ppeds_clear_stats(soc);
 }
-
-static void dp_ppeds_clear_ring_util_stats(struct dp_soc *soc)
-{
-	if (soc->arch_ops.dp_txrx_ppeds_clear_rings_stats)
-		soc->arch_ops.dp_txrx_ppeds_clear_rings_stats(soc);
-}
 #else
 static void dp_clear_tx_ppeds_stats(struct dp_soc *soc)
-{
-}
-
-static void dp_ppeds_clear_ring_util_stats(struct dp_soc *soc)
 {
 }
 #endif
@@ -8078,7 +8120,7 @@ dp_txrx_host_stats_clr(struct dp_vdev *vdev, struct dp_soc *soc)
 	dp_monitor_pdev_stats_reset(vdev->pdev);
 
 	dp_clear_tx_ppeds_stats(soc);
-	dp_ppeds_clear_ring_util_stats(soc);
+	dp_clear_rings_util_stats(soc);
 
 	hif_clear_napi_stats(vdev->pdev->soc->hif_handle);
 
@@ -13300,6 +13342,31 @@ dp_recovery_vdev_flush_peers(struct cdp_soc_t *cdp_soc,
 	dp_vdev_flush_peers((struct cdp_vdev *)vdev, false, mlo_peers_only);
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 }
+
+static void dp_recovery_peer_flush(struct cdp_soc_t *cdp_soc,
+				   uint8_t *peer_mac)
+{
+	struct dp_soc *soc = (struct dp_soc *)cdp_soc;
+	struct cdp_peer_info peer_info = {0};
+	struct dp_peer *peer = NULL;
+
+	DP_PEER_INFO_PARAMS_INIT(&peer_info, DP_VDEV_ALL, peer_mac, false,
+				 CDP_LINK_PEER_TYPE);
+
+	peer = dp_peer_hash_find_wrapper(soc, &peer_info, DP_MOD_ID_CDP);
+	if (!peer)
+		return;
+
+	dp_peer_delete(soc, peer, NULL);
+	dp_rx_peer_unmap_handler(soc, peer->peer_id,
+				 peer->vdev->vdev_id,
+				 peer->mac_addr.raw, 0,
+				 DP_PEER_WDS_COUNT_INVALID);
+
+	/* release the ref taken during peer search */
+	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
+}
+
 #endif
 #endif
 #ifdef QCA_GET_TSF_VIA_REG
@@ -13567,6 +13634,8 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 					dp_ds_cfg_astidx_cache_mapping,
 #if defined(WLAN_MLO_MULTI_CHIP)
 	.txrx_recovery_vdev_flush_peers = dp_recovery_vdev_flush_peers,
+	/* This should be used only during the recovery cases */
+	.txrx_recovery_peer_flush = dp_recovery_peer_flush,
 #endif
 #endif
 	.txrx_umac_reset_deinit = dp_soc_umac_reset_deinit,
