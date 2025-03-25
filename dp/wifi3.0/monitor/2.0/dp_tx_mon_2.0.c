@@ -1856,6 +1856,7 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 			continue;
 		}
 
+		TXMON_PPDU_COM(ppdu_info, dl_flags) = 1;
 		if (!qdf_nbuf_update_radiotap(&ppdu_info->hal_txmon.rx_status,
 					      buf, qdf_nbuf_headroom(buf))) {
 			qdf_nbuf_free(buf);

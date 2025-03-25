@@ -5933,22 +5933,25 @@ unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
 	put_unaligned_le16(rx_status->chan_flags, &rtap_buf[rtap_len]);
 	rtap_len += 2;
 
-	/* IEEE80211_RADIOTAP_DBM_ANTSIGNAL s8  decibels from one milliwatt
-	 *					(dBm)
+	/* update Antenna signal and Antenna noise values
+	 * only for rx monitor
 	 */
-	it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTSIGNAL);
-	/*
-	 * rssi_comb is int dB, need to convert it to dBm.
-	 * normalize value to noise floor of -96 dBm
-	 */
-	rtap_buf[rtap_len] = QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status);
-	rtap_len += 1;
-
-	/* RX signal noise floor */
-	it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
-	rtap_buf[rtap_len] = (uint8_t)rx_status->hw_noise_floor;
-	rtap_len += 1;
-
+	if (!rx_status->dl_flags) {
+		/* IEEE80211_RADIOTAP_DBM_ANTSIGNAL s8  decibels
+		 * from one milliwatt (dBm)
+		 */
+		it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTSIGNAL);
+		/*
+		 * rssi_comb is int dB, need to convert it to dBm.
+		 * normalize value to noise floor of -96 dBm
+		 */
+		rtap_buf[rtap_len] = QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status);
+		rtap_len += 1;
+		/* RX signal noise floor */
+		it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
+		rtap_buf[rtap_len] = (uint8_t)rx_status->hw_noise_floor;
+		rtap_len += 1;
+	}
 	/* IEEE80211_RADIOTAP_ANTENNA   u8      antenna index */
 	it_present_val |= (1 << IEEE80211_RADIOTAP_ANTENNA);
 	rtap_buf[rtap_len] = rx_status->nr_ant;

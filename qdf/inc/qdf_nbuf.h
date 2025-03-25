@@ -422,6 +422,7 @@ typedef __qdf_nbuf_queue_t qdf_nbuf_queue_t;
  * @mon_fcs_cap: monitor fcs capture
  * @snr_with_offsets: rssi_comb with other offsets added
  * @rssi_region_offset: RSSI region offset
+ * @dl_flags: flag will be set if radiotap update is for tx monitor
  */
 struct mon_rx_status {
 	uint64_t tsft;
@@ -550,6 +551,7 @@ struct mon_rx_status {
 	int8_t snr_with_offsets;
 	int8_t rssi_region_offset;
 	bool rssi_dbm_support;
+	bool dl_flags;
 };
 
 /**
