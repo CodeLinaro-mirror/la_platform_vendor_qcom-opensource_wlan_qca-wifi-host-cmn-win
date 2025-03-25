@@ -5572,13 +5572,13 @@ struct dp_txrx_peer {
 	qdf_atomic_t flush_in_progress;
 	struct dp_peer_cached_bufq bufq_info;
 #endif
-#ifdef QCA_MULTIPASS_SUPPORT
-	TAILQ_ENTRY(dp_txrx_peer) mpass_peer_list_elem;
-	uint16_t vlan_id;
-#endif
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	struct dp_wds_ext_peer wds_ext;
 	ol_txrx_rx_fp osif_rx;
+#endif
+#ifdef QCA_MULTIPASS_SUPPORT
+	TAILQ_ENTRY(dp_txrx_peer) mpass_peer_list_elem;
+	uint16_t vlan_id;
 #endif
 	struct dp_rx_tid_defrag rx_tid[DP_MAX_TIDS];
 #ifdef CONFIG_SAWF

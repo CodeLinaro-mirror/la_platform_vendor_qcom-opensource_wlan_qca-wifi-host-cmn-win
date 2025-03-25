@@ -2112,6 +2112,9 @@ bool
 dp_rx_deliver_to_stack_ext(struct dp_soc *soc, struct dp_vdev *vdev,
 			   struct dp_txrx_peer *txrx_peer, qdf_nbuf_t nbuf_head)
 {
+	ol_txrx_rx_fp osif_rx;
+	ol_osif_peer_handle osif_peer;
+
 	/*
 	 * When extended WDS is disabled, frames are sent to AP netdevice.
 	 */
@@ -2128,8 +2131,11 @@ dp_rx_deliver_to_stack_ext(struct dp_soc *soc, struct dp_vdev *vdev,
 	if (!txrx_peer->wds_ext.init)
 		return false;
 
-	if (txrx_peer->osif_rx)
-		txrx_peer->osif_rx(txrx_peer->wds_ext.osif_peer, nbuf_head);
+	osif_rx = txrx_peer->osif_rx;
+	osif_peer = txrx_peer->wds_ext.osif_peer;
+
+	if (qdf_likely(osif_rx && osif_peer))
+		osif_rx(osif_peer, nbuf_head);
 	else
 		dp_rx_drop_nbuf_list(vdev->pdev, nbuf_head);
 
