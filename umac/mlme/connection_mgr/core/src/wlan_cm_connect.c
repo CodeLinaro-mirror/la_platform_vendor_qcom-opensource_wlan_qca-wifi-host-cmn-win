@@ -3357,10 +3357,10 @@ post_err:
 QDF_STATUS cm_bss_peer_create_resp_mlo_attach(struct wlan_objmgr_vdev *vdev,
 					      struct qdf_mac_addr *peer_mac)
 {
-	QDF_STATUS status;
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_objmgr_peer *link_peer;
 	struct mlo_partner_info partner_info;
+	struct wlan_mlo_peer_context *ml_peer = NULL;
 
 	if (!wlan_vdev_mlme_is_mlo_vdev(vdev))
 		return QDF_STATUS_SUCCESS;
@@ -3379,15 +3379,18 @@ QDF_STATUS cm_bss_peer_create_resp_mlo_attach(struct wlan_objmgr_vdev *vdev,
 		     vdev->vdev_mlme.macaddr, QDF_MAC_ADDR_SIZE);
 	partner_info.partner_link_info[0].link_id = wlan_vdev_get_link_id(vdev);
 
-	status = wlan_mlo_peer_create(vdev, link_peer, &partner_info, NULL, 0);
-	if (QDF_IS_STATUS_ERROR(status)) {
+	ml_peer = wlan_mlo_peer_create(vdev, link_peer, &partner_info, NULL, 0);
+	if (!ml_peer) {
 		mlme_err("Failed to attach MLO peer " QDF_MAC_ADDR_FMT,
 			 QDF_MAC_ADDR_REF(peer_mac->bytes));
+		return QDF_STATUS_E_NULL_VALUE;
+	} else {
+		wlan_mlo_peer_release_ref(ml_peer);
 	}
 
 	wlan_objmgr_peer_release_ref(link_peer, WLAN_MLME_CM_ID);
 
-	return status;
+	return QDF_STATUS_SUCCESS;
 }
 #endif
 

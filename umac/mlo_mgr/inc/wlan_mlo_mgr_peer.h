@@ -366,13 +366,16 @@ void wlan_mlo_partner_peer_disconnect_notify(struct wlan_objmgr_peer *src_peer);
  * This function creates MLO peer and notifies other partner VDEVs to create
  * link peers
  *
- * Return: SUCCESS, if MLO peer is successfully created
+ * Caller to release ref taken on ml_peer
+ *
+ * Return: MLO peer, if MLO peer is successfully created
  */
-QDF_STATUS wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
-				struct wlan_objmgr_peer *link_peer,
-				struct mlo_partner_info *ml_info,
-				qdf_nbuf_t frm_buf,
-				uint16_t aid);
+struct wlan_mlo_peer_context *
+wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
+		     struct wlan_objmgr_peer *link_peer,
+		     struct mlo_partner_info *ml_info,
+		     qdf_nbuf_t frm_buf,
+		     uint16_t aid);
 
 /**
  * wlan_mlo_peer_asreq() - MLO peer process assoc req
