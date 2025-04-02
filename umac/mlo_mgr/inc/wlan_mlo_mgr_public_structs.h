@@ -95,7 +95,7 @@ struct ptqm_migrate_peer_context;
 #define MAX_MLO_LINK_PEERS WLAN_UMAC_MLO_MAX_VDEVS
 
 /* MAX MLO peer_id supported by FW is 1024 */
-#define MAX_MLO_PEER_ID 1024
+#define MAX_MLO_PEER_ID 2048
 #define MLO_INVALID_PEER_ID 0xFFFF
 
 /* IE nomenclature */

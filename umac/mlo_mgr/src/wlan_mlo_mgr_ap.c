@@ -756,6 +756,12 @@ mlo_ap_update_max_ml_peer_ids(uint32_t pdev_id, uint32_t max_ml_peer_ids)
 	struct mlo_mgr_context *mlo_mgr_ctx = wlan_objmgr_get_mlo_ctx();
 	uint16_t max_mlo_peer_id_stale;
 
+	if (max_ml_peer_ids > MAX_MLO_PEER_ID) {
+		mlo_info("FW max_ml_peer_id: %d, host_max:%d. Retain host max",
+			 max_ml_peer_ids, MAX_MLO_PEER_ID);
+		max_ml_peer_ids = MAX_MLO_PEER_ID;
+	}
+
 	max_mlo_peer_id_stale = mlo_mgr_ctx->max_mlo_peer_id;
 
 	ml_peerid_lock_acquire(mlo_mgr_ctx);
@@ -827,8 +833,7 @@ void mlo_ap_ml_peerid_free(uint16_t mlo_peer_id)
 		return;
 	}
 
-	if ((mlo_peer_id > mlo_ctx->max_mlo_peer_id) ||
-	    (mlo_peer_id > MAX_MLO_PEER_ID)) {
+	if (mlo_peer_id > mlo_ctx->max_mlo_peer_id) {
 		mlo_err(" ML peer id %d is invalid", mlo_peer_id);
 		QDF_BUG(0);
 		return;
