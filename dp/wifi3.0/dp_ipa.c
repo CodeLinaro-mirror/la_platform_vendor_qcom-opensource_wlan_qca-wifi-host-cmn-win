@@ -249,6 +249,44 @@ QDF_STATUS dp_ipa_handle_rx_buf_smmu_mapping(struct dp_soc *soc,
 						func, line);
 }
 
+/**
+ * dp_ipa_is_mlo_peer() - check if given mac is MLO enabled
+ *
+ * @soc_hdl: DP SOC handle
+ * @peer_mac: Peer Mac Address
+ * @vdev_id: vdev id
+ *
+ * Return: true if MAC is MLO enabled, else false
+ */
+bool dp_ipa_is_mlo_peer(struct cdp_soc_t *soc, uint8_t *mac_addr,
+			uint8_t *vdev_id)
+{
+	struct dp_soc *dp_soc = cdp_soc_t_to_dp_soc(soc);
+	struct dp_peer *peer;
+	struct dp_vdev *vdev;
+	bool id = false;
+	bool mlo_dev_ctxt = false;
+
+	peer = dp_find_peer_by_macaddr(soc, mac_addr, DP_VDEV_ALL, DP_MOD_ID_IPA);
+	if (!peer)
+		return id;
+
+	vdev = peer->vdev;
+	*vdev_id = vdev->vdev_id;
+
+	if (dp_soc->arch_ops.ipa_get_mlo_dev_ctxt_status)
+		mlo_dev_ctxt = dp_soc->arch_ops.ipa_get_mlo_dev_ctxt_status(vdev);
+
+	if (!IS_DP_LEGACY_PEER(peer) || (mlo_dev_ctxt && peer->bss_peer)) {
+		id = true;
+	} else {
+		id = false;
+	}
+
+	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
+	return id;
+}
+
 #ifdef IPA_OPT_WIFI_DP_CTRL
 QDF_STATUS
 dp_rx_add_to_ipa_desc_free_list(struct dp_soc *soc,
@@ -3286,6 +3324,7 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 	struct dp_ipa_uc_tx_hdr uc_tx_hdr_v6;
 	struct dp_ipa_uc_tx_vlan_hdr uc_tx_vlan_hdr;
 	struct dp_ipa_uc_tx_vlan_hdr uc_tx_vlan_hdr_v6;
+	int is_mlo;
 	int ret = -EINVAL;
 
 	qdf_mem_zero(&in, sizeof(qdf_ipa_wdi_reg_intf_in_params_t));
@@ -3321,7 +3360,6 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 
 	is_tx1_used = dp_ipa_get_is_tx1_used(soc, session_id);
 	dp_ipa_setup_iface_session_id(&in, session_id, is_tx1_used);
-	dp_debug("registering for session_id: %u", session_id);
 
 	/* IPV6 header */
 	if (is_ipv6_enabled) {
@@ -3366,6 +3404,13 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 			dp_ipa_set_v6_vlan_hdr(&in, &hdr_info);
 		}
 	}
+
+	/* To support MLO single Netdev with Kobuk, passing supporting attribute
+	 * to IPA
+	 */
+	is_mlo = dp_ipa_is_mlo_peer(soc_hdl, mac_addr, &session_id);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_MLO(&in) = is_mlo;
+	dp_debug("registering for session_id: %u HDL:%d ifname:%s", session_id, hdl, ifname);
 
 	ret = qdf_ipa_wdi_reg_intf(&in);
 	if (ret) {
@@ -3651,12 +3696,14 @@ QDF_STATUS dp_ipa_cleanup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	return status;
 }
 
-QDF_STATUS dp_ipa_cleanup_iface(char *ifname, bool is_ipv6_enabled,
+QDF_STATUS dp_ipa_cleanup_iface(void *iface, bool is_ipv6_enabled,
 				qdf_ipa_wdi_hdl_t hdl)
 {
 	int ret;
+	const char *ifname = ((struct wlan_ipa_iface_context *)iface)->dev->name;
+	uint8_t session_id = ((struct wlan_ipa_iface_context *)iface)->session_id;
 
-	ret = qdf_ipa_wdi_dereg_intf(ifname, hdl);
+	ret = qdf_ipa_wdi_dereg_intf(ifname, hdl, session_id);
 	if (ret) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
 			  "%s: ipa_wdi_dereg_intf: IPA pipe deregistration failed: ret=%d",
