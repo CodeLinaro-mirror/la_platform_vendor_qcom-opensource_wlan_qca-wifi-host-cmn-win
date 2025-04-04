@@ -387,14 +387,16 @@ static inline int qdf_ipa_wdi_reg_intf(
  * function to deregister before unload and after disconnect
  * @netdev_name: Net device name
  * @hdl: IPA handle
+ * @is_mlo: Is MLO iface
  *
  * @Return 0 on success, negative on failure
  */
 static inline int qdf_ipa_wdi_dereg_intf(const char *netdev_name,
 					 qdf_ipa_wdi_hdl_t hdl,
-					 uint8_t session_id)
+					 uint8_t session_id,
+					 bool is_mlo)
 {
-	return __qdf_ipa_wdi_dereg_intf(netdev_name, hdl, session_id);
+	return __qdf_ipa_wdi_dereg_intf(netdev_name, hdl, session_id, is_mlo);
 }
 
 /**

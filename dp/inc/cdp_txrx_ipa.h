@@ -569,7 +569,7 @@ cdp_ipa_cleanup_iface(ol_txrx_soc_handle soc, struct wlan_ipa_iface_context *ifa
 	}
 
 	if (soc->ops->ipa_ops->ipa_cleanup_iface)
-		return soc->ops->ipa_ops->ipa_cleanup_iface((void *)iface,
+		return soc->ops->ipa_ops->ipa_cleanup_iface(soc, (void *)iface,
 							    is_ipv6_enabled,
 							    hdl);
 
