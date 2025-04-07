@@ -549,7 +549,7 @@ mgmt_rx_reo_validate_mlo_link_info(struct wlan_objmgr_psoc *psoc)
 		return QDF_STATUS_E_INVAL;
 	}
 
-	if (num_active_links_shmem != num_active_links) {
+	if (num_active_links_shmem < num_active_links) {
 		mgmt_rx_reo_err("Mismatch in active links %d and %d",
 				num_active_links_shmem, num_active_links);
 		return QDF_STATUS_E_INVAL;
@@ -573,7 +573,7 @@ mgmt_rx_reo_validate_mlo_link_info(struct wlan_objmgr_psoc *psoc)
 		return QDF_STATUS_E_INVAL;
 	}
 
-	if (valid_link_bitmap_shmem != valid_link_bitmap) {
+	if (valid_link_bitmap_shmem < valid_link_bitmap) {
 		mgmt_rx_reo_err("Mismatch in valid link bit map 0x%x and 0x%x",
 				valid_link_bitmap_shmem, valid_link_bitmap);
 		return QDF_STATUS_E_INVAL;
