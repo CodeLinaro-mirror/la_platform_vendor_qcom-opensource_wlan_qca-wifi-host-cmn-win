@@ -234,6 +234,8 @@ void mlo_cleanup_asserted_soc_setup_info(struct wlan_objmgr_psoc *psoc,
 				setup_info->pdev_list[link_idx] = NULL;
 				setup_info->state[link_idx] = MLO_LINK_TEARDOWN;
 				setup_info->num_links--;
+				setup_info->valid_link_bitmap
+						&= ~(1 << link_idx);
 			}
 		}
 	}
