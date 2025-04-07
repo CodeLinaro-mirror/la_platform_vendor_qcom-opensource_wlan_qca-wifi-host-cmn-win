@@ -914,7 +914,9 @@ struct mlo_nstr_info {
  */
 struct mlo_partner_info {
 	uint8_t num_partner_links;
+	uint8_t num_rejected_links;
 	struct mlo_link_info partner_link_info[WLAN_MAX_ML_BSS_LINKS];
+	struct mlo_link_info rejected_link_info[WLAN_MAX_ML_BSS_LINKS];
 #ifdef WLAN_FEATURE_11BE
 	enum wlan_t2lm_enable t2lm_enable_val;
 	struct mlo_nstr_info nstr_info[WLAN_UMAC_MLO_MAX_VDEVS];
