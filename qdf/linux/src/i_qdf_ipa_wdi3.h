@@ -647,8 +647,8 @@ static inline int __qdf_ipa_wdi_dereg_intf(const char *netdev_name,
 					   uint8_t session_id,
 					   bool is_mlo)
 {
-	return ipa_wdi_dereg_intf_per_inst(netdev_name, hdl, session_id,
-					   is_mlo);
+	return ipa_wdi_dereg_intf_per_inst_mlo(netdev_name, hdl, session_id,
+					       is_mlo);
 }
 
 /**
