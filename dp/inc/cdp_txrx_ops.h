@@ -2432,7 +2432,8 @@ struct cdp_ipa_ops {
 				      qdf_ipa_client_type_t cons_client,
 				      uint8_t session_id, bool is_ipv6_enabled,
 				      qdf_ipa_wdi_hdl_t hdl);
-	QDF_STATUS (*ipa_cleanup_iface)(void *iface, bool is_ipv6_enabled,
+	QDF_STATUS (*ipa_cleanup_iface)(struct cdp_soc_t *soc_hdl, void *iface,
+					bool is_ipv6_enabled,
 					qdf_ipa_wdi_hdl_t hdl);
 	QDF_STATUS (*ipa_enable_pipes)(struct cdp_soc_t *soc_hdl,
 				       uint8_t pdev_id, qdf_ipa_wdi_hdl_t hdl);
