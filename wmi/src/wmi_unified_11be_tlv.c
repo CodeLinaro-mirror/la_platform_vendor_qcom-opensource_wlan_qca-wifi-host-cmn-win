@@ -1998,6 +1998,49 @@ extract_mlo_link_state_event_tlv(struct wmi_unified *wmi_handle,
 	return QDF_STATUS_SUCCESS;
 }
 
+static QDF_STATUS send_sawf_ezmesh_hop_count_cmd_tlv(
+		wmi_unified_t wmi_handle,
+		struct wmi_host_sawf_ezmesh_hop_count_params *params)
+{
+	wmi_sawf_ezmesh_hop_count_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint8_t *buf_ptr;
+	uint32_t buf_len = 0;
+	QDF_STATUS ret = QDF_STATUS_SUCCESS;
+
+	buf_len = sizeof(wmi_sawf_ezmesh_hop_count_cmd_fixed_param);
+	buf = wmi_buf_alloc(wmi_handle, buf_len);
+
+	if (!buf) {
+		wmi_err("wmi buf alloc failed!");
+		return QDF_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (uint8_t *)wmi_buf_data(buf);
+	cmd = (wmi_sawf_ezmesh_hop_count_cmd_fixed_param *)buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_sawf_ezmesh_hop_count_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_sawf_ezmesh_hop_count_cmd_fixed_param));
+
+	cmd->hop_count = params->hop_count;
+	cmd->delay_bound = params->delay_bound;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->peer_macaddr, &cmd->mac_address);
+	cmd->vdev_id = params->vdev_id;
+	cmd->svc_id = params->svc_id;
+
+	wmi_mtrace(WMI_SAWF_EZMESH_HOP_COUNT_CMDID, cmd->vdev_id, 0);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, buf_len,
+				   WMI_SAWF_EZMESH_HOP_COUNT_CMDID);
+	if (ret) {
+		wmi_err("Failed to send SAWF Mesh cmd to FW %d", ret);
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
 static QDF_STATUS send_mlo_peer_tid_to_link_map_cmd_tlv(
 		wmi_unified_t wmi_handle,
 		struct wmi_host_tid_to_link_map_params *params,
@@ -2907,6 +2950,8 @@ void wmi_11be_attach_tlv(wmi_unified_t wmi_handle)
 		extract_mlo_vdev_bcast_tid_to_link_map_event_tlv;
 	ops->extract_mlo_link_state_event =
 		extract_mlo_link_state_event_tlv;
+	ops->send_sawf_ezmesh_hop_count =
+		send_sawf_ezmesh_hop_count_cmd_tlv;
 #endif /* WLAN_FEATURE_11BE */
 	ops->extract_mgmt_rx_ml_cu_params =
 		extract_mgmt_rx_ml_cu_params_tlv;

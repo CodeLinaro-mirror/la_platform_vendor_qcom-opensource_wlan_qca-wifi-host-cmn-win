@@ -1336,6 +1336,22 @@ struct wmi_host_tid_to_link_map_params {
 };
 
 /**
+ * struct wmi_host_sawf_ezmesh_hop_count_params - Mesh SAWF params
+ * @vdev_id: Vdev ID
+ * @peer_macaddr: Peer link macaddr
+ * @hop_count: Hop count for the client
+ * @svc_id: Service ID
+ * @delay_bound: Updated delay bound to meet client SLA
+ */
+struct wmi_host_sawf_ezmesh_hop_count_params {
+	uint8_t vdev_id;
+	uint8_t peer_macaddr[QDF_MAC_ADDR_SIZE];
+	uint8_t hop_count;
+	uint8_t svc_id;
+	uint32_t delay_bound;
+};
+
+/**
  * struct wmi_host_tid_to_link_map_ap_params - TID-to-link mapping params
  * @pdev_id: Pdev id
  * @vdev_id: Vdev id
