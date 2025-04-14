@@ -3838,7 +3838,9 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 		return QDF_STATUS_SUCCESS;
 	}
 
+	qdf_spin_lock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 	be_vdev->mlo_dev_ctxt = NULL;
+	qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 
 	/* Save vdev stats in MLO dev ctx */
 	dp_update_mlo_mld_vdev_ctxt_stats(&mlo_dev_ctxt->stats, &vdev->stats);
