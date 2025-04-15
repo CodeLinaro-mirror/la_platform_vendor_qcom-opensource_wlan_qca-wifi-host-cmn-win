@@ -1949,7 +1949,7 @@ qdf_export_symbol(qdf_mem_multi_pages_free_debug);
 #else
 static void qdf_mem_debug_init(void)
 {
-	is_initial_mem_debug_disabled = 0;
+	is_initial_mem_debug_disabled = 1;
 }
 
 static void qdf_mem_debug_exit(void) {}
