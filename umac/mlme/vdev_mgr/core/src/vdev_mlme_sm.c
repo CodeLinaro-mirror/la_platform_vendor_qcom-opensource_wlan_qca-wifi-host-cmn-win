@@ -1847,12 +1847,13 @@ static bool mlme_vdev_subst_mlo_sync_wait_event(void *ctx, uint16_t event,
 					WLAN_MLME_SER_IF_ID);
 				if (csa_restart_pending)
 					mlme_vdev_notify_start_removal(vdev_mlme);
+			} else {
+				/*
+				 * Notify MLME about SYNC_WAIT state, MLME can
+				 * perform unblocking of CSA restart commands.
+				 */
+				mlme_vdev_mlo_sync_wait_notify(vdev_mlme);
 			}
-			/*
-			 * Notify MLME about SYNC_WAIT state, MLME can perform
-			 * unblocking of CSA restart commands.
-			 */
-			mlme_vdev_mlo_sync_wait_notify(vdev_mlme);
 		}
 		status = true;
 		break;
