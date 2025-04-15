@@ -732,6 +732,7 @@ enum vdev_start_resp_type {
  *                                           disable event
  * @mlme_vdev_init_down:                callback to process event down in init
  *                                      state
+ * @mlme_vdev_notify_start_removal:     callback to remove start bss from AQ
  */
 struct vdev_mlme_ops {
 	QDF_STATUS (*mlme_vdev_validate_basic_params)(
@@ -825,6 +826,7 @@ struct vdev_mlme_ops {
 				struct wlan_objmgr_vdev *vdev,
 				void *t2lm);
 	void (*mlme_vdev_init_down)(struct vdev_mlme_obj *vdev_mlme);
+	void (*mlme_vdev_notify_start_removal)(struct wlan_objmgr_vdev *vdev);
 };
 
 /**
