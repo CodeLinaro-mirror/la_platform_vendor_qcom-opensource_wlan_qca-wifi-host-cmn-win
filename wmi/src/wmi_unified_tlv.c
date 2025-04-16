@@ -10593,11 +10593,14 @@ void wmi_copy_resource_config(wmi_unified_t wmi_handle,
 	if (tgt_res_cfg->is_go_connected_d3wow_enabled)
 		WMI_RSRC_CFG_FLAGS2_IS_GO_CONNECTED_D3WOW_ENABLED_SET(
 			resource_cfg->flags2, 1);
-
 	if (tgt_res_cfg->sae_eapol_offload)
 		WMI_RSRC_CFG_HOST_SERVICE_FLAG_SAE_EAPOL_OFFLOAD_SUPPORT_SET(
 			resource_cfg->host_service_flags, 1);
-
+#ifdef QCA_WIFI_QCA5424
+	if (tgt_res_cfg->def_flow_override)
+		WMI_RSRC_CFG_HOST_SERVICE_FLAG_OPT_DP_ENABLE_BYPASS_FOR_HLOS_TID_OVERRIDE_SET(
+			resource_cfg->host_service_flags, 1);
+#endif
 	WMI_RSRC_CFG_HOST_SERVICE_FLAG_REG_CC_EXT_SUPPORT_SET(
 		resource_cfg->host_service_flags,
 		tgt_res_cfg->is_reg_cc_ext_event_supported);
