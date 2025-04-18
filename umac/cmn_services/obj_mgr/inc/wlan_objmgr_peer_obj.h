@@ -104,6 +104,8 @@
 #define WLAN_PEER_MESH_NODE                         0x00000020
 /* Partner Peer ASSOC rejected */
 #define WLAN_PEER_FEXT_ASSOC_REJ                    0x00000040
+/* High-bandwidth primary UMAC */
+#define WLAN_PEER_FEXT_PRIMARY_UMAC_HI		    0x00000080
 
 /**
  * enum wlan_peer_state  - peer state

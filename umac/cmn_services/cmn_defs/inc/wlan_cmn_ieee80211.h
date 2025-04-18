@@ -198,6 +198,10 @@
 #define ATH_OUI_TYPE 0x01
 /* Atheros Extended Cap Type */
 #define ATH_OUI_EXTCAP_TYPE 0x04
+/* Interop OUI */
+#define INTEROP_OUI 0xf21700
+/* Interop Extended Cap Type */
+#define INTEROP_OUI_TYPE 0x0A
 /* QCA Bandwidth NSS Mapping Type */
 #define ATH_OUI_BW_NSS_MAP_TYPE 0x05
 #define SFA_OUI 0x964000
