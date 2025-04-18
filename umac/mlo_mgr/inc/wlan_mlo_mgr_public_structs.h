@@ -415,6 +415,7 @@ struct mlo_mgr_context {
 #endif
 	struct ctxt_switch_mgr *msgq_ctx;
 	bool mlo_is_force_primary_umac;
+	bool mlo_override_mlsr_ptqm;
 	uint8_t mlo_forced_primary_umac_id;
 	bool force_non_assoc_prim_umac;
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
