@@ -2815,6 +2815,7 @@ struct dp_arch_ops {
 #ifdef IPA_OFFLOAD
 	int8_t (*ipa_get_bank_id)(struct dp_soc *soc);
 	void (*ipa_get_wdi_ver)(uint8_t *wdi_ver);
+	bool (*ipa_get_mlo_dev_ctxt_status)(struct dp_vdev *vdev);
 #endif
 #ifdef IPA_OPT_WIFI_DP_CTRL
 	void (*dp_tx_ipa_opt_dp_ctrl)(struct dp_soc *soc, uint8_t vdev_id,

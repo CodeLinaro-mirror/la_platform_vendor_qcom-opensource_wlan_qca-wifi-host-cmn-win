@@ -4089,10 +4089,23 @@ static inline void dp_ipa_get_wdi_version_be(uint8_t *wdi_ver)
 }
 #endif
 
+static inline bool dp_ipa_get_mlo_dev_ctxt_status_be(struct dp_vdev *vdev)
+{
+	struct dp_vdev_be *be_vdev;
+
+	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	if (be_vdev->mlo_dev_ctxt)
+		return true;
+	else
+		return false;
+}
+
 static inline void dp_initialize_arch_ops_be_ipa(struct dp_arch_ops *arch_ops)
 {
 	arch_ops->ipa_get_bank_id = dp_ipa_get_bank_id_be;
 	arch_ops->ipa_get_wdi_ver = dp_ipa_get_wdi_version_be;
+	arch_ops->ipa_get_mlo_dev_ctxt_status = dp_ipa_get_mlo_dev_ctxt_status_be;
 }
 #else /* !IPA_OFFLOAD */
 static inline void dp_initialize_arch_ops_be_ipa(struct dp_arch_ops *arch_ops)

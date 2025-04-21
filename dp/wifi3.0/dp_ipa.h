@@ -348,14 +348,15 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 
 /**
  * dp_ipa_cleanup_iface() - Cleanup IPA header and deregister interface
- * @ifname: Interface name
+ * @soc_hdl: dp soc handle
+ * @iface: IPA Interface
  * @is_ipv6_enabled: Is IPV6 enabled or not
  * @hdl: IPA handle
  *
  * Return: QDF_STATUS
  */
-QDF_STATUS dp_ipa_cleanup_iface(char *ifname, bool is_ipv6_enabled,
-				qdf_ipa_wdi_hdl_t hdl);
+QDF_STATUS dp_ipa_cleanup_iface(struct cdp_soc_t *soc_hdl, void *iface,
+				bool is_ipv6_enabled, qdf_ipa_wdi_hdl_t hdl);
 
 /**
  * dp_ipa_enable_pipes() - Enable and resume traffic on Tx/Rx pipes
@@ -735,6 +736,18 @@ bool dp_ipa_is_ring_ipa_tx(struct dp_soc *soc, uint8_t ring_id);
  * Return: true if ring is used by IPA, else return false
  */
 bool dp_ipa_is_ring_ipa_rx(struct cdp_soc_t *soc_hdl, uint8_t ring_id);
+
+/**
+ * dp_ipa_is_mlo_peer() - check if given mac is MLO enabled
+ *
+ * @soc_hdl: DP SOC handle
+ * @peer_mac: Peer Mac Address
+ * @vdev_id: vdev id
+ *
+ * Return: true if MAC is MLO enabled, else false
+ */
+bool dp_ipa_is_mlo_peer(struct cdp_soc_t *soc_hdl, uint8_t *mac_addr,
+			uint8_t *vdev_id);
 #else
 static inline int dp_ipa_uc_detach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
@@ -856,6 +869,15 @@ dp_rx_add_to_ipa_desc_free_list(struct dp_soc *soc,
 static inline bool
 dp_ipa_is_ring_ipa_rx(struct cdp_soc_t *soc_hdl, uint8_t ring_id)
 {
+	return false;
+}
+
+static inline bool
+dp_ipa_is_mlo_peer(struct cdp_soc_t *soc_hdl, uint8_t *mac_addr,
+		   uint8_t *vdev_id)
+{
+	*vdev_id = 0xff;
+
 	return false;
 }
 #endif

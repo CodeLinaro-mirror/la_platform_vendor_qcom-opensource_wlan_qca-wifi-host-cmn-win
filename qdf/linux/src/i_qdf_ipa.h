@@ -516,6 +516,28 @@ struct ipa_wlan_msg_if_index {
 	(((struct ipa_wlan_msg_if_index *)(ipa_msg))->if_index)
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+#define QDF_IPA_WLAN_MSG_HDL(ipa_msg)	\
+	(((struct ipa_wlan_msg *)(ipa_msg))->instance_id)
+#define QDF_IPA_WLAN_MSG_SESSION_ID(ipa_msg)	\
+	(((struct ipa_wlan_msg *)(ipa_msg))->vdev_id)
+#define QDF_IPA_WLAN_MSG_IS_MLO(ipa_msg)	\
+	(((struct ipa_wlan_msg *)(ipa_msg))->mld_enabled)
+#else
+struct ipa_wlan_msg_mld {
+	uint8_t instance_id;
+	uint8_t vdev_id;
+	bool    mld_enabled;
+};
+
+#define QDF_IPA_WLAN_MSG_HDL(ipa_msg)	\
+	(((struct ipa_wlan_msg_mld *)(ipa_msg))->instance_id)
+#define QDF_IPA_WLAN_MSG_SESSION_ID(ipa_msg)	\
+	(((struct ipa_wlan_msg_mld *)(ipa_msg))->vdev_id)
+#define QDF_IPA_WLAN_MSG_IS_MLO(ipa_msg)	\
+	(((struct ipa_wlan_msg_mld *)(ipa_msg))->mld_enabled)
+#endif
+
 typedef struct ipa_wlan_msg_ex __qdf_ipa_wlan_msg_ex_t;
 
 #define QDF_IPA_WLAN_MSG_EX_NAME(ipa_msg)	\
@@ -528,6 +550,28 @@ typedef struct ipa_wlan_msg_ex __qdf_ipa_wlan_msg_ex_t;
 	(((struct ipa_wlan_msg_ex *)(ipa_msg))->attribs.offset)
 #define QDF_IPA_WLAN_MSG_EX_MAC_ADDR(ipa_msg)	\
 	(((struct ipa_wlan_msg_ex *)(ipa_msg))->attribs.u.mac_addr)
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+#define QDF_IPA_WLAN_MSG_EX_HDL(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex *)(ipa_msg))->instance_id)
+#define QDF_IPA_WLAN_MSG_EX_SESSION_ID(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex *)(ipa_msg))->vdev_id)
+#define QDF_IPA_WLAN_MSG_EX_IS_MLO(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex *)(ipa_msg))->mld_enabled)
+#else
+struct ipa_wlan_msg_ex_mld {
+	uint8_t instance_id;
+	uint8_t vdev_id;
+	bool    mld_enabled;
+};
+
+#define QDF_IPA_WLAN_MSG_EX_HDL(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex_mld *)(ipa_msg))->instance_id)
+#define QDF_IPA_WLAN_MSG_EX_SESSION_ID(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex_mld *)(ipa_msg))->vdev_id)
+#define QDF_IPA_WLAN_MSG_EX_IS_MLO(ipa_msg)	\
+	(((struct ipa_wlan_msg_ex_mld *)(ipa_msg))->mld_enabled)
+#endif
 
 typedef struct ipa_ioc_tx_intf_prop __qdf_ipa_ioc_tx_intf_prop_t;
 
