@@ -26,6 +26,7 @@
 #include <hal_api_mon.h>
 #include <hal_generic_api.h>
 #include "txmon_tlvs.h"
+#include "cdp_txrx_stats_struct.h"
 
 /*
  * Debug macro to print the TLV header tag
@@ -674,11 +675,16 @@ hal_txmon_parse_fw2sw(void *tx_tlv, uint8_t type,
 		TXMON_STATUS_INFO(status_info, freq) = freq_mhz;
 		TXMON_STATUS_INFO(status_info, phy_mode) = phy_mode;
 		TXMON_STATUS_INFO(status_info, schedule_id) = schedule_id;
+
 		if (is_valid) {
-			if (pkt_id < CDP_TX_PKT_TYPE_MAX)
+			if (pkt_id < CDP_TX_PKT_CAP_TYPE_MAX) {
 				status_info->dp_tx_pkt_cap_cookie[pkt_id]++;
-			else
+				QDF_TRACE(QDF_MODULE_ID_DP_TX_CAPTURE, QDF_TRACE_LEVEL_ERROR,
+					  "HOST - fw2sw tlv - cookie: %d, pkt_id: %d, is_valid: %d, hw_link: %d, seq_no: %d",
+					  cookie, pkt_id, is_valid, hw_link, seq_no);
+			} else {
 				status_info->dp_tx_pkt_cap_cookie[0]++;
+			}
 		}
 		break;
 	}

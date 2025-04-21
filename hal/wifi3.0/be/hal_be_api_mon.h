@@ -29,6 +29,7 @@ defined(WLAN_PKT_CAPTURE_RX_2_0)
 #include <hal_generic_api.h>
 #include <hal_generic_api.h>
 #include <hal_api_mon.h>
+#include "cdp_txrx_stats_struct.h"
 
 #define HAL_RX_PPDU_START_PHY_PPDU_ID_OFFSET                        0x00000000
 #define HAL_RX_PPDU_START_PHY_PPDU_ID_LSB                           0
@@ -1224,18 +1225,6 @@ enum txmon_generated_response {
 	TXMON_GEN_RESP_SELFGEN_NDP_LMR
 };
 
-/*
- * List of protocols supported for TX packet Capture classification
- */
-enum CDP_TX_PKT_CAP_PKT_TYPE {
-	CDP_TX_PKT_TYPE_ARP = 1,
-	CDP_TX_PKT_TYPE_EAPOL,
-	CDP_TX_PKT_TYPE_DHCP,
-	CDP_TX_PKT_TYPE_DNS,
-	CDP_TX_PKT_TYPE_ICMP,
-	CDP_TX_PKT_TYPE_MAX,
-};
-
 #ifdef MONITOR_TLV_RECORDING_ENABLE
 
 /*
@@ -1495,7 +1484,7 @@ struct hal_tx_status_info {
 	uint8_t addr2[QDF_MAC_ADDR_SIZE];
 	uint8_t addr3[QDF_MAC_ADDR_SIZE];
 	uint8_t addr4[QDF_MAC_ADDR_SIZE];
-	uint8_t dp_tx_pkt_cap_cookie[CDP_TX_PKT_TYPE_MAX];
+	uint8_t dp_tx_pkt_cap_cookie[CDP_TX_PKT_CAP_TYPE_MAX];
 };
 
 /**

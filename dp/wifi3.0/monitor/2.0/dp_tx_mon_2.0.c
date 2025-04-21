@@ -702,15 +702,17 @@ void dp_print_pdev_tx_monitor_stats_2_0(struct dp_pdev *pdev)
 			stats.ppdu_drop_tlv_missing);
 	DP_PRINT_STATS("\tPacket Classification");
 	DP_PRINT_STATS("\t\t ARP    : %u",
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_ARP]);
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ARP]);
 	DP_PRINT_STATS("\t\t EAPOL  : %u",
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_EAPOL]);
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_EAPOL]);
 	DP_PRINT_STATS("\t\t DHCP   : %u",
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_DHCP]);
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DHCP]);
 	DP_PRINT_STATS("\t\t DNS    : %u",
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_DNS]);
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DNS]);
 	DP_PRINT_STATS("\t\t ICMP   : %u",
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_ICMP]);
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ICMP]);
+	DP_PRINT_STATS("\t\t MGMT   : %u",
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_MGMT]);
 	DP_PRINT_STATS("\t\t Invalid Pkt id: %u",
 			tx_mon_be->dp_tx_pkt_cap_stats[0]);
 	DP_PRINT_STATS("\tPkt drop sw filter : %llu",
@@ -776,15 +778,17 @@ dp_get_pdev_tx_capture_stats_2_0(struct dp_pdev *pdev,
 	stats->ppdu_drop_sw_filter =
 				tx_mon_be->stats.ppdu_drop_sw_filter;
 	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ARP] =
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_ARP];
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ARP];
 	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_EAPOL] =
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_EAPOL];
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_EAPOL];
 	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DHCP] =
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_DHCP];
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DHCP];
 	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ICMP] =
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_ICMP];
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_ICMP];
 	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DNS] =
-			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_DNS];
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_DNS];
+	stats->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_MGMT] =
+			tx_mon_be->dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_MGMT];
 
 	return QDF_STATUS_SUCCESS;
 }
