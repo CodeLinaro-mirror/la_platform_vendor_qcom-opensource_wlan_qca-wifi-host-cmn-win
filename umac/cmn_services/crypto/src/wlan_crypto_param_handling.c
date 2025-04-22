@@ -239,6 +239,15 @@ QDF_STATUS wlan_crypto_set_key_mgmt(
 	return QDF_STATUS_SUCCESS;
 }
 
+QDF_STATUS wlan_crypto_set_rsne_key_mgmt(
+				struct wlan_crypto_params *crypto_params,
+				uint32_t value)
+{
+	crypto_params->rsne_key_mgmt = value;
+
+	return QDF_STATUS_SUCCESS;
+}
+
 int32_t wlan_crypto_get_key_mgmt(struct wlan_crypto_params *crypto_params)
 {
 	return crypto_params->key_mgmt;
