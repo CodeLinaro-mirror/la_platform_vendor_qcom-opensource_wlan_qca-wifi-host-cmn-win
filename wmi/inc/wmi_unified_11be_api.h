@@ -158,6 +158,14 @@ QDF_STATUS wmi_send_mlo_peer_tid_to_link_map_cmd(
 		bool t2lm_info);
 
 /**
+ * wmi_send_sawf_ezmesh_hop_count_cmd() - Send SAWF mesh command
+ * @wmi: WMI handle for this pdev
+ * @params: Pointer to SAWF mesh params
+ */
+QDF_STATUS wmi_send_sawf_ezmesh_hop_count_cmd(wmi_unified_t wmi,
+		struct wmi_host_sawf_ezmesh_hop_count_params *params);
+
+/**
  * wmi_send_mlo_vdev_tid_to_link_map_cmd() - send TID-to-link mapping command
  *                                           per vdev
  * @wmi: WMI handle for this pdev

@@ -71,6 +71,15 @@ QDF_STATUS wmi_send_mlo_peer_tid_to_link_map_cmd(
 	return QDF_STATUS_E_FAILURE;
 }
 
+QDF_STATUS wmi_send_sawf_ezmesh_hop_count_cmd(wmi_unified_t wmi,
+		struct wmi_host_sawf_ezmesh_hop_count_params *params)
+{
+	if (wmi->ops->send_sawf_ezmesh_hop_count)
+		return wmi->ops->send_sawf_ezmesh_hop_count(wmi, params);
+
+	return QDF_STATUS_E_FAILURE;
+}
+
 QDF_STATUS wmi_send_mlo_vdev_tid_to_link_map_cmd(
 		wmi_unified_t wmi,
 		struct wmi_host_tid_to_link_map_ap_params *params)
