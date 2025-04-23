@@ -2783,13 +2783,17 @@ qdf_freq_t wlan_reg_get_thresh_priority_freq(struct wlan_objmgr_pdev *pdev);
  * @psd: Power Spectral Density in dBm/MHz
  * @ch_bw: Bandwidth of a channel in MHz (20/40/80/160/320 etc)
  * @eirp:  EIRP power  in dBm
+ * @multiplier: Scale factor representing the unit of psd.
+ * Example:- If psd is in 1dBm/Mhz unit then this is 1.
+ * If psd is in 0.1dBm/Mhz unit then this is 10.
  *
  * Return: QDF_STATUS
  */
 QDF_STATUS wlan_reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 			       int16_t psd,
 			       uint16_t ch_bw,
-			       int16_t *eirp);
+			       int16_t *eirp,
+			       uint8_t multiplier);
 
 /**
  * wlan_reg_eirp_2_psd() - Calculate PSD poewr from EIRP and bandwidth
@@ -2863,7 +2867,8 @@ wlan_reg_get_best_pwr_mode(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
 static inline QDF_STATUS wlan_reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 					     int16_t psd,
 					     uint16_t ch_bw,
-					     int16_t *eirp)
+					     int16_t *eirp,
+					     uint8_t multiplier)
 {
 	return QDF_STATUS_E_FAILURE;
 }

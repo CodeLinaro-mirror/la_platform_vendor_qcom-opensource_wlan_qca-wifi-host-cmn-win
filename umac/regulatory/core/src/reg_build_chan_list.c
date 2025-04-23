@@ -6332,7 +6332,8 @@ static const struct bw_10log10_pair bw_to_10log10_map[] = {
 QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 			  int16_t psd,
 			  uint16_t ch_bw,
-			  int16_t *eirp)
+			  int16_t *eirp,
+			  uint8_t multiplier)
 {
 	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
 	int16_t ten_log10_bw;
@@ -6350,7 +6351,7 @@ QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 	num_bws = QDF_ARRAY_SIZE(bw_to_10log10_map);
 	for (i = 0; i < num_bws; i++) {
 		if (ch_bw == bw_to_10log10_map[i].bw) {
-			ten_log10_bw = bw_to_10log10_map[i].ten_l_ten;
+			ten_log10_bw = bw_to_10log10_map[i].ten_l_ten * multiplier;
 			*eirp = psd + ten_log10_bw;
 			return QDF_STATUS_SUCCESS;
 		}
@@ -6362,7 +6363,8 @@ QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 QDF_STATUS reg_eirp_2_psd(struct wlan_objmgr_pdev *pdev,
 			  uint16_t ch_bw,
 			  int16_t eirp,
-			  int16_t *psd)
+			  int16_t *psd,
+			  uint8_t multiplier)
 {
 	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
 	int16_t ten_log10_bw;
@@ -6380,7 +6382,7 @@ QDF_STATUS reg_eirp_2_psd(struct wlan_objmgr_pdev *pdev,
 	num_bws = QDF_ARRAY_SIZE(bw_to_10log10_map);
 	for (i = 0; i < num_bws; i++) {
 		if (ch_bw == bw_to_10log10_map[i].bw) {
-			ten_log10_bw = bw_to_10log10_map[i].ten_l_ten;
+			ten_log10_bw = bw_to_10log10_map[i].ten_l_ten * multiplier;
 			*psd = eirp - ten_log10_bw;
 			return QDF_STATUS_SUCCESS;
 		}
