@@ -72,16 +72,20 @@ dp_pdev_disable_mcopy_code(struct dp_pdev *pdev)
 static inline void
 dp_reset_mcopy_mode(struct dp_pdev *pdev)
 {
+	uint8_t mac_id = 0;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 	struct cdp_mon_ops *cdp_ops;
+	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
 
 	if (mon_pdev->mcopy_mode) {
 		cdp_ops = dp_mon_cdp_ops_get(pdev->soc);
 		if (cdp_ops  && cdp_ops->config_full_mon_mode)
 			cdp_ops->soc_config_full_mon_mode((struct cdp_pdev *)pdev,
 							  DP_FULL_MON_ENABLE);
+		qdf_spin_lock_bh(&mon_mac->mon_lock);
 		dp_pdev_disable_mcopy_code(pdev);
+		qdf_spin_unlock_bh(&mon_mac->mon_lock);
 		dp_mon_filter_reset_mcopy_mode(pdev);
 		status = dp_mon_filter_update(pdev);
 		if (status != QDF_STATUS_SUCCESS) {
@@ -128,7 +132,9 @@ dp_config_mcopy_mode(struct dp_pdev *pdev, int val)
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 			  FL("Failed to set M_copy mode filters"));
 		dp_mon_filter_reset_mcopy_mode(pdev);
+		qdf_spin_lock_bh(&mon_mac->mon_lock);
 		dp_pdev_disable_mcopy_code(pdev);
+		qdf_spin_unlock_bh(&mon_mac->mon_lock);
 		return status;
 	}
 

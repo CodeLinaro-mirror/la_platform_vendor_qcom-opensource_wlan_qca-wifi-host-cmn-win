@@ -1350,10 +1350,13 @@ dp_tx_handle_local_pkt_capture(struct dp_pdev *pdev, qdf_nbuf_t nbuf)
 	uint8_t mac_id = 0;
 	struct dp_mon_vdev *mon_vdev;
 	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
-	struct dp_vdev *mvdev = mon_mac->mvdev;
+	struct dp_vdev *mvdev = NULL;
 
+	qdf_spin_lock_bh(&mon_mac->mon_lock);
+	mvdev = mon_mac->mvdev;
 	if (!mvdev) {
 		dp_mon_err("Monitor vdev is NULL !!");
+		qdf_spin_unlock_bh(&mon_mac->mon_lock);
 		return 1;
 	}
 
@@ -1361,6 +1364,8 @@ dp_tx_handle_local_pkt_capture(struct dp_pdev *pdev, qdf_nbuf_t nbuf)
 
 	if (mon_vdev && mon_vdev->osif_rx_mon)
 		mon_vdev->osif_rx_mon(mvdev->osif_vdev, nbuf, NULL);
+
+	qdf_spin_unlock_bh(&mon_mac->mon_lock);
 
 	return 0;
 }
