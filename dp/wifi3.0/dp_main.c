@@ -4375,7 +4375,9 @@ void dp_soc_print_inactive_objects(struct dp_soc *soc)
 					       vdev, i, count);
 		}
 	}
+#ifndef GLOBAL_ASSERT_AVOIDANCE
 	QDF_BUG(0);
+#endif
 }
 
 /**
