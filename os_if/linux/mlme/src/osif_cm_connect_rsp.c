@@ -576,6 +576,46 @@ osif_fill_peer_mld_mac_connect_resp(struct wlan_objmgr_vdev *vdev,
 
 #ifdef ENABLE_CFG80211_BACKPORTS_MLO
 static void
+osif_populate_rejected_links_mlo_params(struct wlan_objmgr_vdev *vdev,
+				       struct wlan_cm_connect_resp *rsp,
+				       struct cfg80211_connect_resp_params *conn_rsp_params)
+{
+	struct mlo_link_info *rsp_partner_info;
+	struct cfg80211_bss *bss = NULL;
+	uint8_t link_id = 0, rejected_links;
+	int i;
+	struct wlan_objmgr_vdev *link_vdev;
+	struct wlan_channel *bss_chan;
+
+	rejected_links = rsp->ml_parnter_info.num_rejected_links;
+	for (i = 0 ; i < rejected_links; i++) {
+		rsp_partner_info = &rsp->ml_parnter_info.rejected_link_info[i];
+		link_id = rsp_partner_info->link_id;
+		link_vdev = mlo_get_vdev_by_link_id(vdev, link_id,
+						    WLAN_OSIF_CM_ID);
+
+		if (!link_vdev)
+			continue;
+
+		bss_chan = wlan_vdev_mlme_get_bss_chan(link_vdev);
+		rsp_partner_info->chan_freq = bss_chan->ch_freq;
+		bss = osif_get_chan_bss_from_kernel(vdev, rsp_partner_info, rsp);
+		if (!bss)
+			goto release_ref;
+
+		osif_populate_connect_response_for_link(vdev, conn_rsp_params,
+							link_id,
+							link_vdev->vdev_mlme.macaddr,
+							rsp_partner_info->link_status_code,
+							bss);
+
+		mlo_mlme_set_ieee_link_id(link_vdev);
+release_ref:
+		wlan_objmgr_vdev_release_ref(link_vdev, WLAN_OSIF_CM_ID);
+	}
+}
+
+static void
 osif_populate_partner_links_mlo_params(struct wlan_objmgr_vdev *vdev,
 				       struct wlan_cm_connect_resp *rsp,
 				       struct cfg80211_connect_resp_params *conn_rsp_params)
@@ -644,6 +684,7 @@ static void osif_fill_connect_resp_mlo_params(struct wlan_objmgr_vdev *vdev,
 	mlo_mlme_set_ieee_link_id(vdev);
 
 	osif_populate_partner_links_mlo_params(vdev, rsp, conn_rsp_params);
+	osif_populate_rejected_links_mlo_params(vdev, rsp, conn_rsp_params);
 }
 #else
 static void
