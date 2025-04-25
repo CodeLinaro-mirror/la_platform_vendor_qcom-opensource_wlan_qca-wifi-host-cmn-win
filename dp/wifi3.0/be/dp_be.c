@@ -1393,9 +1393,14 @@ dp_detach_vdev_list_in_mlo_dev_ctxt(struct dp_soc_be *be_soc,
 {
 	uint8_t pdev_id = vdev->pdev->pdev_id;
 
-	if (mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id] ==
-	    CDP_INVALID_VDEV_ID) {
-		return QDF_STATUS_E_INVAL;
+	if (vdev->is_bridge_vdev) {
+		if (mlo_dev_ctxt->bridge_vdev[be_soc->mlo_chip_id][pdev_id] ==
+		    CDP_INVALID_VDEV_ID)
+			return QDF_STATUS_E_INVAL;
+	} else {
+		if (mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id] ==
+		    CDP_INVALID_VDEV_ID)
+			return QDF_STATUS_E_INVAL;
 	}
 
 	qdf_spin_lock_bh(&mlo_dev_ctxt->vdev_list_lock);
