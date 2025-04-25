@@ -227,6 +227,9 @@ static QDF_STATUS wlan_crypto_set_param(struct wlan_crypto_params *crypto_params
 	case WLAN_CRYPTO_PARAM_KEY_MGMT:
 		status = wlan_crypto_set_key_mgmt(crypto_params, value);
 		break;
+	case WLAN_CRYPTO_PARAM_RSNE_KEY_MGMT:
+		status = wlan_crypto_set_rsne_key_mgmt(crypto_params, value);
+		break;
 	default:
 		status = QDF_STATUS_E_INVAL;
 	}

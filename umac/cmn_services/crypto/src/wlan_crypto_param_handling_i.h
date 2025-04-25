@@ -274,6 +274,20 @@ QDF_STATUS wlan_crypto_set_key_mgmt(struct wlan_crypto_params *crypto_params,
 					uint32_t ciphers);
 
 /**
+ * wlan_crypto_set_rsne_key_mgmt() - called from wlan_set_beacon_ies to configure
+ *                                        legacy RSNE key_mgmt in vdev
+ * @crypto_params: crypto parameters
+ * @ciphers: bitmap value of all supported AKMs in Legacy RSN IE
+ *
+ * This function gets called from wlan_set_beacon_ies to configure legacy RSNE
+ * AKMs in vdev. This field is set only for QDF_SAP_MODE
+ *
+ * Return: QDF_STATUS_SUCCESS - in case of success
+ */
+QDF_STATUS wlan_crypto_set_rsne_key_mgmt(struct wlan_crypto_params *crypto_params,
+					uint32_t ciphers);
+
+/**
  * wlan_crypto_get_key_mgmt() - called by ucfg to get key mgmt from vdev
  * @crypto_params: crypto parameters
  *
