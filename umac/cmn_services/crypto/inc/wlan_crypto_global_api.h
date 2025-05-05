@@ -226,6 +226,7 @@ QDF_STATUS wlan_crypto_encap(struct wlan_objmgr_vdev *vdev,
  * @wbuf: wbuf
  * @macaddr: macaddr
  * @tid: tid of the packet.
+ * action_frame_decrypt_error: indicate action frame decrypt error
  *
  * This function gets called from mgmt txrx to decap frame.
  *
@@ -234,7 +235,8 @@ QDF_STATUS wlan_crypto_encap(struct wlan_objmgr_vdev *vdev,
 QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 					qdf_nbuf_t wbuf,
 					uint8_t *macaddr,
-					uint8_t tid);
+					uint8_t tid,
+					bool action_frame_decrypt_error);
 
 /**
  * wlan_crypto_enmic() - called by mgmt for adding mic in frame based on cipher

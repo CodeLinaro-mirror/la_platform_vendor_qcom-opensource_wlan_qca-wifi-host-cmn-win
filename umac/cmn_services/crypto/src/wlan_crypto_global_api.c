@@ -1740,7 +1740,8 @@ qdf_export_symbol(wlan_crypto_encap);
 QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 				qdf_nbuf_t wbuf,
 				uint8_t *mac_addr,
-				uint8_t tid)
+				uint8_t tid,
+				bool action_frame_decrypt_error)
 {
 	struct wlan_crypto_comp_priv *crypto_priv;
 	struct wlan_crypto_params *crypto_params;
@@ -1753,6 +1754,7 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 	uint8_t keyid;
 	uint8_t pdev_id;
 	uint8_t hdrlen;
+	bool key_flag_override;
 	enum QDF_OPMODE opmode;
 
 	opmode = wlan_vdev_mlme_get_opmode(vdev);
@@ -1836,8 +1838,20 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 
 	/* if tkip, is counter measures enabled, then drop the frame */
 	cipher_table = (struct wlan_crypto_cipher *)key->cipher_table;
+	if (action_frame_decrypt_error &&
+			!(key->flags & WLAN_CRYPTO_KEY_SWDECRYPT)) {
+		crypto_info("SW Decrypt enabled for action frame\n");
+		key_flag_override = true;
+		key->flags |= WLAN_CRYPTO_KEY_SWDECRYPT ;
+	} else {
+		key_flag_override = false;
+	}
+
 	status = cipher_table->decap(key, wbuf, tid, hdrlen);
 
+	if (key_flag_override) {
+		key->flags &= (~WLAN_CRYPTO_KEY_SWDECRYPT);
+	}
 err:
 	if (peer)
 		wlan_objmgr_peer_release_ref(peer, WLAN_CRYPTO_ID);

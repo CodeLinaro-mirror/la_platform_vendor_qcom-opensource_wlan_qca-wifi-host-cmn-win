@@ -707,7 +707,8 @@ struct wlan_lmac_if_crypto_rx_ops {
 					uint8_t encapdone);
 	QDF_STATUS(*crypto_decap)(struct wlan_objmgr_vdev *vdev,
 					qdf_nbuf_t wbuf, uint8_t *macaddr,
-					uint8_t tid);
+					uint8_t tid,
+					bool action_frame_decrypt_error);
 	QDF_STATUS(*crypto_enmic)(struct wlan_objmgr_vdev *vdev,
 					qdf_nbuf_t wbuf, uint8_t *macaddr,
 					uint8_t encapdone);
