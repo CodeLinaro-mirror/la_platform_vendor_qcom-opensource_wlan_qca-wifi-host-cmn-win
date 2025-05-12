@@ -1532,6 +1532,7 @@ struct hal_hw_txrx_ops {
 
 	void (*hal_rx_get_pn)(hal_soc_handle_t hal_soc_hdl,
 			      void *hw_qdesc_vaddr, uint32_t *rx_pn_buf);
+	uint32_t (*hal_tcl_idle_get)(hal_soc_handle_t hal_soc_hdl);
 };
 
 /**
