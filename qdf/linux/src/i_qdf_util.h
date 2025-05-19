@@ -147,6 +147,12 @@ static inline void __qdf_bitmap_or(unsigned long *dst, unsigned long *src1,
 	bitmap_or(dst, src1, src2, nbits);
 }
 
+static inline void __qdf_bitmap_copy(unsigned long *dst, unsigned long *src,
+				     unsigned int nbits)
+{
+	bitmap_copy(dst, src, nbits);
+}
+
 /**
  * __qdf_set_macaddr_broadcast() - set a QDF MacAddress to the 'broadcast'
  * @mac_addr: pointer to the qdf MacAddress to set to broadcast

@@ -294,6 +294,17 @@ typedef __qdf_page_t qdf_page_t;
 #define qdf_bitmap_or(dst, src1, src2, nbits) \
 		__qdf_bitmap_or(dst, src1, src2, nbits)
 
+/**
+ * qdf_bitmap_copy() - Copy 'src' bitmap to 'dst' bitmap
+ * @dst: Destination buffer pointer
+ * @src: Source buffer pointer
+ * @nbits: Number of bits
+ *
+ * Return: void
+ */
+#define qdf_bitmap_copy(dst, src, nbits) \
+		__qdf_bitmap_copy(dst, src, nbits)
+
 #define qdf_wait_queue_interruptible(wait_queue, condition) \
 		__qdf_wait_queue_interruptible(wait_queue, condition)
 
