@@ -161,19 +161,22 @@ tgt_vdev_mgr_vdev_set_param_wrapper(struct vdev_mlme_obj *vdev_mlme,
 {
 	uint8_t id, count = 0;
 	bool is_mbss_enabled, is_cmn_param = 0;
-	unsigned long vdev_bmap = 0;
+	qdf_bitmap(vdev_bmap, WLAN_UMAC_PSOC_MAX_VDEVS);
 	struct wlan_objmgr_pdev *pdev;
 	struct vdev_mlme_mbss_11ax *mbss;
 	struct vdev_set_params param1 = {0};
 	struct multiple_vdev_set_param param2 = {0};
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 
+	qdf_bitmap_zero(vdev_bmap, WLAN_UMAC_PSOC_MAX_VDEVS);
+
 	mbss = &vdev_mlme->mgmt.mbss_11ax;
 	is_mbss_enabled = (mbss->mbssid_flags
 				& WLAN_VDEV_MLME_FLAGS_NON_MBSSID_AP) ? 0 : 1;
 
 	if (is_mbss_enabled) {
-		vdev_bmap = mbss->vdev_bmap;
+		qdf_bitmap_copy(vdev_bmap, mbss->vdev_bmap,
+				WLAN_UMAC_PSOC_MAX_VDEVS);
 		is_cmn_param = mbss->is_cmn_param;
 	}
 
@@ -196,15 +199,16 @@ tgt_vdev_mgr_vdev_set_param_wrapper(struct vdev_mlme_obj *vdev_mlme,
 		param2.param_id = param_id;
 		param2.param_value = mlme_cfg.value;
 
-		for (id = 0; id < WLAN_UMAC_PDEV_MAX_VDEVS; id++) {
-			if (qdf_test_bit(id, &vdev_bmap)) {
+		for (id = 0; (id < WLAN_UMAC_PSOC_MAX_VDEVS &&
+			      count < WLAN_UMAC_PDEV_MAX_VDEVS); id++) {
+			if (qdf_test_bit(id, vdev_bmap)) {
 				param2.vdev_ids[count] = id;
 				count++;
 			}
 		}
 		param2.num_vdevs = count;
 		status = tgt_vdev_mgr_multiple_vdev_set_param(pdev, &param2);
-		mbss->vdev_bmap = 0;
+		qdf_bitmap_zero(mbss->vdev_bmap, WLAN_UMAC_PSOC_MAX_VDEVS);
 	}
 
 	/* Reset the is_cmn_param for this vap */

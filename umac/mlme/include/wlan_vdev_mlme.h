@@ -606,7 +606,7 @@ struct vdev_mlme_mbss_11ax {
 	uint32_t profile_num;
 	uint32_t mbssid_flags;
 	uint8_t vdevid_trans;
-	unsigned long vdev_bmap;
+	qdf_bitmap(vdev_bmap, WLAN_UMAC_PSOC_MAX_VDEVS);
 	bool is_cmn_param;
 	uint8_t trans_bssid[QDF_MAC_ADDR_SIZE];
 	uint8_t non_trans_bssid[QDF_MAC_ADDR_SIZE];
