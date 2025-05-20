@@ -77,7 +77,8 @@ void htc_credit_history_init(void)
 	g_htc_credit_history_idx = 0;
 	g_htc_credit_history_length = 0;
 	qdf_minidump_log(&htc_credit_history_buffer,
-			 sizeof(htc_credit_history_buffer), "htc_credit");
+			 sizeof(htc_credit_history_buffer), "htc_credit",
+			 THIS_MODULE->name);
 	qdf_ssr_driver_dump_register_region("htc_credit",
 					    htc_credit_history_buffer,
 					    sizeof(htc_credit_history_buffer));

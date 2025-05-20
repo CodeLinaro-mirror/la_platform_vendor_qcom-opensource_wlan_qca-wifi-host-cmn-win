@@ -184,7 +184,7 @@ static void wmi_minidump_attach(struct wmi_unified *wmi_handle)
 		&wmi_handle->log_info.wmi_command_tx_cmp_log_buf_info;
 	uint32_t buf_size = info->size * sizeof(struct wmi_command_cmp_debug);
 
-	qdf_minidump_log(info->buf, buf_size, "wmi_tx_cmp");
+	qdf_minidump_log(info->buf, buf_size, "wmi_tx_cmp", THIS_MODULE->name);
 
 	qdf_ssr_driver_dump_register_region("wmi_tx_cmp", info->buf, buf_size);
 	qdf_ssr_driver_dump_register_region("wmi_tx_cmp_idx",

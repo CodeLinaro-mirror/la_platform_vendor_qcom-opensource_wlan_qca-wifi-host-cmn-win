@@ -2402,10 +2402,10 @@ static bool wlan_minidump_log_enabled(struct wlan_objmgr_psoc *psoc,
 }
 #endif
 
-void wlan_minidump_log(void *start_addr, const size_t size,
-		       void *psoc_obj,
-		       enum wlan_minidump_host_data type,
-		       const char *name)
+void wlan_minidump_log_actual(void *start_addr, const size_t size,
+			      void *psoc_obj,
+			      enum wlan_minidump_host_data type,
+			      const char *name, const char *module_name)
 {
 	struct wlan_objmgr_psoc *psoc;
 
@@ -2417,9 +2417,9 @@ void wlan_minidump_log(void *start_addr, const size_t size,
 	psoc = (struct wlan_objmgr_psoc *)psoc_obj;
 
 	if (psoc && wlan_minidump_log_enabled(psoc, type))
-		qdf_minidump_log(start_addr, size, name);
+		qdf_minidump_log(start_addr, size, name, module_name);
 }
-qdf_export_symbol(wlan_minidump_log);
+qdf_export_symbol(wlan_minidump_log_actual);
 
 void wlan_minidump_remove(void *start_addr, const size_t size,
 			  void *psoc_obj,

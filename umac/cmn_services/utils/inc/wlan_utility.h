@@ -1090,11 +1090,14 @@ enum wlan_minidump_host_data {
  * @psoc_obj: Psoc Object
  * @type: Type of data structure
  * @name: String to identify this entry
+ * @module_name: ko to which the file containing minidump API call belongs
  */
-void wlan_minidump_log(void *start_addr, const size_t size,
-		       void *psoc_obj,
-		       enum wlan_minidump_host_data type,
-		       const char *name);
+#define wlan_minidump_log(a, s, o, t, n) \
+	wlan_minidump_log_actual(a, s, o, t, n, THIS_MODULE->name)
+void wlan_minidump_log_actual(void *start_addr, const size_t size,
+			      void *psoc_obj,
+			      enum wlan_minidump_host_data type,
+			      const char *name, const char *module_name);
 
 /**
  * wlan_minidump_remove() - Remove memory address from  minidump

@@ -492,12 +492,16 @@ __qdf_minidump_deinit(void)
 {
 }
 
+#define minidump_crash_type (MINIDUMP_CRASH_TYPE_HOST | MINIDUMP_CRASH_TYPE_FW)
 static inline void
-__qdf_minidump_log(void *start_addr, size_t size, const char *name)
+__qdf_minidump_log(void *start_addr, size_t size, const char *name,
+		   const char *module_name)
 {
-	if (minidump_fill_segments((const uintptr_t)start_addr, size,
-				   QCA_WDT_LOG_DUMP_TYPE_WLAN_MOD,
-				   name) < 0)
+	if (minidump_add_segments((const uintptr_t)start_addr, size,
+				  QCA_WDT_LOG_DUMP_TYPE_MOD,
+				  name,
+				  minidump_crash_type,
+				  module_name) < 0)
 		QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_INFO,
 			"%s: failed to log %pK (%s)\n",
 			__func__, start_addr, name);
@@ -625,7 +629,8 @@ void __qdf_minidump_deinit(void)
 }
 
 static inline
-void __qdf_minidump_log(void *start_addr, size_t size, const char *name)
+void __qdf_minidump_log(void *start_addr, size_t size, const char *name,
+			const char *module_name)
 {
 }
 
