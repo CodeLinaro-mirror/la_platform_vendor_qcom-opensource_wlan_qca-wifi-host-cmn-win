@@ -201,7 +201,8 @@ void mlo_cleanup_asserted_soc_setup_info(struct wlan_objmgr_psoc *psoc,
 					 uint8_t grp_id)
 {
 	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
-	uint8_t link_idx;
+	uint8_t link_idx; /* link index */
+	uint8_t link_id;  /* link ID */
 	struct wlan_objmgr_pdev *pdev;
 	struct mlo_setup_info *setup_info;
 
@@ -234,8 +235,12 @@ void mlo_cleanup_asserted_soc_setup_info(struct wlan_objmgr_psoc *psoc,
 				setup_info->pdev_list[link_idx] = NULL;
 				setup_info->state[link_idx] = MLO_LINK_TEARDOWN;
 				setup_info->num_links--;
-				setup_info->valid_link_bitmap
-						&= ~(1 << link_idx);
+				link_id = wlan_mlo_get_pdev_hw_link_id(
+								pdev);
+				if (link_id != INVALID_HW_LINK_ID) {
+					setup_info->valid_link_bitmap
+						   &= ~(1 << link_id);
+				}
 			}
 		}
 	}
