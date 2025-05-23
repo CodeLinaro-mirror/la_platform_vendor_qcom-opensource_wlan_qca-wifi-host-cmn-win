@@ -1468,6 +1468,17 @@ bool utils_is_dfs_cfreq2_ch(struct wlan_objmgr_pdev *pdev)
 
 qdf_export_symbol(utils_is_dfs_cfreq2_ch);
 
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+bool utils_dfs_check_autorecovery(struct wlan_objmgr_pdev *pdev)
+{
+	if (global_dfs_to_mlme.mlme_check_autorecovery)
+		return global_dfs_to_mlme.mlme_check_autorecovery(pdev);
+
+	/* vap auto-recovery enabled by default */
+	return true;
+}
+#endif /* WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN */
+
 void utils_dfs_deliver_event(struct wlan_objmgr_pdev *pdev, uint16_t freq,
 			     enum WLAN_DFS_EVENTS event)
 {
