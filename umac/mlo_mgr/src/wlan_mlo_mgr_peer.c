@@ -1644,7 +1644,7 @@ QDF_STATUS wlan_mlo_peer_asreq(struct wlan_objmgr_vdev *vdev,
 	}
 
 	link_count = 0;
-	for (j = 0; j < ml_peer->max_links; j++) {
+	for (j = 0; j < MAX_MLO_LINK_PEERS; j++) {
 		peer_entry = &ml_peer->peer_list[j];
 		iter_peer = peer_entry->link_peer;
 		if (!iter_peer)
@@ -2031,7 +2031,7 @@ wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 	     !ml_dev->ap_ctx->mlo_link_reject) ||
 	     wlan_mlo_peer_is_nawds(ml_peer) ||
 	     wlan_mlo_peer_is_mesh(ml_peer))
-		mlo_peer_allocate_primary_umac(ml_dev, ml_peer, tmp_link_vdevs);
+		mlo_peer_allocate_primary_umac(ml_dev, ml_peer, tmp_link_vdevs, i);
 
 	wlan_ptqm_peer_migrate_ctx_alloc(ml_peer);
 
@@ -2537,6 +2537,8 @@ void wlan_mlo_peer_get_partner_links_info(struct wlan_objmgr_peer *peer,
 			ml_links->partner_link_info[ix].is_bridge =
 				(wlan_peer_get_peer_type(link_peer) ==
 				 WLAN_PEER_MLO_BRIDGE);
+			ml_links->partner_link_info[ix].is_primary =
+				peer_entry->is_primary;
 
 			qdf_copy_macaddr
 				(&ml_links->partner_link_info[ix].link_addr,
