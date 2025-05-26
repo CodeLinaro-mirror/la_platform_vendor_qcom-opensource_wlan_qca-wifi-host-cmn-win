@@ -294,7 +294,7 @@ QDF_STATUS wlan_green_ap_state_mc(struct wlan_pdev_green_ap_ctx *green_ap_ctx,
 
 				green_ap_info("Transition to ON from WAIT");
 				green_ap_tx_ops->ps_on_off_send(
-					green_ap_ctx->pdev, true, pdev_id);
+					green_ap_ctx->pdev, green_ap_ctx->ps_mode, pdev_id);
 				wlan_green_ap_ant_ps_reset(green_ap_ctx);
 
 				if (green_ap_ctx->ps_on_time)
