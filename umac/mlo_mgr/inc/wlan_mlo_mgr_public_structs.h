@@ -854,6 +854,7 @@ struct mlnawds_config {
  * @link_addr: link mac address
  * @link_id: link index
  * @is_bridge : Bridge peer or not
+ * @is_primary : Primary peer or not
  * @chan_freq: Operating channel frequency
  * @nawds_config: peer's NAWDS configurarion
  * @vdev_id: VDEV ID
@@ -868,6 +869,7 @@ struct mlo_link_info {
 	struct qdf_mac_addr link_addr;
 	uint8_t link_id;
 	bool is_bridge;
+	bool is_primary;
 	uint16_t chan_freq;
 #ifdef UMAC_SUPPORT_MLNAWDS
 	struct mlnawds_config nawds_config;
