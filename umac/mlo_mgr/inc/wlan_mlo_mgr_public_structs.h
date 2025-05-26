@@ -1483,6 +1483,20 @@ enum mlreconfig_operation_type {
 #endif
 
 #ifdef WLAN_MLO_SETUP_LINK_RECFG
+/*
+ * struct wlan_mlo_caps - MLO Capabilities
+ * @mld_cap: MLD capabilities of MLD
+ * @eml_cap: EML capabilities of MLD
+ * @extmld_cap: Extended MLD Capabilities
+ * @msd_cap: MSD capabilities of MLD
+ */
+struct wlan_mlo_caps {
+	struct wlan_mlo_mld_cap *mld_cap;
+	struct wlan_mlo_eml_cap *eml_cap;
+	struct wlan_mlo_extmld_cap *extmld_cap;
+	struct wlan_mlo_msd_cap *msd_cap;
+};
+
 /**
  * struct mlreconfig_setup_link_info - ml setup link information
  * @link_id: setup link id
