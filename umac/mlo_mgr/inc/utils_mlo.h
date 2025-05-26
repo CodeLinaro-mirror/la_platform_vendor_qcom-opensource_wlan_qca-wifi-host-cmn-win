@@ -545,6 +545,30 @@ util_get_rvmlie_mldcap(uint8_t *mlieseq, qdf_size_t mlieseqlen,
 		       bool *mldcapfound, uint16_t *mldcap);
 
 /**
+ * util_get_rvmlie_eml_cap() - Get the EML capabilities
+ * @mlieseq: Starting address of the Multi-Link element or Multi-Link element
+ * fragment sequence
+ * @mlieseqlen: Total length of the Multi-Link element or Multi-Link element
+ * fragment sequence
+ * @eml_cap_found: Pointer to the location where a boolean status should be
+ * updated indicating whether the EML cabalility was found or not. This should
+ * be ignored by the caller if the function returns error.
+ * @eml_cap: Pointer to the location where the EML capabilities should be
+ * updated. This should be ignored by the caller if the function indicates
+ * that the EML capability was not found.
+ *
+ * Get the EML capabilities from a given Reconfig variant Multi-Link element or
+ * element fragment sequence.
+ *
+ * Return: QDF_STATUS_SUCCESS in the case of success, QDF_STATUS value giving
+ * the reason for error in the case of failure
+ */
+QDF_STATUS
+util_get_rvmlie_eml_cap(uint8_t *mlieseq, qdf_size_t mlieseqlen,
+			bool *eml_cap_found,
+			uint16_t *eml_cap);
+
+/**
  * util_get_bvmlie_ext_mld_cap_op_info() - Get Ext MLD Capabilities and
  * operation
  * @mlie_seq: Starting address of the Multi-Link element or Multi-Link element
