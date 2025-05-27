@@ -135,6 +135,13 @@ target_if_vdev_mgr_mac_addr_rsp_timeout(struct wlan_objmgr_psoc *psoc,
 					   recovery_reason, rsp_pos);
 	wlan_objmgr_vdev_release_ref(vdev, WLAN_VDEV_TARGET_IF_ID);
 }
+#else
+static inline void
+target_if_vdev_mgr_mac_addr_rsp_timeout(struct wlan_objmgr_psoc *psoc,
+					struct vdev_response_timer *vdev_rsp,
+					uint8_t vdev_id)
+{
+}
 #endif
 
 #ifdef DP_UMAC_HW_RESET_SUPPORT
@@ -1266,6 +1273,7 @@ out:
 }
 #endif
 
+#if defined(WLAN_FEATURE_DYNAMIC_MAC_ADDR_UPDATE) || defined(ENABLE_CFG80211_BACKPORTS_MLO)
 static inline void
 target_if_register_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
 {
@@ -1280,6 +1288,17 @@ target_if_unregister_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
 	wmi_unified_unregister_event_handler(
 			wmi_handle, wmi_vdev_update_mac_addr_conf_eventid);
 }
+#else
+static inline void
+target_if_register_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
+{
+}
+
+static inline void
+target_if_unregister_set_mac_addr_evt_cbk(struct wmi_unified *wmi_handle)
+{
+}
+#endif
 
 #ifdef WLAN_FEATURE_11BE_MLO
 /**
