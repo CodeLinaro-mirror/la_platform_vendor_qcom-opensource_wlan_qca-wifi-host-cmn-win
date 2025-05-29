@@ -351,7 +351,7 @@ void dfs_mlme_restart_vaps_with_non_dfs_chan(struct wlan_objmgr_pdev *pdev,
 }
 #endif
 
-#if defined(WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN)
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
 bool dfs_mlme_check_allowed_prim_chanlist(struct wlan_objmgr_pdev *pdev,
 					  uint32_t chan_freq)
 {
@@ -360,6 +360,14 @@ bool dfs_mlme_check_allowed_prim_chanlist(struct wlan_objmgr_pdev *pdev,
 
 	return global_dfs_to_mlme.mlme_check_allowed_prim_chanlist(pdev,
 								   chan_freq);
+}
+
+bool dfs_mlme_check_autorecovery(struct wlan_objmgr_pdev *pdev)
+{
+	if (!global_dfs_to_mlme.mlme_check_autorecovery)
+		return true;
+
+	return global_dfs_to_mlme.mlme_check_autorecovery(pdev);
 }
 
 #endif
