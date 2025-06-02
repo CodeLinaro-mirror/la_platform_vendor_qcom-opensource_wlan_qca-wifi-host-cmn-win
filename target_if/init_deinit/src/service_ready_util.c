@@ -1117,7 +1117,9 @@ int init_deinit_populate_mac_phy_cap_ext2(wmi_unified_t wmi_handle,
 
 			mac_phy_cap->reg_cap_ext.wireless_modes |=
 				mac_phy_caps_ext2[phy_id].wireless_modes_ext;
-
+			mac_phy_caps_ext2->mldcap.link_reconfig_support =
+				wmi_service_enabled(wmi_handle,
+						    wmi_service_sta_mlo_rcfg_support);
 			mac_phy_count++;
 			phy_bit_map &= (phy_bit_map - 1);
 			phy_id++;

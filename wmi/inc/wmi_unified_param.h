@@ -6830,6 +6830,7 @@ typedef enum {
 	wmi_service_therm_throt_5_levels,
 	wmi_service_mrsno_support,
 	wmi_service_spectral_spur_bin_info_support,
+	wmi_service_sta_mlo_rcfg_support,
 
 	wmi_services_max,
 } wmi_conv_service_ids;
