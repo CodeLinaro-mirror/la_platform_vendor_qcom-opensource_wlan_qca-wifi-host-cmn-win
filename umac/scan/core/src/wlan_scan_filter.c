@@ -865,12 +865,19 @@ static bool scm_eht_puncture_valid(struct wlan_objmgr_pdev *pdev,
 	eht_ops = (struct wlan_ie_ehtops *)util_scan_entry_ehtop(db_entry);
 	if (!eht_ops)
 		return true;
+
+	if (eht_ops->elem_len < EHTOP_INFO_EHTOP_PARAM_IDX)
+		return true;
+
 	if (!QDF_GET_BITS(eht_ops->ehtop_param,
 			  EHTOP_INFO_PRESENT_IDX, EHTOP_INFO_PRESENT_BITS))
 		return true;
 	if (QDF_GET_BITS(eht_ops->ehtop_param,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_IDX,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_BITS)) {
+		if (eht_ops->elem_len < EHTOP_INFO_DISABLED_SUBCHAN_IDX)
+			return true;
+
 		orig_puncture_bitmap =
 		QDF_GET_BITS(eht_ops->disabled_sub_chan_bitmap[0],
 			     0, 8);
@@ -883,6 +890,9 @@ static bool scm_eht_puncture_valid(struct wlan_objmgr_pdev *pdev,
 	if (!orig_puncture_bitmap)
 		return true;
 
+	if (eht_ops->elem_len < EHTOP_INFO_CONTROL_IDX)
+		return true;
+
 	orig_width = QDF_GET_BITS(eht_ops->control,
 				  EHTOP_INFO_CHAN_WIDTH_IDX,
 				  EHTOP_INFO_CHAN_WIDTH_BITS);
@@ -892,6 +902,9 @@ static bool scm_eht_puncture_valid(struct wlan_objmgr_pdev *pdev,
 	/* Check if CCFS bits are present */
 	if (QDF_GET_BITS(eht_ops->ehtop_param,
 			 EHTOP_INFO_PRESENT_IDX, EHTOP_INFO_PRESENT_BITS)) {
+		if (eht_ops->elem_len < EHTOP_INFO_CFREQ1_IDX)
+			return true;
+
 		cfreq1 = wlan_reg_chan_band_to_freq(pdev,
 						    eht_ops->ccfs1,
 						    band_mask);
