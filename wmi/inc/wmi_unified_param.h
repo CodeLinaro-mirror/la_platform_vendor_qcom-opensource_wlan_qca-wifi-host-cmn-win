@@ -1273,7 +1273,7 @@ typedef struct {
 	uint32_t mac_addr47to32;
 } wmi_host_mac_addr;
 
-#ifdef WLAN_FEATURE_11BE
+#ifdef WLAN_FEATURE_11BE_MLO
 #ifdef WMI_AP_SUPPORT
 /**
  * struct wlan_host_preferred_links - Preferred link info.
@@ -1334,7 +1334,9 @@ struct wmi_host_tid_to_link_map_params {
 	struct wlan_host_preferred_links preferred_links;
 #endif
 };
+#endif /* WLAN_FEATURE_11BE_MLO */
 
+#ifdef WLAN_FEATURE_11BE
 /**
  * struct wmi_host_sawf_ezmesh_hop_count_params - Mesh SAWF params
  * @vdev_id: Vdev ID
@@ -1350,7 +1352,9 @@ struct wmi_host_sawf_ezmesh_hop_count_params {
 	uint8_t svc_id;
 	uint32_t delay_bound;
 };
+#endif /* WLAN_FEATURE_11BE */
 
+#ifdef WLAN_FEATURE_11BE_MLO
 /**
  * struct wmi_host_tid_to_link_map_ap_params - TID-to-link mapping params
  * @pdev_id: Pdev id
@@ -1402,9 +1406,6 @@ struct wmi_host_link_bss_params {
 	struct wlan_channel chan;
 };
 
-#endif /* WLAN_FEATURE_11BE */
-
-#ifdef WLAN_FEATURE_11BE_MLO
 /**
  * struct peer_assoc_mlo_params - MLO assoc params
  * @mlo_enabled: indicate is MLO enabled
@@ -1541,7 +1542,7 @@ struct peer_assoc_ml_partner_links {
 	uint8_t num_links;
 	struct ml_partner_info partner_info[WLAN_UMAC_MLO_MAX_VDEVS];
 };
-#endif
+#endif /* WLAN_FEATURE_11BE_MLO */
 /**
  * struct peer_assoc_params - peer assoc cmd parameter
  * @vdev_id: vdev id
