@@ -4386,7 +4386,8 @@ dp_primary_link_migration(struct dp_soc *soc, void *cb_ctxt,
 
 	if (pr_soc && pr_soc->cdp_soc.ol_ops->update_primary_link)
 		pr_soc->cdp_soc.ol_ops->update_primary_link(pr_soc->ctrl_psoc,
-						new_primary_peer->mac_addr.raw);
+						new_primary_peer->mac_addr.raw,
+						new_primary_peer->vdev->pdev->pdev_id);
 
 	primary_vdev_id = new_primary_peer->vdev->vdev_id;
 
