@@ -523,6 +523,7 @@ static QDF_STATUS vdev_mgr_start_param_update(
 						     des_chan->ch_cfreq2,
 						     puncture_bitmap,
 						     &is_dfs_chan_updated,
+						     vdev->is_user_punc ||
 						     vdev->is_prev_user_punc);
 
 		if (des_chan->ch_cfreq2)
