@@ -670,10 +670,12 @@ struct wlan_lmac_if_crypto_tx_ops {
 			       uint8_t *macaddr, uint32_t key_type);
 	QDF_STATUS (*setkey)(struct wlan_objmgr_vdev *vdev,
 			     struct wlan_crypto_key *key,
-			     uint8_t *macaddr, uint32_t key_type);
+			     uint8_t *macaddr, uint32_t key_type,
+			     bool skip_ni_assoc_id);
 	QDF_STATUS (*delkey)(struct wlan_objmgr_vdev *vdev,
 			     struct wlan_crypto_key *key,
-			     uint8_t *macaddr, uint32_t key_type);
+			     uint8_t *macaddr, uint32_t key_type,
+			     bool skip_ni_assoc_id);
 	QDF_STATUS (*defaultkey)(struct wlan_objmgr_vdev *vdev,
 				 uint8_t keyix, uint8_t *macaddr);
 	QDF_STATUS (*set_key)(struct wlan_objmgr_vdev *vdev,
