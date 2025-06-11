@@ -36,6 +36,7 @@
 #endif
 #include <wlan_dfs_utils_api.h>
 #include <cfg_scan.h>
+#include <wlan_reg_channel_api.h>
 
 QDF_STATUS
 scm_scan_free_scan_request_mem(struct scan_start_request *req)
@@ -1072,6 +1073,11 @@ scm_update_channel_list(struct scan_start_request *req,
 			continue;
 		}
 
+		if (!wlan_reg_is_4dot9G_freq_allowable(freq, req->scan_req.scan_f_quarter_rate,
+					        req->scan_req.scan_f_half_rate, pdev)) {
+			scm_nofl_debug("Skip freq %d", freq);
+			continue;
+		}
 		req->scan_req.chan_list.chan[num_scan_channels++] =
 			req->scan_req.chan_list.chan[i];
 	}
