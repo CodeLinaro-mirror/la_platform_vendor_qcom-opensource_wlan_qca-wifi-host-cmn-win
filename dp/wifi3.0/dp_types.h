@@ -3903,6 +3903,7 @@ struct dp_neighbour_peer {
  * @compltn_common_tlv: Successful tlv counter from COMPLTN COMMON tlv
  * @ack_ba_tlv: Successful tlv counter from ACK BA tlv
  * @done:
+ * @process_err: set to true if any failure in tlv process
  */
 struct ppdu_info {
 	uint32_t ppdu_id;
@@ -3928,6 +3929,7 @@ struct ppdu_info {
 	uint8_t compltn_common_tlv;
 	uint8_t ack_ba_tlv;
 	bool done;
+	bool process_err;
 };
 
 /**
