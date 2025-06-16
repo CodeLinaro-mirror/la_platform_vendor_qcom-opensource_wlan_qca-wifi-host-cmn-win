@@ -1865,12 +1865,15 @@ uint8_t wlan_vdev_get_peer_sta_count(struct wlan_objmgr_vdev *vdev)
 
 	wlan_vdev_obj_lock(vdev);
 	wlan_objmgr_for_each_vdev_peer(vdev, peer) {
-		wlan_objmgr_peer_get_ref(peer, WLAN_OBJMGR_ID);
-		if (wlan_peer_get_peer_type(peer) == WLAN_PEER_STA)
-			peer_count++;
+		if (wlan_objmgr_peer_try_get_ref(peer, WLAN_OBJMGR_ID) ==
+		    QDF_STATUS_SUCCESS) {
+			if (wlan_peer_get_peer_type(peer) == WLAN_PEER_STA)
+				peer_count++;
 
-		wlan_objmgr_peer_release_ref(peer, WLAN_OBJMGR_ID);
+			wlan_objmgr_peer_release_ref(peer, WLAN_OBJMGR_ID);
+		}
 	}
+
 	wlan_vdev_obj_unlock(vdev);
 
 	return peer_count;
