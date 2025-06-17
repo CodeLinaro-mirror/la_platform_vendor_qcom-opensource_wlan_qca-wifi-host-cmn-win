@@ -753,6 +753,7 @@ enum element_ie {
  * @WLAN_EXTN_ELEMID_EHTCAP: EHT Capabilities IE
  * @WLAN_EXTN_ELEMID_T2LM: TID-to-link mapping IE
  * @WLAN_EXTN_ELEMID_MULTI_LINK_TRAFFIC_IND: Multi-link Traffic Indication IE
+ * @WLAN_EXTN_ELEMID_MLO_LINK_INFO: MLO link info IE
  * @WLAN_EXTN_ELEMID_BW_IND: Bandwidth Indication Element Sub IE
  */
 enum extn_element_ie {
@@ -778,6 +779,7 @@ enum extn_element_ie {
 #endif
 	WLAN_EXTN_ELEMID_T2LM        = 109,
 	WLAN_EXTN_ELEMID_MULTI_LINK_TRAFFIC_IND = 110,
+	WLAN_EXTN_ELEMID_MLO_LINK_INFO = 133,
 #ifdef WLAN_FEATURE_11BE
 	WLAN_EXTN_ELEMID_BW_IND = 135,
 #endif
@@ -3206,6 +3208,23 @@ struct wlan_ie_multi_link_traffic_indication {
 	uint8_t elem_id_extn;
 	uint16_t ml_traffic_ind_control;
 	uint16_t per_link_traffic_ind_list[];
+} qdf_packed;
+
+/**
+ * struct wlan_ie_mlo_link_info - MLO link info element
+ * @elem_id: MLO link info element ID
+ * @elem_len: MLO link info IE length
+ * @elem_id_extn: MLO link info extension ID
+ * @link_id_bitmap: This field indicates the link that the intended STA
+ *                  affiliated with the peer MLD is operating on. A value of 1
+ *                  in bit position i of the Link ID Bitmap field indicates
+ *                  link ID i.
+ */
+struct wlan_ie_mlo_link_info {
+	uint8_t elem_id;
+	uint8_t elem_len;
+	uint8_t elem_id_extn;
+	uint16_t link_id_bitmap;
 } qdf_packed;
 
 /**
