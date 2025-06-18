@@ -37,6 +37,7 @@
 #include <wlan_mlo_mgr_peer.h>
 #include <qdf_module.h>
 #include <wlan_mlo_mgr_public_api.h>
+#include <wlan_dfs_ucfg_api.h>
 
 #ifdef WLAN_FEATURE_11BE_MLO
 static QDF_STATUS mlo_disconnect_req(struct wlan_objmgr_vdev *vdev,
@@ -1120,6 +1121,7 @@ static void mlo_send_link_connect(struct wlan_objmgr_vdev *vdev,
 	uint8_t j = 0;
 	struct wlan_mlo_dev_context *mlo_dev_ctx = vdev->mlo_dev_ctx;
 	struct mlo_partner_info *ml_parnter_info = &resp->ml_parnter_info;
+	int is_ap_cac_timer_running = 0;
 
 	if (!ml_parnter_info->num_partner_links) {
 		mlo_err("No partner info in connect resp");
@@ -1145,6 +1147,22 @@ static void mlo_send_link_connect(struct wlan_objmgr_vdev *vdev,
 					mlo_dev_ctx->wlan_vdev_list[i])) {
 					if (mlo_dev_ctx->wlan_vdev_list[i]->vdev_mlme.mlo_link_id
 						== ml_parnter_info->partner_link_info[j].link_id) {
+						/* Do not allow the connection if the 5GHz partner link pdev is
+						 * performing CAC.
+						 */
+
+						if (wlan_reg_is_5ghz_ch_freq (ml_parnter_info->partner_link_info[j].chan_freq)) {
+							ucfg_dfs_is_ap_cac_timer_running (wlan_vdev_get_pdev(mlo_dev_ctx->wlan_vdev_list[i]),
+								&is_ap_cac_timer_running);
+
+							if (is_ap_cac_timer_running) {
+								qdf_err("CAC is in progress for 5G partner link");
+								mlo_dev_lock_release(mlo_dev_ctx);
+								mlo_disconnect(vdev, CM_OSIF_DISCONNECT, REASON_STA_LEAVING, NULL);
+								return;
+							}
+						}
+
 						wlan_vdev_mlme_get_ssid(
 							vdev, ssid.ssid,
 							&ssid.length);

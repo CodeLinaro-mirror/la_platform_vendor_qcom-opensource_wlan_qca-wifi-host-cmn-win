@@ -3407,6 +3407,10 @@ QDF_STATUS (*send_mlo_peer_tid_to_link_map)(
 			struct wmi_host_tid_to_link_map_params *params,
 			bool t2lm_info);
 
+QDF_STATUS (*send_sawf_ezmesh_hop_count)(
+			wmi_unified_t wmi_handle,
+			struct wmi_host_sawf_ezmesh_hop_count_params *params);
+
 QDF_STATUS (*send_mlo_vdev_tid_to_link_map)(
 			wmi_unified_t wmi_handle,
 			struct wmi_host_tid_to_link_map_ap_params *params);
@@ -3651,8 +3655,7 @@ QDF_STATUS
 
 #ifdef WLAN_FEATURE_VBSS
 QDF_STATUS
-(*vbss_trigger_move_sta_send)(
-			wmi_unified_t wmi_handle,
+(*vbss_sta_action_send)(wmi_unified_t wmi_handle,
 			struct win_host_vbss_sta_context *vbss_sta_context);
 
 QDF_STATUS

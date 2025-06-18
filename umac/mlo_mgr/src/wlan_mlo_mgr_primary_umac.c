@@ -145,6 +145,8 @@ wlan_mld_get_best_primary_umac_w_rssi(struct wlan_mlo_peer_context *ml_peer,
 				      bool allow_all_links,
 				      const struct mlo_all_link_rssi *rssi_data)
 {
+	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+	struct wlan_objmgr_peer *assoc_peer = NULL;
 	uint8_t i;
 	int32_t avg_rssi[WLAN_OBJMGR_MAX_DEVICES] = {0};
 	int32_t diff_rssi[WLAN_OBJMGR_MAX_DEVICES] = {0};
@@ -167,6 +169,7 @@ wlan_mld_get_best_primary_umac_w_rssi(struct wlan_mlo_peer_context *ml_peer,
 	uint16_t group_size[WLAN_OBJMGR_MAX_DEVICES] = {0};
 	uint16_t grp_size = 0;
 	uint16_t group_full_count = 0;
+	struct wlan_mlo_link_peer_entry *peer_entry;
 
 	for (i = 0; i < rssi_data->num_psocs; i++) {
 		tqm_params = &rssi_data->psoc_tqm_parms[i];
@@ -282,6 +285,23 @@ wlan_mld_get_best_primary_umac_w_rssi(struct wlan_mlo_peer_context *ml_peer,
 					sec_hi_bw = mld_ch_width[i];
 					prim_link = i;
 				}
+			}
+		}
+
+		if (mlo_ctx && mlo_ctx->mlo_override_mlsr_ptqm) {
+			/*
+			 * Check if highest bandwidth is to be
+			 * forced for the given peer.
+			 */
+			peer_entry = &ml_peer->peer_list[0];
+			if (peer_entry->link_peer)
+				assoc_peer =
+					peer_entry->link_peer;
+
+			if (assoc_peer &&
+			    wlan_peer_mlme_flag_ext_get(assoc_peer,
+				WLAN_PEER_FEXT_PRIMARY_UMAC_HI)) {
+				prim_link = prim_link_hi;
 			}
 		}
 	} else {

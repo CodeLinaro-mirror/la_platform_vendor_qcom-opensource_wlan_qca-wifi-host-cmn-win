@@ -242,9 +242,7 @@ enum wsc_op_code {
 
 #define EHT_USER_INFO_LEN 4
 
-#if defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT)
 extern bool is_initial_mem_debug_disabled;
-#endif
 
 /**
  * typedef qdf_nbuf_queue_t - Platform independent packet queue abstraction
@@ -424,6 +422,7 @@ typedef __qdf_nbuf_queue_t qdf_nbuf_queue_t;
  * @mon_fcs_cap: monitor fcs capture
  * @snr_with_offsets: rssi_comb with other offsets added
  * @rssi_region_offset: RSSI region offset
+ * @dl_flags: flag will be set if radiotap update is for tx monitor
  */
 struct mon_rx_status {
 	uint64_t tsft;
@@ -551,6 +550,8 @@ struct mon_rx_status {
 	bool mon_fcs_cap;
 	int8_t snr_with_offsets;
 	int8_t rssi_region_offset;
+	bool rssi_dbm_support;
+	bool dl_flags;
 };
 
 /**

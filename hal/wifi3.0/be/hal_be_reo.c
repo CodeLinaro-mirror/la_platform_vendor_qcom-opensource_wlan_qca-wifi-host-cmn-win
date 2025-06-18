@@ -29,6 +29,21 @@ uint32_t hal_get_reo_reg_base_offset_be(void)
 	return REO_REG_REG_BASE;
 }
 
+void hal_reo_get_pn_be(hal_soc_handle_t hal_soc_hdl, void *hw_qdesc_vaddr,
+		       uint32_t *rx_pn_buf)
+{
+	struct rx_reo_queue *reo_qdesc =
+		(struct rx_reo_queue *)hw_qdesc_vaddr;
+
+	if (!rx_pn_buf || !reo_qdesc)
+		return;
+
+	rx_pn_buf[0] = reo_qdesc->pn_31_0;
+	rx_pn_buf[1] = reo_qdesc->pn_63_32;
+	rx_pn_buf[2] = reo_qdesc->pn_95_64;
+	rx_pn_buf[3] = reo_qdesc->pn_127_96;
+}
+
 void hal_reo_qdesc_setup_be(hal_soc_handle_t hal_soc_hdl, int tid,
 			    uint32_t ba_window_size,
 			    uint32_t start_seq, void *hw_qdesc_vaddr,

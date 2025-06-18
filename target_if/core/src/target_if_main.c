@@ -113,6 +113,8 @@
 
 #include <target_if_mlo_mgr.h>
 
+#include <wlan_mlo_mgr_peer.h>
+
 #ifdef WLAN_FEATURE_COAP
 #include <target_if_coap.h>
 #endif
@@ -1255,7 +1257,7 @@ static QDF_STATUS target_if_mlo_setup_send(struct wlan_objmgr_pdev *pdev,
 	wmi_unified_t wmi_handle;
 	struct wmi_mlo_setup_params params = {0};
 	uint8_t idx, num_valid_links = 0;
-	uint32_t max_num_ml_peers = 0;
+	uint16_t max_num_ml_peers = 0;
 
 	wmi_handle = lmac_get_pdev_wmi_handle(pdev);
 	if (!wmi_handle)
@@ -1300,6 +1302,8 @@ static QDF_STATUS target_if_mlo_setup_send(struct wlan_objmgr_pdev *pdev,
 	}
 	params.max_num_ml_peers = max_num_ml_peers;
 	params.num_valid_hw_links = num_valid_links;
+
+	wlan_mlo_ap_update_max_ml_peer_count(params.max_num_ml_peers);
 
 	return wmi_mlo_setup_cmd_send(wmi_handle, &params);
 }

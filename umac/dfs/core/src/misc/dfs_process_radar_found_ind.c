@@ -418,7 +418,7 @@ dfs_find_radar_affected_subchans_for_freq(struct wlan_dfs *dfs,
 	    dfs_get_bonding_channels_for_freq(dfs, curchan,
 					      radar_found->segment_id,
 					      radar_found->detector_id,
-					      cur_subchans);
+					      cur_subchans, false);
 
 	for (i = 0, num_radar_subchans = 0; i < DFS_NUM_FREQ_OFFSET; i++) {
 		candidate_subchan_freq = freq_offset.freq[i];
@@ -626,14 +626,18 @@ dfs_get_bonding_channel_without_seg_info_for_freq(struct dfs_channel *chan,
  * secondary segment.
  * @freq_list: Pointer to frequency list.
  * @nchannels: Number of subchannel.
+ * @isfull80p80: Flag to indicate if channels of both segments are to be added.
  */
 static void
 dfs_get_agile_subchans_for_curchan_160(struct wlan_dfs *dfs,
 				       uint16_t center_freq,
 				       uint32_t segment_id,
 				       uint16_t *freq_list,
-				       uint8_t *nchannels)
+				       uint8_t *nchannels,
+				       bool isfull80p80)
 {
+	uint16_t seg_cfreq;
+
 	if (dfs->dfs_precac_chwidth == CH_WIDTH_80MHZ) {
 		/*
 		 * The current operating channel is 160MHz and
@@ -655,6 +659,12 @@ dfs_get_agile_subchans_for_curchan_160(struct wlan_dfs *dfs,
 		/*
 		 * The current operating channel is 160MHz and the agile channel
 		 * is 165MHz(restricted 80P80MHZ). Pine ADFS specific.
+		 *
+		 * If isfull80p80 is true, then add the subchannels of both
+		 * segments - left 80MHz and right 80MHz.
+		 *
+		 * If isfull80p80 is false, then add the subchannels of the
+		 * segment that is infected with radar.
 		 * If the segment id is primary segment 0, shift the center
 		 * frequency 5730MHz to the center of left 80MHz segment 5690MHz
 		 * and add the subchannels of the left 80MHz segment.
@@ -662,12 +672,23 @@ dfs_get_agile_subchans_for_curchan_160(struct wlan_dfs *dfs,
 		 * frequency 5730MHz to the center of right 80MHz segment
 		 * 5775MHz and add the subchannels of the right 80MHz segment.
 		 */
-		*nchannels = 4;
-		center_freq = (segment_id) ?
-			(center_freq + DFS_165MHZ_SECOND_SEG_OFFSET_RIGHT) :
-			(center_freq - DFS_165MHZ_SECOND_SEG_OFFSET_LEFT);
-		dfs_get_80mhz_bonding_channels(center_freq,
-					       freq_list);
+		if (isfull80p80) {
+			seg_cfreq =
+				center_freq - DFS_165MHZ_SECOND_SEG_OFFSET_LEFT;
+			dfs_get_80mhz_bonding_channels(seg_cfreq,
+						       freq_list);
+			seg_cfreq =
+				center_freq + DFS_165MHZ_SECOND_SEG_OFFSET_RIGHT;
+			dfs_get_80mhz_bonding_channels(seg_cfreq,
+						       freq_list + 4);
+		} else {
+			*nchannels = 4;
+			center_freq = (segment_id) ?
+			    (center_freq + DFS_165MHZ_SECOND_SEG_OFFSET_RIGHT) :
+			    (center_freq - DFS_165MHZ_SECOND_SEG_OFFSET_LEFT);
+			dfs_get_80mhz_bonding_channels(center_freq,
+						       freq_list);
+		}
 	}
 }
 
@@ -678,12 +699,14 @@ dfs_get_agile_subchans_for_curchan_160(struct wlan_dfs *dfs,
  * @segment_id: Segment ID.
  * @detector_id: Detector ID.
  * @freq_list: Pointer to frequency list.
+ * @isfull80p80: Flag to indicate if channels of both segments are to be added.
  */
 uint8_t dfs_get_bonding_channels_for_freq(struct wlan_dfs *dfs,
 					  struct dfs_channel *curchan,
 					  uint32_t segment_id,
 					  uint8_t detector_id,
-					  uint16_t *freq_list)
+					  uint16_t *freq_list,
+					  bool isfull80p80)
 {
 	uint16_t center_freq;
 	uint8_t nchannels = 0;
@@ -721,7 +744,8 @@ uint8_t dfs_get_bonding_channels_for_freq(struct wlan_dfs *dfs,
 							       center_freq,
 							       segment_id,
 							       freq_list,
-							       &nchannels);
+							       &nchannels,
+							       isfull80p80);
 		else
 			dfs_get_160mhz_bonding_channels(center_freq, freq_list);
 	} else if (WLAN_IS_CHAN_MODE_320(curchan)) {
@@ -749,6 +773,12 @@ uint8_t dfs_get_bonding_channels_for_freq(struct wlan_dfs *dfs,
 			}
 		} else {
 			/*
+			 * If the flag 'isfull80p80' is set, then add the
+			 * subchannels of both segments - left 80MHz and right
+			 * 80MHz. If the flag is not set, then add the
+			 * subchannels of the segment that is infected with
+			 * radar.
+			 *
 			 * If the radar is getting detected in 80P80MHz home
 			 * channel, only the 80MHz segment that is infected with
 			 * radar is of interest. The other 80MHz segment is
@@ -756,8 +786,19 @@ uint8_t dfs_get_bonding_channels_for_freq(struct wlan_dfs *dfs,
 			 * segment is dfs_ch_mhz_freq_seg1 if primary and
 			 * dfs_ch_mhz_freq_seg2 in case of secondary.
 			 */
-			nchannels = 4;
-			dfs_get_80mhz_bonding_channels(center_freq, freq_list);
+			if (isfull80p80) {
+				nchannels = 8;
+				dfs_get_80mhz_bonding_channels(
+					curchan->dfs_ch_mhz_freq_seg1,
+					freq_list);
+				dfs_get_80mhz_bonding_channels(
+					curchan->dfs_ch_mhz_freq_seg2,
+					freq_list + 4);
+			} else {
+				nchannels = 4;
+				dfs_get_80mhz_bonding_channels(center_freq,
+							       freq_list);
+			}
 		}
 	}
 
@@ -954,10 +995,19 @@ dfs_find_radar_affected_channels(struct wlan_dfs *dfs,
 				 uint16_t *freq_list,
 				 uint32_t freq_center)
 {
-	uint8_t num_channels;
+	uint8_t num_channels = 0;
 
-	num_channels = dfs_find_radar_full_bw_channels(dfs, radar_found,
-						       freq_list);
+	if (radar_found->is_full_bw_nol) {
+		dfs_debug(dfs, WLAN_DEBUG_DFS,
+			  "Full BW Radar detected. Adding all channels to NOL");
+		num_channels = dfs_get_bonding_channels_for_freq
+			(dfs,
+			 dfs->dfs_curchan,
+			 radar_found->segment_id,
+			 radar_found->detector_id,
+			 freq_list, true);
+	}
+
 	if (num_channels)
 		return num_channels;
 
@@ -981,7 +1031,7 @@ dfs_find_radar_affected_channels(struct wlan_dfs *dfs,
 			 dfs->dfs_curchan,
 			 radar_found->segment_id,
 			 radar_found->detector_id,
-			 freq_list);
+			 freq_list, false);
 
 	return num_channels;
 }
@@ -1156,7 +1206,8 @@ dfs_process_radar_ind_on_home_chan(struct wlan_dfs *dfs,
 		dfs->dfs_use_puncture = 0;
 	}
 
-	if (dfs->dfs_use_puncture && !dfs->dfs_is_stadfs_enabled) {
+	if (dfs->dfs_use_puncture && !dfs->dfs_is_stadfs_enabled &&
+	    !radar_found->is_full_bw_nol) {
 		bool is_ignore_radar_puncture = false;
 
 		dfs_handle_radar_puncturing(dfs,

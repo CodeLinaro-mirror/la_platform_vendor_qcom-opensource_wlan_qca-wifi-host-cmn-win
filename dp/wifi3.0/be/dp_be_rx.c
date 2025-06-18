@@ -2911,6 +2911,17 @@ dp_rx_null_q_desc_handle_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
 		goto drop_nbuf;
 	}
 
+	if (qdf_likely(vdev->rx_decap_type == htt_cmn_pkt_type_ethernet) &&
+		    qdf_likely(!vdev->mesh_vdev)) {
+			/* Intrabss-fwd */
+			if (dp_rx_check_ap_bridge(vdev))
+				if (dp_rx_intrabss_fwd_be(soc, txrx_peer,
+							  rx_tlv_hdr,
+							  nbuf,
+							  link_id)) {
+					return QDF_STATUS_SUCCESS;
+				}
+		}
 	if (qdf_unlikely(vdev->rx_decap_type == htt_cmn_pkt_type_raw)) {
 		qdf_nbuf_set_raw_frame(nbuf, 1);
 		qdf_nbuf_set_next(nbuf, NULL);

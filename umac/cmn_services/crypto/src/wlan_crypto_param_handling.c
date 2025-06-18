@@ -169,6 +169,33 @@ QDF_STATUS wlan_crypto_set_rsn_cap(
 	return QDF_STATUS_SUCCESS;
 }
 
+QDF_STATUS wlan_crypto_set_rsno1_cap(
+				struct wlan_crypto_params *crypto_params,
+				uint32_t value)
+{
+	crypto_params->rsno1_caps = value;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS wlan_crypto_set_rsno2_cap(
+				struct wlan_crypto_params *crypto_params,
+				uint32_t value)
+{
+	crypto_params->rsno2_caps = value;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS wlan_crypto_set_rsnxo_cap(
+				struct wlan_crypto_params *crypto_params,
+				uint32_t value)
+{
+	crypto_params->rsnxo_caps = value;
+
+	return QDF_STATUS_SUCCESS;
+}
+
 QDF_STATUS wlan_crypto_set_rsnx_cap(
 				struct wlan_crypto_params *crypto_params,
 				uint32_t value)
@@ -183,11 +210,40 @@ int32_t wlan_crypto_get_rsn_cap(struct wlan_crypto_params *crypto_params)
 	return crypto_params->rsn_caps;
 }
 
+int32_t wlan_crypto_get_rsno1_cap(struct wlan_crypto_params *crypto_params)
+{
+	return crypto_params->rsno1_caps;
+}
+
+int32_t wlan_crypto_get_rsno2_cap(struct wlan_crypto_params *crypto_params)
+{
+	return crypto_params->rsno2_caps;
+}
+
+int32_t wlan_crypto_get_rsnxo_cap(struct wlan_crypto_params *crypto_params)
+{
+	return crypto_params->rsnxo_caps;
+}
+
+int32_t wlan_crypto_get_rsn_sel_variant(struct wlan_crypto_params *crypto_params)
+{
+	return crypto_params->rsn_sel_variant;
+}
+
 QDF_STATUS wlan_crypto_set_key_mgmt(
 				struct wlan_crypto_params *crypto_params,
 				uint32_t value)
 {
 	crypto_params->key_mgmt = value;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS wlan_crypto_set_rsne_key_mgmt(
+				struct wlan_crypto_params *crypto_params,
+				uint32_t value)
+{
+	crypto_params->rsne_key_mgmt = value;
 
 	return QDF_STATUS_SUCCESS;
 }
