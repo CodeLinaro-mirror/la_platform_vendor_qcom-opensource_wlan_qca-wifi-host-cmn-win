@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -10593,11 +10593,14 @@ void wmi_copy_resource_config(wmi_unified_t wmi_handle,
 	if (tgt_res_cfg->is_go_connected_d3wow_enabled)
 		WMI_RSRC_CFG_FLAGS2_IS_GO_CONNECTED_D3WOW_ENABLED_SET(
 			resource_cfg->flags2, 1);
-
 	if (tgt_res_cfg->sae_eapol_offload)
 		WMI_RSRC_CFG_HOST_SERVICE_FLAG_SAE_EAPOL_OFFLOAD_SUPPORT_SET(
 			resource_cfg->host_service_flags, 1);
-
+#ifdef QCA_WIFI_QCA5424
+	if (tgt_res_cfg->def_flow_override)
+		WMI_RSRC_CFG_HOST_SERVICE_FLAG_OPT_DP_ENABLE_BYPASS_FOR_HLOS_TID_OVERRIDE_SET(
+			resource_cfg->host_service_flags, 1);
+#endif
 	WMI_RSRC_CFG_HOST_SERVICE_FLAG_REG_CC_EXT_SUPPORT_SET(
 		resource_cfg->host_service_flags,
 		tgt_res_cfg->is_reg_cc_ext_event_supported);
@@ -23219,7 +23222,7 @@ pdev_power_boost_cmd_send_tlv(wmi_unified_t wmi_handle,
 
 #ifdef WLAN_FEATURE_VBSS
 static QDF_STATUS
-vbss_trigger_move_sta_send_tlv(
+vbss_sta_action_send_tlv(
 		wmi_unified_t wmi_handle,
 		struct win_host_vbss_sta_context *vbss_sta_context)
 {
@@ -23292,7 +23295,7 @@ vbss_set_sta_context_send_tlv(
 	/* Calculate the length of the buffer */
 	len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
 	len += sizeof(wmi_vdev_vbss_peer_pn_info);
-	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * WLAN_MAX_PER_PEER_SN_TIDS);
+	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * vbss_sta_context->num_sn_tids);
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -23336,12 +23339,12 @@ vbss_set_sta_context_send_tlv(
 	WMITLV_SET_HDR(
 		buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 		(sizeof(wmi_vdev_vbss_peer_sn_info) *
-		WLAN_MAX_PER_PEER_SN_TIDS));
+		vbss_sta_context->num_sn_tids));
 	buf_ptr += WMI_TLV_HDR_SIZE;
 
 	/* Fill SN info */
 	sn_info = (wmi_vdev_vbss_peer_sn_info *)buf_ptr;
-	for (i = 0; i < WLAN_MAX_PER_PEER_SN_TIDS; i++) {
+	for (i = 0; i < vbss_sta_context->num_sn_tids; i++) {
 		WMITLV_SET_HDR(&sn_info[i].tlv_header,
 			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_sn_info,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_sn_info));
@@ -23399,6 +23402,7 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	}
 
 	/* Parse SN info */
+	vbss_sta_context->num_sn_tids = param_buf->num_vbss_peer_sn_info;
 	sn_info = param_buf->vbss_peer_sn_info;
 	for (i = 0; i < param_buf->num_vbss_peer_sn_info; i++) {
 		vbss_sta_context->sn[i] = sn_info[i].tid_num;
@@ -23959,7 +23963,7 @@ struct wmi_ops tlv_ops =  {
 	.extract_pdev_power_boost_event = extract_pdev_power_boost_event_tlv,
 	.pdev_power_boost_cmd_send = pdev_power_boost_cmd_send_tlv,
 #ifdef WLAN_FEATURE_VBSS
-	.vbss_trigger_move_sta_send = vbss_trigger_move_sta_send_tlv,
+	.vbss_sta_action_send = vbss_sta_action_send_tlv,
 	.vbss_set_sta_context_send = vbss_set_sta_context_send_tlv,
 	.extract_vbss_sta_context = extract_vbss_sta_context_tlv,
 #endif /* WLAN_FEATURE_VBSS */

@@ -72,16 +72,20 @@ dp_pdev_disable_mcopy_code(struct dp_pdev *pdev)
 static inline void
 dp_reset_mcopy_mode(struct dp_pdev *pdev)
 {
+	uint8_t mac_id = 0;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 	struct cdp_mon_ops *cdp_ops;
+	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
 
 	if (mon_pdev->mcopy_mode) {
 		cdp_ops = dp_mon_cdp_ops_get(pdev->soc);
 		if (cdp_ops  && cdp_ops->config_full_mon_mode)
 			cdp_ops->soc_config_full_mon_mode((struct cdp_pdev *)pdev,
 							  DP_FULL_MON_ENABLE);
+		qdf_spin_lock_bh(&mon_mac->mon_lock);
 		dp_pdev_disable_mcopy_code(pdev);
+		qdf_spin_unlock_bh(&mon_mac->mon_lock);
 		dp_mon_filter_reset_mcopy_mode(pdev);
 		status = dp_mon_filter_update(pdev);
 		if (status != QDF_STATUS_SUCCESS) {
@@ -128,7 +132,9 @@ dp_config_mcopy_mode(struct dp_pdev *pdev, int val)
 		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
 			  FL("Failed to set M_copy mode filters"));
 		dp_mon_filter_reset_mcopy_mode(pdev);
+		qdf_spin_lock_bh(&mon_mac->mon_lock);
 		dp_pdev_disable_mcopy_code(pdev);
+		qdf_spin_unlock_bh(&mon_mac->mon_lock);
 		return status;
 	}
 
@@ -1194,14 +1200,6 @@ dp_set_hybrid_pktlog_enable(struct dp_pdev *pdev,
 	struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx;
 	struct dp_mon_ops *mon_ops = NULL;
 	uint16_t num_buffers;
-	uint8_t mac_id = 0;
-	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
-
-	/* Nothing needs to be done if monitor mode is
-	 * enabled
-	 */
-	if (mon_mac->mvdev)
-		return false;
 
 	mon_ops = dp_mon_ops_get(pdev->soc);
 	if (!mon_ops) {
@@ -1263,7 +1261,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 	uint8_t mac_id = 0;
 	struct dp_mon_ops *mon_ops;
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
-	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
 
 	soc = pdev->soc;
 	mon_ops = dp_mon_ops_get(soc);
@@ -1280,12 +1277,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 	if (enable) {
 		switch (event) {
 		case WDI_EVENT_RX_DESC:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_FULL)
 				break;
 
@@ -1305,17 +1296,10 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			break;
 
 		case WDI_EVENT_LITE_RX:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_LITE)
 				break;
 
 			mon_pdev->rx_pktlog_mode = DP_RX_PKTLOG_LITE;
-
 			/*
 			 * Set the packet log lite mode filter.
 			 */
@@ -1345,12 +1329,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			break;
 
 		case WDI_EVENT_RX_CBF:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_cbf)
 				break;
 
@@ -1359,7 +1337,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 			if (mon_ops->mon_vdev_set_monitor_mode_buf_rings)
 				mon_ops->mon_vdev_set_monitor_mode_buf_rings(
 					pdev);
-
 			/*
 			 * Set the packet log lite mode filter.
 			 */
@@ -1391,12 +1368,6 @@ int dp_set_pktlog_wifi3(struct dp_pdev *pdev, uint32_t event,
 		switch (event) {
 		case WDI_EVENT_RX_DESC:
 		case WDI_EVENT_LITE_RX:
-			/* Nothing needs to be done if monitor mode is
-			 * enabled
-			 */
-			if (mon_mac->mvdev)
-				return 0;
-
 			if (mon_pdev->rx_pktlog_mode == DP_RX_PKTLOG_DISABLED)
 				break;
 
@@ -2742,6 +2713,12 @@ dp_tx_rate_stats_update(struct dp_peer *peer,
 	mon_peer->stats.tx.nss_info = ppdu->nss;
 	mon_peer->stats.tx.mcs_info = ppdu->mcs;
 	mon_peer->stats.tx.preamble_info = ppdu->preamble;
+	mon_peer->stats.tx.tx_flags = 0;
+	mon_peer->stats.tx.tx_pwr = ppdu->tx_pwr;
+	/* Here gi value is 0 for legacy GI, so mark only HT SGI and above */
+	if (ppdu->gi)
+		mon_peer->stats.tx.tx_flags |= DP_RC_FLAG_SGI;
+	DP_MAP_BW_IDX_2_RC_FLAG(mon_peer->stats.tx.tx_flags, ppdu->bw);
 	if (peer->vdev) {
 		/*
 		 * In STA mode:
@@ -6923,6 +6900,12 @@ dp_mon_peer_get_stats_param(struct dp_peer *peer, enum cdp_peer_stats_type type,
 		break;
 	case cdp_peer_tx_ratecode:
 		buf->tx_ratecode = mon_peer->stats.tx.tx_ratecode;
+		break;
+	case cdp_peer_tx_flags:
+		buf->tx_flags = mon_peer->stats.tx.tx_flags;
+		break;
+	case cdp_peer_tx_power:
+		buf->tx_power = mon_peer->stats.tx.tx_pwr;
 		break;
 	case cdp_peer_rx_rate:
 		buf->rx_rate = mon_peer->stats.rx.rx_rate;

@@ -103,6 +103,8 @@ struct ptqm_migrate_peer_context;
 #define TAG_LEN_POS 1
 #define IDEXT_POS 2
 #define MIN_IE_LEN 2
+#define MIN_VENDOR_IE_LEN 4
+#define VENDOR_OUI_POS 2
 #define MULTI_LINK_CTRL_1 3
 #define MULTI_LINK_CTRL_2 4
 #define STA_CTRL_1 2
@@ -378,6 +380,8 @@ struct mlo_wsi_info {
  * @mlo_peer_id_bmap: bitmap to allocate MLO Peer ID
  * @max_mlo_peer_id: Max MLO Peer ID
  * @last_mlo_peer_id: Previously allocated ML peer ID
+ * @max_ml_peer_count: Max MLO peer count
+ * @ml_peer_count: ML peer count
  * @setup_info: Pointer to MLO setup_info of all groups
  * @total_grp: Total number of MLO groups
  * @dynamic_wsi_bypassed: Dynamic bypassed performed
@@ -407,6 +411,8 @@ struct mlo_mgr_context {
 	qdf_bitmap(mlo_peer_id_bmap, MAX_MLO_PEER_ID);
 	uint16_t max_mlo_peer_id;
 	uint16_t last_mlo_peer_id;
+	uint16_t max_ml_peer_count;
+	qdf_atomic_t ml_peer_count;
 #ifdef WLAN_MLO_MULTI_CHIP
 	struct mlo_setup_info *setup_info;
 	uint8_t total_grp;
@@ -421,6 +427,7 @@ struct mlo_mgr_context {
 #endif
 	struct ctxt_switch_mgr *msgq_ctx;
 	bool mlo_is_force_primary_umac;
+	bool mlo_override_mlsr_ptqm;
 	uint8_t mlo_forced_primary_umac_id;
 	bool force_non_assoc_prim_umac;
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
@@ -907,7 +914,9 @@ struct mlo_nstr_info {
  */
 struct mlo_partner_info {
 	uint8_t num_partner_links;
+	uint8_t num_rejected_links;
 	struct mlo_link_info partner_link_info[WLAN_MAX_ML_BSS_LINKS];
+	struct mlo_link_info rejected_link_info[WLAN_MAX_ML_BSS_LINKS];
 #ifdef WLAN_FEATURE_11BE
 	enum wlan_t2lm_enable t2lm_enable_val;
 	struct mlo_nstr_info nstr_info[WLAN_UMAC_MLO_MAX_VDEVS];

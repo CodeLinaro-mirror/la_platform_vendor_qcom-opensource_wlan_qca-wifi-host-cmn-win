@@ -46,17 +46,12 @@
 #endif
 
 #if defined(MEMORY_DEBUG) || defined(NBUF_MEMORY_DEBUG)
-static bool mem_debug_disabled;
+static bool mem_debug_disabled = true;
 qdf_declare_param(mem_debug_disabled, bool);
 #endif
 
-#if defined(NBUF_FRAG_MEMORY_DEBUG) || defined(QDF_NBUF_FRAG_GLOBAL_COUNT) || \
-    defined(NBUF_MEMORY_DEBUG) || defined(QDF_NBUF_GLOBAL_COUNT) || \
-    defined(MEMORY_DEBUG)
 bool is_initial_mem_debug_disabled;
-
 qdf_export_symbol(is_initial_mem_debug_disabled);
-#endif
 
 /* Preprocessor Definitions and Constants */
 #define QDF_MEM_MAX_MALLOC (4096 * 1024) /* 4 Mega Bytes */
@@ -1849,34 +1844,31 @@ void qdf_mem_multi_pages_alloc_debug(qdf_device_t osdev,
 
 	if (cacheable) {
 		/* Pages information storage */
-		pages->cacheable_pages = qdf_mem_malloc_debug(
-			pages->num_pages * sizeof(pages->cacheable_pages),
-			func, line, caller, 0);
+		pages->cacheable_pages = qdf_mem_malloc_no_debug(
+			pages->num_pages * sizeof(pages->cacheable_pages));
 		if (!pages->cacheable_pages)
 			goto out_fail;
 
 		cacheable_pages = pages->cacheable_pages;
 		for (page_idx = 0; page_idx < pages->num_pages; page_idx++) {
-			cacheable_pages[page_idx] = qdf_mem_malloc_debug(
-				pages->page_size, func, line, caller, 0);
+			cacheable_pages[page_idx] = qdf_mem_malloc_no_debug(
+				pages->page_size);
 			if (!cacheable_pages[page_idx])
 				goto page_alloc_fail;
 		}
 		pages->dma_pages = NULL;
 	} else {
-		pages->dma_pages = qdf_mem_malloc_debug(
-			pages->num_pages * sizeof(struct qdf_mem_dma_page_t),
-			func, line, caller, 0);
+		pages->dma_pages = qdf_mem_malloc_no_debug(
+			pages->num_pages * sizeof(struct qdf_mem_dma_page_t));
 		if (!pages->dma_pages)
 			goto out_fail;
 
 		dma_pages = pages->dma_pages;
 		for (page_idx = 0; page_idx < pages->num_pages; page_idx++) {
 			dma_pages->page_v_addr_start =
-				qdf_mem_alloc_consistent_debug(
+				qdf_mem_alloc_consistent_no_debug(
 					osdev, osdev->dev, pages->page_size,
-					&dma_pages->page_p_addr,
-					func, line, caller);
+					&dma_pages->page_p_addr);
 			if (!dma_pages->page_v_addr_start) {
 				qdf_print("dmaable page alloc fail pi %d",
 					  page_idx);
@@ -1893,19 +1885,18 @@ void qdf_mem_multi_pages_alloc_debug(qdf_device_t osdev,
 page_alloc_fail:
 	if (cacheable) {
 		for (i = 0; i < page_idx; i++)
-			qdf_mem_free_debug(pages->cacheable_pages[i],
-					   func, line);
-		qdf_mem_free_debug(pages->cacheable_pages, func, line);
+			qdf_mem_free_no_debug(pages->cacheable_pages[i]);
+		qdf_mem_free_no_debug(pages->cacheable_pages);
 	} else {
 		dma_pages = pages->dma_pages;
 		for (i = 0; i < page_idx; i++) {
-			qdf_mem_free_consistent_debug(
+			qdf_mem_free_consistent_no_debug(
 				osdev, osdev->dev,
 				pages->page_size, dma_pages->page_v_addr_start,
-				dma_pages->page_p_addr, memctxt, func, line);
+				dma_pages->page_p_addr, memctxt);
 			dma_pages++;
 		}
-		qdf_mem_free_debug(pages->dma_pages, func, line);
+		qdf_mem_free_no_debug(pages->dma_pages);
 	}
 
 out_fail:
@@ -1929,19 +1920,18 @@ void qdf_mem_multi_pages_free_debug(qdf_device_t osdev,
 
 	if (cacheable) {
 		for (page_idx = 0; page_idx < pages->num_pages; page_idx++)
-			qdf_mem_free_debug(pages->cacheable_pages[page_idx],
-					   func, line);
-		qdf_mem_free_debug(pages->cacheable_pages, func, line);
+			qdf_mem_free_no_debug(pages->cacheable_pages[page_idx]);
+		qdf_mem_free_no_debug(pages->cacheable_pages);
 	} else {
 		dma_pages = pages->dma_pages;
 		for (page_idx = 0; page_idx < pages->num_pages; page_idx++) {
-			qdf_mem_free_consistent_debug(
+			qdf_mem_free_consistent_no_debug(
 				osdev, osdev->dev, pages->page_size,
 				dma_pages->page_v_addr_start,
-				dma_pages->page_p_addr, memctxt, func, line);
+				dma_pages->page_p_addr, memctxt);
 			dma_pages++;
 		}
-		qdf_mem_free_debug(pages->dma_pages, func, line);
+		qdf_mem_free_no_debug(pages->dma_pages);
 	}
 
 	pages->cacheable_pages = NULL;
@@ -1952,7 +1942,10 @@ void qdf_mem_multi_pages_free_debug(qdf_device_t osdev,
 qdf_export_symbol(qdf_mem_multi_pages_free_debug);
 
 #else
-static void qdf_mem_debug_init(void) {}
+static void qdf_mem_debug_init(void)
+{
+	is_initial_mem_debug_disabled = 1;
+}
 
 static void qdf_mem_debug_exit(void) {}
 

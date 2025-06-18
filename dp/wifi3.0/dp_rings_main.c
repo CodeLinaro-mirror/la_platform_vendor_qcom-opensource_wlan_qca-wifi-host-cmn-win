@@ -4577,6 +4577,7 @@ void dp_soc_cfg_attach(struct dp_soc *soc)
 	case TARGET_TYPE_QCN9160:
 		wlan_cfg_set_tso_desc_attach_defer(soc->wlan_cfg_ctx, 1);
 		soc->wlan_cfg_ctx->rxdma1_enable = 0;
+		soc->rssi_dbm_support = true;
 		break;
 	case TARGET_TYPE_QCN9000:
 		wlan_cfg_set_tso_desc_attach_defer(soc->wlan_cfg_ctx, 1);

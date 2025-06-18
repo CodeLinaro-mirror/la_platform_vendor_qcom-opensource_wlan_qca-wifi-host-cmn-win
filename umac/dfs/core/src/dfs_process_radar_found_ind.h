@@ -278,6 +278,8 @@ void dfs_radarfound_action_generic(struct wlan_dfs *dfs, uint8_t seg_id);
  * @detector_id: Detector id, used to find if radar is detected on
  *               Agile detector.
  * @freq_list:   Pointer to save radar affected channel's frequency.
+ * @isfull80p80: Flag to indicate if subchannels of both segment are to be
+ *               included.
  *
  * Return: Number of channels.
  */
@@ -286,7 +288,8 @@ uint8_t dfs_get_bonding_channels_for_freq(struct wlan_dfs *dfs,
 					  struct dfs_channel *curchan,
 					  uint32_t segment_id,
 					  uint8_t detector_id,
-					  uint16_t *freq_list);
+					  uint16_t *freq_list,
+					  bool isfull80p80);
 
 /**
  * dfs_compute_radar_found_cfreq(): Computes the centre frequency of the

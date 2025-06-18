@@ -35,9 +35,7 @@
 static qdf_atomic_t frag_count;
 #endif
 
-#if defined(NBUF_FRAG_MEMORY_DEBUG) || defined(QDF_NBUF_FRAG_GLOBAL_COUNT)
 extern bool is_initial_mem_debug_disabled;
-#endif
 
 #ifdef QDF_NBUF_FRAG_GLOBAL_COUNT
 

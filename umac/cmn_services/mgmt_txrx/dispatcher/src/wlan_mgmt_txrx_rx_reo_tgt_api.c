@@ -440,3 +440,9 @@ tgt_mgmt_rx_reo_schedule_delivery(struct wlan_objmgr_psoc *psoc)
 
 	return mgmt_rx_reo_txops->schedule_delivery(psoc);
 }
+
+QDF_STATUS
+tgt_mgmt_rx_reo_flush_list(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev)
+{
+	return wlan_mgmt_rx_reo_flush_list(mlo_grp_id, pdev);
+}

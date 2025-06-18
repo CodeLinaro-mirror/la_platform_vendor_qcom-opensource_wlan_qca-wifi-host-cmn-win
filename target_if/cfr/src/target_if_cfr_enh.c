@@ -486,24 +486,24 @@ static void dump_metadata(struct csi_cfr_header *header, uint32_t cookie)
  *
  * Return: none
  */
-static void dump_enh_dma_hdr(struct whal_cfir_enhanced_hdr *dma_hdr,
+static void dump_enh_dma_hdr(struct whal_cfir_enhanced_hdr_v3 *dma_hdr,
 			     void *freeze_tlv, void *mu_rx_user_info,
 			     struct csi_cfr_header *header, int error,
 			     uint32_t cookie)
 {
 	if (!error) {
-		if (dma_hdr->header_version == UPLOAD_HEADER_VERSION_9) {
+		if (dma_hdr->header_version == UPLOAD_HEADER_VERSION_2) {
 			cfr_debug("<DBRCOMP><%u>\n"
 				  "Tag: 0x%02x Length: %d udone: %d\n"
 				  "ctype: %d preamble: %d Nss: %d\n"
 				  "num_chains: %d bw: %d peervalid: %d\n"
 				  "peer_id: %d ppdu_id: 0x%04x\n"
 				  "total_bytes: %d header_version: %d\n"
-				  "target_id: %d cfr_fmt: %d\n"
+				  "target_id: %d cfr_fmt: %d cir_fmt: %d\n"
 				  "mu_rx_data_incl: %d freeze_data_incl: %d\n"
 				  "mu_rx_num_users: %d decimation_factor: %d\n"
-				  "freeze_tlv_version: %d\n"
-				  "he_ltf_type: %u ext_preamble_type = %u\n",
+				  "freeze_tlv_version: %d he_ltf_type: %u\n"
+				  "ext_preamble_type: %u rsvd2: %u\n",
 				  cookie,
 				  dma_hdr->tag,
 				  dma_hdr->length,
@@ -520,13 +520,15 @@ static void dump_enh_dma_hdr(struct whal_cfir_enhanced_hdr *dma_hdr,
 				  dma_hdr->header_version,
 				  dma_hdr->target_id,
 				  dma_hdr->cfr_fmt,
+				  dma_hdr->cir_fmt,
 				  dma_hdr->mu_rx_data_incl,
 				  dma_hdr->freeze_data_incl,
 				  dma_hdr->mu_rx_num_users,
 				  dma_hdr->decimation_factor,
 				  dma_hdr->freeze_tlv_version,
-				  dma_hdr->rsvd3,
-				  dma_hdr->rsvd4);
+				  dma_hdr->he_ltf_type,
+				  dma_hdr->ext_preamble_type,
+				  dma_hdr->rsvd2);
 		} else if (dma_hdr->header_version == UPLOAD_HEADER_VERSION_3) {
 			cfr_debug("<DBRCOMP><%u>\n"
 				  "Tag: 0x%02x Length: %d udone: %d\n"
@@ -538,7 +540,7 @@ static void dump_enh_dma_hdr(struct whal_cfir_enhanced_hdr *dma_hdr,
 				  "mu_rx_data_incl: %d freeze_data_incl: %d\n"
 				  "mu_rx_num_users: %d decimation_factor: %d\n"
 				  "freeze_tlv_version: %d\n"
-				  "he_ltf_type: %u ext_preamble_type = %u\n"
+				  "he_ltf_type: %u ext_preamble_type: %u\n"
 				  "rsvd2: %d  amplitude_gain_ratio_0_3: %u\n"
 				  "rescale_amt_shift: pri80: %d  sec80: %d\n"
 				  "cgim_status: %d  cgim_filter: %d  phy_mode: %d\n"
@@ -1455,6 +1457,19 @@ static uint8_t freeze_reason_to_capture_type(void *freeze_tlv)
 }
 
 #ifdef DIRECT_BUF_RX_ENABLE
+static uint8_t get_cfr_enhc_hdr_len(uint8_t *data)
+{
+	uint8_t hdr_len;
+	struct whal_cfir_enhanced_hdr_v2 dma_hdr = {0};
+
+	hdr_len = sizeof(struct whal_cfir_enhanced_hdr_v2);
+	qdf_mem_copy(&dma_hdr, &data[0], hdr_len);
+
+	if (dma_hdr.header_version == UPLOAD_HEADER_VERSION_3)
+		hdr_len += sizeof(struct cfr_enhc_be_specific_hdr);
+
+	return hdr_len;
+}
 /**
  * enh_cfr_dbr_event_handler() - Process DBR event for CFR data DMA completion
  * @pdev: PDEV object
@@ -1467,7 +1482,7 @@ static bool enh_cfr_dbr_event_handler(struct wlan_objmgr_pdev *pdev,
 {
 	uint8_t *data = NULL;
 	uint32_t cookie = 0;
-	struct whal_cfir_enhanced_hdr dma_hdr = {0};
+	struct whal_cfir_enhanced_hdr_v3 dma_hdr = {0};
 	int  length, status = 0;
 	struct wlan_objmgr_psoc *psoc;
 	struct pdev_cfr *pcfr;
@@ -1479,6 +1494,7 @@ static bool enh_cfr_dbr_event_handler(struct wlan_objmgr_pdev *pdev,
 	struct wlan_lmac_if_cfr_rx_ops *cfr_rx_ops = NULL;
 	struct enh_cfr_metadata *meta = NULL;
 	struct wlan_lmac_if_rx_ops *rx_ops;
+	uint8_t dma_hdr_len;
 
 	if ((!pdev) || (!payload)) {
 		cfr_err("pdev or payload is null");
@@ -1511,11 +1527,11 @@ static bool enh_cfr_dbr_event_handler(struct wlan_objmgr_pdev *pdev,
 	cfr_debug("<DBRCOMP><%u>:bufferaddr: 0x%pK cookie: %u\n", cookie,
 		  (void *)((uintptr_t)payload->paddr), cookie);
 
-	qdf_mem_copy(&dma_hdr, &data[0],
-		     sizeof(struct whal_cfir_enhanced_hdr));
+	dma_hdr_len = get_cfr_enhc_hdr_len(data);
+	qdf_mem_copy(&dma_hdr, &data[0], dma_hdr_len);
 
 	if (dma_hdr.freeze_data_incl) {
-		freeze_tlv = data + sizeof(struct whal_cfir_enhanced_hdr);
+		freeze_tlv = data + dma_hdr_len;
 		capture_type = freeze_reason_to_capture_type(freeze_tlv);
 	}
 
@@ -1533,8 +1549,7 @@ static bool enh_cfr_dbr_event_handler(struct wlan_objmgr_pdev *pdev,
 			freeze_tlv_len =
 				sizeof(struct macrx_freeze_capture_channel);
 		}
-		mu_rx_user_info = data +
-			sizeof(struct whal_cfir_enhanced_hdr) +
+		mu_rx_user_info = data + dma_hdr_len +
 			(dma_hdr.freeze_data_incl ? freeze_tlv_len : 0);
 	}
 

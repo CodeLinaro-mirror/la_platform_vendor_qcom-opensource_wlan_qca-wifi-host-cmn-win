@@ -9744,7 +9744,7 @@ reg_get_eirp_from_psd_and_reg_max_eirp(struct wlan_objmgr_pdev *pdev,
 	int16_t eirp_from_psd = 0, psd = 0;
 
 	reg_get_6g_chan_psd_eirp_power(freq, mas_chan_list, &psd);
-	reg_psd_2_eirp(pdev, psd, bw, &eirp_from_psd);
+	reg_psd_2_eirp(pdev, psd, bw, &eirp_from_psd, 1);
 	*reg_eirp_pwr = QDF_MIN(*reg_eirp_pwr, eirp_from_psd);
 }
 
@@ -10053,6 +10053,7 @@ reg_get_sp_eirp_for_punc_chans(struct wlan_objmgr_pdev *pdev,
 	struct wlan_objmgr_psoc *psoc;
 	QDF_STATUS status;
 	int16_t min_eirp_pwr = 0;
+	uint8_t multiplier = is_twice_power ? 10 : 1;
 
 	psoc = wlan_pdev_get_psoc(pdev);
 
@@ -10076,19 +10077,22 @@ reg_get_sp_eirp_for_punc_chans(struct wlan_objmgr_pdev *pdev,
 
 	non_punc_bw = reg_find_non_punctured_bw(bw, in_punc_pattern);
 
-	if (reg_psd_2_eirp(pdev, min_psd, non_punc_bw, &afc_eirp_pwr) !=
+	reg_sp_eirp_pwr *= multiplier;
+
+	if (reg_psd_2_eirp(pdev, min_psd, non_punc_bw, &afc_eirp_pwr, multiplier) !=
 	    QDF_STATUS_SUCCESS) {
 		reg_debug("Could not derive EIRP power for width %u, min_psd: %d\n", non_punc_bw, min_psd);
 		return 0;
 	}
 
 	reg_debug("freq = %u, bw: %u, cen320: %u, punc_pattern: 0x%x "
-		  "reg_sp_eirp: %d, min_psd: %d, non_punc_bw: %u, afc_eirp_pwr: %d\n",
+		  "reg_sp_eirp: %d, min_psd: %d, non_punc_bw: %u, afc_eirp_pwr: %d "
+		  "reg_sp_eirp, min_psd and afc_eirp_pwr are scaled by a factor of %d\n",
 		  freq, bw, cen320, in_punc_pattern, reg_sp_eirp_pwr, min_psd,
-		  non_punc_bw, afc_eirp_pwr);
+		  non_punc_bw, afc_eirp_pwr, multiplier);
 
 	if (is_client_list_lookup_needed)
-		min_eirp_pwr = QDF_MIN(afc_eirp_pwr - SP_AP_AND_CLIENT_POWER_DIFF_IN_DBM,
+		min_eirp_pwr = QDF_MIN(afc_eirp_pwr - SP_AP_AND_CLIENT_POWER_DIFF_IN_DBM * multiplier,
 				       reg_sp_eirp_pwr);
 	else if (afc_eirp_pwr)
 		min_eirp_pwr = QDF_MIN(afc_eirp_pwr, reg_sp_eirp_pwr);
@@ -10096,7 +10100,7 @@ reg_get_sp_eirp_for_punc_chans(struct wlan_objmgr_pdev *pdev,
 	if (is_twice_power)
 		min_eirp_pwr *= 2;
 
-	return min_eirp_pwr;
+	return min_eirp_pwr / multiplier;
 }
 
 /**

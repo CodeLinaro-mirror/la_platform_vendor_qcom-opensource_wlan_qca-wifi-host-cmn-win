@@ -65,6 +65,8 @@
 #define DFS_MAX_NUM_160_SUBCHAN                 8
 
 #define DFS_MAX_NUM_240_SUBCHAN                 12
+
+#define DFS_MAX_NUM_40_SUBCHAN                   2
 /* Frequency difference between 80+80 MHz */
 #define DFS_80P80M_FREQ_DIFF                    40
 

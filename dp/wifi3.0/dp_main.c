@@ -4375,7 +4375,9 @@ void dp_soc_print_inactive_objects(struct dp_soc *soc)
 					       vdev, i, count);
 		}
 	}
+#ifndef GLOBAL_ASSERT_AVOIDANCE
 	QDF_BUG(0);
+#endif
 }
 
 /**
@@ -9595,6 +9597,11 @@ dp_set_vdev_param(struct cdp_soc_t *cdp_soc, uint8_t vdev_id,
 		return QDF_STATUS_E_FAILURE;
 
 	switch (param) {
+#ifdef WLAN_FEATURE_VBSS
+	case CDP_ENABLE_VBSS:
+		vdev->vbss_vdev = val.cdp_vdev_param_vbss;
+		break;
+#endif
 	case CDP_ENABLE_WDS:
 		dp_cdp_err("%pK: wds_enable %d for vdev(%pK) id(%d)",
 			   dsoc, val.cdp_vdev_param_wds, vdev, vdev->vdev_id);
@@ -13659,6 +13666,11 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 	.get_per_ring_pkt_avg = dp_rx_get_per_ring_pkt_avg,
 	.get_ext_grp_id_from_reo_num = dp_soc_get_ext_grp_id_from_reo_num,
 #endif
+
+#ifdef WLAN_FEATURE_VBSS
+	.txrx_get_peer_roam_ctxt = dp_peer_get_roam_ctxt,
+	.txrx_set_peer_roam_ctxt = dp_peer_set_roam_ctxt,
+#endif
 };
 
 static struct cdp_ctrl_ops dp_ops_ctrl = {
@@ -15576,6 +15588,8 @@ QDF_STATUS dp_wds_ext_set_peer_rx(ol_txrx_soc_handle soc,
 	}
 
 	if (rx) {
+		txrx_peer->wds_ext.osif_peer = osif_peer;
+
 		if (txrx_peer->osif_rx) {
 			status = QDF_STATUS_E_ALREADY;
 		} else {
@@ -15589,9 +15603,10 @@ QDF_STATUS dp_wds_ext_set_peer_rx(ol_txrx_soc_handle soc,
 		} else {
 			status = QDF_STATUS_E_ALREADY;
 		}
+
+		txrx_peer->wds_ext.osif_peer = osif_peer;
 	}
 
-	txrx_peer->wds_ext.osif_peer = osif_peer;
 	dp_peer_unref_delete(peer, DP_MOD_ID_CDP);
 
 	return status;

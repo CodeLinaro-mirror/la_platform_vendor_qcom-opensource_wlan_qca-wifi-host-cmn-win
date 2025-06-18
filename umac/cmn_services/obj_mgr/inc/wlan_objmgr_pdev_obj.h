@@ -212,6 +212,7 @@ struct wlan_beacon_process {
  * @max_peer_count:    Max Peer count
  * @temp_peer_count:   Temporary peer count
  * @max_num_ml_peers:  Max ML Peer Count
+ * @ml_peer_count:     ML peer count
  * @max_monitor_vdev_count: Max monitor vdev count
  * @max_bridge_vdev_count: Max bridge vdev count
  * @wlan_psoc:         back pointer to PSOC, its attached to
@@ -230,7 +231,10 @@ struct wlan_objmgr_pdev_objmgr {
 	uint16_t wlan_peer_count;
 	uint16_t max_peer_count;
 	uint16_t temp_peer_count;
-	uint32_t max_num_ml_peers;
+#ifdef WLAN_FEATURE_11BE_MLO
+	uint16_t max_num_ml_peers;
+	qdf_atomic_t ml_peer_count;
+#endif
 	uint8_t max_monitor_vdev_count;
 	uint8_t max_bridge_vdev_count;
 	struct wlan_objmgr_psoc *wlan_psoc;
@@ -949,7 +953,7 @@ uint16_t
 wlan_pdev_get_connected_peer_count(struct wlan_objmgr_pdev *pdev);
 
 
-
+#ifdef WLAN_FEATURE_11BE_MLO
 /**
  * wlan_pdev_set_max_num_ml_peers() - Set PDEV Max ML Peers from PSOC Cap
  * @pdev: PDEV Object
@@ -963,7 +967,7 @@ static inline
 QDF_STATUS wlan_pdev_set_max_num_ml_peers(struct wlan_objmgr_pdev *pdev,
 					  uint32_t max_psoc_num_ml_peers)
 {
-	pdev->pdev_objmgr.max_num_ml_peers = max_psoc_num_ml_peers;
+	pdev->pdev_objmgr.max_num_ml_peers = (uint16_t)max_psoc_num_ml_peers;
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -985,6 +989,7 @@ static inline uint32_t wlan_pdev_get_max_num_ml_peers(
 
 	return pdev_objmgr->max_num_ml_peers;
 }
+#endif
 
 /**
  * DOC: Examples to use PDEV ref count APIs
@@ -1561,6 +1566,32 @@ void wlan_pdev_dec_mlo_bridge_vdev_count(struct wlan_objmgr_pdev *pdev)
 
 	qdf_atomic_dec(&pdev->pdev_objmgr.wlan_mlo_bridge_vdev_count);
 }
+
+/**
+ * wlan_objmgr_pdev_init_ml_peer_count() - initialize ml_peer_count
+ * @pdev: pdev object pointer
+ *
+ * Return: void
+ */
+static inline void
+wlan_objmgr_pdev_init_ml_peer_count(struct wlan_objmgr_pdev *pdev)
+{
+	qdf_atomic_init(&pdev->pdev_objmgr.ml_peer_count);
+}
+
+/**
+ * wlan_pdev_get_ml_peer_count() - get pdev ML peer count
+ * @pdev: PDEV object
+ *
+ * API to get ML peer count for PDEV
+ *
+ * Return: pdev's current ML peer count
+ */
+static inline
+uint16_t wlan_pdev_get_ml_peer_count(struct wlan_objmgr_pdev *pdev)
+{
+	return qdf_atomic_read(&pdev->pdev_objmgr.ml_peer_count);
+}
 #else
 static inline
 void wlan_pdev_init_mlo_vdev_count(struct wlan_objmgr_pdev *pdev)
@@ -1602,6 +1633,17 @@ void wlan_pdev_inc_mlo_bridge_vdev_count(struct wlan_objmgr_pdev *pdev)
 static inline
 void wlan_pdev_dec_mlo_bridge_vdev_count(struct wlan_objmgr_pdev *pdev)
 {
+}
+
+static inline void
+wlan_objmgr_pdev_init_ml_peer_count(struct wlan_objmgr_pdev *pdev)
+{
+}
+
+static inline
+uint16_t wlan_pdev_get_ml_peer_count(struct wlan_objmgr_pdev *pdev)
+{
+	return 0;
 }
 #endif /* WLAN_FEATURE_11BE_MLO */
 

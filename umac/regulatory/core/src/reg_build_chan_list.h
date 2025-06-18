@@ -205,13 +205,17 @@ uint8_t reg_get_subchannels_for_opclass(uint8_t cfi,
  * @psd: Power Spectral Density in dBm/MHz
  * @ch_bw: Bandwdith of a channel in MHz (20/40/80/160/320 etc)
  * @eirp:  EIRP power  in dBm
+ * @multiplier: Scale factor representing the unit of psd.
+ * Example:- If psd is in 1dBm/Mhz unit then this is 1.
+ * If psd is in 0.1dBm/Mhz unit then this is 10.
  *
  * Return: QDF_STATUS
  */
 QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 			  int16_t psd,
 			  uint16_t ch_bw,
-			  int16_t *eirp);
+			  int16_t *eirp,
+			  uint8_t multiplier);
 
 /**
  * reg_eirp_2_psd() - Calculate PSD from EIRP and bandwidth
@@ -220,13 +224,16 @@ QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
  * @ch_bw: Bandwdith of a channel in MHz (20/40/80/160/320 etc)
  * @eirp:  EIRP power  in dBm
  * @psd: Power Spectral Density in dBm/MHz
+ * @multiplier: Scale factor representing the unit of EIRP. Can be used in
+ * future if scaling is required for EIRP
  *
  * Return: QDF_STATUS
  */
 QDF_STATUS reg_eirp_2_psd(struct wlan_objmgr_pdev *pdev,
 			  uint16_t ch_bw,
 			  int16_t eirp,
-			  int16_t *psd);
+			  int16_t *psd,
+			  uint8_t multiplier);
 
 /**
  * reg_is_supp_pwr_mode_invalid() - Is 6 GHz power mode invalid
@@ -324,7 +331,8 @@ reg_get_subchannels_for_opclass(uint8_t cfi,
 static inline QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 					int16_t psd,
 					uint16_t ch_bw,
-					int16_t *eirp)
+					int16_t *eirp,
+					uint8_t multiplier)
 {
 	return QDF_STATUS_E_FAILURE;
 }
@@ -332,7 +340,8 @@ static inline QDF_STATUS reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 static inline QDF_STATUS reg_eirp_2_psd(struct wlan_objmgr_pdev *pdev,
 					uint16_t ch_bw,
 					int16_t eirp,
-					int16_t *psd)
+					int16_t *psd,
+					uint8_t multiplier)
 {
 	return QDF_STATUS_E_FAILURE;
 }

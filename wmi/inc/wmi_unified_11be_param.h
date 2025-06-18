@@ -36,7 +36,7 @@ struct wmi_mlo_setup_params {
 	uint32_t pdev_id;
 	uint8_t num_valid_hw_links;
 	uint32_t partner_links[MAX_LINK_IN_MLO];
-	uint32_t max_num_ml_peers;
+	uint16_t max_num_ml_peers;
 };
 
 /** struct wmi_mlo_ready_params - MLO ready command params

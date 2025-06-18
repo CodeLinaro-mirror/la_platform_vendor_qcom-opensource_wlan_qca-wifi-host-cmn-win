@@ -1449,11 +1449,13 @@ dp_rx_mon_process_ppdu_info(struct dp_pdev *pdev,
  */
 void dp_rx_mon_process_ppdu(void *context)
 {
+	uint8_t mac_id = 0;
 	struct dp_pdev *pdev = (struct dp_pdev *)context;
 	struct dp_mon_pdev *mon_pdev;
 	struct hal_rx_ppdu_info *ppdu_info = NULL;
 	struct hal_rx_ppdu_info *temp_ppdu_info = NULL;
 	struct dp_mon_pdev_be *mon_pdev_be;
+	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, mac_id);
 
 	if (qdf_unlikely(!pdev)) {
 		dp_mon_debug("Pdev is NULL");
@@ -1468,6 +1470,7 @@ void dp_rx_mon_process_ppdu(void *context)
 
 	mon_pdev_be = dp_get_be_mon_pdev_from_dp_mon_pdev(mon_pdev);
 
+	qdf_spin_lock_bh(&mon_mac->mon_lock);
 	qdf_spin_lock_bh(&mon_pdev_be->rx_mon_wq_lock);
 	TAILQ_FOREACH_SAFE(ppdu_info,
 			   &mon_pdev_be->rx_mon_queue,
@@ -1480,6 +1483,7 @@ void dp_rx_mon_process_ppdu(void *context)
 		__dp_rx_mon_free_ppdu_info(mon_pdev, ppdu_info);
 	}
 	qdf_spin_unlock_bh(&mon_pdev_be->rx_mon_wq_lock);
+	qdf_spin_unlock_bh(&mon_mac->mon_lock);
 }
 
 /**
