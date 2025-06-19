@@ -2086,9 +2086,22 @@ struct subelem_header {
 #define EHTOP_RX_MCS_NSS_MAP_BITS                      4
 #define EHTOP_TX_MCS_NSS_MAP_IDX                       4
 #define EHTOP_TX_MCS_NSS_MAP_BITS                      4
-#define EHTOP_INFO_MAX_LEN			       11
-#define EHTOP_INFO_CONTROL_IDX			       7
-#define EHTOP_INFO_CFREQ0_IDX			       9
+#define EHTOP_INFO_EHTOP_PARAM_IDX \
+	(offsetof(struct wlan_ie_ehtops, ehtop_param) + \
+	 sizeof_field(struct wlan_ie_ehtops, ehtop_param) - \
+	 WLAN_IE_HDR_LEN)
+#define EHTOP_INFO_CONTROL_IDX \
+	(offsetof(struct wlan_ie_ehtops, control) + \
+	 sizeof_field(struct wlan_ie_ehtops, control) - \
+	 WLAN_IE_HDR_LEN)
+#define EHTOP_INFO_CFREQ1_IDX \
+	(offsetof(struct wlan_ie_ehtops, ccfs1) + \
+	 sizeof_field(struct wlan_ie_ehtops, ccfs1) - \
+	 WLAN_IE_HDR_LEN)
+#define EHTOP_INFO_DISABLED_SUBCHAN_IDX \
+	(offsetof(struct wlan_ie_ehtops, disabled_sub_chan_bitmap) + \
+	 sizeof_field(struct wlan_ie_ehtops, disabled_sub_chan_bitmap) - \
+	 WLAN_IE_HDR_LEN)
 
 #define MAX_EHT_MCS_NSS_MAP_LEN 9
 
