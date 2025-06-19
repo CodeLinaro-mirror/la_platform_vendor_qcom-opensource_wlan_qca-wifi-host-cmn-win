@@ -196,6 +196,10 @@ void register_dfs_callbacks(void)
 		mlme_dfs_update_scan_channel_list;
 	tmp_dfs_to_mlme->mlme_bringdown_vaps =
 		mlme_dfs_bringdown_vaps;
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+	tmp_dfs_to_mlme->mlme_check_autorecovery =
+		mlme_dfs_check_autorecovery;
+#endif
 	tmp_dfs_to_mlme->mlme_dfs_deliver_event =
 		mlme_dfs_deliver_event;
 	tmp_dfs_to_mlme->mlme_dfs_alloc_nol = mlme_dfs_alloc_nol;

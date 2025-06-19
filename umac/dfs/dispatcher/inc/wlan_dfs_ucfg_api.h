@@ -71,6 +71,8 @@
  * @mlme_update_scan_channel_list:     Update the scan channel list sent to FW.
  * @mlme_bringdown_vaps:               Bringdown vaps if no chans is present.
  * @mlme_dfs_deliver_event:            Deliver DFS events to user space
+ * @mlme_check_autorecovery:           Indicates whether the vap is enabled to
+ *                                     restart automatically after NOL expiry.
  * @mlme_dfs_alloc_nol:                Allocate a persistent memory for DFS NOL.
  * @mlme_dfs_get_cc:                   Get current country code.
  * @mlme_is_inter_band_chan_switch_allowed: Check if switch between 5 GHz and
@@ -210,6 +212,9 @@ struct dfs_to_mlme {
 			(struct wlan_objmgr_pdev *pdev,
 			 uint16_t freq,
 			 enum WLAN_DFS_EVENTS event);
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+	bool (*mlme_check_autorecovery)(struct wlan_objmgr_pdev *pdev);
+#endif
 	void (*mlme_dfs_alloc_nol)
 			(struct wlan_objmgr_pdev *pdev,
 			 struct dfsreq_nolinfo **dfs_mm_nolinfo);

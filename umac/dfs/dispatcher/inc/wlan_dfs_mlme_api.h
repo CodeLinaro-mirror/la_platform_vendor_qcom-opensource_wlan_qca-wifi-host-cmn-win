@@ -309,9 +309,16 @@ void dfs_mlme_restart_vaps_with_non_dfs_chan(struct wlan_objmgr_pdev *pdev,
  * @pdev: Pointer to DFS pdev object.
  * @chan_freq: Channel frequency
  */
-#if defined(WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN)
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
 bool dfs_mlme_check_allowed_prim_chanlist(struct wlan_objmgr_pdev *pdev,
 					  uint32_t chan_freq);
+
+/**
+ * dfs_mlme_check_autorecovery() - Determine whether a vap may automatically
+ * restart after the NOL period expires for DFS channels.
+ * @pdev: Pointer to DFS pdev object.
+ */
+bool dfs_mlme_check_autorecovery(struct wlan_objmgr_pdev *pdev);
 
 #else
 static inline
@@ -320,7 +327,7 @@ bool dfs_mlme_check_allowed_prim_chanlist(struct wlan_objmgr_pdev *pdev,
 {
 	return true;
 }
-#endif
+#endif /* WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN */
 
 /**
  * dfs_mlme_handle_dfs_scan_violation() - Handle scan start failure
