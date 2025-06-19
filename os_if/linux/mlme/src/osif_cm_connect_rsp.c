@@ -1388,6 +1388,13 @@ static void osif_indcate_connect_results(struct wlan_objmgr_vdev *vdev,
 						    rsp->bssid.bytes,
 						    rsp->ssid.ssid,
 						    rsp->ssid.length);
+			if (!bss) {
+				osif_debug("wiphy=%p chan=%p bssid=%pM ssid=%s ssid_len=%d freq=%d",
+					wiphy, chan, rsp->bssid.bytes,
+					rsp->ssid.ssid, rsp->ssid.length, rsp->freq);
+				bss = wlan_cfg80211_get_bss(wiphy, chan,
+							rsp->bssid.bytes, NULL, 0);
+			}
 		}
 		if (osif_update_connect_results(netdev, bss,
 						rsp, vdev))
@@ -1411,6 +1418,13 @@ static void osif_indcate_connect_results(struct wlan_objmgr_vdev *vdev,
 						    macaddr.bytes,
 						    rsp->ssid.ssid,
 						    rsp->ssid.length);
+			if (!bss) {
+				osif_debug("MLO wiphy=%p chan=%p bssid=%pM ssid=%s ssid_len=%d freq=%d",
+					wiphy, chan, rsp->bssid.bytes, rsp->ssid.ssid,
+					rsp->ssid.length, rsp->freq);
+				bss = wlan_cfg80211_get_bss(wiphy, chan,
+							macaddr.bytes, NULL, 0);
+			}
 		}
 		qdf_mem_copy(resp.bssid.bytes, macaddr.bytes,
 			     QDF_MAC_ADDR_SIZE);
