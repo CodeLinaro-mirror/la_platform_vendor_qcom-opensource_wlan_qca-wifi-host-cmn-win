@@ -885,6 +885,15 @@ void utils_dfs_deliver_event(struct wlan_objmgr_pdev *pdev, uint16_t freq,
 			     enum WLAN_DFS_EVENTS event);
 
 /**
+ * utils_dfs_check_autorecovery() - Determine whether VAP should restart
+ * automatically after NOL time period expires.
+ * @pdev: Pointer to DFS pdev object
+ */
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+bool utils_dfs_check_autorecovery(struct wlan_objmgr_pdev *pdev);
+#endif
+
+/**
  * utils_dfs_reset_dfs_prevchan() - Reset DFS previous channel structure.
  * @pdev: Pointer to DFS pdev object.
  *

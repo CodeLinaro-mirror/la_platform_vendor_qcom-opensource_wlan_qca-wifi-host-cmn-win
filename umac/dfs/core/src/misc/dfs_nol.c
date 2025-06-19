@@ -173,6 +173,9 @@ dfs_remove_from_nol(qdf_hrtimer_data_t *arg)
 	uint16_t delchwidth;
 	uint8_t chan;
 	struct dfs_nolelem *nol_arg;
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+	bool is_autorecovery_enabled;
+#endif
 
 	nol_arg = container_of(arg, struct dfs_nolelem, nol_timer);
 	dfs = nol_arg->nol_dfs;
@@ -191,7 +194,15 @@ dfs_remove_from_nol(qdf_hrtimer_data_t *arg)
 	/* Update the wireless stack with the new NOL. */
 	dfs_nol_update(dfs);
 
-	dfs_mlme_nol_timeout_notification(dfs->dfs_pdev_obj);
+	/* Determine whether the VAP should be brought back up automatically
+	 * after the Non-Occupancy List (NOL) window expires.
+	 */
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+	is_autorecovery_enabled = utils_dfs_check_autorecovery(dfs->dfs_pdev_obj);
+
+	if (is_autorecovery_enabled)
+#endif
+		dfs_mlme_nol_timeout_notification(dfs->dfs_pdev_obj);
 	chan = utils_dfs_freq_to_chan(delfreq);
 	utils_dfs_deliver_event(dfs->dfs_pdev_obj, delfreq,
 				WLAN_EV_NOL_FINISHED);
@@ -213,8 +224,14 @@ dfs_remove_from_nol(qdf_hrtimer_data_t *arg)
 	 * without posting Start event to Agile SM. That will be taken care
 	 * of, after VAP start.
 	 */
-	if (dfs_switch_to_postnol_chan_if_nol_expired(dfs))
-		return QDF_HRTIMER_NORESTART;
+
+#if WLAN_SUPPORT_PRIMARY_ALLOWED_CHAN
+	if (is_autorecovery_enabled) {
+#endif
+		if (dfs_switch_to_postnol_chan_if_nol_expired(dfs)) {
+			return QDF_HRTIMER_NORESTART;
+		}
+	}
 	/*
 	 * If BW Expand is enabled, check if the user configured channel is
 	 * available. If it is available, STOP the AGILE SM and Restart the
