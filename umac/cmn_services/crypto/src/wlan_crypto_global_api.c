@@ -39,6 +39,7 @@
 #include "wlan_crypto_obj_mgr_i.h"
 #include "wlan_crypto_main.h"
 #include <qdf_module.h>
+#include <wlan_splitmac.h>
 
 const struct wlan_crypto_cipher *wlan_crypto_cipher_ops[WLAN_CRYPTO_CIPHER_MAX];
 
@@ -799,11 +800,16 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 	uint8_t igtk_idx = 0;
 	uint8_t bigtk_idx = 0;
 	struct wlan_lmac_if_tx_ops *tx_ops;
+	bool is_splitmac_enable = false;
 
 	if (!vdev || !req_key || req_key->keylen > (sizeof(req_key->keydata))) {
 		crypto_err("Invalid params vdev%pK, req_key%pK", vdev, req_key);
 		return QDF_STATUS_E_INVAL;
 	}
+
+#if WLAN_SUPPORT_SPLITMAC
+	is_splitmac_enable = splitmac_is_enabled(vdev);
+#endif
 
 	isbcast = qdf_is_macaddr_group(
 				(struct qdf_mac_addr *)req_key->macaddr);
@@ -1126,7 +1132,8 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 					is_bigtk(req_key->keyix)) {
 			if (WLAN_CRYPTO_TX_OPS_SETKEY(tx_ops)) {
 				WLAN_CRYPTO_TX_OPS_SETKEY(tx_ops)(vdev,
-						key, macaddr, req_key->type);
+						key, macaddr, req_key->type,
+						is_splitmac_enable);
 			}
 		}
 		QDF_SET_PARAM(mgmt_cipher, req_key->type);
@@ -1139,7 +1146,8 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 		if (WLAN_CRYPTO_TX_OPS_SETKEY(tx_ops)) {
 			if (WLAN_CRYPTO_TX_OPS_SETKEY(tx_ops)(vdev, key,
 							      macaddr,
-							      req_key->type)) {
+							      req_key->type,
+							      is_splitmac_enable)) {
 				status = QDF_STATUS_E_INVAL;
 				goto err;
 			}
@@ -1409,6 +1417,7 @@ QDF_STATUS wlan_crypto_delkey(struct wlan_objmgr_vdev *vdev,
 	uint8_t bssid_mac[QDF_MAC_ADDR_SIZE];
 	struct wlan_objmgr_peer *peer = NULL;
 	QDF_STATUS ret = QDF_STATUS_SUCCESS;
+	bool is_splitmac_enable = false;
 
 	if (!vdev || !macaddr ||
 		!is_valid_keyix(key_idx)) {
@@ -1416,6 +1425,10 @@ QDF_STATUS wlan_crypto_delkey(struct wlan_objmgr_vdev *vdev,
 			   vdev, macaddr, key_idx);
 		return QDF_STATUS_E_INVAL;
 	}
+
+#if WLAN_SUPPORT_SPLITMAC
+	is_splitmac_enable = splitmac_is_enabled(vdev);
+#endif
 
 	wlan_vdev_obj_lock(vdev);
 	qdf_mem_copy(bssid_mac, wlan_vdev_mlme_get_macaddr(vdev),
@@ -1499,7 +1512,8 @@ QDF_STATUS wlan_crypto_delkey(struct wlan_objmgr_vdev *vdev,
 		if (!IS_FILS_CIPHER(cipher_table->cipher) &&
 		    WLAN_CRYPTO_TX_OPS_DELKEY(tx_ops)) {
 			WLAN_CRYPTO_TX_OPS_DELKEY(tx_ops)(vdev, key, macaddr,
-							  cipher_table->cipher);
+							  cipher_table->cipher,
+							  is_splitmac_enable);
 		} else if (IS_FILS_CIPHER(cipher_table->cipher)) {
 			if (key->private)
 				qdf_mem_free(key->private);
@@ -3757,6 +3771,7 @@ QDF_STATUS wlan_crypto_set_peer_wep_keys(struct wlan_objmgr_vdev *vdev,
 	int i;
 	enum QDF_OPMODE opmode;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	bool is_splitmac_enable = false;
 
 	if (!vdev)
 		return QDF_STATUS_E_NULL_VALUE;
@@ -3773,6 +3788,10 @@ QDF_STATUS wlan_crypto_set_peer_wep_keys(struct wlan_objmgr_vdev *vdev,
 		crypto_err("psoc NULL");
 		return QDF_STATUS_E_NULL_VALUE;
 	}
+
+#if WLAN_SUPPORT_SPLITMAC
+	is_splitmac_enable = splitmac_is_enabled(vdev);
+#endif
 
 	wlan_peer_obj_lock(peer);
 	mac_addr = wlan_peer_get_macaddr(peer);
@@ -3850,7 +3869,8 @@ QDF_STATUS wlan_crypto_set_peer_wep_keys(struct wlan_objmgr_vdev *vdev,
 						WLAN_CRYPTO_TX_OPS_SETKEY(
 							tx_ops)(vdev, sta_key,
 							mac_addr,
-							cipher_table->cipher);
+							cipher_table->cipher,
+							is_splitmac_enable);
 					}
 				}
 
@@ -3860,7 +3880,8 @@ QDF_STATUS wlan_crypto_set_peer_wep_keys(struct wlan_objmgr_vdev *vdev,
 					WLAN_CRYPTO_TX_OPS_SETKEY(tx_ops)(
 							vdev, sta_key,
 							mac_addr,
-							cipher_table->cipher);
+							cipher_table->cipher,
+							is_splitmac_enable);
 				}
 			}
 		}
@@ -4143,6 +4164,7 @@ static void crypto_plumb_peer_keys(struct wlan_objmgr_vdev *vdev,
 	struct wlan_crypto_key *key = NULL;
 	struct wlan_lmac_if_tx_ops *tx_ops;
 	int i;
+	bool is_splitmac_enable = false;
 
 	if ((!peer) || (!vdev) || (!psoc)) {
 		crypto_err("Peer or vdev or psoc objects are null!");
@@ -4157,6 +4179,9 @@ static void crypto_plumb_peer_keys(struct wlan_objmgr_vdev *vdev,
 		return;
 	}
 
+#if WLAN_SUPPORT_SPLITMAC
+	is_splitmac_enable = splitmac_is_enabled(vdev);
+#endif
 	for (i = 0; i < WLAN_CRYPTO_MAXKEYIDX; i++) {
 		key = crypto_priv->crypto_key.key[i];
 		if (key && key->valid) {
@@ -4172,7 +4197,8 @@ static void crypto_plumb_peer_keys(struct wlan_objmgr_vdev *vdev,
 					 vdev,
 					 key,
 					 wlan_peer_get_macaddr(peer),
-					 wlan_crypto_get_key_type(key)
+					 wlan_crypto_get_key_type(key),
+					 is_splitmac_enable
 					);
 			}
 		}
@@ -4190,6 +4216,7 @@ void wlan_crypto_restore_keys(struct wlan_objmgr_vdev *vdev)
 	struct wlan_objmgr_pdev *pdev = NULL;
 	struct wlan_objmgr_psoc *psoc = NULL;
 	struct wlan_lmac_if_tx_ops *tx_ops;
+	bool is_splitmac_enable = false;
 
 	pdev = wlan_vdev_get_pdev(vdev);
 	psoc = wlan_vdev_get_psoc(vdev);
@@ -4202,6 +4229,9 @@ void wlan_crypto_restore_keys(struct wlan_objmgr_vdev *vdev)
 		return;
 	}
 
+#if WLAN_SUPPORT_SPLITMAC
+	is_splitmac_enable = splitmac_is_enabled(vdev);
+#endif
 	/* TBD: QWRAP key restore*/
 	/* crypto is on */
 	if (wlan_vdev_mlme_feat_cap_get(vdev, WLAN_VDEV_F_PRIVACY)) {
@@ -4229,7 +4259,8 @@ void wlan_crypto_restore_keys(struct wlan_objmgr_vdev *vdev)
 						 vdev,
 						 key,
 						 macaddr,
-						 wlan_crypto_get_key_type(key)
+						 wlan_crypto_get_key_type(key),
+						 is_splitmac_enable
 						 );
 				}
 			}
