@@ -1826,16 +1826,15 @@ dp_tx_mon_get_wifi_hdr_addr_frm_usr_mpdu(qdf_nbuf_t usr_mpdu,
 }
 
 /**
- * dp_tx_mon_trim_mic_for_mgmt_frame() - API to trim the MIC for protected
- *                                       frames if ieee80211w is enabled
+ * dp_tx_mon_frame_trim_mic() - API to trim the MIC for protected
+ *                              frames if IEEE80211_FC1_WEP is enabled
  * @ppdu_info: pointer to dp_tx_ppdu_info
  * @usr_mpdu: user mpdu
  *
  * Return: void
  */
 static void
-dp_tx_mon_trim_mic_for_mgmt_frame(struct dp_tx_ppdu_info *ppdu_info,
-				  qdf_nbuf_t usr_mpdu)
+dp_tx_mon_frame_trim_mic(struct dp_tx_ppdu_info *ppdu_info, qdf_nbuf_t usr_mpdu)
 {
 	uint8_t enc_type;
 	struct mon_rx_user_status *user_status;
@@ -1854,8 +1853,11 @@ dp_tx_mon_trim_mic_for_mgmt_frame(struct dp_tx_ppdu_info *ppdu_info,
 
 	frame_type = (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
 
-	if (frame_type == QDF_IEEE80211_FC0_TYPE_MGT &&
-	    wh->i_fc[1] & IEEE80211_FC1_WEP) {
+	if (wh->i_fc[1] & IEEE80211_FC1_WEP) {
+		/* Handle all frame types with WEP protection, not just
+		 * management frames, to ensure proper MIC trimming for all
+		 * protected frames
+		 */
 		if (enc_type == cdp_sec_type_aes_ccmp)
 			trim_len = -DP_IEEE80211_CCMP_MIC_LEN;
 		else if (enc_type == cdp_sec_type_aes_gcmp ||
@@ -1939,6 +1941,8 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 		}
 
 		TXMON_PPDU_COM(ppdu_info, dl_flags) = 1;
+		/* on ieee80211w = 2 remove MIC from Protected frames*/
+		dp_tx_mon_frame_trim_mic(ppdu_info, buf);
 		if (!qdf_nbuf_update_radiotap(&ppdu_info->hal_txmon.rx_status,
 					      buf, qdf_nbuf_headroom(buf))) {
 			qdf_nbuf_free(buf);
@@ -1946,8 +1950,6 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 			continue;
 		}
 
-		/* on ieee80211w = 2 remove MIC from Protected frames*/
-		dp_tx_mon_trim_mic_for_mgmt_frame(ppdu_info, buf);
 		dp_tx_mon_send_to_stack(pdev, buf, num_frag,
 					TXMON_PPDU(ppdu_info, ppdu_id),
 					mac_id);
