@@ -22,6 +22,7 @@
 #define _WLAN_MLO_MGR_PEER_H_
 
 #include "wlan_objmgr_peer_obj.h"
+#include "wlan_mlo_mgr_main.h"
 
 #define WLAN_LINK_ID_INVALID    0xff
 #define WLAN_NUM_TWO_LINK_PSOC  2
@@ -430,8 +431,13 @@ static inline void wlan_mlo_peer_get_ref(struct wlan_mlo_peer_context *ml_peer)
 static inline void wlan_mlo_peer_release_ref(
 					struct wlan_mlo_peer_context *ml_peer)
 {
+	struct wlan_mlo_peer_list *mlo_peer_list;
+
+	mlo_peer_list = &ml_peer->ml_dev->mlo_peer_list;
+	ml_peerlist_lock_acquire(mlo_peer_list);
 	if (qdf_atomic_dec_and_test(&ml_peer->ref_cnt))
 		mlo_peer_cleanup(ml_peer);
+	ml_peerlist_lock_release(mlo_peer_list);
 }
 
 /**
@@ -733,7 +739,8 @@ QDF_STATUS mlo_dev_mlpeer_attach(struct wlan_mlo_dev_context *ml_dev,
  *         otherwise, returns FAILURE
  */
 QDF_STATUS mlo_dev_mlpeer_detach(struct wlan_mlo_dev_context *ml_dev,
-				 struct wlan_mlo_peer_context *ml_peer);
+				 struct wlan_mlo_peer_context *ml_peer,
+				 bool is_lock_required);
 
 /**
  * mlo_dev_mlpeer_list_init() - Initialize ML peer list
