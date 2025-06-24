@@ -1815,6 +1815,8 @@ struct hal_srng *hal_ring_handle_to_hal_srng(hal_ring_handle_t hal_ring)
 #define REO2PPE_DST_RING 11
 #define REO2PPE_RULE_FAIL_FB 0x2000
 
+#define RX_RELEASE_DST_IND 5
+
 /**
  * enum hal_pkt_type - Type of packet type reported by HW
  * @HAL_DOT11A: 802.11a PPDU type

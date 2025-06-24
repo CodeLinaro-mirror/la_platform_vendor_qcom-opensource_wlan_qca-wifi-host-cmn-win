@@ -6260,4 +6260,14 @@ bool qdf_nbuf_fast_xmit(qdf_nbuf_t nbuf);
  */
 void qdf_nbuf_set_fast_xmit(qdf_nbuf_t nbuf, int value);
 
+/**
+ * qdf_is_eapol_type() - Check if packet type is eapol
+ * @type: ether type of the packet
+ *
+ * This function checks if the packet is eapol frame
+ *
+ * Return: True if packet is eapol otherwise false
+ */
+bool qdf_is_eapol_type(uint16_t type);
+
 #endif /* _QDF_NBUF_H */
