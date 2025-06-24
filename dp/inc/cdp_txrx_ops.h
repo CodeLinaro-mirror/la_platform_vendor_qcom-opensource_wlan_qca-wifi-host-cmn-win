@@ -1703,7 +1703,7 @@ struct ol_if_ops {
 
 #ifdef QCA_SUPPORT_PRIMARY_LINK_MIGRATE
 	void (*update_primary_link)(struct cdp_ctrl_objmgr_psoc *psoc,
-				    uint8_t *mac_addr);
+				    uint8_t *mac_addr, uint8_t pdev_id);
 #endif
 
 	uint8_t (*freq_to_channel)(struct cdp_ctrl_objmgr_psoc *psoc,
