@@ -717,6 +717,7 @@ void mlo_setup_update_soc_ready(struct wlan_objmgr_psoc *psoc, uint8_t grp_id)
 	struct mlo_setup_info *setup_info;
 	uint8_t chip_idx, tot_socs;
 	struct cdp_mlo_ctxt *dp_mlo_ctxt = NULL;
+	struct wlan_lmac_if_tx_ops *tx_ops;
 
 	if (!mlo_ctx)
 		return;
@@ -730,6 +731,7 @@ void mlo_setup_update_soc_ready(struct wlan_objmgr_psoc *psoc, uint8_t grp_id)
 		return;
 	}
 
+	tx_ops = wlan_psoc_get_lmac_if_txops(psoc);
 	setup_info = &mlo_ctx->setup_info[grp_id];
 
 	if (!setup_info->tot_socs)
@@ -777,6 +779,10 @@ void mlo_setup_update_soc_ready(struct wlan_objmgr_psoc *psoc, uint8_t grp_id)
 
 	cdp_mlo_setup_complete(wlan_psoc_get_dp_handle(psoc),
 			       setup_info->dp_handle);
+	if (tx_ops && tx_ops->mops.set_mlo_ctxt_created) {
+		mlo_info("Intimidate wifi driver - DP MLO ctxt is created");
+		tx_ops->mops.set_mlo_ctxt_created();
+	}
 }
 
 qdf_export_symbol(mlo_setup_update_soc_ready);
