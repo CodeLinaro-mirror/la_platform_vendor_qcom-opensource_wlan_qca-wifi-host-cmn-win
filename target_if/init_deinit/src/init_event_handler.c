@@ -49,6 +49,10 @@
 #include "cdp_txrx_ctrl.h"
 #include "wlan_ipa_obj_mgmt_api.h"
 
+extern unsigned int parallel_probe_enabled;
+qdf_mutex_t mlo_update_soc_mutex;
+qdf_export_symbol(mlo_update_soc_mutex);
+
 static void init_deinit_set_send_init_cmd(struct wlan_objmgr_psoc *psoc,
 					  struct target_psoc_info *tgt_hdl)
 {
@@ -1256,7 +1260,11 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 			goto exit;
 		}
 
+	if (parallel_probe_enabled)
+		qdf_mutex_acquire(&mlo_update_soc_mutex);
 	init_deinit_mlo_update_soc_ready(psoc);
+	if (parallel_probe_enabled)
+		qdf_mutex_release(&mlo_update_soc_mutex);
 
 	num_radios = target_psoc_get_num_radios(tgt_hdl);
 
@@ -1304,7 +1312,6 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 			return -EINVAL;
 		}
 	}
-
 
 	if (ready_ev.pktlog_defs_checksum) {
 		for (i = 0; i < num_radios; i++) {
@@ -1403,7 +1410,11 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 out:
 	target_if_btcoex_cfg_enable(psoc, tgt_hdl, event);
 	tgt_hdl->info.wmi_ready = true;
+	if (parallel_probe_enabled)
+		qdf_mutex_acquire(&mlo_update_soc_mutex);
 	init_deinit_mlo_update_pdev_ready(psoc, num_radios);
+	if (parallel_probe_enabled)
+		qdf_mutex_release(&mlo_update_soc_mutex);
 exit:
 	init_deinit_wakeup_host_wait(psoc, tgt_hdl);
 

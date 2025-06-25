@@ -111,7 +111,8 @@ static QDF_STATUS wlan_objmgr_psoc_obj_free(struct wlan_objmgr_psoc *psoc)
 }
 
 struct wlan_objmgr_psoc *wlan_objmgr_psoc_obj_create(uint32_t phy_version,
-						WLAN_DEV_TYPE dev_type)
+						WLAN_DEV_TYPE dev_type,
+						uint32_t soc_id)
 {
 	uint8_t id;
 	struct wlan_objmgr_psoc *psoc = NULL;
@@ -179,7 +180,7 @@ struct wlan_objmgr_psoc *wlan_objmgr_psoc_obj_create(uint32_t phy_version,
 		return NULL;
 	}
 
-	if (wlan_objmgr_psoc_object_attach(psoc) !=
+	if (wlan_objmgr_psoc_object_attach(psoc, soc_id) !=
 				QDF_STATUS_SUCCESS) {
 		obj_mgr_err("PSOC object attach failed");
 		wlan_objmgr_psoc_obj_delete(psoc);

@@ -132,7 +132,7 @@ extern struct wlan_objmgr_global *g_umac_glb_obj;
  *         Failure (Max supported PSOCs exceeded)
  */
 QDF_STATUS wlan_objmgr_psoc_object_attach(
-			struct wlan_objmgr_psoc *psoc);
+			struct wlan_objmgr_psoc *psoc, uint32_t soc_id);
 
 /**
  * wlan_objmgr_psoc_object_detach() - detach psoc from global object

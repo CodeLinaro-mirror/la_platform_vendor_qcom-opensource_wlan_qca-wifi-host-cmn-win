@@ -779,10 +779,6 @@ void mlo_setup_update_soc_ready(struct wlan_objmgr_psoc *psoc, uint8_t grp_id)
 
 	cdp_mlo_setup_complete(wlan_psoc_get_dp_handle(psoc),
 			       setup_info->dp_handle);
-	if (tx_ops && tx_ops->mops.set_mlo_ctxt_created) {
-		mlo_info("Intimidate wifi driver - DP MLO ctxt is created");
-		tx_ops->mops.set_mlo_ctxt_created();
-	}
 }
 
 qdf_export_symbol(mlo_setup_update_soc_ready);

@@ -510,7 +510,7 @@ struct wlan_psoc_host_hal_reg_capabilities_ext2 {
  *         Failure)
  */
 struct wlan_objmgr_psoc *wlan_objmgr_psoc_obj_create(uint32_t phy_version,
-				WLAN_DEV_TYPE dev_type);
+				WLAN_DEV_TYPE dev_type, uint32_t soc_id);
 
 /**
  * wlan_objmgr_psoc_obj_delete() - psoc object delete
