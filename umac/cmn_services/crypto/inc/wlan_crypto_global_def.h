@@ -78,6 +78,13 @@
 #define WLAN_CRYPTO_WPI_SMS4_PADLEN  (1)
 #define WLAN_CRYPTO_WPI_SMS4_MICLEN  (16)
 
+#ifdef ATH_SUPPORT_WAPI
+#define WLAN_CRYPTO_WPI_GCM_SMS4_IVLEN   (16)
+#define WLAN_CRYPTO_WPI_GCM_SMS4_KIDLEN  (1)
+#define WLAN_CRYPTO_WPI_GCM_SMS4_PADLEN  (1)
+#define WLAN_CRYPTO_WPI_GCM_SMS4_MICLEN  (16)
+#endif
+
 /* FILS definitions */
 #define WLAN_CRYPTO_FILS_OPTIONAL_DATA_LEN 3
 #define WLAN_CRYPTO_FILS_RIK_LABEL "Re-authentication Integrity Key@ietf.org"
@@ -141,7 +148,9 @@ typedef enum wlan_crypto_cipher_type {
 	WLAN_CRYPTO_CIPHER_FILS_AEAD       = 14,
 	WLAN_CRYPTO_CIPHER_WEP_40          = 15,
 	WLAN_CRYPTO_CIPHER_WEP_104         = 16,
-	WLAN_CRYPTO_CIPHER_NONE            = 17,
+	WLAN_CRYPTO_CIPHER_WAPI_CMAC       = 17,
+	WLAN_CRYPTO_CIPHER_WAPI_GMAC       = 18,
+	WLAN_CRYPTO_CIPHER_NONE            = 19,
 	WLAN_CRYPTO_CIPHER_MAX             = (WLAN_CRYPTO_CIPHER_NONE + 1),
 	WLAN_CRYPTO_CIPHER_INVALID,
 } wlan_crypto_cipher_type;
@@ -521,7 +530,7 @@ typedef enum wlan_crypto_param_type {
  * @cipher_table:   table which stores cipher related info
  * @private:        private pointer to save cipher context
  * @keylock:        spin lock
- * @recviv:         WAPI key receive sequence counter
+ * @rxiv:           WAPI key receive sequence counter
  * @txiv:           WAPI key transmit sequence counter
  * @keytsc:         key transmit sequence counter
  * @keyrsc:         key receive sequence counter
@@ -544,7 +553,7 @@ struct wlan_crypto_key {
 	void        *cipher_table;
 	void        *private;
 	qdf_spinlock_t	keylock;
-	uint8_t     recviv[WLAN_CRYPTO_WAPI_IV_SIZE];
+	uint8_t     rxiv[WLAN_CRYPTO_WAPI_IV_SIZE];
 	uint8_t     txiv[WLAN_CRYPTO_WAPI_IV_SIZE];
 	uint64_t    keytsc;
 	uint64_t    keyrsc[WLAN_CRYPTO_TID_SIZE];
@@ -628,7 +637,7 @@ struct wlan_crypto_key_entry {
  * @keytsc:                     key transmit sequence counter
  * @keydata:                    key value
  * @txiv:                       wapi key tx iv
- * @recviv:                     wapi key rx iv
+ * @rxiv:                       wapi key rx iv
  * @filsaad:                    FILS AEAD data
  *
  * Key request structure used for setkey, getkey or delkey
@@ -644,7 +653,7 @@ struct wlan_crypto_req_key {
 	uint64_t   keytsc;
 	uint8_t    keydata[WLAN_CRYPTO_KEYBUF_SIZE + WLAN_CRYPTO_MICBUF_SIZE];
 	uint8_t    txiv[WLAN_CRYPTO_WAPI_IV_SIZE];
-	uint8_t    recviv[WLAN_CRYPTO_WAPI_IV_SIZE];
+	uint8_t    rxiv[WLAN_CRYPTO_WAPI_IV_SIZE];
 #ifdef WLAN_CRYPTO_SUPPORT_FILS
 	struct     wlan_crypto_fils_aad_key   filsaad;
 #endif

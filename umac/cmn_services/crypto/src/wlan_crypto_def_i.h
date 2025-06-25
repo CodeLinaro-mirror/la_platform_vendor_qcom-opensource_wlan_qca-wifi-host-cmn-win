@@ -29,6 +29,9 @@
 #ifdef WLAN_CRYPTO_AES
 #include "wlan_crypto_aes_i.h"
 #endif
+#ifdef ATH_SUPPORT_WAPI
+#include "wlan_crypto_wapi.h"
+#endif
 
 /* Number of bits per byte */
 #define CRYPTO_NBBY  8
@@ -172,6 +175,9 @@ static inline void wlan_crypto_put_be64(u8 *a, u64 val)
 
 #define WLAN_CRYPTO_WAPI_IE_LEN      20
 #define WLAN_CRYPTO_WAPI_SMS4_CIPHER 0x01
+#define WLAN_CRYPTO_WAPI_GCM4_CIPHER 0x02
+#define WLAN_CRYPTO_WAPI_CMAC_CIPHER 0x03
+#define WLAN_CRYPTO_WAPI_GMAC_CIPHER 0x04
 
 #define WPA_AUTH_KEY_MGMT_NONE          WLAN_WPA_SEL(WLAN_ASE_NONE)
 #define WPA_AUTH_KEY_MGMT_UNSPEC_802_1X WLAN_WPA_SEL(WLAN_ASE_8021X_UNSPEC)
@@ -256,7 +262,6 @@ static inline void wlan_crypto_put_be64(u8 *a, u64 val)
 #define AUTH_MATCH(_param1, _param2) \
 		(((_param1)->authmodeset & (_param2)->authmodeset) != 0)
 
-
 #define RESET_UCAST_CIPHERS(_param)   ((_param)->ucastcipherset = 0)
 #define SET_UCAST_CIPHER(_param, _c)  ((_param)->ucastcipherset |= (1 << (_c)))
 #define HAS_UCAST_CIPHER(_param, _c)  ((_param)->ucastcipherset & (1 << (_c)))
@@ -277,6 +282,8 @@ static inline void wlan_crypto_put_be64(u8 *a, u64 val)
 		HAS_UCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_AES_GCM_256)
 #define UCIPHER_IS_SMS4(_param)    \
 		HAS_UCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_SMS4)
+#define UCIPHER_IS_GCM4(_param)    \
+		HAS_UCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_GCM4)
 
 #define RESET_MCAST_CIPHERS(_param)   ((_param)->mcastcipherset = 0)
 #define SET_MCAST_CIPHER(_param, _c)  ((_param)->mcastcipherset |= (1 << (_c)))
@@ -301,11 +308,15 @@ static inline void wlan_crypto_put_be64(u8 *a, u64 val)
 		HAS_MCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_AES_GCM_256)
 #define MCIPHER_IS_SMS4(_param)    \
 		HAS_MCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_SMS4)
+#define MCIPHER_IS_GCM4(_param)    \
+		HAS_MCAST_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_GCM4)
 
 #define RESET_MGMT_CIPHERS(_param)   ((_param)->mgmtcipherset = 0)
 #define SET_MGMT_CIPHER(_param, _c)  ((_param)->mgmtcipherset |= (1 << (_c)))
 #define HAS_MGMT_CIPHER(_param, _c)  ((_param)->mgmtcipherset & (1 << (_c)))
 #define IS_MGMT_CIPHER(_c)      ((_c == WLAN_CRYPTO_CIPHER_AES_CMAC) || \
+				 (_c == WLAN_CRYPTO_CIPHER_WAPI_CMAC) || \
+				 (_c == WLAN_CRYPTO_CIPHER_WAPI_GMAC) || \
 				 (_c == WLAN_CRYPTO_CIPHER_AES_CMAC_256) || \
 				 (_c == WLAN_CRYPTO_CIPHER_AES_GMAC) || \
 				 (_c == WLAN_CRYPTO_CIPHER_AES_GMAC_256))
@@ -322,6 +333,10 @@ static inline void wlan_crypto_put_be64(u8 *a, u64 val)
 		HAS_MGMT_CIPHER((_param), WLAN_CRYPTO_CIPHER_AES_GMAC)
 #define MGMT_CIPHER_IS_GMAC256(_param) \
 		HAS_MGMT_CIPHER((_param), WLAN_CRYPTO_CIPHER_AES_GMAC_256)
+#define MGMT_CIPHER_IS_SM4_CMAC(_param) \
+		HAS_MGMT_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_CMAC)
+#define MGMT_CIPHER_IS_SM4_GMAC(_param) \
+		HAS_MGMT_CIPHER((_param), WLAN_CRYPTO_CIPHER_WAPI_GMAC)
 
 #define RESET_KEY_MGMT(_param)   ((_param)->key_mgmt = 0)
 #define SET_KEY_MGMT(_param, _c)  ((_param)->key_mgmt |= (1 << (_c)))
@@ -364,6 +379,30 @@ struct wlan_crypto_mmie {
 	uint8_t  length;
 	uint16_t key_id;
 	uint8_t  sequence_number[6];
+	uint8_t  mic[16];
+} __packed;
+
+/**
+ * struct wapi_crypto_mmie - MMIE IE
+ * @element_id: element id
+ * @length: length of the ie
+ * @oui: shows capability information of WAPI
+ * @type:type of the ie
+ * @type_len:length of type
+ * @keyid: multicasr integrity key for MIC calculation
+ * @ipn: multicast mgmt pkt number, used as IV, to calculate MIC
+ * @mic: MAC obtained from calculation
+ *
+ * This structure represents WAPI MFP MMIE
+ */
+struct wapi_crypto_mmie {
+	uint8_t  element_id;
+	uint8_t  length;
+	uint8_t  oui[3];
+	uint8_t  type[2];
+	uint8_t  type_len;
+	uint8_t  keyid[2];
+	uint8_t  ipn[16];
 	uint8_t  mic[16];
 } __packed;
 

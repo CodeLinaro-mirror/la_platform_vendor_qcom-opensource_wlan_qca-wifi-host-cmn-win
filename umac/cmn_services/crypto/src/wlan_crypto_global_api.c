@@ -896,6 +896,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 		}
 
 		priv_key = &crypto_priv->crypto_key;
+		priv_key->igtk_key_type = req_key->type;
 
 		if (IS_MGMT_CIPHER(req_key->type)) {
 			struct wlan_crypto_key *crypto_key = NULL;
@@ -1002,6 +1003,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 		}
 
 		priv_key = &crypto_priv->crypto_key;
+		priv_key->igtk_key_type = req_key->type;
 
 		if (IS_MGMT_CIPHER(req_key->type)) {
 			struct wlan_crypto_key *crypto_key = NULL;
@@ -1075,35 +1077,36 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 		crypto_priv->crypto_key.def_tx_keyid = key->keyix;
 		key->flags |= WLAN_CRYPTO_KEY_DEFAULT;
 	}
-	if ((req_key->type == WLAN_CRYPTO_CIPHER_WAPI_SMS4)
-		|| (req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GCM4)) {
-		uint8_t iv_AP[16] = {	0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x37};
-		uint8_t iv_STA[16] = {	0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x36,
-					0x5c, 0x36, 0x5c, 0x36};
+	if ((req_key->type == WLAN_CRYPTO_CIPHER_WAPI_SMS4) ||
+		(req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GCM4) ||
+		(req_key->type == WLAN_CRYPTO_CIPHER_WAPI_CMAC) ||
+		(req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GMAC)) {
 
+		/* set iv from apps */
+		qdf_mem_copy(key->rxiv, req_key->rxiv, WLAN_CRYPTO_WAPI_IV_SIZE);
+		qdf_mem_copy(key->txiv, req_key->txiv, WLAN_CRYPTO_WAPI_IV_SIZE);
 		/* During Tx PN should be increment and
 		 * send but as per our implementation we increment only after
 		 * Tx complete. So First packet PN check will be failed.
 		 * To compensate increment the PN here by 2
+		 * Some Device start from 0x5c0x36, decrease 1 from rxiv
 		 */
-		if (vdev_mode == QDF_SAP_MODE) {
-			iv_AP[15] += 2;
-			qdf_mem_copy(key->recviv, iv_STA,
-						WLAN_CRYPTO_WAPI_IV_SIZE);
-			qdf_mem_copy(key->txiv, iv_AP,
-						WLAN_CRYPTO_WAPI_IV_SIZE);
+		if (isbcast) {
+			key->txiv[15] += 1;
+			key->rxiv[15] -= 1;
 		} else {
-			iv_STA[15] += 2;
-			qdf_mem_copy(key->recviv, iv_AP,
-						WLAN_CRYPTO_WAPI_IV_SIZE);
-			qdf_mem_copy(key->txiv, iv_STA,
-						WLAN_CRYPTO_WAPI_IV_SIZE);
+			key->txiv[15] += 2;
+			key->rxiv[15] -= 2;
 		}
+		crypto_debug("%s %d MODE(%s) %s txiv %02x%02x rxiv %02x%02x KeyType %s\n", __func__, __LINE__,
+			vdev_mode == QDF_SAP_MODE ? "AP" : "STA",
+			isbcast ? "Mcast" : "Ucast",
+			req_key->txiv[14], req_key->txiv[15],
+			req_key->rxiv[14], req_key->rxiv[15],
+			req_key->type == WLAN_CRYPTO_CIPHER_WAPI_SMS4 ? "SM4-OFB" :
+			req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GCM4 ? "SM4-GCM" :
+			req_key->type == WLAN_CRYPTO_CIPHER_WAPI_CMAC ? "SM4-BIP-CMAC" :
+			req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GMAC ? "SM4-BIP-GMAC" : "Unknow");
 	} else {
 		uint8_t i = 0;
 		qdf_mem_copy((uint8_t *)(&key->keytsc),
@@ -1123,6 +1126,7 @@ QDF_STATUS wlan_crypto_setkey(struct wlan_objmgr_vdev *vdev,
 	}
 
 	qdf_mem_copy(key->keyval, req_key->keydata, sizeof(key->keyval));
+
 	key->valid = 1;
 	if ((IS_MGMT_CIPHER(req_key->type))) {
 		uint32_t mgmt_cipher = 0;
@@ -1363,13 +1367,16 @@ QDF_STATUS wlan_crypto_getkey(struct wlan_objmgr_vdev *vdev,
 			req_key->type = cipher_table->cipher;
 		}
 
-		if (req_key->type == WLAN_CRYPTO_CIPHER_WAPI_SMS4) {
+#ifdef ATH_SUPPORT_WAPI
+		if (req_key->type == WLAN_CRYPTO_CIPHER_WAPI_SMS4 ||
+			req_key->type == WLAN_CRYPTO_CIPHER_WAPI_GCM4) {
+#endif
 			qdf_mem_copy((uint8_t *)(&req_key->txiv),
 					(uint8_t *)(key->txiv),
 					sizeof(req_key->txiv));
-			qdf_mem_copy((uint8_t *)(&req_key->recviv),
-					(uint8_t *)(key->recviv),
-					sizeof(req_key->recviv));
+			qdf_mem_copy((uint8_t *)(&req_key->rxiv),
+					(uint8_t *)(key->rxiv),
+					sizeof(req_key->rxiv));
 		}
 
 		if (get_pn_enable) {
@@ -1770,6 +1777,7 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 	uint8_t hdrlen;
 	bool key_flag_override;
 	enum QDF_OPMODE opmode;
+	struct wlan_crypto_keys *priv_key = NULL;
 
 	opmode = wlan_vdev_mlme_get_opmode(vdev);
 	wlan_vdev_obj_lock(vdev);
@@ -1789,10 +1797,6 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 		hdrlen = ieee80211_hdrspace(wlan_vdev_get_pdev(vdev),
 					    (uint8_t *)qdf_nbuf_data(wbuf));
 
-	keyid = wlan_crypto_get_keyid((uint8_t *)qdf_nbuf_data(wbuf), hdrlen);
-
-	if (keyid >= WLAN_CRYPTO_MAXKEYIDX)
-		return QDF_STATUS_E_INVAL;
 
 	pdev_id = wlan_objmgr_pdev_get_pdev_id(wlan_vdev_get_pdev(vdev));
 	/* FILS Decap required only for (Re-)Assoc request */
@@ -1816,9 +1820,6 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 			return QDF_STATUS_E_INVAL;
 		}
 
-		key = crypto_priv->crypto_key.key[keyid];
-		if (!key)
-			return QDF_STATUS_E_INVAL;
 	} else {
 		peer = wlan_objmgr_get_peer_by_mac_n_vdev(
 					psoc, pdev_id, bssid_mac,
@@ -1836,13 +1837,19 @@ QDF_STATUS wlan_crypto_decap(struct wlan_objmgr_vdev *vdev,
 			status = QDF_STATUS_E_INVAL;
 			goto err;
 		}
+	}
 
-		key = crypto_priv->crypto_key.key[keyid];
-		if (!key) {
-			crypto_err("Key is NULL");
-			status = QDF_STATUS_E_INVAL;
-			goto err;
-		}
+	priv_key = &crypto_priv->crypto_key;
+	keyid = wlan_crypto_get_keyid((uint8_t *)qdf_nbuf_data(wbuf), hdrlen, priv_key->igtk_key_type);
+
+	if (keyid >= WLAN_CRYPTO_MAXKEYIDX)
+		return QDF_STATUS_E_INVAL;
+
+	key = crypto_priv->crypto_key.key[keyid];
+	if (!key) {
+		crypto_err("Key is NULL");
+		status = QDF_STATUS_E_INVAL;
+		goto err;
 	}
 
 	if (!key->valid || !key->cipher_table) {
@@ -2210,6 +2217,197 @@ wlan_crypto_is_store_in_psoc(struct wlan_objmgr_vdev *vdev)
 		is_mlo_adv_enable();
 }
 
+#ifdef ATH_SUPPORT_WAPI
+static inline void wapi_iv_reverse(uint8_t *src, uint8_t *dest)
+{
+	uint32_t i = 0;
+
+	for (i = 0; i < WLAN_CRYPTO_WAPI_IV_SIZE; i++)
+		dest[i] = src[WLAN_CRYPTO_WAPI_IV_SIZE - 1 - i];
+}
+
+static inline void wapi_le_iv_add(uint8_t *iv, uint32_t num)
+{
+	uint32_t i = 0;
+	uint32_t carry = num;
+	uint32_t sum = 0;
+
+	for (i = 0; i < WLAN_CRYPTO_WAPI_IV_SIZE; i++) {
+		sum = iv[i] + carry;
+		iv[i] = sum & 0xFF;
+		carry = sum >> 8;
+		if (0 == carry) {
+			break;
+		}
+	}
+}
+
+static inline void wapi_be_iv_add(uint8_t *iv, uint32_t num)
+{
+	uint32_t i = 0;
+	uint32_t carry = num;
+	uint32_t sum = 0;
+	uint32_t len = WLAN_CRYPTO_WAPI_IV_SIZE;
+
+	for (i = 0; i < WLAN_CRYPTO_WAPI_IV_SIZE; i++) {
+		sum = iv[len - 1 - i] + carry;
+		iv[i] = sum & 0xFF;
+		carry = sum >> 8;
+		if (0 == carry) {
+			break;
+		}
+	}
+}
+
+static inline int wapi_le_iv_cmp(unsigned char *iv1, unsigned char *iv2, unsigned char len)
+{
+	int i = 0;
+	int ret = 0;
+
+	for (i = 0; i < len; i++) {
+		ret = iv1[len - 1 - i] - iv2[len - 1 - i];
+		if (ret) {
+			return ret;
+		}
+	}
+	return 0;
+}
+
+static inline int wapi_be_iv_cmp(unsigned char *iv1, unsigned char *iv2, unsigned char len)
+{
+	int i = 0;
+	int ret = 0;
+
+	for (i = 0; i < len; i++) {
+		ret = iv1[i] - iv2[i];
+		if (ret) {
+			return ret;
+		}
+	}
+	return 0;
+}
+
+uint8_t *wapi_crypto_add_mmie(struct wlan_objmgr_vdev *vdev,
+				uint8_t *bfrm,
+				uint32_t len)
+{
+	struct wlan_crypto_key *key;
+	struct wapi_crypto_mmie *mmie;
+	struct wlan_frame_hdr *hdr;
+	struct wlan_crypto_comp_priv *crypto_priv;
+	struct wlan_crypto_params *crypto_params;
+	struct wlan_crypto_keys *priv_key = NULL;
+	uint8_t *efrm = NULL;
+	uint8_t iv[WLAN_CRYPTO_WAPI_IV_SIZE];
+	uint8_t mic[16];
+	uint32_t hdrlen, mic_len, aad_len, buf_len;
+	uint8_t *buf, *aad;
+
+	crypto_params = wlan_crypto_vdev_get_comp_params(vdev,
+							&crypto_priv);
+	if (!crypto_priv) {
+		crypto_err("crypto_priv NULL");
+		return NULL;
+	}
+
+	priv_key = &crypto_priv->crypto_key;
+
+	if (priv_key->def_igtk_tx_keyid >= WLAN_CRYPTO_MAXIGTKKEYIDX) {
+		crypto_err("igtk key invalid keyid %d",
+			   priv_key->def_igtk_tx_keyid);
+		return NULL;
+	}
+	key = priv_key->igtk_key[priv_key->def_igtk_tx_keyid];
+	if (!key) {
+		crypto_err("No igtk key present");
+		return NULL;
+	}
+
+	crypto_debug("%s %d priv_key->igtk_key_type is %d len is %d def_igtk_tx_keyid %d\n",
+		__func__, __LINE__, priv_key->igtk_key_type, len,
+		priv_key->def_igtk_tx_keyid);
+
+	wapi_iv_reverse(key->txiv, iv);
+
+	efrm = bfrm + len;
+	aad_len = 20;
+	mic_len = 16;
+	hdrlen = sizeof(struct wlan_frame_hdr);
+	hdr = (struct wlan_frame_hdr *)bfrm;
+	mmie = (struct wapi_crypto_mmie *)efrm;
+	qdf_mem_zero((unsigned char *)mmie, sizeof(*mmie));
+
+	mmie->element_id = 221;
+	mmie->length = 40;
+	mmie->oui[0] = 0x00;
+	mmie->oui[1] = 0x14;
+	mmie->oui[2] = 0x72;
+	mmie->type[0] = 2;
+	mmie->type[1] = 0x00;
+	mmie->type_len = 34;
+	mmie->keyid[0] = key->keyix - WLAN_CRYPTO_MAXKEYIDX;
+	mmie->keyid[1] = 0x00;
+	qdf_mem_copy(mmie->ipn, iv, WLAN_CRYPTO_WAPI_IV_SIZE);
+	qdf_mem_zero(mmie->mic, 16);
+
+	buf_len = qdf_roundup(len - hdrlen + aad_len + sizeof(struct wapi_crypto_mmie), 16);
+	buf = qdf_mem_malloc(buf_len);
+	if (!buf) {
+		crypto_err("%s %d qdf mem alloc failed\n", __func__, __LINE__);
+		return NULL;
+	}
+	qdf_mem_zero(buf, buf_len);
+
+	/* Generate BIP AAD: FC(masked) || A1 || A2 || A3 */
+	aad = buf;
+	/* Type and Subtype */
+	aad[0] = hdr->i_fc[0];
+	/* Mask FC Retry, PwrMgt, MoreData flags to zero */
+	aad[1] = (hdr->i_fc[1] & ~(WLAN_FC1_RETRY | WLAN_FC1_PWRMGT | WLAN_FC1_MOREDATA));
+	/* A1 || A2 || A3 */
+	qdf_mem_copy(aad + 2, hdr->i_addr1, 3 * QDF_MAC_ADDR_SIZE);
+	/* Payload */
+	qdf_mem_copy(buf + aad_len, bfrm + hdrlen, len - hdrlen);
+	/* MMIE */
+	qdf_mem_copy(buf + aad_len + len - hdrlen, mmie, sizeof(struct wapi_crypto_mmie));
+
+	/* Clean the out mic */
+	qdf_mem_zero(mic, 16);
+	if (priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_CMAC) {
+		crypto_debug("%s %d Add WAPI CMAC MMIE\n", __func__, __LINE__);
+		if (wapi_sm4_cal_mmie(key->txiv, buf, buf_len, key->keyval, mic)) {
+			crypto_err("%s %d Add WAPI MMIE SM4_CMAC failed\n", __func__, __LINE__);
+			qdf_mem_free(buf);
+			return NULL;
+		}
+	} else if (priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GMAC) {
+		crypto_debug("%s %d Add WAPI GMAC MMIE\n", __func__, __LINE__);
+		if (wapi_gcm_cal_mmie(key->txiv, aad, aad_len,
+			buf + aad_len, len - hdrlen + sizeof(struct wapi_crypto_mmie),
+			key->keyval, mic)) {
+			crypto_err("%s %d Add WAPI MMIE SM4_GMAC failed\n", __func__, __LINE__);
+			qdf_mem_free(buf);
+			return NULL;
+		}
+	} else {
+		crypto_debug("%s %d Add WAPI MMIE Unsupported key_type %d\n", __func__, __LINE__, priv_key->igtk_key_type);
+		qdf_mem_free(buf);
+		return NULL;
+	}
+
+	qdf_mem_free(buf);
+	qdf_mem_copy(mmie->mic, mic, mic_len);
+
+	/* save iv in keydata */
+	wapi_le_iv_add(iv, 1);
+	wapi_iv_reverse(iv, key->txiv);
+
+	len += sizeof(struct wapi_crypto_mmie);
+
+	return bfrm + len;
+}
+#endif
+
 /**
  * wlan_crypto_get_wlan_crypto_keys() - get wlan_crypto_keys
  * return crypto keys for psoc or vdev store
@@ -2295,6 +2493,14 @@ uint8_t *wlan_crypto_add_mmie(struct wlan_objmgr_vdev *vdev,
 		crypto_err("crypto_keys NULL");
 		return NULL;
 	}
+
+#ifdef ATH_SUPPORT_WAPI
+	if (WLAN_CRYPTO_CIPHER_WAPI_CMAC == crypto_keys->igtk_key_type ||
+		WLAN_CRYPTO_CIPHER_WAPI_GMAC == crypto_keys->igtk_key_type) {
+		crypto_debug("Add WAPI MMIE\n");
+		return wapi_crypto_add_mmie(vdev, bfrm, len);
+	}
+#endif
 
 	if (crypto_keys->def_igtk_tx_keyid >= WLAN_CRYPTO_MAXIGTKKEYIDX) {
 		crypto_err("igtk key invalid keyid %d",
@@ -2396,6 +2602,16 @@ uint8_t *wlan_crypto_add_mmie(struct wlan_objmgr_vdev *vdev,
 	return bfrm + len;
 }
 
+#ifdef ATH_SUPPORT_WAPI
+bool wapi_crypto_is_mmie_valid(struct wlan_objmgr_vdev *vdev,
+					uint8_t *frm,
+					uint8_t *efrm)
+{
+	crypto_debug("%s %d Check WAPI MMIE OK\n", __func__, __LINE__);
+	return true;
+}
+#endif
+
 #define MAX_MIC_LEN 16
 bool wlan_crypto_is_mmie_valid(struct wlan_objmgr_vdev *vdev,
 					uint8_t *frm,
@@ -2423,6 +2639,14 @@ bool wlan_crypto_is_mmie_valid(struct wlan_objmgr_vdev *vdev,
 		return NULL;
 	}
 
+#ifdef ATH_SUPPORT_WAPI
+	if (WLAN_CRYPTO_CIPHER_WAPI_CMAC == crypto_keys->igtk_key_type ||
+		WLAN_CRYPTO_CIPHER_WAPI_GMAC == crypto_keys->igtk_key_type) {
+		crypto_debug("%s %d Check WAPI MMIE\n", __func__, __LINE__);
+		return wapi_crypto_is_mmie_valid(vdev, frm, efrm);
+	}
+#endif
+
 	mic_len = (crypto_keys->igtk_key_type
 			== WLAN_CRYPTO_CIPHER_AES_CMAC) ? 8 : 16;
 	hdrlen = sizeof(struct wlan_frame_hdr);
@@ -2438,6 +2662,7 @@ bool wlan_crypto_is_mmie_valid(struct wlan_objmgr_vdev *vdev,
 		crypto_err("IE is not MMIE");
 		return false;
 	}
+
 
 	if (mmie->key_id >= (WLAN_CRYPTO_MAXKEYIDX +
 				WLAN_CRYPTO_MAXIGTKKEYIDX) ||
@@ -3567,6 +3792,14 @@ static int32_t wlan_crypto_wapi_suite_to_cipher(const uint8_t *sel)
 	switch (w) {
 	case (WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_SMS4_CIPHER)):
 		return WLAN_CRYPTO_CIPHER_WAPI_SMS4;
+#ifdef ATH_SUPPORT_WAPI
+	case (WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_GCM4_CIPHER)):
+		return WLAN_CRYPTO_CIPHER_WAPI_GCM4;
+	case (WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_CMAC_CIPHER)):
+		return WLAN_CRYPTO_CIPHER_WAPI_CMAC;
+	case (WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_GMAC_CIPHER)):
+		return WLAN_CRYPTO_CIPHER_WAPI_GMAC;
+#endif
 	}
 
 	return status;
@@ -3656,6 +3889,20 @@ QDF_STATUS wlan_crypto_wapiie_check(struct wlan_crypto_params *crypto_params,
 	SET_MCAST_CIPHER(crypto_params, w);
 	frm += 4, len -= 4;
 
+	if (len >= 2) {
+		crypto_params->rsn_caps = LE_READ_2(frm);
+		frm += 2, len -= 2;
+	}
+#ifdef ATH_SUPPORT_WAPI
+	if (len >= 4) {
+		if (crypto_params->rsn_caps & WLAN_CRYPTO_RSN_CAP_MFP_ENABLED) {
+			w = wlan_crypto_wapi_suite_to_cipher(frm);
+			frm += 4, len -= 4;
+			SET_MGMT_CIPHER(crypto_params, w);
+		}
+	}
+#endif
+
 	return QDF_STATUS_SUCCESS;
 }
 
@@ -3710,10 +3957,21 @@ uint8_t *wlan_crypto_build_wapiie(struct wlan_objmgr_vdev *vdev,
 		WLAN_CRYPTO_ADDSELECTOR(frm,
 				WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_SMS4_CIPHER));
 	}
+#ifdef ATH_SUPPORT_WAPI
+	if (UCIPHER_IS_GCM4(crypto_params)) {
+		selcnt[0]++;
+		WLAN_CRYPTO_ADDSELECTOR(frm,
+				WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_GCM4_CIPHER));
+	}
 
-	WLAN_CRYPTO_ADDSELECTOR(frm,
+	if (MCIPHER_IS_SMS4(crypto_params)) {
+		WLAN_CRYPTO_ADDSELECTOR(frm,
 				WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_SMS4_CIPHER));
-
+	} else if (MCIPHER_IS_GCM4(crypto_params)) {
+		WLAN_CRYPTO_ADDSELECTOR(frm,
+				WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_GCM4_CIPHER));
+	}
+#endif
 	/* optional capabilities */
 	WLAN_CRYPTO_ADDSHORT(frm, crypto_params->rsn_caps);
 
@@ -3722,6 +3980,17 @@ uint8_t *wlan_crypto_build_wapiie(struct wlan_objmgr_vdev *vdev,
 	    vdev->vdev_mlme.vdev_opmode == QDF_P2P_CLIENT_MODE)
 		WLAN_CRYPTO_ADDSHORT(frm, 0);
 
+#ifdef ATH_SUPPORT_WAPI
+	if (crypto_params->rsn_caps & WLAN_CRYPTO_RSN_CAP_MFP_ENABLED) {
+		if (MCIPHER_IS_SMS4(crypto_params)) {
+			WLAN_CRYPTO_ADDSELECTOR(frm,
+					WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_CMAC_CIPHER));
+		} else if (MCIPHER_IS_GCM4(crypto_params)) {
+			WLAN_CRYPTO_ADDSELECTOR(frm,
+					WLAN_WAPI_SEL(WLAN_CRYPTO_WAPI_GMAC_CIPHER));
+		}
+	}
+#endif
 	/* calculate element length */
 	iebuf[1] = frm - iebuf - 2;
 
@@ -3897,10 +4166,10 @@ exit:
 QDF_STATUS wlan_crypto_register_crypto_rx_ops(
 			struct wlan_lmac_if_crypto_rx_ops *crypto_rx_ops)
 {
-	crypto_rx_ops->crypto_encap      = wlan_crypto_encap;
-	crypto_rx_ops->crypto_decap      = wlan_crypto_decap;
-	crypto_rx_ops->crypto_enmic      = wlan_crypto_enmic;
-	crypto_rx_ops->crypto_demic      = wlan_crypto_demic;
+	crypto_rx_ops->crypto_encap	 = wlan_crypto_encap;
+	crypto_rx_ops->crypto_decap	 = wlan_crypto_decap;
+	crypto_rx_ops->crypto_enmic	 = wlan_crypto_enmic;
+	crypto_rx_ops->crypto_demic	 = wlan_crypto_demic;
 	crypto_rx_ops->set_peer_wep_keys = wlan_crypto_set_peer_wep_keys;
 
 	return QDF_STATUS_SUCCESS;
@@ -4111,7 +4380,7 @@ uint8_t wlan_crypto_get_key_miclen(struct wlan_crypto_key *key)
 
 qdf_export_symbol(wlan_crypto_get_key_miclen);
 
-uint16_t wlan_crypto_get_keyid(uint8_t *data, int hdrlen)
+uint16_t wlan_crypto_get_keyid(uint8_t *data, int hdrlen, int cipher)
 {
 	struct wlan_frame_hdr *hdr = (struct wlan_frame_hdr *)data;
 	uint8_t *iv;
@@ -4128,15 +4397,26 @@ uint16_t wlan_crypto_get_keyid(uint8_t *data, int hdrlen)
 	    (stype == WLAN_FC0_STYPE_ASSOC_RESP) ||
 	    (stype == WLAN_FC0_STYPE_REASSOC_RESP))) {
 		return 0;
-	}
+       }
 
-	if (hdr->i_fc[1] & WLAN_FC1_ISWEP) {
-		iv = data + hdrlen;
-		/*
-		 * iv[3] is the Key ID octet in the CCMP/TKIP/WEP headers
-		 * Bits 6–7 of the Key ID octet are for the Key ID subfield
-		 */
-		return ((iv[3] >> 6) & 0x3);
+       if (hdr->i_fc[1] & WLAN_FC1_ISWEP) {
+	       iv = data + hdrlen;
+
+	       /*
+		* iv[3] is the Key ID octet in the CCMP/TKIP/WEP headers
+		* Bits 6–7 of the Key ID octet are for the Key ID subfield
+		* iv[0] is the Key ID octet in the WAPI header
+		*/
+		switch (cipher) {
+		case WLAN_CRYPTO_CIPHER_WAPI_SMS4:
+		case WLAN_CRYPTO_CIPHER_WAPI_GCM4:
+		case WLAN_CRYPTO_CIPHER_WAPI_CMAC:
+		case WLAN_CRYPTO_CIPHER_WAPI_GMAC:
+			return iv[0];
+		default:
+			return ((iv[3] >> 6) & 0x3);
+		}
+
 	} else {
 		return WLAN_CRYPTO_KEYIX_NONE;
 	}
