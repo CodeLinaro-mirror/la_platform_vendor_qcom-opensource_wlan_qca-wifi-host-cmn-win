@@ -254,7 +254,6 @@ dp_tx_mon_srng_process_2_0(struct dp_soc *soc, struct dp_intr *int_ctx,
 
 		if ((hal_mon_tx_desc.end_reason == HAL_MON_FLUSH_DETECTED) ||
 		    (hal_mon_tx_desc.end_reason == HAL_MON_PPDU_TRUNCATED)) {
-			tx_mon_be->be_ppdu_id = hal_mon_tx_desc.ppdu_id;
 
 			dp_tx_mon_update_end_reason(mon_pdev,
 						    hal_mon_tx_desc.ppdu_id,
