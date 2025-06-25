@@ -2034,12 +2034,14 @@ void qdf_minidump_deinit(void)
  * @start_addr: Start address of the memory to be dumped
  * @size: Size in bytes
  * @name: String to identify this entry
+ * @module_name: ko to which the file containing minidump API call belongs
  */
 static inline
 void qdf_minidump_log(void *start_addr,
-		      const size_t size, const char *name)
+		      const size_t size, const char *name,
+		      const char *module_name)
 {
-	__qdf_minidump_log(start_addr, size, name);
+	__qdf_minidump_log(start_addr, size, name, module_name);
 }
 
 /**

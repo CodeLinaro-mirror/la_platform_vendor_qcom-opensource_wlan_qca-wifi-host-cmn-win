@@ -158,7 +158,8 @@ QDF_STATUS wlan_regulatory_psoc_obj_created_notification(
 	}
 
 	reg_debug("reg psoc obj created with status %d", status);
-	qdf_minidump_log(soc_reg_obj, sizeof(*soc_reg_obj), "psoc_regulatory");
+	qdf_minidump_log(soc_reg_obj, sizeof(*soc_reg_obj), "psoc_regulatory",
+			 THIS_MODULE->name);
 
 	return status;
 }

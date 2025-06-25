@@ -1490,7 +1490,7 @@ void *hal_attach(struct hif_opaque_softc *hif_handle, qdf_device_t qdf_dev)
 
 	hal_reg_write_fail_history_init(hal);
 
-	qdf_minidump_log(hal, sizeof(*hal), "hal_soc");
+	qdf_minidump_log(hal, sizeof(*hal), "hal_soc", THIS_MODULE->name);
 
 	qdf_ssr_driver_dump_register_region("hal_soc", hal, sizeof(*hal));
 
