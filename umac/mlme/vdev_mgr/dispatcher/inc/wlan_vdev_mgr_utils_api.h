@@ -155,6 +155,16 @@ uint32_t wlan_utils_get_vdev_remaining_channel_switch_time(
  */
 int wlan_util_vdev_mgr_get_cac_timeout_for_vdev(struct wlan_objmgr_vdev *vdev);
 
+
+/**
+ * wlan_utils_get_vdev_remaining_cac_time() - Get the remaining CAC time
+ * value for a given vdev.
+ * @vdev: Pointer to vdev object.
+ *
+ * Return: Reamaing CAC time
+ */
+int wlan_utils_get_vdev_remaining_cac_time(struct wlan_objmgr_vdev *vdev);
+
 #ifdef MOBILE_DFS_SUPPORT
 /**
  * wlan_util_vdev_mgr_set_cac_timeout_for_vdev() - set the CAC timeout value for

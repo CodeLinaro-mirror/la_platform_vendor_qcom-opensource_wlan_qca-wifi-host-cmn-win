@@ -843,6 +843,17 @@ utils_dfs_is_cac_required_on_dfs_curchan(struct wlan_objmgr_pdev *pdev,
 					 bool is_vap_restart);
 
 /**
+ * utils_dfs_get_rem_cac_time() - Get remaining CAC time.
+ * @pdev: pdev ptr
+ * @des_chan: Pointer to des wlan_channel structure.
+ *
+ * Return: remaining CAC time.
+ */
+uint32_t
+utils_dfs_get_rem_cac_time(struct wlan_objmgr_pdev *pdev,
+			   struct wlan_channel *des_chan);
+
+/**
  * utils_dfs_is_precac_done() - Check if precac has been done in chosen channel
  * @pdev: Pointer to DFS pdev object.
  * @wlan_chan: Pointer to wlan channel object that can be accessed by other
