@@ -1205,6 +1205,12 @@ struct wlan_lmac_if_ftm_rx_ops {
  * 6GHz 80p80 channel.
  * @is_freq_80p80_supported: Callback function to check if the given primary
  * frequency supports 80P80 mode of operation.
+ * @register_hw_blacklist_chan_event_handler: pointer to register hw blacklist
+ * event handler.
+ * @unregister_hw_blacklist_chan_event_handler: pointer to unregister hw
+ * blacklist event handler.
+ * @reg_hw_blacklist_chan_support: Callback function to check if lower power HW
+ * blacklisted channel list supported.
  */
 struct wlan_lmac_if_reg_tx_ops {
 	QDF_STATUS (*register_master_handler)(struct wlan_objmgr_psoc *psoc,
@@ -1280,6 +1286,14 @@ struct wlan_lmac_if_reg_tx_ops {
 	bool (*is_80p80_supported)(struct wlan_objmgr_pdev *pdev);
 	bool (*is_freq_80p80_supported)(struct wlan_objmgr_pdev *pdev,
 					qdf_freq_t freq);
+#ifndef CONFIG_REG_CLIENT
+	QDF_STATUS (*register_hw_blacklist_chan_event_handler)(
+			struct wlan_objmgr_psoc *psoc, void *arg);
+	QDF_STATUS (*unregister_hw_blacklist_chan_event_handler)(
+			struct wlan_objmgr_psoc *psoc, void *arg);
+#endif
+	bool (*reg_hw_blacklist_chan_support)(
+			struct wlan_objmgr_psoc *psoc);
 };
 
 /**
