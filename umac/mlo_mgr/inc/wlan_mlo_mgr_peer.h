@@ -326,7 +326,8 @@ void wlan_mlo_peer_get_del_hw_bitmap(struct wlan_objmgr_peer *peer,
  * @src_peer: Source peer, if this pointer is valid, send deauth on other link
  * @is_disassoc: to indicate, whether Disassoc to be sent instead of deauth
  *
- * This function initiates deauth on MLO peer and its links peers
+ * This function initiates deauth on MLO peer and its links peers and
+ * notifies disconnect for setup link reconfiguration
  *
  * Return: void
  */
@@ -334,6 +335,22 @@ void
 wlan_mlo_peer_deauth_init(struct wlan_mlo_peer_context *ml_peer,
 			  struct wlan_objmgr_peer *src_peer,
 			  uint8_t is_disassoc);
+
+/**
+ * wlan_mlo_peer_deauth_trigger() - Trigger Deauth of MLO peer
+ * @ml_peer: MLO peer
+ * @src_peer: Source peer, if this pointer is valid, send deauth on other link
+ * @is_disassoc: to indicate, whether Disassoc to be sent instead of deauth
+ *
+ * This function triggers deauth on MLO peer and its links peers
+ *
+ * Return: void
+ */
+
+void
+wlan_mlo_peer_deauth_trigger(struct wlan_mlo_peer_context *ml_peer,
+			     struct wlan_objmgr_peer *src_peer,
+			     uint8_t is_disassoc);
 
 /**
  * wlan_mlo_partner_peer_create_failed_notify() - Notify peer creation fail
