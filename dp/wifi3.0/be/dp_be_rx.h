@@ -1128,6 +1128,7 @@ dp_rx_wbm_err_copy_desc_info_in_nbuf(struct dp_soc *soc,
 	uint32_t msdu_desc_info = 0;
 	uint32_t peer_mdata = 0;
 	union hal_wbm_err_info_u wbm_err = { 0 };
+	bool is_frag = qdf_nbuf_is_frag(nbuf);
 
 	/* get WBM mpdu & msdu desc info */
 	hal_rx_wbm_err_mpdu_msdu_info_get_be(ring_desc,
@@ -1142,6 +1143,7 @@ dp_rx_wbm_err_copy_desc_info_in_nbuf(struct dp_soc *soc,
 					      peer_mdata,
 					      msdu_desc_info);
 	dp_rx_set_wbm_err_info_in_nbuf(soc, nbuf, wbm_err);
+	qdf_nbuf_set_is_frag(nbuf, is_frag);
 	return wbm_err.info;
 }
 

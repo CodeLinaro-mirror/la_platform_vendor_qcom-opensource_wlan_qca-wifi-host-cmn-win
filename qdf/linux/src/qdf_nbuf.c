@@ -2042,16 +2042,17 @@ qdf_export_symbol(__qdf_nbuf_data_is_ipv4_dhcp_pkt);
  *         false otherwise.
  */
 #ifdef BIG_ENDIAN_HOST
-static inline bool qdf_is_eapol_type(uint16_t type)
+bool qdf_is_eapol_type(uint16_t type)
 {
 	return (type == QDF_NBUF_TRAC_EAPOL_ETH_TYPE);
 }
 #else
-static inline bool qdf_is_eapol_type(uint16_t type)
+bool qdf_is_eapol_type(uint16_t type)
 {
 	return (type == QDF_SWAP_U16(QDF_NBUF_TRAC_EAPOL_ETH_TYPE));
 }
 #endif
+qdf_export_symbol(qdf_is_eapol_type);
 
 bool __qdf_nbuf_data_is_ipv4_eapol_pkt(uint8_t *data)
 {

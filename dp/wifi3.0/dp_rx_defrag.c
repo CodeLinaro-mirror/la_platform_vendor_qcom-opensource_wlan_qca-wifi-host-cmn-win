@@ -1209,6 +1209,18 @@ dp_rx_reinject_ring_record_entry(struct dp_soc *soc, uint64_t paddr,
 }
 #endif
 
+static void dp_rx_eapol_override_dst_ind(struct dp_soc *soc, uint32_t *dst_ind,
+					 qdf_nbuf_t head)
+{
+	uint16_t ether_type;
+	uint8_t *data = qdf_nbuf_data(head) + soc->rx_pkt_tlv_size;
+
+	ether_type = __qdf_nbuf_get_ether_type(data);
+
+	if (qdf_is_eapol_type(ether_type))
+		*dst_ind = RX_RELEASE_DST_IND;
+}
+
 /**
  * dp_rx_defrag_reo_reinject() - Reinject the fragment chain back into REO
  * @txrx_peer: Pointer to the txrx_peer
@@ -1291,6 +1303,8 @@ static QDF_STATUS dp_rx_defrag_reo_reinject(struct dp_txrx_peer *txrx_peer,
 	msdu_desc_info = hal_rx_msdu_desc_info_ptr_get(soc->hal_soc, msdu0);
 
 	dst_ind = hal_rx_msdu_reo_dst_ind_get(soc->hal_soc, link_desc_va);
+
+	dp_rx_eapol_override_dst_ind(soc, &dst_ind, head);
 
 	qdf_mem_zero(msdu_desc_info, sizeof(struct rx_msdu_desc_info));
 
