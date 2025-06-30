@@ -4417,154 +4417,168 @@ static bool reg_is_pwrmode_not_required(
 }
 #endif
 
-#ifndef CONFIG_REG_CLIENT
+/**
+ * reg_free_hw_blacklist_chan - Free blacklist chans
+ * @reg_hw_bl_chans: Regulatory hardware blacklist chans
+ *
+ * Return: None.
+ */
 static void
-reg_free_hw_blacklist_chan(struct hw_blacklisted_channel *reg_hw_bl_chans)
+reg_free_hw_blacklist_chan(struct hbl_chans *reg_hw_bl_chans)
 {
-	uint8_t i, num_hw_punc_chans;
-
-	num_hw_punc_chans = reg_hw_bl_chans->num_hw_blacklisted_punc_chans;
-
-	if (reg_hw_bl_chans->full_bw_chan) {
-		qdf_mem_free(reg_hw_bl_chans->full_bw_chan);
-		reg_hw_bl_chans->full_bw_chan = NULL;
-		reg_hw_bl_chans->num_hw_blacklisted_full_bw_chans = 0;
+	if (reg_hw_bl_chans->fb_chan) {
+		qdf_mem_free(reg_hw_bl_chans->fb_chan);
+		reg_hw_bl_chans->fb_chan = NULL;
+		reg_hw_bl_chans->nfbchans = 0;
 	}
 
-	if (reg_hw_bl_chans->punc_chan) {
-		for (i = 0; i < num_hw_punc_chans; i++) {
-			if (reg_hw_bl_chans->punc_chan[i].blocked_punc_patterns) {
-				qdf_mem_free(
-					reg_hw_bl_chans->punc_chan[i].blocked_punc_patterns);
-				reg_hw_bl_chans->punc_chan[i].blocked_punc_patterns = NULL;
-			}
-		}
-		qdf_mem_free(reg_hw_bl_chans->punc_chan);
-		reg_hw_bl_chans->punc_chan = NULL;
-		reg_hw_bl_chans->num_hw_blacklisted_punc_chans = 0;
+	if (reg_hw_bl_chans->pc_chan) {
+		qdf_mem_free(reg_hw_bl_chans->pc_chan);
+		reg_hw_bl_chans->pc_chan = NULL;
+		reg_hw_bl_chans->npcchans = 0;
 	}
 }
 
+/**
+ * reg_hw_blacklist_update - update regulatory blacklist chans
+ * @reg_hw_bl_chans: Regulatory hardware blacklist chans
+ * @reg_6g_ap_type : 6G AP power type
+ * @tgt_hw_bl_info : Pointer to hardware blacklist info
+ *
+ * Return: None.
+ */
 static void
-reg_hw_blacklist_update(struct hw_blacklisted_channel *reg_hw_bl_chans,
+reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
 			enum reg_6g_ap_type ap_type,
-			struct hw_blacklist_chan_info *tgt_hw_bl_info)
+			struct hbl_allpm_info *tgt_hw_bl_info)
 {
-	struct hw_disallowed_full_bw_chan *tgt_hw_full_bw_chans;
-	struct hw_disallowed_punc_chan *tgt_hw_punc_chans;
-	uint8_t num_hw_full_bw_chans;
-	uint8_t num_hw_punc_chans;
+	struct hbl_fb_chan *tgt_fb_lst_arr;
+	struct hbl_pc_chan *tgt_pc_lst_arr;
+	uint8_t num_fb_lst_arr;
+	uint8_t num_pc_lst_arr;
 
-	num_hw_full_bw_chans = tgt_hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type];
-	num_hw_punc_chans = tgt_hw_bl_info->num_hw_blacklisted_punc_chans[ap_type];
-
-	tgt_hw_full_bw_chans = tgt_hw_bl_info->hw_full_bw_chans[ap_type];
-	tgt_hw_punc_chans = tgt_hw_bl_info->hw_punc_chans[ap_type];
+	num_fb_lst_arr = tgt_hw_bl_info->nfbchans[ap_type];
+	num_pc_lst_arr = tgt_hw_bl_info->npcchans[ap_type];
+	tgt_fb_lst_arr = tgt_hw_bl_info->fb_lst_arr[ap_type];
+	tgt_pc_lst_arr = tgt_hw_bl_info->pc_lst_arr[ap_type];
 
 	if (tgt_hw_bl_info->is_first)
 		reg_free_hw_blacklist_chan(reg_hw_bl_chans);
 
-	if (num_hw_full_bw_chans) {
-		uint8_t local_num_hw_full_bw_chans;
-		struct hw_disallowed_punc_chan *local_full_bw_chan;
-		// Append by realloc and free new mem
-		local_num_hw_full_bw_chans = reg_hw_bl_chans->num_hw_blacklisted_full_bw_chans;
-		reg_hw_bl_chans->num_hw_blacklisted_full_bw_chans += num_hw_full_bw_chans;
-		local_full_bw_chan = krealloc(reg_hw_bl_chans->full_bw_chan, reg_hw_bl_chans->num_hw_blacklisted_full_bw_chans, qdf_mem_malloc_flags());
+	/* Handle full bandwidth channels */
+	if (num_fb_lst_arr) {
+		uint8_t local_num_fb_lst_arr = reg_hw_bl_chans->nfbchans;
+		struct hbl_fb_chan *local_full_bw_chan;
+
+		reg_hw_bl_chans->nfbchans += num_fb_lst_arr;
+		local_full_bw_chan = krealloc(reg_hw_bl_chans->fb_chan,
+					      reg_hw_bl_chans->nfbchans * sizeof(struct hbl_fb_chan),
+					      qdf_mem_malloc_flags());
+
 		if (!local_full_bw_chan)
 			return;
 
-		qdf_mem_copy(local_full_bw_chan  + local_num_hw_full_bw_chans, tgt_hw_bl_info->hw_full_bw_chans[ap_type], num_hw_full_bw_chans);
-		reg_hw_bl_chans->full_bw_chan = local_full_bw_chan;
+		qdf_mem_copy(local_full_bw_chan + local_num_fb_lst_arr,
+			     tgt_fb_lst_arr,
+			     num_fb_lst_arr * sizeof(struct hbl_fb_chan));
+
+		reg_hw_bl_chans->fb_chan = local_full_bw_chan;
 	}
 
-	if (num_hw_punc_chans) {
-		reg_hw_bl_chans->num_hw_blacklisted_punc_chans =
-			num_hw_punc_chans;
-		reg_hw_bl_chans->punc_chan =
-			tgt_hw_bl_info->hw_punc_chans[ap_type];
+	/* Handle punctured bandwidth channels */
+	if (num_pc_lst_arr) {
+		uint8_t local_num_pc_lst_arr = reg_hw_bl_chans->npcchans;
+		struct hbl_pc_chan *local_pc_bw_chan;
+
+		reg_hw_bl_chans->npcchans += num_fb_lst_arr;
+
+		local_pc_bw_chan = krealloc(reg_hw_bl_chans->pc_chan,
+					    reg_hw_bl_chans->npcchans * sizeof(struct hbl_pc_chan),
+					    qdf_mem_malloc_flags());
+
+		if (!local_pc_bw_chan)
+			return;
+
+		qdf_mem_copy(local_pc_bw_chan + local_num_pc_lst_arr,
+			     tgt_pc_lst_arr,
+			     num_pc_lst_arr * sizeof(struct hbl_pc_chan));
+
+		reg_hw_bl_chans->pc_chan = local_pc_bw_chan;
 	}
 }
 
+/**
+ * reg_set_pdev_hw_blacklist - Set blacklist chans on pdev
+ * @pdev_priv_obj  : Pointer to wlan_regulatory_pdev_priv_obj
+ * @hbl_allpm_iobj : Pointer to hbl_allpm_info
+ *
+ * Return: True/False.
+ */
 static QDF_STATUS
 reg_set_pdev_hw_blacklist(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
-			  struct hw_blacklist_chan_info *hw_blacklist_chan_info)
+			  struct hbl_allpm_info *hbl_allpm_iobj)
 {
-	struct hw_blacklisted_channel *hw_bl_sp = NULL;
-	struct hw_blacklisted_channel *hw_bl_vlp = NULL;
+	struct hbl_chans *hw_bl_sp;
+	struct hbl_chans *hw_bl_vlp;
 
-	if (!hw_blacklist_chan_info->is_hw_blacklist_info_valid) {
+	if (!hbl_allpm_iobj->is_hbl_msg_valid) {
 		reg_err("hw blacklist info is not valid. Ignoring");
 		return QDF_STATUS_SUCCESS;
 	}
 
-	hw_bl_sp = &pdev_priv_obj->hw_blacklisted_channels[REG_STANDARD_POWER_AP];
-	hw_bl_vlp = &pdev_priv_obj->hw_blacklisted_channels[REG_VERY_LOW_POWER_AP];
-
-	switch (hw_blacklist_chan_info->hw_black_list_status) {
-	case REG_HW_BLACKLIST_CHAN_SP_UPDATE:
-		reg_hw_blacklist_update(hw_bl_sp, REG_STANDARD_POWER_AP, hw_blacklist_chan_info);
+	hw_bl_sp = &pdev_priv_obj->hbl_pm_chlst[REG_STANDARD_POWER_AP];
+	hw_bl_vlp = &pdev_priv_obj->hbl_pm_chlst[REG_VERY_LOW_POWER_AP];
+	switch (hbl_allpm_iobj->hbl_cmd) {
+	case REG_HBL_UPD_SP:
+		reg_hw_blacklist_update(hw_bl_sp, REG_STANDARD_POWER_AP, hbl_allpm_iobj);
 		break;
-	case REG_HW_BLACKLIST_CHAN_VLP_UPDATE:
-		reg_hw_blacklist_update(hw_bl_vlp, REG_VERY_LOW_POWER_AP, hw_blacklist_chan_info);
+	case REG_HBL_UPD_VLP:
+		reg_hw_blacklist_update(hw_bl_vlp, REG_VERY_LOW_POWER_AP, hbl_allpm_iobj);
 		break;
-	case REG_HW_BLACKLIST_CHAN_SP_CLEAR:
+	case REG_HBL_CLR_SP:
 		reg_free_hw_blacklist_chan(hw_bl_sp);
 		break;
-	case REG_HW_BLACKLIST_CHAN_VLP_CLEAR:
+	case REG_HBL_CLR_VLP:
 		reg_free_hw_blacklist_chan(hw_bl_vlp);
 		break;
-	case REG_HW_BLACKLIST_CHAN_UPDATE_ALL:
-		reg_hw_blacklist_update(hw_bl_sp, REG_STANDARD_POWER_AP, hw_blacklist_chan_info);
-		reg_hw_blacklist_update(hw_bl_vlp, REG_VERY_LOW_POWER_AP, hw_blacklist_chan_info);
+	case REG_HBL_UPD_ALL:
+		reg_hw_blacklist_update(hw_bl_sp, REG_STANDARD_POWER_AP, hbl_allpm_iobj);
+		reg_hw_blacklist_update(hw_bl_vlp, REG_VERY_LOW_POWER_AP, hbl_allpm_iobj);
 		break;
-	case REG_HW_BLACKLIST_CHAN_CLEAR_ALL:
+	case REG_HBL_CLR_ALL:
 	default:
 		reg_free_hw_blacklist_chan(hw_bl_sp);
 		reg_free_hw_blacklist_chan(hw_bl_vlp);
 		break;
 	}
-
 	return QDF_STATUS_SUCCESS;
 }
 
-static void reg_free_hw_bl_punc_chans(
-	struct hw_blacklist_chan_info *hw_bl_info,
-	enum reg_6g_ap_type ap_type)
+/**
+ * reg_free_hbl_allpm_iobj - Free hardware blacklist object info
+ * @hw_bl_info     : Pointer to hbl_allpm_info
+ *
+ * Return: None.
+ */
+static void reg_free_hbl_allpm_iobj(struct hbl_allpm_info *hw_bl_info)
 {
-	uint8_t j;
+	enum reg_6g_ap_type t;
 
-	for (j = 0; j < hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]; j++) {
-		if (hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns) {
-			qdf_mem_free(hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns);
-			hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns = NULL;
-	    }
-	}
-	qdf_mem_free(hw_bl_info->hw_punc_chans[ap_type]);
-	hw_bl_info->hw_punc_chans[ap_type] = NULL;
-}
-
-static void reg_free_hw_blacklist_chan_info(
-	struct hw_blacklist_chan_info *hw_bl_info)
-{
-	enum reg_6g_ap_type ap_type;
-
-	for (ap_type = REG_STANDARD_POWER_AP; ap_type < REG_CURRENT_MAX_AP_TYPE; ap_type++) {
-		if (hw_bl_info->hw_full_bw_chans[ap_type]) {
-			qdf_mem_free(hw_bl_info->hw_full_bw_chans[ap_type]);
-			hw_bl_info->hw_full_bw_chans[ap_type] = NULL;
+	for (t = REG_STANDARD_POWER_AP; t < REG_CURRENT_MAX_AP_TYPE; t++) {
+		if (hw_bl_info->fb_lst_arr[t]) {
+			qdf_mem_free(hw_bl_info->fb_lst_arr[t]);
+			hw_bl_info->fb_lst_arr[t] = NULL;
 		}
 
-		if (hw_bl_info->hw_punc_chans[ap_type]) {
-			reg_free_hw_bl_punc_chans(hw_bl_info, ap_type);
+		if (hw_bl_info->pc_lst_arr[t]) {
+			qdf_mem_free(hw_bl_info->pc_lst_arr[t]);
+			hw_bl_info->pc_lst_arr[t] = NULL;
 		}
 	}
 }
 
 QDF_STATUS
-reg_process_hw_blacklist_chans(
-	struct hw_blacklist_chan_reg_info *hw_bl_reg_info)
-{
+reg_process_hw_blacklist_chans(struct hbl_reg_info *hw_bl_reg_info) {
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_lmac_if_reg_tx_ops *tx_ops;
 	uint8_t phy_id, pdev_id;
@@ -4574,19 +4588,16 @@ reg_process_hw_blacklist_chans(
 	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
 
 	psoc = hw_bl_reg_info->psoc;
-
 	phy_id = hw_bl_reg_info->phy_id;
-
 	tx_ops = reg_get_psoc_tx_ops(psoc);
 	if (tx_ops->get_pdev_id_from_phy_id)
 		tx_ops->get_pdev_id_from_phy_id(psoc, phy_id, &pdev_id);
 	else
 		pdev_id = phy_id;
-
 	pdev = wlan_objmgr_get_pdev_by_id(psoc, pdev_id, dbg_id);
 	if (!pdev) {
 		reg_err("pdev is NULL");
-		reg_free_hw_blacklist_chan_info(&hw_bl_reg_info->hw_blacklist_chan_info);
+		reg_free_hbl_allpm_iobj(&hw_bl_reg_info->hbl_allpm_iobj);
 		return QDF_STATUS_E_FAILURE;
 	}
 
@@ -4594,24 +4605,30 @@ reg_process_hw_blacklist_chans(
 	if (!IS_VALID_PDEV_REG_OBJ(pdev_priv_obj)) {
 		reg_err("reg pdev priv obj is NULL");
 		wlan_objmgr_pdev_release_ref(pdev, dbg_id);
-		reg_free_hw_blacklist_chan_info(&hw_bl_reg_info->hw_blacklist_chan_info);
+		reg_free_hbl_allpm_iobj(&hw_bl_reg_info->hbl_allpm_iobj);
 		return QDF_STATUS_E_FAILURE;
 	}
 
 	status = reg_set_pdev_hw_blacklist(pdev_priv_obj,
-					   &hw_bl_reg_info->hw_blacklist_chan_info);
+					   &hw_bl_reg_info->hbl_allpm_iobj);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		reg_err("Failed to set hw blacklist");
 		wlan_objmgr_pdev_release_ref(pdev, dbg_id);
 		return status;
 	}
-
 	wlan_objmgr_pdev_release_ref(pdev, dbg_id);
 
-	/* Send Blacklist Event */
 	return status;
 }
 
+/**
+ * reg_hw_blacklist_update - update regulatory blacklist chans
+ * @reg_hw_bl_chans: Regulatory hardware blacklist chans
+ * @reg_6g_ap_type : 6G AP power type
+ * @tgt_hw_bl_info : Pointer to hardware blacklist info
+ *
+ * Return: None.
+ */
 static QDF_STATUS
 reg_set_hw_black_list(struct wlan_objmgr_pdev *pdev,
 		      struct cur_regulatory_info *reg_info)
@@ -4625,30 +4642,23 @@ reg_set_hw_black_list(struct wlan_objmgr_pdev *pdev,
 	}
 
 	return reg_set_pdev_hw_blacklist(pdev_priv_obj,
-					 &reg_info->hw_blacklist_chan_info);
+					 &reg_info->hbl_allpm_iobj);
 }
 
+#if defined(CONFIG_AFC_SUPPORT)
+/**
+ * reg_set_sp_hw_black_list - Set hardware blacklist chan for SP power mode
+ * @pdev_priv_obj  : Pointer to pdev private object
+ * @afc_regulatory_info : Pointer to AFC regulatory info
+ *
+ * Return: True/False.
+ */
 static QDF_STATUS
 reg_set_sp_hw_black_list(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
 			 struct afc_regulatory_info *afc_info)
 {
 	return reg_set_pdev_hw_blacklist(pdev_priv_obj,
-			&afc_info->hw_blacklist_chan_info);
-}
-#else
-static inline QDF_STATUS
-reg_set_hw_black_list(struct wlan_objmgr_pdev *pdev,
-		      struct cur_regulatory_info *reg_info)
-
-{
-	return QDF_STATUS_SUCCESS;
-}
-
-static inline QDF_STATUS
-reg_set_sp_hw_black_list(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
-			 struct afc_regulatory_info *afc_info)
-{
-	return QDF_STATUS_SUCCESS;
+			&afc_info->hbl_allpm_iobj);
 }
 #endif
 
@@ -5417,9 +5427,7 @@ reg_process_afc_expiry_event(struct afc_regulatory_info *afc_info)
 		reg_free_afc_pwr_info(pdev_priv_obj);
 		reg_reset_chan_list_and_power_event(pdev_priv_obj);
 		reg_client_afc_populate_channels(psoc, pdev);
-
 		reg_set_sp_hw_black_list(pdev_priv_obj, afc_info);
-
 		reg_send_afc_payload_reset_event(pdev);
 		if (wlan_reg_is_noaction_on_afc_pwr_evt(pdev)) {
 			if (tx_ops->trigger_update_channel_list)
@@ -6118,10 +6126,9 @@ reg_process_afc_power_event(struct afc_regulatory_info *afc_info)
 			   afc_info->power_info->fw_status_code);
 		reg_reset_chan_list_and_power_event(pdev_priv_obj);
 
-		afc_info->hw_blacklist_chan_info.is_hw_blacklist_info_valid =
-			true;
-		afc_info->hw_blacklist_chan_info.hw_black_list_status =
-			REG_HW_BLACKLIST_CHAN_SP_CLEAR;
+		afc_info->hbl_allpm_iobj.is_hbl_msg_valid = true;
+		afc_info->hbl_allpm_iobj.hbl_cmd =
+			REG_HBL_CLR_SP;
 		reg_set_sp_hw_black_list(pdev_priv_obj, afc_info);
 
 		reg_send_afc_power_event(pdev, afc_info->power_info);

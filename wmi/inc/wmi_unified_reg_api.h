@@ -60,12 +60,12 @@ QDF_STATUS wmi_extract_reg_chan_list_ext_update_event(wmi_unified_t wmi_handle,
  * wmi_extract_hw_blacklist_chan_event() - function to extract the HW black channel list event
  * @wmi_handle: wmi handle
  * @evt_buf: event buffer
- * @hw_blacklist_chan_info: HW blacklist channel info
+ * @hbl_allpm_iobj: HW blacklist channel info
  * @len: length of buffer
  */
 QDF_STATUS wmi_extract_hw_blacklist_chan_event(wmi_unified_t wmi_handle,
 					       uint8_t *evt_buf,
-					       struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info,
+					       struct hbl_reg_info *hw_blacklist_reg_info,
 					       uint32_t len);
 
 #ifdef CONFIG_AFC_SUPPORT

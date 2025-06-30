@@ -392,7 +392,8 @@ struct wlan_regulatory_psoc_priv_obj {
  * be set in the enterprise mode where ACS is not called upon receiving AFC
  * event.
  * @reg_afc_dev_deployment_type: AFC device deployment type from BDF
- * @hw_blacklisted_channels: List of Hw blacklisted channel combinations
+ * @hbl_pm_chlst: Array of list of Hardware blacklisted channels. For every
+ *                power mode there is a list of Hardware blacklisted channels
  * @sta_sap_scc_on_indoor_channel: Value of sap+sta scc on indoor support
  * @p2p_indoor_ch_support: Allow P2P GO in indoor channels
  * @fcc_rules_ptr : Value of fcc channel frequency and tx_power list received
@@ -477,9 +478,7 @@ struct wlan_regulatory_pdev_priv_obj {
 	bool is_reg_noaction_on_afc_pwr_evt;
 	enum reg_afc_dev_deploy_type reg_afc_dev_deployment_type;
 #endif
-#ifndef CONFIG_REG_CLIENT
-	struct hw_blacklisted_channel hw_blacklisted_channels[REG_CURRENT_MAX_AP_TYPE];
-#endif
+	struct hbl_chans hbl_pm_chlst[REG_CURRENT_MAX_AP_TYPE];
 	bool sta_sap_scc_on_indoor_channel;
 	bool p2p_indoor_ch_support;
 #ifdef CONFIG_REG_CLIENT

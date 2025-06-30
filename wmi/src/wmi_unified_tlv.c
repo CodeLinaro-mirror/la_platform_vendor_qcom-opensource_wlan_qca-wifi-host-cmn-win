@@ -17813,84 +17813,97 @@ static inline void print_c2c_reg_rules_info(struct cur_regulatory_info *reg_info
 }
 #endif
 
+/* fill_full_bw_list - Populate blacklist chans for full bandwidth list
+ * @ap_type         : 6G ap power type
+ * @hw_bl_info      : Pointer to hbl_allpm_info
+ * @primary_freq    : Primary frequency
+ * @center_freq     : Center frequency
+ * @bw              : Channel width bandwidth
+ * @reg_info_bl_idx : regulatory info blacklist index
+ *
+ * Return : True/false
+ */
 static QDF_STATUS fill_full_bw_list(enum reg_6g_ap_type ap_type,
-				    struct hw_blacklist_chan_info *hw_bl_info,
+				    struct hbl_allpm_info *hw_bl_info,
 				    qdf_freq_t primary_freq, qdf_freq_t center_freq,
-				    wmi_channel_width bw,
-				    uint32_t *reg_info_black_list_idx)
+				    wmi_channel_width bw, uint32_t *reg_info_bl_idx)
 {
-	enum phy_ch_width hw_phy_chan_width;
-	enum phy_ch_width *max_blocked_bw;
-	qdf_freq_t *blocked_320_center_freq;
-	qdf_freq_t *blocked_pri_freq;
+	enum phy_ch_width hw_phy_cw;
+	enum phy_ch_width *max_bw;
+	qdf_freq_t *cen320_freq;
+	qdf_freq_t *pri_freq;
 
-	if (*reg_info_black_list_idx >= hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]) {
-		wmi_err("Invalid index %u for full bw list", reg_info_black_list_idx);
+	if (*reg_info_bl_idx >= hw_bl_info->nfbchans[ap_type]) {
+		wmi_err("Invalid index %u for full bw list", reg_info_bl_idx);
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	hw_phy_chan_width = wmi_map_ch_width(bw);
-	blocked_320_center_freq = &hw_bl_info->hw_full_bw_chans[ap_type][*reg_info_black_list_idx].
-		    blocked_320_center_freq;
-	max_blocked_bw = &hw_bl_info->hw_full_bw_chans[ap_type][*reg_info_black_list_idx].
-		max_blocked_bw;
-	blocked_pri_freq = &hw_bl_info->hw_full_bw_chans[ap_type][*reg_info_black_list_idx].
-		blocked_pri_freq;
+	hw_phy_cw = wmi_map_ch_width(bw);
+	cen320_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].cen320_freq;
+	max_bw = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].max_bw;
+	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq;
 
-	*blocked_pri_freq = primary_freq;
-	*blocked_320_center_freq = center_freq;
+	*pri_freq = primary_freq;
+	*cen320_freq = center_freq;
 
-	*max_blocked_bw = hw_phy_chan_width;
+	*max_bw = hw_phy_cw;
+	(*reg_info_bl_idx)++;
 
 	return QDF_STATUS_SUCCESS;
 }
 
+/* fill_punctured_bw_list - Populate blacklist chans for punctured bandwidth list
+ * @ap_type         : 6G ap power type
+ * @hw_bl_info      : Pointer to hbl_allpm_info
+ * @center_freq     : Center frequency
+ * @wmi_hw_bw       : wmi channel width
+ * @p_bitmap        : puncture bitmap
+ *
+ * Return : True/false
+ */
 static QDF_STATUS fill_punctured_bw_list(enum reg_6g_ap_type ap_type,
-					 struct hw_blacklist_chan_info *hw_bl_info,
-					 qdf_freq_t center_freq,
-					 wmi_channel_width wmi_hw_bw,
-					 uint16_t puncture_bitmap,
-					 uint32_t *reg_info_black_list_idx)
+					 struct hbl_allpm_info *hw_bl_info,
+					 qdf_freq_t center_freq, wmi_channel_width wmi_hw_bw,
+					 uint32_t p_bitmap, uint32_t *reg_info_bl_idx)
 {
-	qdf_freq_t *blocked_center_freq;
+	qdf_freq_t *bl_c_freq;
 	enum phy_ch_width *bw;
-	uint16_t *blocked_punc_patterns;
-	uint8_t *num_blocked_punc_patterns;
+	uint32_t *bl_punc_bitmap;
 
-	if (*reg_info_black_list_idx >=
-	    hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]) {
+	if (*reg_info_bl_idx >=
+	    hw_bl_info->npcchans[ap_type]) {
 		wmi_err("Failed to get a free index for punctured bw list");
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	blocked_center_freq = &hw_bl_info->hw_punc_chans[ap_type][*reg_info_black_list_idx].
-		center_freq;
-	bw = &hw_bl_info->hw_punc_chans[ap_type][*reg_info_black_list_idx].bw;
-	blocked_punc_patterns = hw_bl_info->hw_punc_chans[ap_type][*reg_info_black_list_idx].
-		blocked_punc_patterns;
-	num_blocked_punc_patterns = &hw_bl_info->hw_punc_chans[ap_type][*reg_info_black_list_idx].
-		num_blocked_punc_patterns;
-
-	/* First Unique channel */
-	if (!*blocked_center_freq) {
-		*blocked_center_freq = center_freq;
-		*bw = wmi_map_ch_width(wmi_hw_bw);
-	}
-
-	blocked_punc_patterns[(*num_blocked_punc_patterns)++] = puncture_bitmap;
+	bl_c_freq = &hw_bl_info->pc_lst_arr[ap_type][*reg_info_bl_idx].cen_freq;
+	bw = &hw_bl_info->pc_lst_arr[ap_type][*reg_info_bl_idx].bw;
+	bl_punc_bitmap = &hw_bl_info->pc_lst_arr[ap_type][*reg_info_bl_idx].bl_pat_bitmap;
+	*bl_c_freq = center_freq;
+	*bw = wmi_map_ch_width(wmi_hw_bw);
+	*bl_punc_bitmap = p_bitmap;
+	(*reg_info_bl_idx)++;
 
 	return QDF_STATUS_SUCCESS;
 }
 
+/* fill_blacklist_info - Fill the hardware blacklist channel info
+ * @hw_blacklist_chan: Pointer to wmi_hw_blacklist_chan_data
+ * @hw_bl_info       : Pointer to hbl_allpm_info
+ * @full_bw_idx      : Full bandwidth index
+ * @punc_idx         : puncture index
+ *
+ * Return : True/false
+ */
 static QDF_STATUS fill_blacklist_info(wmi_hw_blacklist_chan_data *hw_blacklist_chan,
-				      struct hw_blacklist_chan_info *hw_bl_info,
+				      struct hbl_allpm_info *hw_bl_info,
 				      uint32_t *full_bw_idx,
 				      uint32_t *punc_idx)
 {
 	enum reg_6g_ap_type ap_type =
 		WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 0, 3);
-	uint16_t puncture_bitmap =
-		WMI_GET_BITS(hw_blacklist_chan->puncture_pattern_bitmap, 0, 23);
+	uint32_t puncture_bitmap =
+		WMI_GET_BITS(hw_blacklist_chan->puncture_pattern_bitmap_info, 0, 23);
 	wmi_channel_width bw;
 	qdf_freq_t center_freq;
 	qdf_freq_t primary_freq;
@@ -17911,127 +17924,148 @@ static QDF_STATUS fill_blacklist_info(wmi_hw_blacklist_chan_data *hw_blacklist_c
 	return QDF_STATUS_SUCCESS;
 }
 
-static void get_num_unique_chans_for_ap_type(wmi_hw_blacklist_chan_data *hw_blacklist_chans,
-					     uint32_t num_hw_blacklist_chan_data,
-					     struct hw_blacklist_chan_info *hw_bl_info)
+/* get_num_unique_chans_for_ap_type - Fetch unique chans for power type
+ * @hw_bl_chans         : Pointer to wmi_hw_blacklist_chan_data
+ * @num_hw_bl_chan_data : number of blacklist channel data
+ * @hw_bl_info          : Pointer to hbl_allpm_info
+ *
+ * Return : None
+ */
+static void get_num_unique_chans_for_ap_type(
+	wmi_hw_blacklist_chan_data *hw_bl_chans,
+	uint32_t num_hw_bl_chan_data,
+	struct hbl_allpm_info *hw_bl_info)
 {
 	uint32_t i;
 
-	for (i = 0; i < num_hw_blacklist_chan_data; i++) {
+	for (i = 0; i < num_hw_bl_chan_data; i++) {
 		enum reg_6g_ap_type ap_type =
-			WMI_GET_BITS(hw_blacklist_chans[i].chan_list_meta_data, 0, 3);
-		uint16_t puncture_bitmap =
-			WMI_GET_BITS(hw_blacklist_chans[i].puncture_pattern_bitmap, 0, 23);
+			WMI_GET_BITS(hw_bl_chans[i].chan_list_meta_data, 0, 3);
+		uint16_t p_bitmap =
+			WMI_GET_BITS(hw_bl_chans[i].puncture_pattern_bitmap_info, 0, 23);
 
-		if (!puncture_bitmap) {
+		if (!p_bitmap) {
 			/* If the puncture bitmap is 0, then it is a full BW channel */
-			hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]++;
+			hw_bl_info->nfbchans[ap_type]++;
 			continue;
 		}
-		hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]++;
+		hw_bl_info->npcchans[ap_type]++;
 	}
 }
 
-static void free_hw_bl_punc_chans(
-	struct hw_blacklist_chan_info *hw_bl_info,
-	enum reg_6g_ap_type ap_type)
+/* free_hw_blacklist_chan_info - Free hardware blacklist info object
+ * @hw_bl_info          : Pointer to hbl_allpm_info
+ *
+ * Return : None
+ */
+static void free_hw_blacklist_chan_info (struct hbl_allpm_info *hw_bl_info)
 {
-	uint8_t j;
+	enum reg_6g_ap_type t;
 
-	for (j = 0; j < hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]; j++) {
-		if (hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns) {
-			qdf_mem_free(hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns);
-			hw_bl_info->hw_punc_chans[ap_type][j].blocked_punc_patterns = NULL;
-	    }
-	}
-	qdf_mem_free(hw_bl_info->hw_punc_chans[ap_type]);
-	hw_bl_info->hw_punc_chans[ap_type] = NULL;
-}
-
-static void free_hw_blacklist_chan_info(
-	struct hw_blacklist_chan_info *hw_bl_info)
-{
-	enum reg_6g_ap_type ap_type;
-
-	for (ap_type = REG_STANDARD_POWER_AP; ap_type < REG_CURRENT_MAX_AP_TYPE; ap_type++) {
-		if (hw_bl_info->hw_full_bw_chans[ap_type]) {
-			qdf_mem_free(hw_bl_info->hw_full_bw_chans[ap_type]);
-			hw_bl_info->hw_full_bw_chans[ap_type] = NULL;
+	for (t = REG_STANDARD_POWER_AP; t < REG_CURRENT_MAX_AP_TYPE; t++) {
+		if (hw_bl_info->fb_lst_arr[t]) {
+			qdf_mem_free(hw_bl_info->fb_lst_arr[t]);
+			hw_bl_info->fb_lst_arr[t] = NULL;
 		}
 
-		if (hw_bl_info->hw_punc_chans[ap_type]) {
-			free_hw_bl_punc_chans(hw_bl_info, ap_type);
+		if (hw_bl_info->pc_lst_arr[t]) {
+			qdf_mem_free(hw_bl_info->pc_lst_arr[t]);
+			hw_bl_info->pc_lst_arr[t] = NULL;
 		}
 	}
 }
 
+/* allocate_full_bw_chans - Allocate memory for full bw blacklist chans
+ * @hw_bl_info          : Pointer to hbl_allpm_info
+ * @ap_type             : 6G Ap power type
+ *
+ * Return : True/False
+ */
 static QDF_STATUS allocate_full_bw_chans(
-	struct hw_blacklist_chan_info *hw_bl_info,
+	struct hbl_allpm_info *hw_bl_info,
 	enum reg_6g_ap_type ap_type)
 {
-	hw_bl_info->hw_full_bw_chans[ap_type] = qdf_mem_malloc(
-		sizeof(struct hw_disallowed_full_bw_chan) *
-		hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]);
-	if (!hw_bl_info->hw_full_bw_chans[ap_type]) {
+	hw_bl_info->fb_lst_arr[ap_type] = qdf_mem_malloc(
+		sizeof(struct hbl_fb_chan) *
+		hw_bl_info->nfbchans[ap_type]);
+	if (!hw_bl_info->fb_lst_arr[ap_type]) {
 		wmi_err("Allocate failed for full bw channels "
 			"for ap type %u Size %u", ap_type,
-			hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]);
+			hw_bl_info->nfbchans[ap_type]);
 		return QDF_STATUS_E_NOMEM;
 	}
 
-	qdf_mem_zero(hw_bl_info->hw_full_bw_chans[ap_type],
-		     sizeof(struct hw_disallowed_full_bw_chan) *
-		     hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]);
+	qdf_mem_zero(hw_bl_info->fb_lst_arr[ap_type],
+		     sizeof(struct hbl_fb_chan) *
+		     hw_bl_info->nfbchans[ap_type]);
 
 	return QDF_STATUS_SUCCESS;
 }
 
+/* allocate_punc_bw_chans - Allocate memory for punctured blacklist chans
+ * @hw_bl_info          : Pointer to hbl_allpm_info
+ * @ap_type             : 6G Ap power type
+ *
+ * Return : True/False
+ */
 static QDF_STATUS allocate_punc_bw_chans(
-	struct hw_blacklist_chan_info *hw_bl_info,
+	struct hbl_allpm_info *hw_bl_info,
 	enum reg_6g_ap_type ap_type)
 {
-	hw_bl_info->hw_punc_chans[ap_type] = qdf_mem_malloc(
-		sizeof(struct hw_disallowed_punc_chan) *
-		hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]);
-	if (!hw_bl_info->hw_punc_chans[ap_type]) {
+	hw_bl_info->pc_lst_arr[ap_type] = qdf_mem_malloc(
+		sizeof(struct hbl_pc_chan) *
+		hw_bl_info->npcchans[ap_type]);
+	if (!hw_bl_info->pc_lst_arr[ap_type]) {
 		wmi_err("Allocate failed for punc bw channels "
 			"for ap type %u Size %u", ap_type,
-			hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]);
+			hw_bl_info->npcchans[ap_type]);
 		return QDF_STATUS_E_NOMEM;
 	}
 
-	qdf_mem_zero(hw_bl_info->hw_punc_chans[ap_type],
-		     sizeof(struct hw_disallowed_punc_chan) *
-		     hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]);
+	qdf_mem_zero(hw_bl_info->pc_lst_arr[ap_type],
+		     sizeof(struct hbl_pc_chan) *
+		     hw_bl_info->npcchans[ap_type]);
 
 	return QDF_STATUS_SUCCESS;
 }
 
-static QDF_STATUS allocate_hw_blacklist_chan_info(
-		struct hw_blacklist_chan_info *hw_bl_info)
+/* allocate_hbl_allpm_iobj - Allocate memory for hardware blacklisted chan obj
+ * @hw_bl_info          : Pointer to hbl_allpm_info
+ *
+ * Return : True/False
+ */
+static QDF_STATUS allocate_hbl_allpm_iobj(
+		struct hbl_allpm_info *hw_bl_info)
 
 {
 	enum reg_6g_ap_type ap_type;
 
 	for (ap_type = REG_STANDARD_POWER_AP; ap_type < REG_CURRENT_MAX_AP_TYPE; ap_type++) {
-		if (hw_bl_info->num_hw_blacklisted_full_bw_chans[ap_type]) {
+		if (hw_bl_info->nfbchans[ap_type]) {
 			if (allocate_full_bw_chans(hw_bl_info, ap_type)) {
 				return QDF_STATUS_E_FAILURE;
 			}
 		}
 
-		if (hw_bl_info->num_hw_blacklisted_punc_chans[ap_type]) {
+		if (hw_bl_info->npcchans[ap_type])
 			return allocate_punc_bw_chans(hw_bl_info, ap_type);
-		}
 	}
 
 	return QDF_STATUS_SUCCESS;
 }
 
+/* extract_hw_blacklist_chan_data - extract blacklist chan data
+ * @status_code        : blacklist chan data event flag
+ * @hw_blacklist_chans : Pointer to wmi_hw_blacklist_chan_data
+ * @num_hw_blacklist_chan_data : number of blacklist chan data
+ * hw_bl_info          : Pointer to hbl_allpm_info
+ *
+ * Return : True/False
+ */
 static QDF_STATUS extract_hw_blacklist_chan_data(WMI_HW_BLACKLIST_CHAN_DATA_EVENT_FLAG status_code,
 						 wmi_hw_blacklist_chan_data *hw_blacklist_chans,
 						 uint32_t num_hw_blacklist_chan_data,
-						 struct hw_blacklist_chan_info *hw_bl_info)
+						 struct hbl_allpm_info *hw_bl_info)
 {
 	uint32_t i;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
@@ -18041,7 +18075,7 @@ static QDF_STATUS extract_hw_blacklist_chan_data(WMI_HW_BLACKLIST_CHAN_DATA_EVEN
 					 num_hw_blacklist_chan_data,
 					 hw_bl_info);
 
-	status = allocate_hw_blacklist_chan_info(hw_bl_info);
+	status = allocate_hbl_allpm_iobj(hw_bl_info);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		wmi_err("Allocate failed for hw blacklist chan info");
 		return status;
@@ -18060,12 +18094,21 @@ static QDF_STATUS extract_hw_blacklist_chan_data(WMI_HW_BLACKLIST_CHAN_DATA_EVEN
 	return status;
 }
 
+/* extract_hw_blacklist_tlv - extract blacklist chan from tlv
+ * @hw_blacklist_fixed_param : Pointer to wmi_hw_blacklist_chan_fixed_param
+ * @num_hw_blacklist_chan_fixed_param : Number of blacklist chan fixed param
+ * @hw_blacklist_chans : Pointer to wmi_hw_blacklist_chan_data
+ * @num_hw_blacklist_chan_data : number of blacklist chan data
+ * hw_bl_info          : Pointer to hbl_allpm_info
+ *
+ * Return : True/False
+ */
 static QDF_STATUS extract_hw_blacklist_tlv(
 	wmi_hw_blacklist_chan_fixed_param *hw_blacklist_fixed_param,
 	uint32_t num_hw_blacklist_chan_fixed_param,
 	wmi_hw_blacklist_chan_data *hw_blacklist_chans,
 	uint32_t num_hw_blacklist_chan_data,
-	struct hw_blacklist_chan_info *hw_bl_info)
+	struct hbl_allpm_info *hw_bl_info)
 {
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
 	uint8_t seq_indx;
@@ -18075,10 +18118,10 @@ static QDF_STATUS extract_hw_blacklist_tlv(
 		return status;
 	}
 
-	hw_bl_info->is_hw_blacklist_info_valid = true;
-	hw_bl_info->hw_black_list_status =
+	hw_bl_info->is_hbl_msg_valid = true;
+	hw_bl_info->hbl_cmd =
 		WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 16, 19);
-	hw_bl_info->hw_black_list_chan_data_status =
+	hw_bl_info->is_done =
 		 WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 20, 20);
 	seq_indx = WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 0, 7);
 
@@ -18094,7 +18137,7 @@ static QDF_STATUS extract_hw_blacklist_tlv(
 
 	if (num_hw_blacklist_chan_data > 0) {
 		status = extract_hw_blacklist_chan_data(
-					hw_bl_info->hw_black_list_status,
+					hw_bl_info->hbl_cmd,
 					hw_blacklist_chans,
 					num_hw_blacklist_chan_data,
 					hw_bl_info);
@@ -18102,7 +18145,7 @@ static QDF_STATUS extract_hw_blacklist_tlv(
 
 	if (status != QDF_STATUS_SUCCESS) {
 		wmi_err("Failed to extract hw blacklist chan data");
-		hw_bl_info->hw_black_list_status =
+		hw_bl_info->hbl_cmd =
 			WMI_HW_BLACKLIST_CHAN_INVALID;
 	}
 
@@ -18453,12 +18496,11 @@ static QDF_STATUS extract_reg_chan_list_ext_update_event_tlv(
 	if (status != QDF_STATUS_SUCCESS)
 		return status;
 
-	status = extract_hw_blacklist_tlv(\
-				param_buf->hw_blacklist_chan_fixed_param,
-				param_buf->num_hw_blacklist_chan_fixed_param,
-				param_buf->hw_blacklist_chan_data,
-				param_buf->num_hw_blacklist_chan_data,
-				&reg_info->hw_blacklist_chan_info);
+	status = extract_hw_blacklist_tlv(param_buf->hw_blacklist_chan_fixed_param,
+					  param_buf->num_hw_blacklist_chan_fixed_param,
+					  param_buf->hw_blacklist_chan_data,
+					  param_buf->num_hw_blacklist_chan_data,
+					  &reg_info->hbl_allpm_iobj);
 	if (status != QDF_STATUS_SUCCESS)
 		return status;
 
@@ -18759,7 +18801,7 @@ static QDF_STATUS extract_afc_event_tlv(wmi_unified_t wmi_handle,
 				     param_buf->num_hw_blacklist_chan_fixed_param,
 				     param_buf->hw_blacklist_chan_data,
 				     param_buf->num_hw_blacklist_chan_data,
-				     &afc_info->hw_blacklist_chan_info);
+				     &afc_info->hbl_allpm_iobj);
 }
 #endif
 
@@ -18768,7 +18810,7 @@ static QDF_STATUS
 extract_hw_blacklist_event_tlv(
 		wmi_unified_t wmi_handle,
 		uint8_t *evt_buf,
-		struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info,
+		struct hbl_reg_info *hw_blacklist_reg_info,
 		uint32_t len)
 {
 	WMI_HW_BLACKLIST_CHAN_EVENTID_param_tlvs *param_buf;
@@ -18795,7 +18837,7 @@ extract_hw_blacklist_event_tlv(
 			param_buf->num_hw_blacklist_chan_fixed_param,
 			param_buf->hw_blacklist_chan_data,
 			param_buf->num_hw_blacklist_chan_data,
-			&hw_blacklist_reg_info->hw_blacklist_chan_info);
+			&hw_blacklist_reg_info->hbl_allpm_iobj);
 }
 #endif
 #endif
@@ -25564,7 +25606,7 @@ static void populate_tlv_service(uint32_t *wmi_service)
 	wmi_service[wmi_service_sta_mlo_rcfg_support] =
 				WMI_SERVICE_STA_MLO_RCFG_SUPPORT;
 	wmi_service[wmi_service_hw_blacklist_chan_support] =
-			WMI_SERVICE_HW_BLACKLIST_CHAN_SUPPORT;
+				WMI_SERVICE_HW_BLACKLIST_CHAN_SUPPORT;
 }
 
 /**

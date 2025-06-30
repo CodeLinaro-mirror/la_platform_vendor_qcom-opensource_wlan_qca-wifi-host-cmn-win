@@ -456,7 +456,6 @@ const char *wlan_reg_get_power_string(enum reg_6g_ap_type power_type)
 
 qdf_export_symbol(wlan_reg_get_6g_ap_master_chan_list);
 
-#ifndef CONFIG_REG_CLIENT
 static void regulatory_assign_register_hw_blacklist_chan_event_handler(
 		struct wlan_objmgr_psoc *psoc,
 		struct wlan_lmac_if_reg_tx_ops *tx_ops)
@@ -472,19 +471,6 @@ static void regulatory_assign_unregister_hw_blacklist_chan_event_handler(
 	if (tx_ops->unregister_hw_blacklist_chan_event_handler)
 		tx_ops->unregister_hw_blacklist_chan_event_handler(psoc, NULL);
 }
-#else
-static void regulatory_assign_register_hw_blacklist_chan_event_handler(
-		struct wlan_objmgr_psoc *psoc,
-		struct wlan_lmac_if_reg_tx_ops *tx_ops)
-{
-}
-
-static void regulatory_assign_unregister_hw_blacklist_chan_event_handler(
-		struct wlan_objmgr_psoc *psoc,
-		struct wlan_lmac_if_reg_tx_ops *tx_ops)
-{
-}
-#endif
 
 #ifdef CONFIG_AFC_SUPPORT
 static void regulatory_assign_register_afc_event_handler(
@@ -2150,13 +2136,13 @@ bool wlan_reg_is_vlp_depriority_freq(struct wlan_objmgr_pdev *pdev,
 }
 #endif
 
-#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+#if defined(CONFIG_BAND_6GHZ)
 bool wlan_reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 					qdf_freq_t freq,
 					qdf_freq_t c_freq, qdf_freq_t c_freq2,
 					uint16_t bw,
 					enum supported_6g_pwr_types ap_pwr_type,
-					uint16_t in_punc_pattern)
+					uint32_t in_punc_pattern)
 {
 	return reg_is_hw_blacklisted_channel(pdev, freq, c_freq, c_freq2, bw,
 					     ap_pwr_type, in_punc_pattern);
