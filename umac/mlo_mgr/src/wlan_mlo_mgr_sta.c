@@ -1942,6 +1942,15 @@ bool mlo_is_mld_sta(struct wlan_objmgr_vdev *vdev)
 }
 
 qdf_export_symbol(mlo_is_mld_sta);
+
+bool wlan_vdev_is_mlo_sta_with_multi_vdev(struct wlan_objmgr_vdev *vdev)
+{
+	return (mlo_is_mld_sta(vdev) &&
+		(vdev->mlo_dev_ctx->wlan_vdev_count > 1));
+}
+
+qdf_export_symbol(wlan_vdev_is_mlo_sta_with_multi_vdev);
+
 #ifndef WLAN_FEATURE_11BE_MLO_ADV_FEATURE
 struct wlan_objmgr_vdev *
 mlo_get_ml_vdev_by_mac(struct wlan_objmgr_vdev *vdev,
