@@ -2126,6 +2126,7 @@ struct wlan_lmac_if_mgmt_txrx_rx_ops {
  * struct wlan_lmac_if_reg_rx_ops - structure of rx function pointers
  * @master_list_handler:
  * @master_list_ext_handler:
+ * @hw_blacklist_chan_handler:
  * @afc_event_handler:
  * @reg_11d_new_cc_handler:
  * @reg_set_regdb_offloaded:
@@ -2171,6 +2172,11 @@ struct wlan_lmac_if_reg_rx_ops {
 #ifdef CONFIG_BAND_6GHZ
 	QDF_STATUS (*master_list_ext_handler)(struct cur_regulatory_info
 					      *reg_info);
+#ifndef CONFIG_REG_CLIENT
+	QDF_STATUS
+	(*hw_blacklist_chan_handler)(struct hw_blacklist_chan_reg_info
+		*hw_blacklist_reg_info);
+#endif
 #ifdef CONFIG_AFC_SUPPORT
 	QDF_STATUS (*afc_event_handler)(struct afc_regulatory_info *afc_info);
 #endif

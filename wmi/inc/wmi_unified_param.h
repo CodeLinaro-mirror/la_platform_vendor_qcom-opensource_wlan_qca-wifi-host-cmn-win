@@ -5428,6 +5428,7 @@ typedef enum {
 	wmi_pdev_csa_switch_count_status_event_id,
 	wmi_reg_chan_list_cc_event_id,
 	wmi_reg_chan_list_cc_ext_event_id,
+	wmi_hw_blacklist_chan_event_id,
 #ifdef CONFIG_AFC_SUPPORT
 	wmi_afc_event_id,
 #endif
