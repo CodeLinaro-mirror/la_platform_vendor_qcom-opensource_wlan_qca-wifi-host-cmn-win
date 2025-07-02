@@ -10910,17 +10910,24 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
 			      qdf_freq_t freq, qdf_freq_t c_freq2,
 			      uint16_t bw)
 {
-	uint32_t i;
-	uint64_t x;
+	for (uint32_t i = 0; i < n; i++) {
+		qdf_freq_t start_freq;
+		uint16_t b_bw = reg_get_bw_value(fbw[i].max_bw);
+		uint64_t x;
 
-	for (i = 0; i < n; i++) {
-		if (fbw[i].max_bw == bw && fbw[i].cen320_freq == c_freq2) {
-			const struct bonded_channel_freq *bond =
-				reg_get_bonded_chan_entry(freq, bw, c_freq2);
-			if (!bond)
-				continue;
+		if (b_bw == bw && fbw[i].cen320_freq == c_freq2) {
+			if (bw == 20) {
+				start_freq = freq;
+			} else {
+				const struct bonded_channel_freq *bond =
+					reg_get_bonded_chan_entry(freq, bw, c_freq2);
+				if (!bond)
+					continue;
 
-			x = (freq - bond->start_freq) / BW_20_MHZ;
+				start_freq = bond->start_freq;
+			}
+
+			x = (freq - start_freq) / BW_20_MHZ;
 			if (fbw[i].pri_freq & BIT(x))
 				return true;
 		}
