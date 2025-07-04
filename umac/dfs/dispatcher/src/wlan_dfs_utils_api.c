@@ -39,6 +39,9 @@
 #include <qdf_module.h>
 #include "wlan_dfs_lmac_api.h"
 #include "../../core/src/dfs_internal.h"
+#include "../../core/src/dfs_process_radar_found_ind.h"
+#include <dfs_postnol_ucfg.h>
+
 
 struct dfs_nol_info {
 	uint16_t num_chans;
@@ -1599,6 +1602,40 @@ void utils_dfs_convert_freq_to_index(qdf_freq_t freq, int8_t *index)
 	tmp_index = (chan_num - FIRST_DFS_CHAN_NUM) / CHAN_NUM_SPACING;
 	*index = ((tmp_index >= 0) && (tmp_index < NUM_DFS_CHANS)) ?
 		  tmp_index : INVALID_INDEX;
+}
+
+uint32_t
+utils_dfs_get_rem_cac_time(struct wlan_objmgr_pdev *pdev,
+			   struct wlan_channel *des_chan)
+{
+	struct wlan_dfs *dfs;
+	struct dfs_channel dfs_des_chan;
+	int8_t i, dfs_index;
+	uint16_t des_subchans[MAX_20MHZ_SUBCHANS];
+	uint8_t n_des_subchans;
+	uint32_t rem_cac_time = 0, rem_nol_time = 0;
+	uint32_t max_rem_cac_time = 0;
+	uint64_t cac_comp_time;
+
+	dfs = wlan_pdev_get_dfs_obj(pdev);
+	if (!dfs)
+		return false;
+
+	dfs_fill_chan_info(&dfs_des_chan, des_chan);
+	n_des_subchans = dfs_find_dfs_sub_channels_for_freq(dfs, &dfs_des_chan,
+							    des_subchans);
+	for (i = 0; i < n_des_subchans; i++) {
+		utils_dfs_convert_freq_to_index(des_subchans[i], &dfs_index);
+		if (dfs_index != INVALID_INDEX)
+			ucfg_dfs_get_cac_nol_time(pdev,
+						  des_subchans[i], dfs_index,
+						  &rem_cac_time,
+						  &cac_comp_time,
+						  &rem_nol_time);
+		if (rem_cac_time > max_rem_cac_time)
+			max_rem_cac_time = rem_cac_time;
+	}
+	return max_rem_cac_time;
 }
 
 #if defined(WLAN_DISP_CHAN_INFO)

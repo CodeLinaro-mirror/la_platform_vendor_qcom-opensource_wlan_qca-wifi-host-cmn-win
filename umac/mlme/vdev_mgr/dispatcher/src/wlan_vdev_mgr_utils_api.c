@@ -38,6 +38,7 @@
 #include <wlan_mlo_mgr_sta.h>
 #endif
 #include <wlan_mlme_cmn.h>
+#include <dfs_postnol_ucfg.h>
 
 static QDF_STATUS vdev_mgr_config_ratemask_update(
 				uint8_t vdev_id,
@@ -736,6 +737,20 @@ int wlan_util_vdev_mgr_get_cac_timeout_for_vdev(struct wlan_objmgr_vdev *vdev)
 				des_chan->ch_cfreq2, des_chan->ch_flags);
 	/* Seconds to milliseconds */
 	return SECONDS_TO_MS(dfs_cac_timeout);
+}
+
+int wlan_utils_get_vdev_remaining_cac_time(struct wlan_objmgr_vdev *vdev)
+{
+	struct wlan_channel *des_chan;
+	uint32_t max_rem_cac_time;
+
+	des_chan = wlan_vdev_mlme_get_des_chan(vdev);
+	if (!des_chan)
+		return 0;
+
+	max_rem_cac_time = utils_dfs_get_rem_cac_time(wlan_vdev_get_pdev(vdev),
+						      des_chan);
+	return SECONDS_TO_MS(max_rem_cac_time);
 }
 #else
 int wlan_util_vdev_mgr_get_cac_timeout_for_vdev(struct wlan_objmgr_vdev *vdev)
