@@ -1331,6 +1331,7 @@ struct  dp_mon_pdev {
 
 	/* ppdu_id of last received HTT TX stats */
 	uint32_t last_ppdu_id;
+	bool last_ppdu_buf_drop;
 	struct {
 		uint8_t last_user;
 		qdf_nbuf_t buf;
