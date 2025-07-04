@@ -6832,7 +6832,7 @@ typedef enum {
 	wmi_service_mrsno_support,
 	wmi_service_spectral_spur_bin_info_support,
 	wmi_service_sta_mlo_rcfg_support,
-
+	wmi_service_hw_blacklist_chan_support,
 	wmi_services_max,
 } wmi_conv_service_ids;
 #define WMI_SERVICE_UNAVAILABLE 0xFFFF
@@ -7224,6 +7224,8 @@ struct target_feature_set {
  * @is_epm_supported: Is epm functionality supported
  * @con_mode_monitor: Device is in Full monitor mode
  * @mgmt_rx_srng_support: Is mgmt rx over srng supported
+ * @is_reg_hw_blacklist_chan_supported: Flag to indicate if reg hw blacklisted
+ * chan supported
  */
 typedef struct {
 	uint32_t num_vdevs;
@@ -7375,6 +7377,7 @@ typedef struct {
 #ifdef WLAN_FEATURE_VBSS
 	bool vbss_mode_enabled;
 #endif
+	bool is_reg_hw_blacklist_chan_supported;
 } target_resource_config;
 
 /**

@@ -3250,4 +3250,14 @@ static inline void target_if_set_num_max_mlo_link(struct wlan_objmgr_psoc *psoc,
 {
 }
 #endif
+/**
+ * target_if_set_reg_hw_blacklist_chan_supp() - Set reg_hw_blacklist capability
+ * in WMI_INIT_CMD based on host ini variable.
+ *
+ * @tgt_hdl: Pointer to struct target_psoc_info.
+ * @psoc: Pointer to struct wlan_objmgr_psoc.
+ *
+ */
+void target_if_set_reg_hw_blacklist_chan_supp(struct target_psoc_info *tgt_hdl,
+					      struct wlan_objmgr_psoc *psoc);
 #endif

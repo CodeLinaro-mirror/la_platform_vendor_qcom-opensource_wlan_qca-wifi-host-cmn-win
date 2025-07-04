@@ -1386,4 +1386,17 @@ target_if_get_psoc_target_type(struct wlan_objmgr_psoc *psoc,
 
 	return QDF_STATUS_SUCCESS;
 }
+
+void target_if_set_reg_hw_blacklist_chan_supp(struct target_psoc_info *tgt_hdl,
+					      struct wlan_objmgr_psoc *psoc)
+{
+	struct tgt_info *info;
+
+	if (!tgt_hdl)
+		return;
+
+	info = (&tgt_hdl->info);
+	info->wlan_res_cfg.is_reg_hw_blacklist_chan_supported =
+		target_if_reg_is_reg_hw_blacklist_chan_host_supported(psoc);
+}
 #endif /*WLAN_FEATURE_11BE_MLO && WLAN_MLO_MULTI_CHIP*/
