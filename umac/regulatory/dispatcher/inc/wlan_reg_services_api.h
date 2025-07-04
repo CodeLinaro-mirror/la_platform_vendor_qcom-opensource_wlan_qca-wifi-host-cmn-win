@@ -3170,3 +3170,11 @@ wlan_reg_is_opclass_entry_80p80(const struct reg_dmn_op_class_map_t *op_class_tb
 const struct reg_dmn_op_class_map_t *
 wlan_reg_get_class_from_country(const uint8_t *country);
 #endif
+#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+bool wlan_reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
+					qdf_freq_t freq,
+					qdf_freq_t c_freq, qdf_freq_t c_freq2,
+					uint16_t bw,
+					enum supported_6g_pwr_types ap_pwr_type,
+					uint16_t in_punc_pattern);
+#endif

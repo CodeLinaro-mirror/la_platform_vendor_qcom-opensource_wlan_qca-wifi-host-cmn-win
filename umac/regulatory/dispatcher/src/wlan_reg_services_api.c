@@ -2118,3 +2118,16 @@ bool wlan_reg_is_vlp_depriority_freq(struct wlan_objmgr_pdev *pdev,
 	return reg_is_vlp_depriority_freq(pdev, freq);
 }
 #endif
+
+#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+bool wlan_reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
+					qdf_freq_t freq,
+					qdf_freq_t c_freq, qdf_freq_t c_freq2,
+					uint16_t bw,
+					enum supported_6g_pwr_types ap_pwr_type,
+					uint16_t in_punc_pattern)
+{
+	return reg_is_hw_blacklisted_channel(pdev, freq, c_freq, c_freq2, bw,
+					     ap_pwr_type, in_punc_pattern);
+}
+#endif

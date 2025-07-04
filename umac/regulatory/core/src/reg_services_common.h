@@ -3359,4 +3359,12 @@ static inline bool reg_is_ap_power_type_c2c(enum reg_6g_ap_type ap_pwr_type)
 	return false;
 }
 #endif
+#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
+				   qdf_freq_t freq,
+				   qdf_freq_t c_freq, qdf_freq_t c_freq2,
+				   uint16_t bw,
+				   enum supported_6g_pwr_types ap_pwr_type,
+				   uint16_t in_punc_pattern);
+#endif
 #endif
