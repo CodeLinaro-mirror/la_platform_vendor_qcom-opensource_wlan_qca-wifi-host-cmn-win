@@ -39,6 +39,8 @@
 #define ACK_INTERVAL (40)
 #define CTS_INTERVAL (40)
 #define DEFAULT_NOISE_FLOOR (-95)
+#define DP_IEEE80211_GCMP_MIC_LEN 16
+#define DP_IEEE80211_CCMP_MIC_LEN 8
 
 #ifdef TXMON_DEBUG
 /*
@@ -1797,6 +1799,83 @@ dp_tx_mon_send_to_stack(struct dp_pdev *pdev, qdf_nbuf_t mpdu,
 }
 
 /**
+ * dp_tx_mon_get_wifi_hdr_addr_frm_usr_mpdu() - API to get
+ *				ieee80211_frame_min_one header from user_mpdu
+ * @usr_mpdu: user mpdu
+ *
+ * Return: pointer to the ieee80211_frame_min_one header
+ */
+static struct ieee80211_frame_min_one *
+dp_tx_mon_get_wifi_hdr_addr_frm_usr_mpdu(qdf_nbuf_t usr_mpdu,
+					 uint32_t *frag_count)
+{
+	struct ieee80211_frame_min_one *wh = NULL;
+	*frag_count = dp_tx_mon_nbuf_get_num_frag(usr_mpdu);
+	if (*frag_count) {
+		wh = (struct ieee80211_frame_min_one *)
+			qdf_nbuf_get_frag_addr(usr_mpdu, 0);
+	} else {
+		qdf_nbuf_t nbuf;
+
+		nbuf = qdf_nbuf_get_ext_list(usr_mpdu);
+		if (nbuf)
+			wh = (struct ieee80211_frame_min_one *)
+				qdf_nbuf_data(nbuf);
+	}
+	return wh;
+}
+
+/**
+ * dp_tx_mon_trim_mic_for_mgmt_frame() - API to trim the MIC for protected
+ *                                       frames if ieee80211w is enabled
+ * @ppdu_info: pointer to dp_tx_ppdu_info
+ * @usr_mpdu: user mpdu
+ *
+ * Return: void
+ */
+static void
+dp_tx_mon_trim_mic_for_mgmt_frame(struct dp_tx_ppdu_info *ppdu_info,
+				  qdf_nbuf_t usr_mpdu)
+{
+	uint8_t enc_type;
+	struct mon_rx_user_status *user_status;
+	uint16_t frame_type;
+	struct ieee80211_frame_min_one *wh = NULL;
+	uint32_t frag_count;
+	int trim_len = 0;
+
+	user_status = ppdu_info->hal_txmon.rx_status.rx_user_status;
+	if (user_status)
+		enc_type = user_status->enc_type;
+
+	wh = dp_tx_mon_get_wifi_hdr_addr_frm_usr_mpdu(usr_mpdu, &frag_count);
+	if (!wh)
+		return;
+
+	frame_type = (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
+
+	if (frame_type == QDF_IEEE80211_FC0_TYPE_MGT &&
+	    wh->i_fc[1] & IEEE80211_FC1_WEP) {
+		if (enc_type == cdp_sec_type_aes_ccmp)
+			trim_len = -DP_IEEE80211_CCMP_MIC_LEN;
+		else if (enc_type == cdp_sec_type_aes_gcmp ||
+			 enc_type == cdp_sec_type_aes_gcmp_256 ||
+			 enc_type == cdp_sec_type_aes_ccmp_256)
+			trim_len = -DP_IEEE80211_GCMP_MIC_LEN;
+
+		if (frag_count && trim_len)
+			qdf_nbuf_trim_add_frag_size(usr_mpdu, frag_count - 1,
+						    trim_len, trim_len);
+		else if (frag_count == 0 && trim_len) {
+			qdf_nbuf_t nbuf;
+
+			nbuf = qdf_nbuf_get_ext_list(usr_mpdu);
+			qdf_nbuf_trim_tail(nbuf, -trim_len);
+		}
+	}
+}
+
+/**
  * dp_tx_mon_send_per_usr_mpdu() - API to send per usr mpdu to stack
  * @pdev: pdev Handle
  * @ppdu_info: pointer to dp_tx_ppdu_info
@@ -1820,7 +1899,6 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 			dp_get_be_mon_pdev_from_dp_mon_pdev(mon_pdev);
 	struct dp_pdev_tx_monitor_be *tx_mon_be =
 			dp_mon_pdev_get_tx_mon(mon_pdev_be, mac_id);
-
 
 	usr_mpdu_q = &TXMON_PPDU_USR(ppdu_info, user_idx, mpdu_q);
 
@@ -1868,6 +1946,8 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 			continue;
 		}
 
+		/* on ieee80211w = 2 remove MIC from Protected frames*/
+		dp_tx_mon_trim_mic_for_mgmt_frame(ppdu_info, buf);
 		dp_tx_mon_send_to_stack(pdev, buf, num_frag,
 					TXMON_PPDU(ppdu_info, ppdu_id),
 					mac_id);
