@@ -456,6 +456,36 @@ const char *wlan_reg_get_power_string(enum reg_6g_ap_type power_type)
 
 qdf_export_symbol(wlan_reg_get_6g_ap_master_chan_list);
 
+#ifndef CONFIG_REG_CLIENT
+static void regulatory_assign_register_hw_blacklist_chan_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+	if (tx_ops->register_hw_blacklist_chan_event_handler)
+		tx_ops->register_hw_blacklist_chan_event_handler(psoc, NULL);
+}
+
+static void regulatory_assign_unregister_hw_blacklist_chan_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+	if (tx_ops->unregister_hw_blacklist_chan_event_handler)
+		tx_ops->unregister_hw_blacklist_chan_event_handler(psoc, NULL);
+}
+#else
+static void regulatory_assign_register_hw_blacklist_chan_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+}
+
+static void regulatory_assign_unregister_hw_blacklist_chan_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+}
+#endif
+
 #ifdef CONFIG_AFC_SUPPORT
 static void regulatory_assign_register_afc_event_handler(
 		struct wlan_objmgr_psoc *psoc,
@@ -520,6 +550,7 @@ QDF_STATUS regulatory_psoc_open(struct wlan_objmgr_psoc *psoc)
 		tx_ops->register_master_handler(psoc, NULL);
 	regulatory_assign_register_master_ext_handler(psoc, tx_ops);
 	regulatory_assign_register_afc_event_handler(psoc, tx_ops);
+	regulatory_assign_register_hw_blacklist_chan_event_handler(psoc, tx_ops);
 	if (tx_ops->register_11d_new_cc_handler)
 		tx_ops->register_11d_new_cc_handler(psoc, NULL);
 	if (tx_ops->register_ch_avoid_event_handler)

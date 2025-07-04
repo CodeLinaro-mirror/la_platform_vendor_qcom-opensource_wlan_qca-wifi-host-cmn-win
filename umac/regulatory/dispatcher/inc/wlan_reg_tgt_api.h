@@ -45,6 +45,18 @@ QDF_STATUS tgt_reg_process_master_chan_list(struct cur_regulatory_info
 QDF_STATUS tgt_reg_process_master_chan_list_ext(struct cur_regulatory_info
 						*reg_info);
 
+#ifndef CONFIG_REG_CLIENT
+/**
+ * tgt_reg_process_hw_blacklist_chans() - process hw blacklist channels
+ * @hw_blacklist_reg_info: hw blacklist channel info
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+tgt_reg_process_hw_blacklist_chans(
+	struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info);
+#endif
+
 /**
  * tgt_reg_set_both_psd_eirp_preferred_support() - Set PSD and EIRP as the
  * preferred support for TPC power command.

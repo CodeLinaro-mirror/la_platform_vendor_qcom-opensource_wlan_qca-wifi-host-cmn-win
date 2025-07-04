@@ -77,6 +77,15 @@ QDF_STATUS tgt_reg_process_master_chan_list_ext(struct cur_regulatory_info
 	return reg_process_master_chan_list_ext(reg_info);
 }
 
+#ifndef CONFIG_REG_CLIENT
+QDF_STATUS
+tgt_reg_process_hw_blacklist_chans(
+		struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info)
+{
+	return reg_process_hw_blacklist_chans(hw_blacklist_reg_info);
+}
+#endif
+
 QDF_STATUS
 tgt_reg_set_both_psd_eirp_preferred_support(struct wlan_objmgr_psoc *psoc,
 					    bool reg_is_both_psd_eirp_support)

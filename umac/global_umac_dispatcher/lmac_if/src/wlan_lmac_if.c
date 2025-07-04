@@ -412,6 +412,15 @@ static void wlan_lmac_if_register_master_list_ext_handler(
 		tgt_reg_process_master_chan_list_ext;
 }
 
+#ifndef CONFIG_REG_CLIENT
+static void wlan_lmac_if_register_hw_blacklist_chan_handler(
+				 struct wlan_lmac_if_rx_ops *rx_ops)
+{
+	rx_ops->reg_rx_ops.hw_blacklist_chan_handler =
+		tgt_reg_process_hw_blacklist_chans;
+}
+#endif
+
 static void wlan_lmac_if_register_super_chan_display(
 					struct wlan_lmac_if_rx_ops *rx_ops)
 {
@@ -449,6 +458,11 @@ static inline void wlan_lmac_if_register_afc_handlers(
 
 #else
 static inline void wlan_lmac_if_register_master_list_ext_handler(
+					struct wlan_lmac_if_rx_ops *rx_ops)
+{
+}
+
+static inline void wlan_lmac_if_register_hw_blacklist_chan_handler(
 					struct wlan_lmac_if_rx_ops *rx_ops)
 {
 }
@@ -580,6 +594,8 @@ static void wlan_lmac_if_umac_reg_rx_ops_register(
 	wlan_lmac_if_register_6g_edge_chan_supp(rx_ops);
 
 	wlan_lmac_if_register_afc_handlers(rx_ops);
+
+	wlan_lmac_if_register_hw_blacklist_chan_handler(rx_ops);
 
 	wlan_lmac_if_register_super_chan_display(rx_ops);
 

@@ -59,6 +59,25 @@ QDF_STATUS wmi_extract_reg_chan_list_ext_update_event(
 
 qdf_export_symbol(wmi_extract_reg_chan_list_ext_update_event);
 
+#ifndef CONFIG_REG_CLIENT
+QDF_STATUS wmi_extract_hw_blacklist_chan_event(
+		wmi_unified_t wmi_handle,
+		uint8_t *evt_buf,
+		struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info,
+		uint32_t len)
+{
+	if (wmi_handle &&
+	    wmi_handle->ops->extract_hw_blacklist_event)
+		return wmi_handle->ops->extract_hw_blacklist_event
+					(wmi_handle, evt_buf,
+					 hw_blacklist_reg_info, len);
+
+	return QDF_STATUS_E_FAILURE;
+}
+#endif
+
+qdf_export_symbol(wmi_extract_hw_blacklist_chan_event);
+
 #ifdef CONFIG_AFC_SUPPORT
 QDF_STATUS wmi_extract_afc_event(wmi_unified_t wmi_handle,
 				 uint8_t *evt_buf,

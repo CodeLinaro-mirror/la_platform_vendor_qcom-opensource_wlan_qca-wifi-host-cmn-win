@@ -198,6 +198,19 @@ uint8_t reg_get_subchannels_for_opclass(uint8_t cfi,
 					uint8_t *subchannels);
 #endif
 
+#ifndef CONFIG_REG_CLIENT
+/**
+ * reg_process_hw_blacklist_chans() - Process the hardware blacklist channels
+ * and update the channel list.
+ * @hw_blacklist_reg_info: Pointer to hardware blacklist channel info
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+reg_process_hw_blacklist_chans(struct hw_blacklist_chan_reg_info *hw_bl_reg_info);
+
+#endif
+
 /**
  * reg_psd_2_eirp() - Calculate EIRP from PSD and bandwidth
  * channel list
