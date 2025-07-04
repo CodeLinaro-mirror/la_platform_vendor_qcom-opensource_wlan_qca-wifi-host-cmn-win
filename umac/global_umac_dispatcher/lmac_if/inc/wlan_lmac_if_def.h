@@ -2174,7 +2174,7 @@ struct wlan_lmac_if_reg_rx_ops {
 					      *reg_info);
 #ifndef CONFIG_REG_CLIENT
 	QDF_STATUS
-	(*hw_blacklist_chan_handler)(struct hw_blacklist_chan_reg_info
+	(*hw_blacklist_chan_handler)(struct hbl_reg_info
 		*hw_blacklist_reg_info);
 #endif
 #ifdef CONFIG_AFC_SUPPORT

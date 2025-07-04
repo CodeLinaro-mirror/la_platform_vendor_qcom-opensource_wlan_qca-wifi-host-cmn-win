@@ -10828,77 +10828,136 @@ reg_find_non_punctured_bw(uint16_t bw,  uint16_t in_punc_pattern)
 	return (bw - num_punc_bw * 20);
 }
 #endif
-#if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
+
+/**
+ * reg_find_usable_pwr_mode() - Determine the best AP power type
+ * @pdev: Pointer to pdev object
+ * @freq: Primary frequency
+ * @c_freq2: Center frequency 2
+ * @bw: Bandwidth
+ * @punc: Puncture pattern
+ * @ap_pwr_type: Requested AP power type
+ *
+ * Return: Best AP power type to use
+ */
+static enum reg_6g_ap_type
+reg_find_usable_pwr_mode(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
+			 qdf_freq_t c_freq2, uint16_t bw, uint16_t punc,
+			 enum supported_6g_pwr_types ap_pwr_type)
+{
+	static const enum reg_6g_ap_type conv[] = {
+		[REG_AP_LPI] = REG_INDOOR_AP,
+		[REG_AP_SP]  = REG_STANDARD_POWER_AP,
+		[REG_AP_VLP] = REG_VERY_LOW_POWER_AP,
+	};
+
+	if (ap_pwr_type == REG_BEST_PWR_MODE)
+		return reg_get_best_pwr_mode(pdev, freq, c_freq2, bw, punc);
+
+	return conv[ap_pwr_type];
+}
+
+/**
+ * reg_is_chan_in_full_blacklist() - Check if channel is in full BW blacklist
+ * @fbw: List of full BW blacklisted channels
+ * @n: Number of entries
+ * @freq: Primary frequency
+ * @c_freq2: Center frequency 2
+ * @bw: Bandwidth
+ *
+ * Return: true if blacklisted, false otherwise
+ */
+static bool
+reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
+			      qdf_freq_t freq, qdf_freq_t c_freq2,
+			      uint16_t bw)
+{
+	uint32_t i;
+	uint64_t x;
+
+	for (i = 0; i < n; i++) {
+		if (fbw[i].max_bw == bw && fbw[i].cen320_freq == c_freq2) {
+			const struct bonded_channel_freq *bond =
+				reg_get_bonded_chan_entry(freq, bw, c_freq2);
+			if (!bond)
+				continue;
+
+			x = (freq - bond->start_freq) / BW_20_MHZ;
+			if (fbw[i].pri_freq & BIT(x))
+				return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * reg_is_chan_in_punc_blacklist() - Check if channel is in punctured BW blacklist
+ * @pc: List of punctured BW blacklisted channels
+ * @n: Number of entries
+ * @c_freq: Center frequency
+ * @bw: Bandwidth
+ * @punc: Puncture pattern
+ *
+ * Return: true if blacklisted, false otherwise
+ */
+static bool
+reg_is_chan_in_punc_blacklist(struct hbl_pc_chan *pc, uint32_t n,
+			      qdf_freq_t c_freq, uint16_t bw,
+			      uint16_t punc)
+{
+	uint32_t i;
+	for (i = 0; i < n; i++) {
+		if (pc[i].cen_freq == c_freq && pc[i].bw == bw && pc[i].bl_pat_bitmap == punc)
+			return true;
+	}
+	return false;
+}
+
+/**
+ * reg_is_hw_blacklisted_channel() - Check if a channel is hardware blacklisted
+ * @pdev: Pointer to pdev object
+ * @freq: Primary frequency
+ * @c_freq: Center frequency
+ * @c_freq2: Center frequency 2
+ * @bw: Bandwidth
+ * @ap_pwr_type: AP power type
+ * @in_punc_pattern: Puncture pattern
+ *
+ * Return: true if blacklisted, false otherwise
+ */
 bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 				   qdf_freq_t freq,
 				   qdf_freq_t c_freq, qdf_freq_t c_freq2,
 				   uint16_t bw,
 				   enum supported_6g_pwr_types ap_pwr_type,
-				   uint16_t in_punc_pattern)
+				   uint32_t in_punc_pattern)
 {
-	struct hw_blacklisted_channel *hw_blacklisted_channels;
-	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
-	struct hw_disallowed_full_bw_chan *full_bw_chan;
-	struct hw_disallowed_punc_chan *punc_chan;
-	enum reg_6g_ap_type best_ap_pwr_type;
-	uint32_t num_hw_blacklisted_full_bw_chans;
-	uint32_t num_hw_blacklisted_punc_chans;
-	uint32_t i, j;
+	struct wlan_regulatory_pdev_priv_obj *po = reg_get_pdev_obj(pdev);
+	enum reg_6g_ap_type b_ap;
+	struct hbl_chans *bl;
 
-	static const enum reg_6g_ap_type reg_enum_conv[] = {
-		[REG_AP_LPI] = REG_INDOOR_AP,
-		[REG_AP_SP] = REG_STANDARD_POWER_AP,
-		[REG_AP_VLP] = REG_VERY_LOW_POWER_AP,
-	};
-
-	pdev_priv_obj = reg_get_pdev_obj(pdev);
-	if (!pdev_priv_obj) {
+	if (!po) {
 		reg_err("pdev priv obj is NULL");
+		return true;
+	}
+
+	b_ap = reg_find_usable_pwr_mode(pdev, freq, c_freq2,
+					bw, in_punc_pattern,
+					ap_pwr_type);
+
+	bl = &po->hbl_pm_chlst[b_ap];
+
+	if (!in_punc_pattern) {
+		if (!bl->fb_chan)
+			return false;
+		return reg_is_chan_in_full_blacklist(bl->fb_chan, bl->nfbchans,
+						     freq, c_freq2, bw);
+	}
+
+	if (!bl->pc_chan)
 		return false;
-	}
 
-	hw_blacklisted_channels = pdev_priv_obj->hw_blacklisted_channels;
-
-	if (ap_pwr_type == REG_BEST_PWR_MODE) {
-		best_ap_pwr_type = reg_get_best_pwr_mode(pdev, freq, c_freq2, bw, in_punc_pattern);
-	} else {
-		best_ap_pwr_type = reg_enum_conv[ap_pwr_type];
-	}
-
-	full_bw_chan = hw_blacklisted_channels[best_ap_pwr_type].full_bw_chan;
-	punc_chan = hw_blacklisted_channels[best_ap_pwr_type].punc_chan;
-	num_hw_blacklisted_full_bw_chans = hw_blacklisted_channels[best_ap_pwr_type].num_hw_blacklisted_full_bw_chans;
-	num_hw_blacklisted_punc_chans = hw_blacklisted_channels[best_ap_pwr_type].num_hw_blacklisted_punc_chans;
-
-	if (!full_bw_chan || !punc_chan)
-		return false;
-
-	for (i = 0; i < num_hw_blacklisted_full_bw_chans; i++) {
-		if (full_bw_chan[i].max_blocked_bw == bw &&
-		    full_bw_chan[i].blocked_320_center_freq == c_freq2) {
-
-			const struct bonded_channel_freq *bond_freq = reg_get_bonded_chan_entry(freq, bw, c_freq2);
-			if (!bond_freq)
-				continue;
-
-			uint64_t x = (freq - bond_freq->start_freq) / BW_20_MHZ;
-
-			if (full_bw_chan[i].blocked_pri_freq & BIT(x))
-				return true;
-		}
-	}
-
-	for (i = 0; i < num_hw_blacklisted_punc_chans; i++) {
-		uint8_t num_blocked_punc_patterns = punc_chan[i].num_blocked_punc_patterns;
-
-		if (punc_chan[i].center_freq == c_freq && punc_chan[i].bw == bw) {
-			for (j = 0; j < num_blocked_punc_patterns; j++) {
-				if (punc_chan[i].blocked_punc_patterns[j] == in_punc_pattern)
-					return true;
-			}
-		}
-	}
-
-	return false;
+	return reg_is_chan_in_punc_blacklist(bl->pc_chan, bl->npcchans,
+					     c_freq, bw, in_punc_pattern);
 }
-#endif
+

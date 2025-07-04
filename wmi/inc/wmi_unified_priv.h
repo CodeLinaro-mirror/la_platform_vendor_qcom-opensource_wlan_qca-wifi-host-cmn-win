@@ -2484,7 +2484,7 @@ QDF_STATUS (*extract_reg_chan_list_ext_update_event)(wmi_unified_t wmi_handle,
 QDF_STATUS
 (*extract_hw_blacklist_event)(wmi_unified_t wmi_handle,
 			      uint8_t *evt_buf,
-			      struct hw_blacklist_chan_reg_info *hw_bl_reg_info,
+			      struct hbl_reg_info *hw_bl_reg_info,
 			      uint32_t len);
 #endif
 

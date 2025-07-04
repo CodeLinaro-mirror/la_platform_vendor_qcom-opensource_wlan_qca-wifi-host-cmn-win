@@ -1253,98 +1253,111 @@ struct cur_fcc_rule {
 };
 #endif
 
-#ifndef CONFIG_REG_CLIENT
-enum hw_black_list_status_code {
-	REG_HW_BLACKLIST_CHAN_SP_UPDATE = 0,
-	REG_HW_BLACKLIST_CHAN_VLP_UPDATE,
-	REG_HW_BLACKLIST_CHAN_SP_CLEAR,
-	REG_HW_BLACKLIST_CHAN_VLP_CLEAR,
-	REG_HW_BLACKLIST_CHAN_UPDATE_ALL,
-	REG_HW_BLACKLIST_CHAN_CLEAR_ALL,
-	REG_HW_BLACKLIST_CHAN_INVALID = 255,
+/* hbl_cmd_enum : Hardware Blacklist command codes
+ * @REG_HBL_UPD_SP  : Command to update SP blacklisted channels
+ * @REG_HBL_UPD_VLP : Command to Update VLP blacklisted channels
+ * @REG_HBL_CLR_SP  : Command to Clear SP blacklisted channels
+ * @REG_HBL_CLR_VLP : Command to clear VLP blacklisted channels
+ * @REG_HBL_UPD_ALL : Command to update all blacklisted channels
+ * @REG_HBL_CLR_ALL : Command to clear all blacklisted channels
+ * @REG_HBL_INV_CMD : Invalid command
+ */
+enum hbl_cmd_enum {
+	REG_HBL_UPD_SP = 0,
+	REG_HBL_UPD_VLP,
+	REG_HBL_CLR_SP,
+	REG_HBL_CLR_VLP,
+	REG_HBL_UPD_ALL,
+	REG_HBL_CLR_ALL,
+	REG_HBL_INV_CMD = 255,
 };
 
-enum hw_black_list_chan_data_status_code {
-       REG_HW_BLACKLIST_CHAN_MORE = 0,
-       REG_HW_BLACKLIST_CHAN_DONE,
-       REG_HW_BLACKLIST_CHAN_INVALID_DATA = 3,
+/* wmi_msg_frag_flag : The enum indicates the end of a sequence of messages
+ * by setting the bit.
+ * @REG_WMIMSG_MORE: Indicates more messages in the sequence
+ * @REG_WMIMSG_DONE: Indicates the last message in the sequence.
+ * @REG_WMIMSG_INV : Indicate invalid wmi message.
+ */
+enum wmi_msg_frag_flag {
+       REG_WMIMSG_MORE = 0,
+       REG_WMIMSG_DONE,
+       REG_WMIMSG_INV = 3,
 };
 
 /**
- * struct hw_disallowed_full_bw_chan
- * @blocked_pri_freq: Blocked primary frequency
- * @max_blocked_bw: Maximum blocked bandwidth
- * @blocked_320_center_freq: Blocked 320 center frequency
+ * struct hbl_fb_chan
+ * @pri_freq: Blocked primary frequency
+ * @max_bw: Maximum blocked bandwidth
+ * @cen320_freq: Blocked 320 center frequency
  *                           Valid only if one of the two 320 cen freq is
  *                           blocked.
  */
-struct hw_disallowed_full_bw_chan {
-	qdf_freq_t blocked_pri_freq;
-	enum phy_ch_width max_blocked_bw;
-	qdf_freq_t blocked_320_center_freq;
+struct hbl_fb_chan {
+	qdf_freq_t pri_freq;
+	enum phy_ch_width max_bw;
+	qdf_freq_t cen320_freq;
 };
 
 /**
- * struct hw_disallowed_punc_chan
- * @center_freq: Center frequency
+ * struct hbl_pc_chan
+ * @cen_freq: Center frequency
  * @bw: Bandwidth
- * @num_blocked_punc_patterns: Number of blocked puncture patterns
- * @blocked_punc_patterns: List of blocked puncture patterns
+ * @npats: Number of blocked puncture patterns
+ * @pat_list: List of blocked puncture patterns
  */
-struct hw_disallowed_punc_chan {
-	qdf_freq_t center_freq;
+struct hbl_pc_chan {
+	qdf_freq_t cen_freq;
 	enum phy_ch_width bw;
-	uint8_t num_blocked_punc_patterns;
-	uint16_t *blocked_punc_patterns;
+	uint32_t bl_pat_bitmap;
 };
 
 /**
- * struct hw_blacklisted_channel
- * @num_hw_blacklisted_full_bw_chans: Number of blocked full BW channels
- * @num_hw_blacklisted_punc_chans: Number of blocked punctured channels
+ * struct hbl_chans
+ * @nfbchans: Number of blocked full BW channels
+ * @npcchans: Number of blocked punctured channels
  * @full_bw_chan: List of full bandwidth blacklisted channels
  * @punc_chan: List of punctured blacklisted channels
  */
-struct hw_blacklisted_channel {
-	uint8_t num_hw_blacklisted_full_bw_chans;
-	uint8_t num_hw_blacklisted_punc_chans;
-	struct hw_disallowed_full_bw_chan *full_bw_chan;
-	struct hw_disallowed_punc_chan *punc_chan;
+struct hbl_chans {
+	uint8_t nfbchans;
+	uint8_t npcchans;
+	struct hbl_fb_chan *fb_chan;
+	struct hbl_pc_chan *pc_chan;
 };
 
 /**
- * struct hw_blacklist_chan_info
- * @is_hw_blacklist_info_valid: Flag to indicate if hw blacklist info is valid
- * @hw_black_list_status: status of hw blacklist
- * @num_hw_blacklisted_full_bw_chans: number of blocked full BW channels
- * @num_hw_blacklisted_punc_chans: number of blocked punctured channels
- * @hw_full_bw_chans: Array of blocked full BW channels
- * @hw_punc_chans: Array of blocked punctured channels
+ * struct hbl_allpm_info
+ * @is_hbl_msg_valid: Flag to indicate if hw blacklist info is valid
+ * @hbl_cmd: status of hw blacklist
+ * @nfbchans: number of blocked full BW channels
+ * @npcchans: number of blocked punctured channels
+ * @num_hw_blocked_punc_patterns: Number of blocked puncture patterns.
+ * @fb_lst_arr: Array of blocked full BW channels
+ * @pc_lst_arr: Array of blocked punctured channels
  */
-struct hw_blacklist_chan_info {
-	bool is_hw_blacklist_info_valid;
-	enum hw_black_list_status_code hw_black_list_status;
+struct hbl_allpm_info{
+	bool is_hbl_msg_valid;
+	enum hbl_cmd_enum hbl_cmd;
 	bool is_first;
-	enum hw_black_list_chan_data_status_code hw_black_list_chan_data_status;
-	uint8_t num_hw_blacklisted_full_bw_chans[REG_CURRENT_MAX_AP_TYPE];
-	uint8_t num_hw_blacklisted_punc_chans[REG_CURRENT_MAX_AP_TYPE];
-	struct hw_disallowed_full_bw_chan *hw_full_bw_chans[REG_CURRENT_MAX_AP_TYPE];
-	struct hw_disallowed_punc_chan *hw_punc_chans[REG_CURRENT_MAX_AP_TYPE];
+	enum wmi_msg_frag_flag is_done;
+	uint8_t nfbchans[REG_CURRENT_MAX_AP_TYPE];
+	uint8_t npcchans[REG_CURRENT_MAX_AP_TYPE];
+	struct hbl_fb_chan *fb_lst_arr[REG_CURRENT_MAX_AP_TYPE];
+	struct hbl_pc_chan *pc_lst_arr[REG_CURRENT_MAX_AP_TYPE];
 };
 
 
 /**
- * struct hw_blacklist_chan_reg_info
+ * struct hbl_reg_info : The hardware blacklisted channels for all power mode
  * @psoc: psoc ptr
  * @phy_id: phy id
- * @hw_blacklist_chan_info: hw blacklist channel info
+ * @hbl_allpm_iobj: hw blacklist channel info
  */
-struct hw_blacklist_chan_reg_info {
+struct hbl_reg_info {
 	struct wlan_objmgr_psoc *psoc;
 	uint8_t phy_id;
-	struct hw_blacklist_chan_info hw_blacklist_chan_info;
+	struct hbl_allpm_info hbl_allpm_iobj;
 };
-#endif
 
 /**
  * struct cur_regulatory_info
@@ -1382,7 +1395,7 @@ struct hw_blacklist_chan_reg_info {
  * @num_6g_reg_rules_client: list of number of 6G reg rules for client
  * @reg_rules_6g_ap_ptr: ptr to 6G AP reg rules
  * @reg_rules_6g_client_ptr: list of ptr to 6G client reg rules
- * @hw_blacklist_chan_info: list of HW blacklisted channels
+ * @hbl_allpm_iobj: Hardware blacklist channel information for all power modes
  * @fcc_rules_ptr: ptr to fcc rules
  * @num_fcc_rules: Number of fcc rules sent by firmware
  * @is_c2c_supp: Flag to check if c2c is supported
@@ -1423,9 +1436,7 @@ struct cur_regulatory_info {
 	uint32_t num_6g_reg_rules_client[REG_CURRENT_MAX_AP_TYPE][REG_MAX_CLIENT_TYPE];
 	struct cur_reg_rule *reg_rules_6g_ap_ptr[REG_CURRENT_MAX_AP_TYPE];
 	struct cur_reg_rule *reg_rules_6g_client_ptr[REG_CURRENT_MAX_AP_TYPE][REG_MAX_CLIENT_TYPE];
-#ifndef CONFIG_REG_CLIENT
-	struct hw_blacklist_chan_info hw_blacklist_chan_info;
-#endif
+	struct hbl_allpm_info hbl_allpm_iobj;
 #ifdef CONFIG_REG_CLIENT
 	struct cur_fcc_rule *fcc_rules_ptr;
 	uint32_t num_fcc_rules;
@@ -1603,7 +1614,7 @@ struct reg_fw_afc_power_event {
  * @event_type: AFC event type
  * @expiry_info: pointer to information present in the AFC expiry event
  * @power_info: pointer to information present in the AFC power event
- * @hw_blacklist_chan_info: List of HW blacklisted channels
+ * @hbl_allpm_iobj: Hardware blacklist channel information for all power modes
  */
 struct afc_regulatory_info {
 	struct wlan_objmgr_psoc *psoc;
@@ -1614,7 +1625,7 @@ struct afc_regulatory_info {
 		struct reg_fw_afc_power_event *power_info;
 	};
 #ifndef CONFIG_REG_CLIENT
-	struct hw_blacklist_chan_info hw_blacklist_chan_info;
+	struct hbl_allpm_info hbl_allpm_iobj;
 #endif
 };
 #endif

@@ -54,7 +54,7 @@ QDF_STATUS tgt_reg_process_master_chan_list_ext(struct cur_regulatory_info
  */
 QDF_STATUS
 tgt_reg_process_hw_blacklist_chans(
-	struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info);
+	struct hbl_reg_info *hw_blacklist_reg_info);
 #endif
 
 /**

@@ -3365,6 +3365,6 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 				   qdf_freq_t c_freq, qdf_freq_t c_freq2,
 				   uint16_t bw,
 				   enum supported_6g_pwr_types ap_pwr_type,
-				   uint16_t in_punc_pattern);
+				   uint32_t in_punc_pattern);
 #endif
 #endif

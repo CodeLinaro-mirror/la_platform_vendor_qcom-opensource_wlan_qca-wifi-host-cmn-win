@@ -207,7 +207,7 @@ uint8_t reg_get_subchannels_for_opclass(uint8_t cfi,
  * Return: QDF_STATUS
  */
 QDF_STATUS
-reg_process_hw_blacklist_chans(struct hw_blacklist_chan_reg_info *hw_bl_reg_info);
+reg_process_hw_blacklist_chans(struct hbl_reg_info *hw_bl_reg_info);
 
 #endif
 

@@ -396,31 +396,32 @@ static inline void tgt_reg_mem_free_addn_reg_rules_order(
 }
 #endif
 
-#ifndef CONFIG_REG_CLIENT
+/**
+ * tgt_reg_mem_free_hw_black_list() - Free hardware blacklist chans
+ * @hw_bl_info: Pointer to hardware blacklist info.
+ * @hw_blacklist_reg_info: Pointer to rehulatory hardware blacklist info
+ *
+ * Return: None
+ */
 static void
-tgt_reg_mem_free_hw_black_list(struct hw_blacklist_chan_info *hw_bl_info) {
+tgt_reg_mem_free_hw_black_list(struct hbl_allpm_info *hw_bl_info) {
 	uint8_t i;
 
 	if (!hw_bl_info)
 		return;
 
 	for (i = 0; i < REG_CURRENT_MAX_AP_TYPE; i++) {
-		if (hw_bl_info->hw_full_bw_chans[i]) {
-			qdf_mem_free(hw_bl_info->hw_full_bw_chans[i]);
-			hw_bl_info->hw_full_bw_chans[i] = NULL;
+		if (hw_bl_info->fb_lst_arr[i]) {
+			qdf_mem_free(hw_bl_info->fb_lst_arr[i]);
+			hw_bl_info->fb_lst_arr[i] = NULL;
 		}
 
-		if (hw_bl_info->hw_punc_chans[i]) {
-			qdf_mem_free(hw_bl_info->hw_punc_chans[i]);
-			hw_bl_info->hw_punc_chans[i] = NULL;
+		if (hw_bl_info->pc_lst_arr[i]) {
+			qdf_mem_free(hw_bl_info->pc_lst_arr[i]);
+			hw_bl_info->pc_lst_arr[i] = NULL;
 		}
 	}
 }
-#else
-static void tgt_reg_mem_free_hw_black_list(struct cur_regulatory_info *reg_info)
-{
-}
-#endif
 
 /**
  * tgt_reg_chan_list_ext_update_handler() - Extended channel list update handler
@@ -441,7 +442,7 @@ static int tgt_reg_chan_list_ext_update_handler(ol_scn_t handle,
 	struct wmi_unified *wmi_handle;
 	int ret_val = 0;
 	uint32_t i;
-	struct hw_blacklist_chan_reg_info hw_blacklist_chan_regulatory_info;
+	struct hbl_reg_info hbl_reg_iobj; /* reg info object */
 
 	TARGET_IF_ENTER();
 
@@ -490,17 +491,15 @@ static int tgt_reg_chan_list_ext_update_handler(ol_scn_t handle,
 	}
 
 	reg_info->psoc = psoc;
-	hw_blacklist_chan_regulatory_info.phy_id = reg_info->phy_id;
-	hw_blacklist_chan_regulatory_info.psoc = reg_info->psoc;
-	hw_blacklist_chan_regulatory_info.hw_blacklist_chan_info = reg_info->hw_blacklist_chan_info;
+	hbl_reg_iobj.phy_id = reg_info->phy_id;
+	hbl_reg_iobj.psoc = reg_info->psoc;
+	hbl_reg_iobj.hbl_allpm_iobj = reg_info->hbl_allpm_iobj;
 
-	if (!reg_info->hw_blacklist_chan_info.is_hw_blacklist_info_valid ||
-	    reg_info->hw_blacklist_chan_info.is_first) {
+	if (!reg_info->hbl_allpm_iobj.is_hbl_msg_valid || reg_info->hbl_allpm_iobj.is_first)
 		status = reg_rx_ops->master_list_ext_handler(reg_info);
-	} else {
-		// Fill hw_blacklist_chan_reg_info and call
-		reg_rx_ops->hw_blacklist_chan_handler(&hw_blacklist_chan_regulatory_info);
-	}
+	else
+		reg_rx_ops->hw_blacklist_chan_handler(&hbl_reg_iobj);
+
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
 		target_if_err("Failed to process master ext channel list handler");
 		ret_val = -EFAULT;
@@ -511,7 +510,7 @@ clean:
 	qdf_mem_free(reg_info->reg_rules_5g_ptr);
 	tgt_reg_mem_free_fcc_rules(reg_info);
 	tgt_reg_mem_free_addn_reg_rules_order(reg_info);
-	tgt_reg_mem_free_hw_black_list(&reg_info->hw_blacklist_chan_info);
+	tgt_reg_mem_free_hw_black_list(&reg_info->hbl_allpm_iobj);
 
 	for (i = 0; i < REG_CURRENT_MAX_AP_TYPE; i++) {
 		qdf_mem_free(reg_info->reg_rules_6g_ap_ptr[i]);
@@ -584,13 +583,12 @@ static int tgt_reg_hw_blacklist_event_handler(ol_scn_t handle,
 {
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_lmac_if_reg_rx_ops *reg_rx_ops;
-	struct hw_blacklist_chan_reg_info *hw_blacklist_reg_info;
+	struct hbl_reg_info *hw_bl_reg_info;
 	QDF_STATUS status;
 	struct wmi_unified *wmi_handle;
 	int ret_val = 0;
 
 	TARGET_IF_ENTER();
-
 	psoc = target_if_get_psoc_from_scn_hdl(handle);
 	if (!psoc) {
 		target_if_err("psoc ptr is NULL");
@@ -614,23 +612,24 @@ static int tgt_reg_hw_blacklist_event_handler(ol_scn_t handle,
 		return -EINVAL;
 	}
 
-	hw_blacklist_reg_info = qdf_mem_malloc(sizeof(*hw_blacklist_reg_info));
-	if (!hw_blacklist_reg_info)
+	hw_bl_reg_info = qdf_mem_malloc(sizeof(*hw_bl_reg_info));
+	if (!hw_bl_reg_info) {
+		target_if_err("hw_blacklist_reg_info is NULL");
 		return -ENOMEM;
+	}
 
-	qdf_mem_set(hw_blacklist_reg_info, sizeof(*hw_blacklist_reg_info), 0);
+	qdf_mem_set(hw_bl_reg_info, sizeof(*hw_bl_reg_info), 0);
 	status = wmi_extract_hw_blacklist_chan_event(wmi_handle,
 						     event_buf,
-						     hw_blacklist_reg_info, len);
+						     hw_bl_reg_info, len);
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
 		target_if_err("Extraction of HW blacklist chan event failed");
 		ret_val = -EFAULT;
 		goto clean;
 	}
 
-	hw_blacklist_reg_info->psoc = psoc;
-
-	status = reg_rx_ops->hw_blacklist_chan_handler(hw_blacklist_reg_info);
+	hw_bl_reg_info->psoc = psoc;
+	status = reg_rx_ops->hw_blacklist_chan_handler(hw_bl_reg_info);
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
 		target_if_err("Failed to process HW blacklist chan handler");
 		ret_val = -EFAULT;
@@ -638,9 +637,8 @@ static int tgt_reg_hw_blacklist_event_handler(ol_scn_t handle,
 	}
 
 clean:
-	tgt_reg_mem_free_hw_black_list(&hw_blacklist_reg_info->
-		hw_blacklist_chan_info);
-	qdf_mem_free(hw_blacklist_reg_info);
+	tgt_reg_mem_free_hw_black_list(&hw_bl_reg_info->hbl_allpm_iobj);
+	qdf_mem_free(hw_bl_reg_info);
 	TARGET_IF_EXIT();
 
 	return ret_val;
@@ -706,7 +704,10 @@ tgt_afc_event_handler(ol_scn_t handle, uint8_t *event_buf, uint32_t len)
 	QDF_STATUS status;
 	struct wmi_unified *wmi_handle;
 	int ret_val = 0;
-	struct hw_blacklist_chan_reg_info hw_blacklist_chan_regulatory_info;
+	/* hbl_reg_iobj: The variable/object to hold the Hardware blacklisted channel
+	 *               info for all power modes
+	 */
+	struct hbl_reg_info hbl_reg_iobj;
 
 	TARGET_IF_ENTER();
 
@@ -753,15 +754,14 @@ tgt_afc_event_handler(ol_scn_t handle, uint8_t *event_buf, uint32_t len)
 	}
 
 	afc_info->psoc = psoc;
-	hw_blacklist_chan_regulatory_info.phy_id = afc_info->phy_id;
-	hw_blacklist_chan_regulatory_info.psoc = afc_info->psoc;
-	hw_blacklist_chan_regulatory_info.hw_blacklist_chan_info = afc_info->hw_blacklist_chan_info;
+	hbl_reg_iobj.phy_id = afc_info->phy_id;
+	hbl_reg_iobj.psoc = afc_info->psoc;
+	hbl_reg_iobj.hbl_allpm_iobj = afc_info->hbl_allpm_iobj;
 
-	if (afc_info->hw_blacklist_chan_info.is_first)
+	if (afc_info->hbl_allpm_iobj.is_first)
 		status = reg_rx_ops->afc_event_handler(afc_info);
 	else
-		// Fill hw_blacklist_chan_reg_info and call
-		reg_rx_ops->hw_blacklist_chan_handler(&hw_blacklist_chan_regulatory_info);
+		reg_rx_ops->hw_blacklist_chan_handler(&hbl_reg_iobj);
 
 	if (!QDF_IS_STATUS_SUCCESS(status)) {
 		target_if_err("Failed to process AFC event handler");
@@ -770,7 +770,7 @@ tgt_afc_event_handler(ol_scn_t handle, uint8_t *event_buf, uint32_t len)
 	}
 
 clean:
-	tgt_reg_mem_free_hw_black_list(&afc_info->hw_blacklist_chan_info);
+	tgt_reg_mem_free_hw_black_list(&afc_info->hbl_allpm_iobj);
 	qdf_mem_free(afc_info);
 	TARGET_IF_EXIT();
 
