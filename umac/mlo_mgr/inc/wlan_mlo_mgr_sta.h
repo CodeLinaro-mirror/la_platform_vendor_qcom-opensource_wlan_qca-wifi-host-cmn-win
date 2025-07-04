@@ -119,6 +119,15 @@ void mlo_handle_pending_disconnect(struct wlan_objmgr_vdev *vdev);
 bool mlo_is_mld_sta(struct wlan_objmgr_vdev *vdev);
 
 /**
+ * wlan_vdev_is_mlo_sta_with_multi_vdev() - Check whether it is
+ * mlo sta with vdev count more than 1
+ * @vdev: VDEV object
+ *
+ * Return: True if it is mlo sta and multi vdev, otherwise false.
+ */
+bool wlan_vdev_is_mlo_sta_with_multi_vdev(struct wlan_objmgr_vdev *vdev);
+
+/**
  * ucfg_mlo_is_mld_disconnected - Check whether MLD is disconnected
  * @vdev: pointer to vdev
  *
