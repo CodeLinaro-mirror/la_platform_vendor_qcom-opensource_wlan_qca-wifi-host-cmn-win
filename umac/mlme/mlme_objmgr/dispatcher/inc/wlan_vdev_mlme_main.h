@@ -68,6 +68,10 @@ wlan_mlme_get_lmac_tx_ops(struct wlan_objmgr_psoc *psoc)
  *                                        does not have substate)
  * @WLAN_VDEV_SS_MLO_SYNC_WAIT:           Sync wait sub state for MLO SAP
  * @WLAN_VDEV_SS_UP_ACTIVE:               Up active sub state
+ * @WLAN_VDEV_SS_DFS_CSA_RESTART:         DFS CSA restart sub state. When
+ *					  vdev in CAC and detects radar
+ *					  this substate entered, it is
+ *					  meant to copy the CSA to MLO partner links
  * @WLAN_VDEV_SS_MAX:                     Max substate
  */
 enum wlan_vdev_state {
@@ -91,7 +95,8 @@ enum wlan_vdev_state {
 	WLAN_VDEV_SS_IDLE = 17,
 	WLAN_VDEV_SS_MLO_SYNC_WAIT = 18,
 	WLAN_VDEV_SS_UP_ACTIVE = 19,
-	WLAN_VDEV_SS_MAX = 20,
+	WLAN_VDEV_SS_DFS_CSA_RESTART = 20,
+	WLAN_VDEV_SS_MAX = 21,
 };
 
 /**
@@ -136,6 +141,15 @@ enum wlan_vdev_state {
  *                                       links finish vdev start rsp.
  * @WLAN_VDEV_SM_EV_SUSPEND_CSA_RESTART: Invoke peer deletion for only legacy
  *					 peers
+ * @WLAN_VDEV_SM_EV_DFS_CAC_CSA:         This event is generated to indicate
+ *					 that a radar is found while the link
+ *					 was in CAC. This event
+ *					 'WLAN_VDEV_SM_EV_DFS_CAC_CSA' is for MLO AP
+ *					 during CAC, whereas the event
+ *					 'WLAN_VDEV_SM_EV_CSA_RESTART' should
+ *					 be used during all other cases.
+ *					 During CAC, in MLO AP, the partner
+ *					 links will carry the CSA Invokes CSA
  */
 enum wlan_vdev_sm_evt {
 	WLAN_VDEV_SM_EV_START = 0,
@@ -171,6 +185,7 @@ enum wlan_vdev_sm_evt {
 	WLAN_VDEV_SM_EV_CHAN_SWITCH_DISABLED = 30,
 	WLAN_VDEV_SM_EV_MLO_SYNC_COMPLETE = 31,
 	WLAN_VDEV_SM_EV_SUSPEND_CSA_RESTART = 32,
+	WLAN_VDEV_SM_EV_DFS_CAC_CSA= 33,
 };
 
 /**
