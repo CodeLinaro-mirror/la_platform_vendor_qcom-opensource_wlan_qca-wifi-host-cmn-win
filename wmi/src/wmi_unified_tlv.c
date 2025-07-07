@@ -17901,22 +17901,22 @@ static QDF_STATUS fill_blacklist_info(wmi_hw_blacklist_chan_data *hw_blacklist_c
 				      uint32_t *punc_idx)
 {
 	enum reg_6g_ap_type ap_type =
-		WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 0, 3);
+		WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 0, 4);
 	uint32_t puncture_bitmap =
-		WMI_GET_BITS(hw_blacklist_chan->puncture_pattern_bitmap_info, 0, 23);
+		WMI_GET_BITS(hw_blacklist_chan->puncture_pattern_bitmap_info, 0, 24);
 	wmi_channel_width bw;
 	qdf_freq_t center_freq;
 	qdf_freq_t primary_freq;
 
 	if (!puncture_bitmap) {
-		primary_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 0, 15);
-		center_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 16, 31);
-		bw = WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 4, 11);
+		primary_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 0, 16);
+		center_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 16, 16);
+		bw = WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 4, 8);
 
 		return fill_full_bw_list(ap_type, hw_bl_info, primary_freq, center_freq, bw, full_bw_idx);
 	} else {
-		center_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 16, 31);
-		bw = WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 8, 15);
+		center_freq = WMI_GET_BITS(hw_blacklist_chan->freq_info, 16, 16);
+		bw = WMI_GET_BITS(hw_blacklist_chan->chan_list_meta_data, 4, 8);
 
 		return fill_punctured_bw_list(ap_type, hw_bl_info, center_freq, bw, puncture_bitmap, punc_idx);
 	}
@@ -17940,9 +17940,9 @@ static void get_num_unique_chans_for_ap_type(
 
 	for (i = 0; i < num_hw_bl_chan_data; i++) {
 		enum reg_6g_ap_type ap_type =
-			WMI_GET_BITS(hw_bl_chans[i].chan_list_meta_data, 0, 3);
+			WMI_GET_BITS(hw_bl_chans[i].chan_list_meta_data, 0, 4);
 		uint16_t p_bitmap =
-			WMI_GET_BITS(hw_bl_chans[i].puncture_pattern_bitmap_info, 0, 23);
+			WMI_GET_BITS(hw_bl_chans[i].puncture_pattern_bitmap_info, 0, 24);
 
 		if (!p_bitmap) {
 			/* If the puncture bitmap is 0, then it is a full BW channel */
@@ -18120,10 +18120,10 @@ static QDF_STATUS extract_hw_blacklist_tlv(
 
 	hw_bl_info->is_hbl_msg_valid = true;
 	hw_bl_info->hbl_cmd =
-		WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 16, 19);
+		WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 16, 4);
 	hw_bl_info->is_done =
-		 WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 20, 20);
-	seq_indx = WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 0, 7);
+		 WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 20, 1);
+	seq_indx = WMI_GET_BITS(hw_blacklist_fixed_param->blacklist_msg_info, 0, 8);
 
 	if (seq_indx == 1)
 		hw_bl_info->is_first = true;

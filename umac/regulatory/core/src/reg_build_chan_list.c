@@ -4447,10 +4447,9 @@ reg_free_hw_blacklist_chan(struct hbl_chans *reg_hw_bl_chans)
  *
  * Return: None.
  */
-static void
-reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
-			enum reg_6g_ap_type ap_type,
-			struct hbl_allpm_info *tgt_hw_bl_info)
+static void reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
+				    enum reg_6g_ap_type ap_type,
+				    struct hbl_allpm_info *tgt_hw_bl_info)
 {
 	struct hbl_fb_chan *tgt_fb_lst_arr;
 	struct hbl_pc_chan *tgt_pc_lst_arr;
@@ -4490,14 +4489,21 @@ reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
 		uint8_t local_num_pc_lst_arr = reg_hw_bl_chans->npcchans;
 		struct hbl_pc_chan *local_pc_bw_chan;
 
-		reg_hw_bl_chans->npcchans += num_fb_lst_arr;
+		reg_hw_bl_chans->npcchans += num_pc_lst_arr;
 
 		local_pc_bw_chan = krealloc(reg_hw_bl_chans->pc_chan,
 					    reg_hw_bl_chans->npcchans * sizeof(struct hbl_pc_chan),
 					    qdf_mem_malloc_flags());
 
-		if (!local_pc_bw_chan)
+		if (!local_pc_bw_chan) {
+			QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_ERROR,
+				  "Memory allocation failed for pc_chan");
 			return;
+		}
+
+		QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_DEBUG,
+			  "Appending %d PC chans at index %d",
+			  num_pc_lst_arr, local_num_pc_lst_arr);
 
 		qdf_mem_copy(local_pc_bw_chan + local_num_pc_lst_arr,
 			     tgt_pc_lst_arr,
