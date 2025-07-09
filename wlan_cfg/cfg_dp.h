@@ -213,7 +213,7 @@
 
 #define WLAN_CFG_NUM_TX_DESC_MIN  16
 #if defined(IPA_OFFLOAD) && defined(QCA_WIFI_QCN9224)
-#define WLAN_CFG_NUM_TX_DESC_MAX  0x2000
+#define WLAN_CFG_NUM_TX_DESC_MAX  0x10000
 #else
 #define WLAN_CFG_NUM_TX_DESC_MAX  0x10000
 #endif
