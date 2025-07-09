@@ -14819,7 +14819,8 @@ static void dp_soc_txrx_ops_attach(struct dp_soc *soc)
 #if defined(QCA_WIFI_QCA8074) || defined(QCA_WIFI_QCA6018) || \
 	defined(QCA_WIFI_QCA5018) || defined(QCA_WIFI_QCA9574) || \
 	defined(QCA_WIFI_QCA5332) || defined(QCA_WIFI_QCA5424) || \
-	defined(QCA_WIFI_QCN9224) || defined(QCA_WIFI_QCN9000)
+	defined(QCA_WIFI_QCN9224) || defined(QCA_WIFI_QCN9000) || \
+	defined(QCA_WIFI_QCA8074V2)
 
 /**
  * dp_soc_attach_wifi3() - Attach txrx SOC

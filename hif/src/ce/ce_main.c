@@ -59,8 +59,8 @@
 	defined(QCA_WIFI_QCA6018) || defined(QCA_WIFI_QCA5018) || \
 	defined(QCA_WIFI_KIWI) || defined(QCA_WIFI_QCA5332) || defined(QCA_WIFI_QCA5424) || \
 	defined(QCA_WIFI_QCA9574) || defined(QCA_WIFI_QCN9224) || \
-	defined(QCA_WIFI_QCN9000)) && !defined(QCA_WIFI_SUPPORT_SRNG) && \
-	!defined(QCA_WIFI_WCN6450)
+	defined(QCA_WIFI_QCN9000) || defined(QCA_WIFI_QCA8074V2)) && \
+	!defined(QCA_WIFI_SUPPORT_SRNG) && !defined(QCA_WIFI_WCN6450)
 #define QCA_WIFI_SUPPORT_SRNG
 #endif
 
