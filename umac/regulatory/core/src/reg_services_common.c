@@ -10919,8 +10919,10 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
 			if (bw == 20) {
 				start_freq = freq;
 			} else {
-				const struct bonded_channel_freq *bond =
-					reg_get_bonded_chan_entry(freq, bw, c_freq2);
+				const struct bonded_channel_freq *bond;
+
+				enum phy_ch_width chwidth = reg_find_chwidth_from_bw(bw);
+				bond = reg_get_bonded_chan_entry(freq, chwidth, c_freq2);
 				if (!bond)
 					continue;
 
@@ -10931,29 +10933,6 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
 			if (fbw[i].pri_freq & BIT(x))
 				return true;
 		}
-	}
-	return false;
-}
-
-/**
- * reg_is_chan_in_punc_blacklist() - Check if channel is in punctured BW blacklist
- * @pc: List of punctured BW blacklisted channels
- * @n: Number of entries
- * @c_freq: Center frequency
- * @bw: Bandwidth
- * @punc: Puncture pattern
- *
- * Return: true if blacklisted, false otherwise
- */
-static bool
-reg_is_chan_in_punc_blacklist(struct hbl_pc_chan *pc, uint32_t n,
-			      qdf_freq_t c_freq, uint16_t bw,
-			      uint16_t punc)
-{
-	uint32_t i;
-	for (i = 0; i < n; i++) {
-		if (pc[i].cen_freq == c_freq && pc[i].bw == bw && pc[i].bl_pat_bitmap == punc)
-			return true;
 	}
 	return false;
 }
@@ -10977,32 +10956,35 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 				   enum supported_6g_pwr_types ap_pwr_type,
 				   uint32_t in_punc_pattern)
 {
-	struct wlan_regulatory_pdev_priv_obj *po = reg_get_pdev_obj(pdev);
+	struct wlan_regulatory_pdev_priv_obj *po = reg_get_pdev_obj(pdev);;
 	enum reg_6g_ap_type b_ap;
 	struct hbl_chans *bl;
 
 	if (!po) {
 		reg_err("pdev priv obj is NULL");
-		return true;
+		return false;
 	}
 
-	b_ap = reg_find_usable_pwr_mode(pdev, freq, c_freq2,
-					bw, in_punc_pattern,
-					ap_pwr_type);
+	b_ap = reg_find_usable_pwr_mode(pdev, freq, c_freq2, bw, in_punc_pattern, ap_pwr_type);
+	if (b_ap >= REG_CURRENT_MAX_AP_TYPE) {
+		reg_err("Invalid AP type: %d", b_ap);
+		return false;
+	}
 
 	bl = &po->hbl_pm_chlst[b_ap];
-
-	if (!in_punc_pattern) {
-		if (!bl->fb_chan)
-			return false;
-		return reg_is_chan_in_full_blacklist(bl->fb_chan, bl->nfbchans,
-						     freq, c_freq2, bw);
+	if (!bl) {
+		reg_err("Blacklist channel list is NULL for AP type: %d", b_ap);
+		return false;
 	}
 
-	if (!bl->pc_chan)
-		return false;
+	if (!in_punc_pattern) {
+		if (!bl->fb_chan) {
+			reg_debug("No full blacklist channels for AP type: %d", b_ap);
+			return false;
+		}
 
-	return reg_is_chan_in_punc_blacklist(bl->pc_chan, bl->npcchans,
-					     c_freq, bw, in_punc_pattern);
+		return reg_is_chan_in_full_blacklist(bl->fb_chan, bl->nfbchans,
+					 freq, c_freq2, bw);
+	}
+	return false;
 }
-

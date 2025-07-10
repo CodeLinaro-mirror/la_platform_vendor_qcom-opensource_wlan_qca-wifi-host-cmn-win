@@ -758,7 +758,7 @@ tgt_afc_event_handler(ol_scn_t handle, uint8_t *event_buf, uint32_t len)
 	hbl_reg_iobj.psoc = afc_info->psoc;
 	hbl_reg_iobj.hbl_allpm_iobj = afc_info->hbl_allpm_iobj;
 
-	if (afc_info->hbl_allpm_iobj.is_first)
+	if (!afc_info->hbl_allpm_iobj.is_hbl_msg_valid || afc_info->hbl_allpm_iobj.is_first)
 		status = reg_rx_ops->afc_event_handler(afc_info);
 	else
 		reg_rx_ops->hw_blacklist_chan_handler(&hbl_reg_iobj);
