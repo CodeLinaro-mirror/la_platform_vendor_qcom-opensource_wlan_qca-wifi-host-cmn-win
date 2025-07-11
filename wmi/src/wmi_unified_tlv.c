@@ -23616,7 +23616,7 @@ vbss_sta_action_send_tlv(
 		struct win_host_vbss_sta_context *vbss_sta_context)
 {
 	wmi_vdev_vbss_config_cmd_fixed_param *cmd;
-	uint32_t len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
+	uint32_t len = sizeof(*cmd) + (3 * WMI_TLV_HDR_SIZE);
 	QDF_STATUS ret;
 	wmi_buf_t buf;
 	uint8_t *buf_ptr;
@@ -23652,6 +23652,12 @@ vbss_sta_action_send_tlv(
 			WMITLV_GET_STRUCT_TLVLEN(0));
 	buf_ptr += WMI_TLV_HDR_SIZE;
 
+	/* Need to set length STA Dynamic info */
+	WMITLV_SET_HDR(buf_ptr,
+		       WMITLV_TAG_ARRAY_STRUC,
+		       WMITLV_GET_STRUCT_TLVLEN(0));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
 	wmi_debug("WMI CMD Params for VBSS CMD: vdev_id: %d, action: %d, macaddr: "
 		  QDF_MAC_ADDR_FMT,
 		  cmd->vdev_id, cmd->action,
@@ -23675,6 +23681,7 @@ vbss_set_sta_context_send_tlv(
 	wmi_vdev_vbss_config_cmd_fixed_param *cmd;
 	wmi_vdev_vbss_peer_sn_info *sn_info;
 	wmi_vdev_vbss_peer_pn_info *pn_info;
+	wmi_vdev_vbss_peer_dyn_info *dyn_info;
 	uint8_t *buf_ptr;
 	uint32_t len;
 	QDF_STATUS ret;
@@ -23682,9 +23689,11 @@ vbss_set_sta_context_send_tlv(
 	uint32_t i;
 
 	/* Calculate the length of the buffer */
-	len = sizeof(*cmd) + (2 * WMI_TLV_HDR_SIZE);
+	len = sizeof(*cmd) + (3 * WMI_TLV_HDR_SIZE);
 	len += sizeof(wmi_vdev_vbss_peer_pn_info);
 	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * vbss_sta_context->num_sn_tids);
+	if (vbss_sta_context->is_valid_dyn_info)
+		len += sizeof(wmi_vdev_vbss_peer_dyn_info);
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -23741,6 +23750,28 @@ vbss_set_sta_context_send_tlv(
 		sn_info[i].ssn = (vbss_sta_context->sn[i] >> 16) & 0xFFFF;
 		wmi_debug("Setting SN info: TID 0x%x, SN 0x%x",
 			  sn_info[i].tid_num, sn_info[i].ssn);
+		buf_ptr += sizeof(wmi_vdev_vbss_peer_sn_info);
+	}
+
+	/* Fill Dynamic Info */
+	if (!vbss_sta_context->is_valid_dyn_info) {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			       WMITLV_GET_STRUCT_TLVLEN(0));
+		buf_ptr += WMI_TLV_HDR_SIZE;
+	} else {
+		WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			       sizeof(wmi_vdev_vbss_peer_dyn_info));
+		buf_ptr += WMI_TLV_HDR_SIZE;
+
+		dyn_info = (wmi_vdev_vbss_peer_dyn_info *)buf_ptr;
+		WMITLV_SET_HDR(&dyn_info->tlv_header,
+			       WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_dyn_info,
+			       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_dyn_info));
+		dyn_info->peer_dyn_info1_word32 = vbss_sta_context->omn_info;
+		dyn_info->pm = vbss_sta_context->extd_info & 1;
+		buf_ptr += sizeof(wmi_vdev_vbss_peer_dyn_info);
+		qdf_info("Parsed OMI 0x%x EHT_OMI 0x%x and PM %d",
+			 dyn_info->omi, dyn_info->eht_omi, dyn_info->pm);
 	}
 
 	wmi_debug("WMI CMD Params for VBSS SET CMD: vdev_id: %u, action: %u, macaddr: "
@@ -23766,6 +23797,7 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	wmi_vdev_vbss_config_event_fixed_param *fixed_param = NULL;
 	wmi_vdev_vbss_peer_sn_info *sn_info = NULL;
 	wmi_vdev_vbss_peer_pn_info *pn_info = NULL;
+	wmi_vdev_vbss_peer_dyn_info *dyn_info = NULL;
 	uint8_t i;
 
 	/* Parse the event buffer */
@@ -23799,6 +23831,15 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 				((sn_info[i].ssn << 16) & 0xFFFF0000);
 		wmi_debug("Parsed SN info[%d]: 0x%x", i,
 			  vbss_sta_context->sn[i]);
+	}
+	dyn_info = param_buf->vbss_peer_dyn_info;
+	if (dyn_info) {
+		vbss_sta_context->omn_info = dyn_info->peer_dyn_info1_word32;
+		vbss_sta_context->extd_info = dyn_info->pm;
+		vbss_sta_context->is_valid_dyn_info = true;
+		qdf_info("Parsed OMN info 0x%x and Extended info 0x%x",
+			 vbss_sta_context->omn_info,
+			 vbss_sta_context->extd_info);
 	}
 
 	wmi_debug("Extracted VBSS STA context: vdev_id %u, MAC "
