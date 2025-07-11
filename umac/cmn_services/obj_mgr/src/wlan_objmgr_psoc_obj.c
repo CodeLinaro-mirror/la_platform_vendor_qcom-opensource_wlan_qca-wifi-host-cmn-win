@@ -2100,6 +2100,9 @@ QDF_STATUS wlan_objmgr_psoc_peer_attach(struct wlan_objmgr_psoc *psoc,
 	    peer->peer_mlme.peer_type == WLAN_PEER_MLO_TEMP) {
 		if (objmgr->temp_peer_count >= WLAN_MAX_PSOC_TEMP_PEERS) {
 			wlan_psoc_obj_unlock(psoc);
+			obj_mgr_warn("temp Peer count %d max psoc temp peer count %d",
+				     objmgr->temp_peer_count,
+				     WLAN_MAX_PSOC_TEMP_PEERS);
 			return QDF_STATUS_E_FAILURE;
 		}
 	} else {
@@ -2107,6 +2110,9 @@ QDF_STATUS wlan_objmgr_psoc_peer_attach(struct wlan_objmgr_psoc *psoc,
 		if (objmgr->wlan_peer_count
 			>= wlan_psoc_get_max_peer_count(psoc)) {
 			wlan_psoc_obj_unlock(psoc);
+			obj_mgr_warn("PSOC Peer count %d max psoc peer count %d",
+				     objmgr->wlan_peer_count,
+				     wlan_psoc_get_max_peer_count(psoc));
 			return QDF_STATUS_E_FAILURE;
 		}
 	}

@@ -963,6 +963,9 @@ QDF_STATUS wlan_objmgr_vdev_peer_attach(struct wlan_objmgr_vdev *vdev,
 	    peer->peer_mlme.peer_type != WLAN_PEER_MLO_TEMP) {
 		if (objmgr->wlan_peer_count >= objmgr->max_peer_count) {
 			wlan_vdev_obj_unlock(vdev);
+			obj_mgr_warn("VDEV Peer count %d max peer count %d",
+				     objmgr->wlan_peer_count,
+				     objmgr->max_peer_count);
 			return QDF_STATUS_E_FAILURE;
 		}
 	}
@@ -975,6 +978,9 @@ QDF_STATUS wlan_objmgr_vdev_peer_attach(struct wlan_objmgr_vdev *vdev,
 		if (wlan_pdev_get_temp_peer_count(pdev) >=
 			WLAN_MAX_PDEV_TEMP_PEERS) {
 			wlan_pdev_obj_unlock(pdev);
+			obj_mgr_warn("PDEV temp Peer count %d max peer count %d",
+				     wlan_pdev_get_temp_peer_count(pdev),
+				     WLAN_MAX_PDEV_TEMP_PEERS);
 			return QDF_STATUS_E_FAILURE;
 		}
 	} else {
@@ -985,6 +991,9 @@ QDF_STATUS wlan_objmgr_vdev_peer_attach(struct wlan_objmgr_vdev *vdev,
 			(wlan_pdev_get_max_peer_count(pdev)
 			- wlan_pdev_get_max_vdev_count(pdev)))) {
 			wlan_pdev_obj_unlock(pdev);
+			obj_mgr_warn("PDEV Peer count %d max peer count %d",
+				     wlan_pdev_get_peer_count(pdev),
+				     wlan_pdev_get_max_peer_count(pdev));
 			obj_mgr_err("Peer limit reached vdev:%d peers:%d",
 				    wlan_vdev_get_id(vdev),
 				    peer_cnt - vdev_cnt);
