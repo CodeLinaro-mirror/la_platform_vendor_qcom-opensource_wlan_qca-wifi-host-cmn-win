@@ -499,6 +499,10 @@ static QDF_STATUS wlan_crypto_register_all_ciphers(
 		wlan_crypto_cipher_ops[WLAN_CRYPTO_CIPHER_WAPI_SMS4]
 							= wapi_register();
 	}
+	if (HAS_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_WAPI_GCM4)) {
+		wlan_crypto_cipher_ops[WLAN_CRYPTO_CIPHER_WAPI_GCM4]
+							= wapi_register_gcm4();
+	}
 	if (HAS_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_FILS_AEAD)) {
 		wlan_crypto_cipher_ops[WLAN_CRYPTO_CIPHER_FILS_AEAD]
 							= fils_register();
@@ -546,8 +550,10 @@ static QDF_STATUS wlan_crypto_vdev_obj_create_handler(
 	}
 	if (wlan_pdev_nif_fw_cap_get(pdev, WLAN_SOC_C_CKIP))
 		SET_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_CKIP);
-	if (wlan_pdev_nif_fw_cap_get(pdev, WLAN_SOC_C_WAPI))
+	if (wlan_pdev_nif_fw_cap_get(pdev, WLAN_SOC_C_WAPI)) {
 		SET_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_WAPI_SMS4);
+		SET_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_WAPI_GCM4);
+	}
 	SET_CIPHER_CAP(crypto_param, WLAN_CRYPTO_CAP_FILS_AEAD);
 	wlan_pdev_obj_unlock(pdev);
 	/* update the crypto cipher table based on the fw caps*/

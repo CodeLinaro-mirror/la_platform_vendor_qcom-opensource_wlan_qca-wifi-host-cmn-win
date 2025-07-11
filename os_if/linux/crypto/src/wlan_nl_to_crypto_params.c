@@ -288,6 +288,23 @@ static const struct osif_cipher_crypto_mapping
 		.cipher_crypto = WLAN_CRYPTO_CIPHER_WAPI_SMS4,
 		.cipher_len = WLAN_CRYPTO_KEY_WAPI_LEN,
 	},
+#ifdef ATH_SUPPORT_WAPI
+	{
+		.cipher_suite = WLAN_CIPHER_SUITE_GCM4,
+		.cipher_crypto = WLAN_CRYPTO_CIPHER_WAPI_GCM4,
+		.cipher_len = WLAN_CRYPTO_KEY_WAPI_LEN,
+	},
+	{
+		.cipher_suite = WLAN_CIPHER_SUITE_SM4_CMAC,
+		.cipher_crypto = WLAN_CRYPTO_CIPHER_WAPI_CMAC,
+		.cipher_len = WLAN_CRYPTO_KEY_WAPI_LEN,
+	},
+	{
+		.cipher_suite = WLAN_CIPHER_SUITE_SM4_GMAC,
+		.cipher_crypto = WLAN_CRYPTO_CIPHER_WAPI_GMAC,
+		.cipher_len = WLAN_CRYPTO_KEY_WAPI_LEN,
+	},
+#endif
 #endif
 };
 

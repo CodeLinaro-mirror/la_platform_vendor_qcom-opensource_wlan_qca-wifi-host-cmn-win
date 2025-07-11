@@ -81,6 +81,15 @@ static inline const struct wlan_crypto_cipher *wapi_register(void)
 const struct wlan_crypto_cipher *wapi_register(void);
 #endif
 
+#ifdef WLAN_CRYPTO_WAPI_OS_DERIVATIVE
+static inline const struct wlan_crypto_cipher *wapi_register_gcm4(void)
+{
+	return NULL;
+}
+#else
+const struct wlan_crypto_cipher *wapi_register_gcm4(void);
+#endif
+
 #ifdef WLAN_CRYPTO_FILS_OS_DERIVATIVE
 static inline const struct wlan_crypto_cipher *fils_register(void)
 {

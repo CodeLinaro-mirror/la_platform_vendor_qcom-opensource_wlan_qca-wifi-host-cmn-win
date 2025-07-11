@@ -738,7 +738,7 @@ uint8_t wlan_crypto_get_key_miclen(struct wlan_crypto_key *key);
  *
  * Return: keyid
  */
-uint16_t wlan_crypto_get_keyid(uint8_t *data, int hdrlen);
+uint16_t wlan_crypto_get_keyid(uint8_t *data, int hdrlen, int cipher);
 
 /**
  * wlan_crypto_restore_keys() - restore crypto keys in hw keycache

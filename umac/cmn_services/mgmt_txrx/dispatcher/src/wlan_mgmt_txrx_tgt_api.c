@@ -32,7 +32,7 @@
 #include "wlan_objmgr_peer_obj.h"
 #include "wlan_objmgr_pdev_obj.h"
 #include "wlan_mgmt_txrx_rx_reo_tgt_api.h"
-
+#include <wlan_crypto_def_i.h>
 /**
  * mgmt_get_spec_mgmt_action_subtype() - gets spec mgmt action subtype
  * @action_code: action code
@@ -1362,6 +1362,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 	struct ieee80211_frame *wh;
 	qdf_nbuf_t copy_buf;
 	struct wlan_objmgr_peer *peer = NULL;
+	struct wlan_crypto_comp_priv *crypto_priv_peer = NULL;
+	struct wlan_crypto_keys *priv_key = NULL;
 	uint8_t mgmt_type, mgmt_subtype;
 	uint8_t *mac_addr, *mpdu_data_ptr;
 	enum mgmt_frame_type frm_type;
@@ -1432,6 +1434,32 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 				     QDF_MAC_ADDR_SIZE);
 	}
 
+	mac_addr = (uint8_t *)wh->i_addr2;
+	/*
+	* peer can be NULL in following 2 scenarios:
+	* 1. broadcast frame received
+	* 2. operating in monitor mode
+	*
+	* and in both scenarios, the receiver of frame
+	* is expected to do processing accordingly considerng
+	* the fact that peer = NULL can be received and is a valid
+	* scenario.
+	*/
+	peer = wlan_objmgr_get_peer(psoc, mgmt_rx_params->pdev_id,
+			mac_addr, WLAN_MGMT_SB_ID);
+	if (!peer && !qdf_is_macaddr_broadcast(
+			(struct qdf_mac_addr *)wh->i_addr1)) {
+		mac_addr = (uint8_t *)wh->i_addr1;
+		peer = wlan_objmgr_get_peer(psoc,
+				mgmt_rx_params->pdev_id,
+				mac_addr, WLAN_MGMT_SB_ID);
+	}
+
+	if (peer) {
+		crypto_priv_peer = (struct wlan_crypto_comp_priv *)peer->peer_comp_priv_obj[WLAN_UMAC_COMP_CRYPTO];
+		priv_key = &crypto_priv_peer->crypto_key;
+	}
+
 	/* mpdu_data_ptr is pointer to action header */
 	mpdu_data_ptr = (uint8_t *)qdf_nbuf_data(buf) +
 			sizeof(struct ieee80211_frame);
@@ -1451,14 +1479,24 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 	    !qdf_is_macaddr_group((struct qdf_mac_addr *)wh->i_addr1) &&
 	    !qdf_is_macaddr_broadcast((struct qdf_mac_addr *)wh->i_addr1)) {
 
+#ifdef ATH_SUPPORT_WAPI
+	if (priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_CMAC ||
+		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GMAC ||
+		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_SMS4 ||
+		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GCM4){
+		mpdu_data_ptr += IEEE80211_WAPI_HEADERLEN;
+		}
+	else
+#endif
+	{
 		if (buflen > (sizeof(struct ieee80211_frame) +
-			WLAN_HDR_EXT_IV_LEN))
+				WLAN_HDR_EXT_IV_LEN))
 			ivp = data + sizeof(struct ieee80211_frame) + len;
 
 		/* Set mpdu_data_ptr based on EXT IV bit
-		 * if EXT IV bit set, CCMP using PMF 8 bytes of IV is present
-		 * else for WEP using PMF, 4 bytes of IV is present
-		 */
+		* if EXT IV bit set, CCMP using PMF 8 bytes of IV is present
+		* else for WEP using PMF, 4 bytes of IV is present
+		*/
 		if (ivp && (ivp[WLAN_HDR_IV_LEN] & WLAN_HDR_EXT_IV_BIT)) {
 			if (buflen <= (sizeof(struct ieee80211_frame)
 					+ IEEE80211_CCMP_HEADERLEN)) {
@@ -1466,13 +1504,14 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 				return QDF_STATUS_E_FAILURE;
 			}
 			mpdu_data_ptr += IEEE80211_CCMP_HEADERLEN;
-		} else {
-			if (buflen <= (sizeof(struct ieee80211_frame)
+			} else {
+				if (buflen <= (sizeof(struct ieee80211_frame)
 					+ WLAN_HDR_EXT_IV_LEN)) {
-				qdf_nbuf_free(buf);
-				return QDF_STATUS_E_FAILURE;
+					qdf_nbuf_free(buf);
+					return QDF_STATUS_E_FAILURE;
+				}
+				mpdu_data_ptr += WLAN_HDR_EXT_IV_LEN;
 			}
-			mpdu_data_ptr += WLAN_HDR_EXT_IV_LEN;
 		}
 	}
 
@@ -1574,27 +1613,6 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 			qdf_nbuf_free(buf);
 			goto rx_handler_mem_free;
 		}
-	}
-
-	mac_addr = (uint8_t *)wh->i_addr2;
-	/*
-	 * peer can be NULL in following 2 scenarios:
-	 * 1. broadcast frame received
-	 * 2. operating in monitor mode
-	 *
-	 * and in both scenarios, the receiver of frame
-	 * is expected to do processing accordingly considerng
-	 * the fact that peer = NULL can be received and is a valid
-	 * scenario.
-	 */
-	peer = wlan_objmgr_get_peer(psoc, mgmt_rx_params->pdev_id,
-				    mac_addr, WLAN_MGMT_SB_ID);
-	if (!peer && !qdf_is_macaddr_broadcast(
-	    (struct qdf_mac_addr *)wh->i_addr1)) {
-		mac_addr = (uint8_t *)wh->i_addr1;
-		peer = wlan_objmgr_get_peer(psoc,
-					    mgmt_rx_params->pdev_id,
-					    mac_addr, WLAN_MGMT_SB_ID);
 	}
 
 	rx_handler = rx_handler_head;
