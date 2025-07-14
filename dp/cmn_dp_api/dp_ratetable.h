@@ -270,7 +270,7 @@ uint32_t
 dp_getrateindex(uint32_t gi, uint16_t mcs, uint8_t nss, uint8_t preamble,
 		uint8_t bw, uint8_t punc_bw, uint32_t *rix, uint16_t *ratecode);
 
-int dp_rate_idx_to_kbps(uint8_t rate_idx, uint8_t gintval);
+int dp_rate_idx_to_kbps(uint16_t rate_idx, uint8_t gintval);
 
 #if ALL_POSSIBLE_RATES_SUPPORTED
 int dp_get_supported_rates(int mode, int shortgi, int **rates);

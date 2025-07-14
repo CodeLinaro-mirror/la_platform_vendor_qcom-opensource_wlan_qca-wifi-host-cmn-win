@@ -6676,7 +6676,7 @@ qdf_export_symbol(dp_getrateindex);
  *
  * return - rate index in kbps with help of ratetable
  */
-int dp_rate_idx_to_kbps(uint8_t rate_idx, uint8_t gintval)
+int dp_rate_idx_to_kbps(uint16_t rate_idx, uint8_t gintval)
 {
 	if (rate_idx >= DP_RATE_TABLE_SIZE)
 		return 0;
