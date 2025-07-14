@@ -950,13 +950,28 @@ dp_rx_deliver_to_osif_stack(struct dp_soc *soc,
 int dp_rx_err_match_dhost(qdf_ether_header_t *eh, struct dp_vdev *vdev,
 			  bool is_ml)
 {
-	if (is_ml)
-		return ((qdf_mem_cmp(eh->ether_dhost,
-				     &vdev->mld_mac_addr.raw[0],
-				     QDF_MAC_ADDR_SIZE) == 0) ||
-			(qdf_mem_cmp(eh->ether_dhost, &vdev->mac_addr.raw[0],
-				     QDF_MAC_ADDR_SIZE) == 0));
-	else
+	struct dp_soc *soc = vdev->pdev->soc;
+
+	if (is_ml) {
+		if ((qdf_mem_cmp(eh->ether_dhost,
+				 &vdev->mld_mac_addr.raw[0],
+				 QDF_MAC_ADDR_SIZE) == 0) ||
+		    (qdf_mem_cmp(eh->ether_dhost, &vdev->mac_addr.raw[0],
+				 QDF_MAC_ADDR_SIZE) == 0)) {
+			return 1;
+		} else if (soc->arch_ops.check_for_valid_link_addr) {
+			struct dp_validate_eth_addr check_valid_addr = {0};
+
+			qdf_mem_copy(check_valid_addr.eh, eh,
+				     sizeof(qdf_ether_header_t));
+			soc->arch_ops.check_for_valid_link_addr(vdev,
+							&check_valid_addr);
+
+			return check_valid_addr.valid_addr;
+		} else {
+			return 0;
+		}
+	} else
 		return (qdf_mem_cmp(eh->ether_dhost, &vdev->mac_addr.raw[0],
 				    QDF_MAC_ADDR_SIZE) == 0);
 }
