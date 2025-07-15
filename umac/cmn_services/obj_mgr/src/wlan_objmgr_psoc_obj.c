@@ -144,6 +144,14 @@ struct wlan_objmgr_psoc *wlan_objmgr_psoc_obj_create(uint32_t phy_version,
 	/* Initialize peer list */
 	wlan_objmgr_psoc_peer_list_init(&objmgr->peer_list);
 	wlan_objmgr_psoc_get_ref(psoc, WLAN_OBJMGR_ID);
+
+	if (wlan_objmgr_psoc_object_attach(psoc, soc_id) !=
+				QDF_STATUS_SUCCESS) {
+		obj_mgr_err("PSOC object attach failed");
+		wlan_objmgr_psoc_obj_delete(psoc);
+		return NULL;
+	}
+
 	/* Invoke registered create handlers */
 	for (id = 0; id < WLAN_UMAC_MAX_COMPONENTS; id++) {
 		handler = g_umac_glb_obj->psoc_create_handler[id];
@@ -180,12 +188,6 @@ struct wlan_objmgr_psoc *wlan_objmgr_psoc_obj_create(uint32_t phy_version,
 		return NULL;
 	}
 
-	if (wlan_objmgr_psoc_object_attach(psoc, soc_id) !=
-				QDF_STATUS_SUCCESS) {
-		obj_mgr_err("PSOC object attach failed");
-		wlan_objmgr_psoc_obj_delete(psoc);
-		return NULL;
-	}
 	wlan_minidump_log(psoc, sizeof(*psoc), psoc,
 			  WLAN_MD_OBJMGR_PSOC, "wlan_objmgr_psoc");
 
