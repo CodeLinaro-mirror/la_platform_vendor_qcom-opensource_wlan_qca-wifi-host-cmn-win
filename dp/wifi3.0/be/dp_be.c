@@ -3185,6 +3185,37 @@ void dp_print_mlo_ast_stats_be(struct dp_soc *soc)
 	}
 	qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
 }
+
+static void
+dp_has_eapol_valid_link_addr(struct dp_vdev_be *be_vdev,
+			     struct dp_vdev *ptnr_vdev,
+			     void *arg)
+{
+	struct dp_validate_eth_addr *check_valid_addr =
+					(struct dp_validate_eth_addr *)arg;
+
+	if (qdf_mem_cmp(check_valid_addr->eh->ether_dhost,
+			&ptnr_vdev->mac_addr.raw[0],
+			QDF_MAC_ADDR_SIZE) == 0)
+		check_valid_addr->valid_addr = 1;
+}
+
+void dp_check_for_valid_link_addr(struct dp_vdev *vdev,
+				  struct dp_validate_eth_addr *check_valid_addr)
+{
+	struct dp_vdev_be *be_vdev = NULL;
+	struct dp_soc_be *be_soc = NULL;
+
+	be_soc = dp_get_be_soc_from_dp_soc(vdev->pdev->soc);
+	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	dp_mlo_iter_ptnr_vdev(be_soc, be_vdev,
+			      dp_has_eapol_valid_link_addr,
+			      (void *)check_valid_addr, DP_MOD_ID_RX,
+			      DP_ALL_VDEV_ITER,
+			      DP_VDEV_ITERATE_SKIP_SELF);
+}
+
 #else /* WLAN_FEATURE_11BE_MLO */
 void dp_mlo_dev_ctxt_list_attach_wrapper(dp_mlo_dev_obj_t mlo_dev_obj)
 {
@@ -3986,6 +4017,7 @@ dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 	arch_ops->mlo_peer_find_hash_remove = dp_mlo_peer_find_hash_remove_be;
 	arch_ops->mlo_peer_find_hash_find = dp_mlo_peer_find_hash_find_be;
 	arch_ops->get_hw_link_id = dp_get_hw_link_id_be;
+	arch_ops->check_for_valid_link_addr = dp_check_for_valid_link_addr;
 #ifdef DP_UMAC_HW_RESET_SUPPORT
 	arch_ops->mlo_umac_reset_notify_asserted_soc =
 					dp_umac_reset_notify_asserted_soc;

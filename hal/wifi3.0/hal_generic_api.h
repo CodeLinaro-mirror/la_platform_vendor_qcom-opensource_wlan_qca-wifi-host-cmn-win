@@ -251,6 +251,8 @@ void hal_srng_src_hw_init_generic(struct hal_soc *hal,
 {
 	uint32_t reg_val = 0;
 	uint64_t tp_addr = 0;
+	hal_soc_handle_t hal_hdl = (hal_soc_handle_t)hal;
+	unsigned long end;
 
 	hal_debug("hw_init srng %d", srng->ring_id);
 
@@ -258,7 +260,30 @@ void hal_srng_src_hw_init_generic(struct hal_soc *hal,
 		reg_val = SRNG_SRC_REG_READ(srng, MISC);
 		if (!(reg_val & SRNG_IDLE_STATE_BIT)) {
 			hal_err("ring_id %d not in idle state", srng->ring_id);
-			qdf_assert_always(0);
+
+			/*
+			 * Check if TCL is idle.
+			 * Assert only when SRNG and TCL both are not idle.
+			 */
+			if (!(hal->ops->hal_tcl_idle_get(hal_hdl))) {
+				hal_err("ring_id:%d - TCL not in idle state",
+					srng->ring_id);
+				qdf_assert_always(0);
+			}
+
+			/* Busy wait for 2 ms to make sure the rings are in idle state
+			 * before we enable them again
+			 */
+			end = jiffies + msecs_to_jiffies(2);
+			while (time_before(jiffies, end))
+				;
+
+			reg_val = SRNG_SRC_REG_READ(srng, MISC);
+			if (!(reg_val & SRNG_IDLE_STATE_BIT)) {
+				hal_err("ring_id %d not idle after 2ms delay",
+					srng->ring_id);
+				qdf_assert_always(0);
+			}
 		}
 
 		hal_srng_src_hw_write_cons_prefetch_timer(srng,
