@@ -1006,7 +1006,13 @@ static void mlo_peer_free(struct wlan_mlo_peer_context *ml_peer)
 
 	mlo_deinit_mlrecfg_ctx(ml_peer);
 	wlan_t2lm_timer_stop(&ml_dev->t2lm_ctx.t2lm_timer);
-	mlo_t2lm_reset_established_and_upcoming_mapping(ml_dev);
+
+	/* reset ttlm on STA MLD alone as the ttlm context need
+	 * to be retained for other peers on AP MLD
+	 */
+	if (ml_dev->sta_ctx)
+		mlo_t2lm_reset_established_and_upcoming_mapping(ml_dev);
+
 	ttlm_sm_destroy(ml_peer);
 	mlo_peer_lock_destroy(ml_peer);
 	epcs_dev_peer_lock_destroy(&ml_peer->epcs_info);
