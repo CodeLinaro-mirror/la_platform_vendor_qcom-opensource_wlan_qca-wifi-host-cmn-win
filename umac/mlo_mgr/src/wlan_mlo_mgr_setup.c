@@ -544,6 +544,7 @@ static uint32_t mlo_get_psoc_target_type(struct wlan_objmgr_psoc *psoc)
 QDF_STATUS mlo_set_3_link_forced_primary_umac(
 		struct wlan_mlo_peer_context *ml_peer,
 		struct wlan_objmgr_vdev *link_vdevs[],
+		uint8_t link_vdev_count,
 		uint8_t *psoc_id)
 {
 	struct wlan_objmgr_psoc *psoc;
@@ -555,7 +556,7 @@ QDF_STATUS mlo_set_3_link_forced_primary_umac(
 	uint8_t forced_psoc_id = 0;
 	int i = 0;
 
-	if (ml_peer->max_links != 3)
+	if (link_vdev_count != 3)
 		return QDF_STATUS_E_FAILURE;
 
 	for (i = 0; i < 3; i++) {
@@ -574,20 +575,24 @@ QDF_STATUS mlo_set_3_link_forced_primary_umac(
 		switch (target_type) {
 		case TARGET_TYPE_QCA5332:
 			found_qca5332 = true;
+			mlo_debug("found_qca5332 = %d", found_qca5332);
 			break;
 
 		case TARGET_TYPE_QCN9224:
 			found_qcn9224 = true;
+			mlo_debug("found_qcn9224 = %d", found_qcn9224);
 			break;
 
 		case TARGET_TYPE_QCN6432:
 			found_qcn6432 = true;
 			forced_psoc_id = wlan_psoc_get_id(psoc);
+			mlo_debug("found_qcn6432 = %d", found_qcn6432);
 			break;
 
 		case TARGET_TYPE_QCA5424:
 			found_qca5424 = true;
 			forced_psoc_id = wlan_psoc_get_id(psoc);
+			mlo_debug("found_qca5424 = %d", found_qca5424);
 			break;
 
 		default:

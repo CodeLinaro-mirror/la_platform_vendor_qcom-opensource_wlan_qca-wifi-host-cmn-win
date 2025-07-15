@@ -581,6 +581,7 @@ void mlo_peer_assign_primary_umac(
  * @ml_dev: MLO DEV context
  * @ml_peer: MLO peer object
  * @link_vdevs: link vdev array
+ * @link_vdev_count: link vdev count
  *
  * This function allocates primary UMAC for a MLO peer
  *
@@ -589,7 +590,8 @@ void mlo_peer_assign_primary_umac(
 QDF_STATUS mlo_peer_allocate_primary_umac(
 		struct wlan_mlo_dev_context *ml_dev,
 		struct wlan_mlo_peer_context *ml_peer,
-		struct wlan_objmgr_vdev *link_vdevs[]);
+		struct wlan_objmgr_vdev *link_vdevs[],
+		uint8_t link_vdev_count);
 
 /**
  * mlo_peer_free_primary_umac() - Free Primary UMAC

@@ -159,6 +159,7 @@ void mlo_setup_update_chip_info(struct wlan_objmgr_psoc *psoc, uint8_t chip_id,
  *
  * @ml_peer: mlo peer
  * @link_vdevs: list of link vdevs
+ * @link_vdev_count: Link vdev count
  * @psoc_id: Return the PSOC-ID to force the primary umac
  *
  * Return: QDF_STATUS
@@ -166,6 +167,7 @@ void mlo_setup_update_chip_info(struct wlan_objmgr_psoc *psoc, uint8_t chip_id,
 QDF_STATUS mlo_set_3_link_forced_primary_umac(
 		struct wlan_mlo_peer_context *ml_peer,
 		struct wlan_objmgr_vdev *link_vdevs[],
+		uint8_t link_vdev_count,
 		uint8_t *psoc_id);
 
 /**
