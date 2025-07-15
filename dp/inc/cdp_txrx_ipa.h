@@ -552,14 +552,14 @@ cdp_ipa_setup_iface(ol_txrx_soc_handle soc, char *ifname, uint8_t *mac_addr,
 /**
  * cdp_ipa_cleanup_iface() - Cleanup IPA header and deregister interface
  * @soc: data path soc handle
- * @ifname: Interface name
+ * @iface: IPA Interface
  * @is_ipv6_enabled: Is IPV6 enabled or not
  * @hdl: IPA handle
  *
  * Return: QDF_STATUS
  */
 static inline QDF_STATUS
-cdp_ipa_cleanup_iface(ol_txrx_soc_handle soc, char *ifname,
+cdp_ipa_cleanup_iface(ol_txrx_soc_handle soc, struct wlan_ipa_iface_context *iface,
 		      bool is_ipv6_enabled, qdf_ipa_wdi_hdl_t hdl)
 {
 	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
@@ -569,7 +569,7 @@ cdp_ipa_cleanup_iface(ol_txrx_soc_handle soc, char *ifname,
 	}
 
 	if (soc->ops->ipa_ops->ipa_cleanup_iface)
-		return soc->ops->ipa_ops->ipa_cleanup_iface(ifname,
+		return soc->ops->ipa_ops->ipa_cleanup_iface((void *)iface,
 							    is_ipv6_enabled,
 							    hdl);
 
@@ -1161,6 +1161,31 @@ cdp_ipa_check_is_ring_ipa_rx(ol_txrx_soc_handle soc, uint8_t ring_id)
 		return soc->ops->ipa_ops->ipa_is_ring_ipa_rx(soc, ring_id);
 
 	return false;
+}
+
+/**
+ * cdp_ipa_get_peer_mlo_state() - Check peer is mlo peer
+ * @soc: pointer to the soc
+ * @peer_mac: mac address of the node's object
+ *
+ * Return: true is peer is MLO, false otherwise
+ */
+static inline bool
+cdp_ipa_get_peer_mlo_state(ol_txrx_soc_handle soc, uint8_t *peer_mac,
+			   uint8_t *vdev_id)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		dp_cdp_debug("Invalid Instance:");
+		QDF_BUG(0);
+		return false;
+	}
+
+	if (!soc->ops->ctrl_ops ||
+	    !soc->ops->ipa_ops->ipa_get_peer_mlo_state)
+		return false;
+
+	return soc->ops->ipa_ops->ipa_get_peer_mlo_state
+			(soc, peer_mac, vdev_id);
 }
 #endif /* IPA_OFFLOAD */
 #endif /* _CDP_TXRX_IPA_H_ */
