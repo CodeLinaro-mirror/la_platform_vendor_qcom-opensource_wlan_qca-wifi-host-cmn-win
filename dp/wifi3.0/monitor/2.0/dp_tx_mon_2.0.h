@@ -20,6 +20,7 @@
 
 #include <qdf_nbuf_frag.h>
 #include <hal_be_api_mon.h>
+#include "cdp_txrx_stats_struct.h"
 
 struct dp_mon_desc;
 
@@ -646,7 +647,7 @@ struct dp_pdev_tx_monitor_be {
 	uint8_t last_frag_q_idx;
 	uint8_t cur_frag_q_idx;
 	struct dp_txmon_frag_vec frag_q_vec[MAX_STATUS_BUFFER_IN_PPDU];
-	uint32_t dp_tx_pkt_cap_stats[CDP_TX_PKT_TYPE_MAX];
+	uint32_t dp_tx_pkt_cap_stats[CDP_TX_PKT_CAP_TYPE_MAX];
 };
 
 /**

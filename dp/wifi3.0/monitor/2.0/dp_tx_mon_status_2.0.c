@@ -1550,7 +1550,7 @@ void dp_pdev_update_tx_pkt_cap_stats(struct dp_mon_pdev_be *mon_pdev_be)
 {
 	uint8_t i;
 
-	for (i = 0; i < CDP_TX_PKT_TYPE_MAX; i++) {
+	for (i = 0; i < CDP_TX_PKT_CAP_TYPE_MAX; i++) {
 		mon_pdev_be->tx_monitor_be.dp_tx_pkt_cap_stats[i] +=
 		mon_pdev_be->tx_monitor_be.data_status_info.dp_tx_pkt_cap_cookie[i];
 	}
