@@ -1835,7 +1835,7 @@ dp_rx_tid_set_pn(struct dp_soc *soc, struct dp_peer *peer,
 	uint8_t pn_size;
 	struct hal_reo_cmd_params params;
 	struct dp_rx_tid *rx_tid;
-	struct dp_vdev *vdev;
+	struct dp_vdev *vdev = peer->vdev;
 
 	if (!peer) {
 		dp_peer_debug("%pK: NULL peer!", soc);
