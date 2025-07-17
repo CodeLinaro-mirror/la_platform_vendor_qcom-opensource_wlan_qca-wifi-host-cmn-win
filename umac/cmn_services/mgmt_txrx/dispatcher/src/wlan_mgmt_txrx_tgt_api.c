@@ -1501,6 +1501,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 			if (buflen <= (sizeof(struct ieee80211_frame)
 					+ IEEE80211_CCMP_HEADERLEN)) {
 				qdf_nbuf_free(buf);
+				if (peer)
+					wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 				return QDF_STATUS_E_FAILURE;
 			}
 			mpdu_data_ptr += IEEE80211_CCMP_HEADERLEN;
@@ -1508,6 +1510,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 				if (buflen <= (sizeof(struct ieee80211_frame)
 					+ WLAN_HDR_EXT_IV_LEN)) {
 					qdf_nbuf_free(buf);
+					if (peer)
+						wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 					return QDF_STATUS_E_FAILURE;
 				}
 				mpdu_data_ptr += WLAN_HDR_EXT_IV_LEN;
@@ -1524,6 +1528,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 			"Unspecified mgmt frame type fc: %x %x", wh->i_fc[0],
 								wh->i_fc[1]);
 			qdf_nbuf_free(buf);
+			if (peer)
+				wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 			return QDF_STATUS_E_FAILURE;
 		}
 	} else {
@@ -1563,8 +1569,11 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 				   QDF_TRACE_LEVEL_DEBUG, data, buflen);
 	}
 
-	if (simulation_frame_update(psoc, buf, mgmt_rx_params))
+	if (simulation_frame_update(psoc, buf, mgmt_rx_params)){
+		if (peer)
+			wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 		return QDF_STATUS_E_FAILURE;
+	}
 
 	mgmt_txrx_psoc_ctx = (struct mgmt_txrx_priv_psoc_context *)
 			wlan_objmgr_psoc_get_comp_private_obj(psoc,
@@ -1602,6 +1611,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 		mgmt_txrx_debug("No rx callback registered for frm_type: %d",
 				frm_type);
 		qdf_nbuf_free(buf);
+		if (peer)
+			wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 		return QDF_STATUS_E_FAILURE;
 	}
 	qdf_spin_unlock_bh(&mgmt_txrx_psoc_ctx->mgmt_txrx_psoc_ctx_lock);
@@ -1631,10 +1642,11 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 	rx_handler->rx_cb(psoc, peer, buf,
 				mgmt_rx_params, frm_type);
 
+
+rx_handler_mem_free:
 	if (peer)
 		wlan_objmgr_peer_release_ref(peer, WLAN_MGMT_SB_ID);
 
-rx_handler_mem_free:
 	while (rx_handler_head) {
 		rx_handler = rx_handler_head;
 		rx_handler_head = rx_handler_head->next;
