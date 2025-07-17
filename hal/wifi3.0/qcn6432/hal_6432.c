@@ -1988,6 +1988,7 @@ static void hal_hw_txrx_ops_attach_qcn6432(struct hal_soc *hal_soc)
 	hal_soc->ops->hal_tx_get_num_ppe_vp_search_idx_tbl_entries =
 		hal_tx_get_num_ppe_vp_search_idx_reg_entries_6432;
 	hal_soc->ops->hal_tx_ring_halt_get = hal_tx_ppe2tcl_ring_halt_get_6432;
+	hal_soc->ops->hal_tcl_idle_get = hal_tcl_idle_get_6432;
 };
 
 struct hal_hw_srng_config hw_srng_table_6432[] = {

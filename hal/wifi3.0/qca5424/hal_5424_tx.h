@@ -33,6 +33,26 @@
 #define HAL_PPE_VP_SEARCH_IDX_REG_MAX 8
 
 /**
+ * hal_tcl_idle_get_5424() - Get tcl idle status
+ * @hal_soc: HAL SoC context
+ *
+ * Return: TCl idle status.
+ */
+static uint32_t hal_tcl_idle_get_5424(hal_soc_handle_t hal_soc)
+{
+	uint32_t cmn_reg_addr;
+	uint32_t regval;
+	struct hal_soc *soc = (struct hal_soc *)hal_soc;
+
+	cmn_reg_addr =
+		HWIO_TCL_R0_CONS_RING_CMN_CTRL_REG_ADDR(MAC_TCL_REG_REG_BASE);
+
+	/* Get TCL IDLE status */
+	regval = HAL_REG_READ(soc, cmn_reg_addr);
+	return (regval & HWIO_TCL_R0_CONS_RING_CMN_CTRL_REG_TCL_IDLE_BMSK);
+}
+
+/**
  * hal_tx_get_num_ppe_vp_search_idx_reg_entries_5424() - get number of PPE VP
  *                                                       search index registers
  * @hal_soc_hdl: HAL SoC handle
