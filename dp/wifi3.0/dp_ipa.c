@@ -3696,14 +3696,18 @@ QDF_STATUS dp_ipa_cleanup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	return status;
 }
 
-QDF_STATUS dp_ipa_cleanup_iface(void *iface, bool is_ipv6_enabled,
-				qdf_ipa_wdi_hdl_t hdl)
+QDF_STATUS dp_ipa_cleanup_iface(struct cdp_soc_t *soc_hdl, void *iface,
+				bool is_ipv6_enabled, qdf_ipa_wdi_hdl_t hdl)
 {
 	int ret;
 	const char *ifname = ((struct wlan_ipa_iface_context *)iface)->dev->name;
 	uint8_t session_id = ((struct wlan_ipa_iface_context *)iface)->session_id;
+	bool is_mlo;
 
-	ret = qdf_ipa_wdi_dereg_intf(ifname, hdl, session_id);
+	is_mlo = dp_ipa_is_mlo_peer(soc_hdl,
+				    ((struct wlan_ipa_iface_context *)iface)->mac_addr,
+				    &session_id);
+	ret = qdf_ipa_wdi_dereg_intf(ifname, hdl, session_id, is_mlo);
 	if (ret) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_ERROR,
 			  "%s: ipa_wdi_dereg_intf: IPA pipe deregistration failed: ret=%d",

@@ -348,14 +348,15 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 
 /**
  * dp_ipa_cleanup_iface() - Cleanup IPA header and deregister interface
+ * @soc_hdl: dp soc handle
  * @iface: IPA Interface
  * @is_ipv6_enabled: Is IPV6 enabled or not
  * @hdl: IPA handle
  *
  * Return: QDF_STATUS
  */
-QDF_STATUS dp_ipa_cleanup_iface(void *iface, bool is_ipv6_enabled,
-				qdf_ipa_wdi_hdl_t hdl);
+QDF_STATUS dp_ipa_cleanup_iface(struct cdp_soc_t *soc_hdl, void *iface,
+				bool is_ipv6_enabled, qdf_ipa_wdi_hdl_t hdl);
 
 /**
  * dp_ipa_enable_pipes() - Enable and resume traffic on Tx/Rx pipes

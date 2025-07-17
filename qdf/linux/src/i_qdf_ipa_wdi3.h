@@ -638,14 +638,17 @@ static inline int __qdf_ipa_wdi_opt_dpath_notify_flt_rlsd_per_inst(
  * function to deregister before unload and after disconnect
  * @hdl: IPA handle
  * @session_id: Vdev id
+ * @is_mlo: Is MLO Iface
  *
  * @Return 0 on success, negative on failure
  */
 static inline int __qdf_ipa_wdi_dereg_intf(const char *netdev_name,
 					   __qdf_ipa_wdi_hdl_t hdl,
-					   uint8_t session_id)
+					   uint8_t session_id,
+					   bool is_mlo)
 {
-	return ipa_wdi_dereg_intf_per_inst(netdev_name, hdl, session_id);
+	return ipa_wdi_dereg_intf_per_inst(netdev_name, hdl, session_id,
+					   is_mlo);
 }
 
 /**
