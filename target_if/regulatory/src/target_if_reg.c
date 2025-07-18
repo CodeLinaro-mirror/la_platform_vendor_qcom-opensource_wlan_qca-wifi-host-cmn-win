@@ -1709,6 +1709,8 @@ QDF_STATUS target_if_register_regulatory_tx_ops(
 
 	reg_ops->is_chip_11be = tgt_if_reg_is_chip_11be_cap;
 
+	reg_ops->is_scan_radio = target_pdev_is_scan_radio_supported;
+
 	reg_ops->register_rate2power_table_update_event_handler =
 		tgt_if_regulatory_register_rate2power_table_update_handler;
 

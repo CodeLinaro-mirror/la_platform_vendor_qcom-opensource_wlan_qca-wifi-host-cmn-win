@@ -4513,6 +4513,28 @@ static void reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
 	}
 }
 
+static bool
+reg_is_scan_radio(struct wlan_objmgr_pdev *pdev)
+{
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_lmac_if_reg_tx_ops *reg_ops;
+	bool is_scan_radio = false;
+	QDF_STATUS status;
+
+	psoc = wlan_pdev_get_psoc(pdev);
+	reg_ops = reg_get_psoc_tx_ops(psoc);
+
+	if (reg_ops->is_scan_radio) {
+		status = reg_ops->is_scan_radio(pdev, &is_scan_radio);
+		if (QDF_IS_STATUS_ERROR(status)) {
+			reg_err("Failed to check scan radio capability");
+			return false;
+		}
+	}
+
+	return is_scan_radio;
+}
+
 /**
  * reg_set_pdev_hw_blacklist - Set blacklist chans on pdev
  * @pdev_priv_obj  : Pointer to wlan_regulatory_pdev_priv_obj
@@ -4526,6 +4548,11 @@ reg_set_pdev_hw_blacklist(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
 {
 	struct hbl_chans *hw_bl_sp;
 	struct hbl_chans *hw_bl_vlp;
+
+	if (reg_is_scan_radio(pdev_priv_obj->pdev_ptr)) {
+		reg_err("scan radio. Blacklist chans will not be parsed\n");
+		return QDF_STATUS_SUCCESS;
+	}
 
 	if (!hbl_allpm_iobj->is_hbl_msg_valid) {
 		reg_err("hw blacklist info is not valid. Ignoring");
