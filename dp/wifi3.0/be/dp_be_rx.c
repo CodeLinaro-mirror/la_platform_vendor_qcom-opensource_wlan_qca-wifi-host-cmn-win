@@ -2651,6 +2651,59 @@ static bool check_extap_multicast_loopback(struct dp_vdev *vdev, uint8_t *addr)
 }
 #endif
 
+bool
+dp_rx_null_q_invalid_peer_handler_eapol(struct dp_soc *soc, qdf_nbuf_t nbuf,
+				struct hal_rx_msdu_metadata msdu_metadata)
+{
+	struct dp_peer *dp_peer = NULL;
+	struct dp_txrx_peer *txrx_peer = NULL;
+	uint8_t vdev_id;
+	struct dp_vdev *vdev = NULL;
+	qdf_ether_header_t *eh;
+	vdev_id = QDF_NBUF_CB_RX_VDEV_ID(nbuf);
+
+	/*
+	 * Advance the packet start pointer by total size of
+	 * pre-header TLV's
+	 */
+
+	if (qdf_nbuf_is_frag(nbuf))
+		qdf_nbuf_pull_head(nbuf, soc->rx_pkt_tlv_size);
+	else
+		qdf_nbuf_pull_head(nbuf, (msdu_metadata.l3_hdr_pad +
+					soc->rx_pkt_tlv_size));
+
+	if (!qdf_nbuf_is_ipv4_eapol_pkt(nbuf))
+		goto fail;
+
+	eh = (qdf_ether_header_t *)qdf_nbuf_data(nbuf);
+	dp_peer = dp_find_peer_by_macaddr(soc, eh->ether_shost, vdev_id, DP_MOD_ID_RX);
+
+	if (!dp_peer)
+		goto fail;
+
+	txrx_peer = dp_peer->txrx_peer;
+	if (!txrx_peer || !txrx_peer->vdev)
+		goto fail;
+
+	vdev = txrx_peer->vdev;
+	dp_rx_deliver_to_osif_stack(soc, vdev, txrx_peer, nbuf, NULL, true);
+	dp_peer_unref_delete(dp_peer, DP_MOD_ID_RX);
+	return true;
+
+fail:
+	if (dp_peer)
+		dp_peer_unref_delete(dp_peer, DP_MOD_ID_RX);
+
+	if (qdf_nbuf_is_frag(nbuf))
+		qdf_nbuf_push_head(nbuf, soc->rx_pkt_tlv_size);
+	else
+		qdf_nbuf_push_head(nbuf, (msdu_metadata.l3_hdr_pad +
+					soc->rx_pkt_tlv_size));
+
+	return false;
+}
+
 QDF_STATUS
 dp_rx_null_q_desc_handle_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
 			    uint8_t *rx_tlv_hdr, uint8_t pool_id,
@@ -2724,6 +2777,10 @@ dp_rx_null_q_desc_handle_be(struct dp_soc *soc, qdf_nbuf_t nbuf,
 			dp_err_rl("pdev is null for pool_id = %d", pool_id);
 			return QDF_STATUS_E_FAILURE;
 		}
+
+		if (dp_rx_null_q_invalid_peer_handler_eapol(soc, nbuf,
+							    msdu_metadata))
+			return QDF_STATUS_SUCCESS;
 
 		dp_err_rl("txrx_peer is NULL");
 		DP_STATS_INC_PKT(soc, rx.err.rx_invalid_peer, 1,
