@@ -10619,16 +10619,17 @@ QDF_STATUS reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev)
 		qdf_info("Num of full BW channels = %d\n", hw_blacklist[p].nfbchans);
 		qdf_info("Num of punctured channels = %d\n", hw_blacklist[p].npcchans);
 		qdf_info("Full BW channels\n");
+
 		for (i = 0; i < hw_blacklist[p].nfbchans; i++) {
-			qdf_info("Primary Freq %d \t Max blocked BW %d \t Blocked 320 centre freq %d",
+			qdf_info("Blocked primary bitmap: %x \t -- Max BW %d \t -- Blocked center freq %d",
 				 hw_blacklist[p].fb_chan[i].pri_freq,
-				 hw_blacklist[p].fb_chan[i].max_bw,
+				 reg_get_bw_value(hw_blacklist[p].fb_chan[i].max_bw),
 				 hw_blacklist[p].fb_chan[i].cen320_freq);
 		}
 
 		qdf_info("Punctured channels\n");
 		for (i = 0; i < hw_blacklist[p].npcchans; i++) {
-			qdf_info("Center Freq %d \t BW %d Number of blocked Puncture pattern %d",
+			qdf_info("Center Freq %d \t BW %d \t Blocked Puncture pattern bitmap %d",
 				 hw_blacklist[p].pc_chan[i].cen_freq,
 				 hw_blacklist[p].pc_chan[i].bw,
 				 hw_blacklist[p].pc_chan[i].bl_pat_bitmap);
