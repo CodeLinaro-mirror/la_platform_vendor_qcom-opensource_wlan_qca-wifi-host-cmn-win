@@ -435,10 +435,20 @@ struct key_mgmt_list {
  * @mcastcipherset:     multicast cipher
  * @mgmtcipherset:      mgmt cipher
  * @cipher_caps:        cipher capability
- * @key_mgmt:           key mgmt
+ * @key_mgmt:           For QDF_SAP_MODE this includes Key mgmt configured in
+                        both RSN IE and RSN override IEs(if present). For QDF_STA_MODE
+                        RSN override IEs are not present
  * @pmksa:              pmksa
  * @rsn_caps:           rsn_capability
+ * @rsno1_caps:         rsno1 capability
+ * @rsno2_caps:         rsno2 capability
  * @rsnx_caps:          rsnx capability
+ * @rsnxo_caps:         rsnxo capability
+ * @rsn_sel_variant:    RSN Selection variant as indicated in Assoc Request
+ * @rsne_key_mgmt:      AKM suites present in legacy RSN IE. In absence of RSN
+                        override IEs, this is same as key_mgmt param. For
+                        QDF_STA_MODE,this field is not used/set and hence key_mgmt
+                        field should be used
  * @akm_list:           order of AKM present in RSN IE of Beacon/Probe response
  *
  * This structure holds crypto params for peer or vdev
@@ -452,7 +462,12 @@ struct wlan_crypto_params {
 	uint32_t key_mgmt;
 	struct   wlan_crypto_pmksa *pmksa[WLAN_CRYPTO_MAX_PMKID];
 	uint16_t rsn_caps;
+	uint16_t rsno1_caps;
+	uint16_t rsno2_caps;
 	uint32_t rsnx_caps;
+	uint32_t rsnxo_caps;
+	uint32_t rsn_sel_variant;
+	uint32_t rsne_key_mgmt;
 #ifdef WLAN_ADAPTIVE_11R
 	struct key_mgmt_list akm_list[WLAN_CRYPTO_KEY_MGMT_MAX];
 #endif
@@ -486,6 +501,11 @@ typedef enum wlan_crypto_param_type {
 	WLAN_CRYPTO_PARAM_RSNX_CAP,
 	WLAN_CRYPTO_PARAM_KEY_MGMT,
 	WLAN_CRYPTO_PARAM_PMKSA,
+	WLAN_CRYPTO_PARAM_RSNO1_CAP,
+	WLAN_CRYPTO_PARAM_RSNO2_CAP,
+	WLAN_CRYPTO_PARAM_RSNXO_CAP,
+	WLAN_CRYPTO_PARAM_RSN_SEL_VARIANT,
+	WLAN_CRYPTO_PARAM_RSNE_KEY_MGMT,
 } wlan_crypto_param_type;
 
 /**
@@ -687,7 +707,8 @@ struct wlan_lmac_if_crypto_rx_ops {
 					uint8_t encapdone);
 	QDF_STATUS(*crypto_decap)(struct wlan_objmgr_vdev *vdev,
 					qdf_nbuf_t wbuf, uint8_t *macaddr,
-					uint8_t tid);
+					uint8_t tid,
+					bool action_frame_decrypt_error);
 	QDF_STATUS(*crypto_enmic)(struct wlan_objmgr_vdev *vdev,
 					qdf_nbuf_t wbuf, uint8_t *macaddr,
 					uint8_t encapdone);

@@ -613,6 +613,19 @@ static inline QDF_STATUS mlme_vdev_dfs_cac_wait_notify(
 }
 
 /**
+ * mlme_vdev_mlo_sync_wait_notify() - Notifies MLO sync wait state
+ * @vdev_mlme:  VDEV MLME comp object
+ *
+ * Return: NO_SUPPORT if the callback is not supported.
+ *         SUCCESS if notification is handled by caller
+ */
+static inline QDF_STATUS mlme_vdev_mlo_sync_wait_notify(
+				struct vdev_mlme_obj *vdev_mlme)
+{
+	return mlme_vdev_dfs_cac_wait_notify(vdev_mlme);
+}
+
+/**
  * mlme_vdev_chan_switch_disable_notify_dfs() - Notifies DFS when channel
  * switch is disabled
  * @vdev_mlme: VDEV MLME comp object
@@ -635,6 +648,28 @@ static inline void mlme_vdev_init_down(struct vdev_mlme_obj *vdev_mlme)
 {
 	if (vdev_mlme->ops && vdev_mlme->ops->mlme_vdev_init_down)
 		vdev_mlme->ops->mlme_vdev_init_down(vdev_mlme);
+}
+
+/**
+ * mlme_vdev_notify_start_removal() - Notifies to remove start bss
+ * @vdev: Pointer to vdev object
+ *
+ * Notify to remove start bss
+ *
+ * Return: none
+ */
+static inline void mlme_vdev_notify_start_removal(
+				struct vdev_mlme_obj *vdev_mlme)
+{
+	if (!vdev_mlme) {
+		qdf_err("vdev_mlme is null");
+		return;
+	}
+
+	if (vdev_mlme->ops &&
+	    vdev_mlme->ops->mlme_vdev_notify_start_removal)
+		vdev_mlme->ops->mlme_vdev_notify_start_removal(
+					vdev_mlme->vdev);
 }
 
 #ifdef WLAN_FEATURE_11BE_MLO

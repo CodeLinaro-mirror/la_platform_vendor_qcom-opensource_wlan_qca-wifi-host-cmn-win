@@ -904,4 +904,11 @@
 	 WLAN_IS_CHAN_11AC_VHT160(_c)     || \
 	 WLAN_IS_CHAN_11AC_VHT80_80(_c))
 
+/*  Puncturing is possible in 11BE mode and in 80,
+ *  160, and 320 MHz bandwidths.
+ */
+#define WLAN_IS_CHAN_PUNCTURABLE(_c)      \
+	(WLAN_IS_CHAN_11BE_EHT80(_c)      || \
+	 WLAN_IS_CHAN_11BE_EHT160(_c)     || \
+	 WLAN_IS_CHAN_11BE_EHT320(_c))
 #endif /* _DFS_CHANNEL_H_ */

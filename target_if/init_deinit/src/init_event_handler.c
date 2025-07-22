@@ -1321,6 +1321,7 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 		}
 	}
 
+#ifdef WLAN_FEATURE_11BE_MLO
 	if (ready_ev.max_psoc_num_ml_peers) {
 		for (i = 0; i < num_radios; i++) {
 			pdev = wlan_objmgr_get_pdev_by_id(psoc, i,
@@ -1344,7 +1345,7 @@ static int init_deinit_ready_event_handler(ol_scn_t scn_handle,
 			wlan_objmgr_pdev_release_ref(pdev, WLAN_INIT_DEINIT_ID);
 		}
 	}
-
+#endif
 	/*
 	 * For non-legacy HW, MAC addr list is extracted.
 	 */

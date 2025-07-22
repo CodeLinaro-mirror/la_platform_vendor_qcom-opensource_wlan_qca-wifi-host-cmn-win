@@ -5816,9 +5816,10 @@ static unsigned int qdf_nbuf_update_radiotap_ampdu_flags(
 #else
 #ifdef QCA_RSSI_DB2DBM
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
+(((rx_status)->rssi_dbm_support) ? ((rx_status)->rssi_comb) :\
 (((rx_status)->rssi_dbm_conv_support) ? \
 ((rx_status)->rssi_comb + (rx_status)->rssi_offset + (rx_status)->hw_noise_floor) :\
-((rx_status)->rssi_comb + (rx_status)->hw_noise_floor))
+((rx_status)->rssi_comb + (rx_status)->hw_noise_floor)))
 #else
 #define QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status) \
 (rx_status->rssi_comb + rx_status->hw_noise_floor)
@@ -5932,22 +5933,25 @@ unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
 	put_unaligned_le16(rx_status->chan_flags, &rtap_buf[rtap_len]);
 	rtap_len += 2;
 
-	/* IEEE80211_RADIOTAP_DBM_ANTSIGNAL s8  decibels from one milliwatt
-	 *					(dBm)
+	/* update Antenna signal and Antenna noise values
+	 * only for rx monitor
 	 */
-	it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTSIGNAL);
-	/*
-	 * rssi_comb is int dB, need to convert it to dBm.
-	 * normalize value to noise floor of -96 dBm
-	 */
-	rtap_buf[rtap_len] = QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status);
-	rtap_len += 1;
-
-	/* RX signal noise floor */
-	it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
-	rtap_buf[rtap_len] = (uint8_t)rx_status->hw_noise_floor;
-	rtap_len += 1;
-
+	if (!rx_status->dl_flags) {
+		/* IEEE80211_RADIOTAP_DBM_ANTSIGNAL s8  decibels
+		 * from one milliwatt (dBm)
+		 */
+		it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTSIGNAL);
+		/*
+		 * rssi_comb is int dB, need to convert it to dBm.
+		 * normalize value to noise floor of -96 dBm
+		 */
+		rtap_buf[rtap_len] = QDF_MON_STATUS_GET_RSSI_IN_DBM(rx_status);
+		rtap_len += 1;
+		/* RX signal noise floor */
+		it_present_val |= (1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
+		rtap_buf[rtap_len] = (uint8_t)rx_status->hw_noise_floor;
+		rtap_len += 1;
+	}
 	/* IEEE80211_RADIOTAP_ANTENNA   u8      antenna index */
 	it_present_val |= (1 << IEEE80211_RADIOTAP_ANTENNA);
 	rtap_buf[rtap_len] = rx_status->nr_ant;
@@ -6601,10 +6605,10 @@ qdf_nbuf_add_frag_debug(qdf_device_t osdev, qdf_frag_t buf,
 			bool take_frag_ref, unsigned int minsize,
 			const char *func, uint32_t line)
 {
-	qdf_nbuf_t cur_nbuf;
 	qdf_nbuf_t this_nbuf;
+	qdf_nbuf_t last_nbuf = NULL;
+	bool buf_alloc = false;
 
-	cur_nbuf = nbuf;
 	this_nbuf = nbuf;
 
 	if (qdf_unlikely(!frag_len || !buf)) {
@@ -6616,9 +6620,7 @@ qdf_nbuf_add_frag_debug(qdf_device_t osdev, qdf_frag_t buf,
 
 	this_nbuf = qdf_get_nbuf_valid_frag(this_nbuf);
 
-	if (this_nbuf) {
-		cur_nbuf = this_nbuf;
-	} else {
+	if (!this_nbuf) {
 		/* allocate a dummy mpdu buffer of 64 bytes headroom */
 		this_nbuf = qdf_nbuf_alloc(osdev, minsize, minsize, 4, false);
 		if (qdf_unlikely(!this_nbuf)) {
@@ -6626,15 +6628,30 @@ qdf_nbuf_add_frag_debug(qdf_device_t osdev, qdf_frag_t buf,
 				     func, line);
 			return QDF_STATUS_E_NOMEM;
 		}
+		buf_alloc = true;
 	}
 
 	qdf_nbuf_add_rx_frag(buf, this_nbuf, offset, frag_len, truesize,
 			     take_frag_ref);
 
-	if (this_nbuf != cur_nbuf) {
-		/* add new skb to frag list */
-		qdf_nbuf_append_ext_list(nbuf, this_nbuf,
-					 qdf_nbuf_len(this_nbuf));
+	if (this_nbuf != nbuf) {
+		if (!__qdf_nbuf_has_fraglist(nbuf)) {
+			/* add new skb to frag list */
+			qdf_nbuf_append_ext_list(nbuf, this_nbuf,
+						 qdf_nbuf_len(this_nbuf));
+		} else {
+			if (buf_alloc) {
+				last_nbuf =
+					__qdf_nbuf_get_last_frag_list_nbuf(
+									nbuf);
+				if (!last_nbuf)
+					return QDF_STATUS_E_FAILURE;
+
+				last_nbuf->next = this_nbuf;
+			}
+			nbuf->len += frag_len;
+			nbuf->data_len += frag_len;
+		}
 	}
 
 	return QDF_STATUS_SUCCESS;

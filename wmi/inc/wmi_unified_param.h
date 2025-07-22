@@ -1336,6 +1336,22 @@ struct wmi_host_tid_to_link_map_params {
 };
 
 /**
+ * struct wmi_host_sawf_ezmesh_hop_count_params - Mesh SAWF params
+ * @vdev_id: Vdev ID
+ * @peer_macaddr: Peer link macaddr
+ * @hop_count: Hop count for the client
+ * @svc_id: Service ID
+ * @delay_bound: Updated delay bound to meet client SLA
+ */
+struct wmi_host_sawf_ezmesh_hop_count_params {
+	uint8_t vdev_id;
+	uint8_t peer_macaddr[QDF_MAC_ADDR_SIZE];
+	uint8_t hop_count;
+	uint8_t svc_id;
+	uint32_t delay_bound;
+};
+
+/**
  * struct wmi_host_tid_to_link_map_ap_params - TID-to-link mapping params
  * @pdev_id: Pdev id
  * @vdev_id: Vdev id
@@ -7337,6 +7353,9 @@ typedef struct {
 #ifdef DP_TX_PACKET_INSPECT_FOR_ILP
 	uint8_t tx_ilp_enable;
 #endif
+#ifdef QCA_WIFI_QCA5424
+	bool def_flow_override;
+#endif
 	bool rf_path;
 	bool fw_ast_indication_disable;
 	bool is_full_bw_nol_supported;
@@ -8634,12 +8653,14 @@ enum wmi_host_hw_mode_config_type {
  * @WMI_HOST_DYNAMIC_HW_MODE_DISABLED: hw mode switch is disabled
  * @WMI_HOST_DYNAMIC_HW_MODE_SLOW: hw mode switch with interface down/up
  * @WMI_HOST_DYNAMIC_HW_MODE_FAST: hw mode switch without interface down/up
+ * @WMI_HOST_DYNAMIC_HW_MODE_FW_DL: hw mode switch using FW download
  * @WMI_HOST_DYNAMIC_HW_MODE_MAX: Max value to indicate invalid mode
  */
 enum wmi_host_dynamic_hw_mode_config_type {
 	WMI_HOST_DYNAMIC_HW_MODE_DISABLED = 0,
 	WMI_HOST_DYNAMIC_HW_MODE_SLOW     = 1,
 	WMI_HOST_DYNAMIC_HW_MODE_FAST     = 2,
+	WMI_HOST_DYNAMIC_HW_MODE_FW_DL    = 3,
 	WMI_HOST_DYNAMIC_HW_MODE_MAX,
 };
 

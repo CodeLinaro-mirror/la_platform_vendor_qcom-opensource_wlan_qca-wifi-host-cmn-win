@@ -1910,9 +1910,10 @@ qdf_freq_t wlan_reg_get_thresh_priority_freq(struct wlan_objmgr_pdev *pdev)
 QDF_STATUS wlan_reg_psd_2_eirp(struct wlan_objmgr_pdev *pdev,
 			       int16_t psd,
 			       uint16_t ch_bw,
-			       int16_t *eirp)
+			       int16_t *eirp,
+			       uint8_t multiplier)
 {
-	return reg_psd_2_eirp(pdev, psd, ch_bw, eirp);
+	return reg_psd_2_eirp(pdev, psd, ch_bw, eirp, multiplier);
 }
 
 qdf_export_symbol(wlan_reg_psd_2_eirp);
@@ -1920,7 +1921,7 @@ qdf_export_symbol(wlan_reg_psd_2_eirp);
 QDF_STATUS wlan_reg_eirp_2_psd(struct wlan_objmgr_pdev *pdev, uint16_t ch_bw,
 			       int16_t eirp, int16_t *psd)
 {
-	return reg_eirp_2_psd(pdev, ch_bw, eirp, psd);
+	return reg_eirp_2_psd(pdev, ch_bw, eirp, psd, 1);
 }
 
 enum reg_6g_ap_type

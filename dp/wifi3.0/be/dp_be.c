@@ -983,21 +983,27 @@ static inline void dp_ppeds_stop_soc_be(struct dp_soc *soc)
 
 void dp_reo_shared_qaddr_detach(struct dp_soc *soc)
 {
+	struct reo_queue_ref_table *reo_qref = NULL;
+
+	reo_qref = &soc->reo_qref;
+
 	if (DP_SRNG_ALLOC_CACHED) {
-		qdf_mem_free(soc->reo_qref.mlo_reo_qref_table_vaddr);
-		qdf_mem_free(soc->reo_qref.non_mlo_reo_qref_table_vaddr);
+		qdf_mem_free(reo_qref->mlo_reo_qref_table_vaddr_unaligned);
+		qdf_mem_free(reo_qref->non_mlo_reo_qref_table_vaddr_unaligned);
 	} else {
-		qdf_mem_free_consistent(
-				soc->osdev, soc->osdev->dev,
-				REO_QUEUE_REF_ML_TABLE_SIZE,
-				soc->reo_qref.mlo_reo_qref_table_vaddr,
-				soc->reo_qref.mlo_reo_qref_table_paddr, 0);
-		qdf_mem_free_consistent(
-				soc->osdev, soc->osdev->dev,
-				REO_QUEUE_REF_NON_ML_TABLE_SIZE,
-				soc->reo_qref.non_mlo_reo_qref_table_vaddr,
-				soc->reo_qref.non_mlo_reo_qref_table_paddr, 0);
+		qdf_mem_free_consistent(soc->osdev,
+					soc->osdev->dev,
+					reo_qref->non_mlo_alloc_size,
+					reo_qref->non_mlo_reo_qref_table_vaddr_unaligned,
+					reo_qref->non_mlo_reo_qref_table_paddr_unaligned, 0);
+		qdf_mem_free_consistent(soc->osdev,
+					soc->osdev->dev,
+					reo_qref->mlo_alloc_size,
+					reo_qref->mlo_reo_qref_table_vaddr_unaligned,
+					reo_qref->mlo_reo_qref_table_paddr_unaligned, 0);
 	}
+
+	qdf_mem_zero(reo_qref, sizeof(struct reo_queue_ref_table));
 }
 
 #ifdef QCA_SUPPORT_DP_GLOBAL_CTX
@@ -1387,9 +1393,14 @@ dp_detach_vdev_list_in_mlo_dev_ctxt(struct dp_soc_be *be_soc,
 {
 	uint8_t pdev_id = vdev->pdev->pdev_id;
 
-	if (mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id] ==
-	    CDP_INVALID_VDEV_ID) {
-		return QDF_STATUS_E_INVAL;
+	if (vdev->is_bridge_vdev) {
+		if (mlo_dev_ctxt->bridge_vdev[be_soc->mlo_chip_id][pdev_id] ==
+		    CDP_INVALID_VDEV_ID)
+			return QDF_STATUS_E_INVAL;
+	} else {
+		if (mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id] ==
+		    CDP_INVALID_VDEV_ID)
+			return QDF_STATUS_E_INVAL;
 	}
 
 	qdf_spin_lock_bh(&mlo_dev_ctxt->vdev_list_lock);
@@ -3174,6 +3185,37 @@ void dp_print_mlo_ast_stats_be(struct dp_soc *soc)
 	}
 	qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
 }
+
+static void
+dp_has_eapol_valid_link_addr(struct dp_vdev_be *be_vdev,
+			     struct dp_vdev *ptnr_vdev,
+			     void *arg)
+{
+	struct dp_validate_eth_addr *check_valid_addr =
+					(struct dp_validate_eth_addr *)arg;
+
+	if (qdf_mem_cmp(check_valid_addr->eh->ether_dhost,
+			&ptnr_vdev->mac_addr.raw[0],
+			QDF_MAC_ADDR_SIZE) == 0)
+		check_valid_addr->valid_addr = 1;
+}
+
+void dp_check_for_valid_link_addr(struct dp_vdev *vdev,
+				  struct dp_validate_eth_addr *check_valid_addr)
+{
+	struct dp_vdev_be *be_vdev = NULL;
+	struct dp_soc_be *be_soc = NULL;
+
+	be_soc = dp_get_be_soc_from_dp_soc(vdev->pdev->soc);
+	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	dp_mlo_iter_ptnr_vdev(be_soc, be_vdev,
+			      dp_has_eapol_valid_link_addr,
+			      (void *)check_valid_addr, DP_MOD_ID_RX,
+			      DP_ALL_VDEV_ITER,
+			      DP_VDEV_ITERATE_SKIP_SELF);
+}
+
 #else /* WLAN_FEATURE_11BE_MLO */
 void dp_mlo_dev_ctxt_list_attach_wrapper(dp_mlo_dev_obj_t mlo_dev_obj)
 {
@@ -3838,7 +3880,9 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 		return QDF_STATUS_SUCCESS;
 	}
 
+	qdf_spin_lock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 	be_vdev->mlo_dev_ctxt = NULL;
+	qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 
 	/* Save vdev stats in MLO dev ctx */
 	dp_update_mlo_mld_vdev_ctxt_stats(&mlo_dev_ctxt->stats, &vdev->stats);
@@ -3854,6 +3898,23 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 
 	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 	return QDF_STATUS_SUCCESS;
+}
+
+static inline
+uint32_t dp_vdev_get_tx_gsn_be(struct dp_vdev *vdev)
+{
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	return qdf_atomic_read(&be_vdev->mlo_dev_ctxt->seq_num);
+}
+
+static inline
+void dp_vdev_set_tx_gsn_be(struct dp_vdev *vdev, uint32_t gsn)
+{
+	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+
+	qdf_atomic_set(&be_vdev->mlo_dev_ctxt->seq_num,
+		       gsn >= MAX_GSN_NUM ? 0 : gsn);
 }
 #else
 void dp_mlo_dev_ctxt_list_attach(dp_mlo_dev_obj_t mlo_dev_obj)
@@ -3892,6 +3953,16 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 				       uint8_t *mld_mac_addr)
 {
 	return QDF_STATUS_SUCCESS;
+}
+
+static inline
+uint32_t dp_vdev_get_tx_gsn_be(struct dp_vdev *vdev)
+{
+	return 0;
+}
+
+void dp_vdev_set_tx_gsn_be(struct dp_vdev *vdev, uint32_t gsn)
+{
 }
 #endif /* WLAN_DP_MLO_DEV_CTX */
 
@@ -3946,6 +4017,7 @@ dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 	arch_ops->mlo_peer_find_hash_remove = dp_mlo_peer_find_hash_remove_be;
 	arch_ops->mlo_peer_find_hash_find = dp_mlo_peer_find_hash_find_be;
 	arch_ops->get_hw_link_id = dp_get_hw_link_id_be;
+	arch_ops->check_for_valid_link_addr = dp_check_for_valid_link_addr;
 #ifdef DP_UMAC_HW_RESET_SUPPORT
 	arch_ops->mlo_umac_reset_notify_asserted_soc =
 					dp_umac_reset_notify_asserted_soc;
@@ -4250,6 +4322,8 @@ void dp_initialize_arch_ops_be(struct dp_arch_ops *arch_ops)
 	arch_ops->dp_mlo_tx_pool_map = dp_mlo_tx_pool_map_be;
 	arch_ops->dp_mlo_tx_pool_unmap = dp_mlo_tx_pool_unmap_be;
 	arch_ops->dp_tx_override_flow_pool_id = dp_tx_override_flow_pool_id_be;
+	arch_ops->dp_vdev_get_tx_gsn = dp_vdev_get_tx_gsn_be;
+	arch_ops->dp_vdev_set_tx_gsn = dp_vdev_set_tx_gsn_be;
 
 	dp_initialize_arch_ops_be_ipa(arch_ops);
 	dp_initialize_arch_ops_be_single_dev(arch_ops);

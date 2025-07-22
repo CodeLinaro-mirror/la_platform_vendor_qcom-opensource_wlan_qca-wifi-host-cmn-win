@@ -303,6 +303,18 @@ void qdf_mem_multi_pages_free_debug(qdf_device_t osdev,
 	qdf_mem_multi_pages_free_debug(osdev, pages, memctxt, cacheable, \
 				       __func__, __LINE__)
 
+#define qdf_mem_malloc_no_debug(size) \
+	__qdf_mem_malloc(size, __func__, __LINE__)
+
+#define qdf_mem_alloc_consistent_no_debug(osdev, dev, size, paddr) \
+	__qdf_mem_alloc_consistent(osdev, dev, size, paddr, __func__, __LINE__)
+
+#define qdf_mem_free_no_debug(ptr) \
+	__qdf_mem_free(ptr)
+
+#define qdf_mem_free_consistent_no_debug(osdev, dev, size, vaddr, paddr, memctx) \
+	__qdf_mem_free_consistent(osdev, dev, size, vaddr, paddr, memctx)
+
 /**
  * qdf_mem_check_for_leaks() - Assert that the current memory domain is empty
  *

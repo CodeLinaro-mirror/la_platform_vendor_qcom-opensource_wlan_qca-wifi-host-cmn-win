@@ -712,6 +712,19 @@ struct rx_desc_pool {
 #endif
 };
 
+#ifdef WLAN_FEATURE_11BE_MLO
+/**
+ * struct dp_validate_eth_addr
+ * @eh: Eapol packet header
+ * @valid_addr: To validate whether A3 addr of EAP/EAPOL frame
+ *		is matches with link addr of AP or not
+ */
+struct dp_validate_eth_addr {
+	qdf_ether_header_t *eh;
+	bool valid_addr;
+};
+#endif /* WLAN_FEATURE_11BE_MLO */
+
 /**
  * struct dp_tx_ext_desc_elem_s
  * @next: next extension descriptor pointer
@@ -2523,6 +2536,8 @@ enum dp_context_type {
  * @dp_tx_is_mcast_primary:
  * @dp_soc_get_by_idle_bm_id:
  * @mlo_peer_find_hash_detach:
+ * @check_for_valid_link_addr: To validate whether A3 addr of EAP/EAPOL frame
+ *			       is matches with link addr of AP or not
  * @mlo_peer_find_hash_attach:
  * @mlo_peer_find_hash_add:
  * @mlo_peer_find_hash_remove:
@@ -2738,6 +2753,8 @@ struct dp_arch_ops {
 						    uint8_t bm_id);
 
 	void (*mlo_peer_find_hash_detach)(struct dp_soc *soc);
+	void (*check_for_valid_link_addr)(struct dp_vdev *vdev,
+					  struct dp_validate_eth_addr *check_valid_addr);
 	QDF_STATUS (*mlo_peer_find_hash_attach)(struct dp_soc *soc);
 	void (*mlo_peer_find_hash_add)(struct dp_soc *soc,
 				       struct dp_peer *peer);
@@ -2903,6 +2920,9 @@ struct dp_arch_ops {
 	void (*dp_tx_override_flow_pool_id)(struct dp_vdev *vdev,
 					    struct dp_tx_queue *queue);
 	void (*dp_vdev_mlo_stats_clear)(struct dp_vdev *vdev);
+
+	uint32_t (*dp_vdev_get_tx_gsn)(struct dp_vdev *vdev);
+	void (*dp_vdev_set_tx_gsn)(struct dp_vdev *vdev, uint32_t gsn);
 };
 
 /**
@@ -3769,6 +3789,7 @@ struct dp_soc {
 	struct hal_rx_err_desc_copy *rx_err_desc;
 	uint32_t num_rx_err_desc;
 #endif
+	bool rssi_dbm_support; /* ucode support to pupulate rssi in dbm */
 };
 
 /*
@@ -4643,7 +4664,8 @@ struct dp_vdev {
 	uint8_t proxysta_vdev : 1, /* Is this a proxySTA VAP */
 		wrap_vdev : 1, /* Is this a QWRAP AP VAP */
 		isolation_vdev : 1, /* Is this a QWRAP AP VAP */
-		reserved : 5; /* Reserved */
+		vbss_vdev : 1,
+		reserved : 4; /* Reserved */
 
 #ifdef QCA_LL_TX_FLOW_CONTROL_V2
 	struct dp_tx_desc_pool_s *pool;
@@ -5154,6 +5176,7 @@ struct dp_peer_per_pkt_tx_stats {
  * @rnd_avg_tx_rate: Rounded average tx rate
  * @avg_tx_rate: Average TX rate
  * @tx_ratecode: Tx rate code of last frame
+ * @tx_flags: Tx BW and sgi values
  * @pream_punct_cnt: Preamble Punctured count
  * @sgi_count: SGI count
  * @nss: Packet count for different num_spatial_stream values
@@ -5173,6 +5196,8 @@ struct dp_peer_per_pkt_tx_stats {
  *       <enum 1 bw_40_MHz>
  *       <enum 2 bw_80_MHz>
  *       <enum 3 bw_160_MHz>
+ *       <enum 4 bw_240_MHz>
+ *       <enum 5 bw_320_MHz>
  * @gi_info: <enum 0     0_8_us_sgi > Legacy normal GI
  *       <enum 1     0_4_us_sgi > Legacy short GI
  *       <enum 2     1_6_us_sgi > HE related GI
@@ -5192,6 +5217,7 @@ struct dp_peer_per_pkt_tx_stats {
  * @rssi_chain: rssi chain
  * @wme_ac_type_bytes: Wireless Multimedia bytes Count
  * @tx_ppdu_duration: Tx PPDU Duration
+ * @tx_pwr: Tx Power
  */
 struct dp_peer_extd_tx_stats {
 	uint32_t stbc;
@@ -5215,6 +5241,7 @@ struct dp_peer_extd_tx_stats {
 	uint64_t rnd_avg_tx_rate;
 	uint64_t avg_tx_rate;
 	uint16_t tx_ratecode;
+	uint32_t tx_flags;
 
 	uint32_t sgi_count[MAX_GI];
 	uint32_t pream_punct_cnt;
@@ -5253,6 +5280,7 @@ struct dp_peer_extd_tx_stats {
 	int32_t rssi_chain[CDP_RSSI_CHAIN_LEN];
 	uint64_t wme_ac_type_bytes[WME_AC_MAX];
 	uint64_t tx_ppdu_duration;
+	int8_t   tx_pwr;
 };
 
 /**
@@ -5568,13 +5596,13 @@ struct dp_txrx_peer {
 	qdf_atomic_t flush_in_progress;
 	struct dp_peer_cached_bufq bufq_info;
 #endif
-#ifdef QCA_MULTIPASS_SUPPORT
-	TAILQ_ENTRY(dp_txrx_peer) mpass_peer_list_elem;
-	uint16_t vlan_id;
-#endif
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	struct dp_wds_ext_peer wds_ext;
 	ol_txrx_rx_fp osif_rx;
+#endif
+#ifdef QCA_MULTIPASS_SUPPORT
+	TAILQ_ENTRY(dp_txrx_peer) mpass_peer_list_elem;
+	uint16_t vlan_id;
 #endif
 	struct dp_rx_tid_defrag rx_tid[DP_MAX_TIDS];
 #ifdef CONFIG_SAWF

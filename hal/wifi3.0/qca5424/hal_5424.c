@@ -1868,6 +1868,7 @@ static void hal_hw_txrx_ops_attach_qca5424(struct hal_soc *hal_soc)
 		hal_tx_ppe2tcl_ring_halt_done_5424;
 	hal_soc->ops->hal_tx_get_num_ppe_vp_search_idx_tbl_entries =
 		hal_tx_get_num_ppe_vp_search_idx_reg_entries_5424;
+	hal_soc->ops->hal_tcl_idle_get = hal_tcl_idle_get_5424;
 };
 
 struct hal_hw_srng_config hw_srng_table_5424[] = {
