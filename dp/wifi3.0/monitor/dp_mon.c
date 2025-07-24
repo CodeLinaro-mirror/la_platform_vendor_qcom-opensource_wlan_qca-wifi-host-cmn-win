@@ -4584,7 +4584,7 @@ add_ppdu_to_sched_list:
  *
  * Return: void
  */
-static void
+static uint32_t
 dp_process_ppdu_stats_sch_cmd_status_tlv(struct dp_pdev *pdev,
 					 struct ppdu_info *ppdu_info)
 {
@@ -4600,6 +4600,15 @@ dp_process_ppdu_stats_sch_cmd_status_tlv(struct dp_pdev *pdev,
 				qdf_nbuf_data(ppdu_info->nbuf);
 
 	num_users = ppdu_desc->bar_num_users;
+
+	if (ppdu_desc->bar_num_users > CDP_MU_MAX_USERS ||
+	    max_users > CDP_MU_MAX_USERS) {
+		mon_pdev->invalid_last_ppdu_info = ppdu_info;
+		mon_pdev->invalid_last_ppdu_desc = ppdu_desc;
+		dp_mon_err("Invalid # users -> bar_num_users: %d max_users: %d",
+			   ppdu_desc->bar_num_users, max_users);
+		return QDF_STATUS_E_FAILURE;
+	}
 
 	for (i = 0; i < num_users && i < max_users; i++) {
 		if (ppdu_desc->user[i].user_pos == 0) {
@@ -4751,6 +4760,7 @@ dp_process_ppdu_stats_sch_cmd_status_tlv(struct dp_pdev *pdev,
 	TAILQ_INSERT_TAIL(&mon_pdev->sched_comp_ppdu_list, ppdu_info,
 			  ppdu_info_list_elem);
 	mon_pdev->sched_comp_list_depth++;
+	return QDF_STATUS_SUCCESS;
 }
 
 /**
@@ -4794,7 +4804,7 @@ static inline uint32_t *dp_validate_fix_ppdu_tlv(struct dp_pdev *pdev,
  *
  * Return: void
  */
-static void dp_process_ppdu_tag(struct dp_pdev *pdev,
+static uint32_t dp_process_ppdu_tag(struct dp_pdev *pdev,
 				uint32_t *tag_buf,
 				uint32_t tlv_len,
 				struct ppdu_info *ppdu_info)
@@ -4802,6 +4812,7 @@ static void dp_process_ppdu_tag(struct dp_pdev *pdev,
 	uint32_t tlv_type = HTT_STATS_TLV_TAG_GET(*tag_buf);
 	uint16_t tlv_expected_size;
 	uint32_t *tlv_desc;
+	uint32_t status = QDF_STATUS_SUCCESS;
 
 	switch (tlv_type) {
 	case HTT_PPDU_STATS_COMMON_TLV:
@@ -4888,11 +4899,13 @@ static void dp_process_ppdu_tag(struct dp_pdev *pdev,
 							     ppdu_info);
 		break;
 	case HTT_PPDU_STATS_SCH_CMD_STATUS_TLV:
-		dp_process_ppdu_stats_sch_cmd_status_tlv(pdev, ppdu_info);
+		status = dp_process_ppdu_stats_sch_cmd_status_tlv(pdev, ppdu_info);
 		break;
 	default:
 		break;
 	}
+
+	return status;
 }
 
 #ifdef WLAN_CONFIG_TELEMETRY_AGENT
@@ -5485,6 +5498,7 @@ static struct ppdu_info *dp_htt_process_tlv(struct dp_pdev *pdev,
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 
 	uint32_t *msg_word = (uint32_t *)qdf_nbuf_data(htt_t2h_msg);
+	uint32_t status;
 
 	length = HTT_T2H_PPDU_STATS_PAYLOAD_SIZE_GET(*msg_word);
 
@@ -5555,7 +5569,29 @@ static struct ppdu_info *dp_htt_process_tlv(struct dp_pdev *pdev,
 		ppdu_info->ppdu_id = ppdu_id;
 		ppdu_info->tlv_bitmap |= (1 << tlv_type);
 
-		dp_process_ppdu_tag(pdev, msg_word, tlv_length, ppdu_info);
+		status = dp_process_ppdu_tag(pdev, msg_word, tlv_length, ppdu_info);
+		if (status == QDF_STATUS_E_FAILURE) {
+			mon_pdev->htt_t2h_msg = htt_t2h_msg;
+			mon_pdev->last_invalid_ppdu_id = ppdu_id;
+			dp_mon_err("Failed PPDU_ID: %d htt tag: %d, bitmap: %x",
+				   ppdu_id, tlv_type, ppdu_info->tlv_bitmap);
+			dp_mon_err("Failed Max users: %d ", max_users);
+
+			print_hex_dump(KERN_DEBUG, "\t BAD Section msg: ",
+				       DUMP_PREFIX_NONE, 16, 4, msg_word,
+				       tlv_length, true);
+
+			print_hex_dump(KERN_DEBUG, "\t Full htt msg: ",
+				       DUMP_PREFIX_NONE, 16, 4, htt_t2h_msg,
+				       length, true);
+
+			print_hex_dump(KERN_DEBUG, "\t Full ppdu_desc: ",
+				       DUMP_PREFIX_NONE, 16, 4,
+				       qdf_nbuf_data(ppdu_info->nbuf),
+				       sizeof(struct cdp_tx_completion_ppdu),
+				       true);
+		}
+
 		if (ppdu_info->process_err) {
 			/* Error processing ppdu tags */
 			mon_pdev->last_ppdu_id = ppdu_id;

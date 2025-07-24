@@ -1403,6 +1403,10 @@ struct  dp_mon_pdev {
 	bool mon_fcs_cap;
 	uint8_t mu_sniffer_enabled;
 	uint8_t mon_version;
+	struct ppdu_info *invalid_last_ppdu_info;
+	struct cdp_tx_completion_ppdu *invalid_last_ppdu_desc;
+	qdf_nbuf_t htt_t2h_msg;
+	uint32_t last_invalid_ppdu_id;
 };
 
 struct  dp_mon_vdev {
