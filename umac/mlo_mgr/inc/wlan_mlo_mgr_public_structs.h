@@ -226,6 +226,7 @@ struct mlo_setup_info {
 	bool wsi_remap_in_progress;
 	uint8_t wsi_remap_support;
 	bool wsi_remap_netdev_preserve;
+	bool static_bypass_enabled;
 };
 
 /**
