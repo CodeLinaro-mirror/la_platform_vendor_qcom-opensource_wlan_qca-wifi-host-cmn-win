@@ -1081,6 +1081,20 @@ struct wlan_mlo_link_mac_update {
 	struct mlo_vdev_link_mac_info link_mac_info[3];
 };
 
+#ifdef WLAN_FEATURE_VBSS
+/**
+ * struct wlan_mlo_vbss_context - Context for Virtual BSS feature in MLO
+ * @num_link: Number of links in the VBSS MLD STA
+ * @pending_get_sta_ctx_bitmap: Bitmap of pending STA context responses
+ * @roaming_in_progress: Flag indicating if roaming is in progress
+ */
+struct wlan_mlo_vbss_context {
+	uint8_t num_link;
+	uint8_t pending_get_sta_ctx_bitmap;
+	bool roaming_in_progress;
+};
+#endif /* WLAN_FEATURE_VBSS */
+
 /**
  * struct wlan_mlo_dev_context - MLO device context
  * @node: QDF list node member
@@ -1150,6 +1164,9 @@ struct wlan_mlo_dev_context {
 	uint8_t mlo_max_recom_simult_links;
 	bool mlo_extmld_cap_advertisement;
 	bool mlo_reconfiguration_supported;
+#ifdef WLAN_FEATURE_VBSS
+	struct wlan_mlo_vbss_context mlo_vbss_ctx;
+#endif
 };
 
 /**
