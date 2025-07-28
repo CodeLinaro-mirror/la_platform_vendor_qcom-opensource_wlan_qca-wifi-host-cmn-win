@@ -2917,7 +2917,7 @@ dp_reo_ctx_buf_mapping_unlock(struct dp_soc *soc, uint32_t reo_ring_num)
 #if defined(IPA_OFFLOAD) && defined(IPA_OFFLOAD_LOW_MEM)
 static inline uint32_t
 dp_get_num_entries(struct dp_pdev *pdev, uint32_t num_entries,
-		   enum qddf_buff_type_tx_rx buff_type)
+		   enum qdf_buff_type_tx_rx buff_type)
 {
 	struct dp_soc *soc = pdev->soc;
 	uint32_t num_buff = num_entries;
