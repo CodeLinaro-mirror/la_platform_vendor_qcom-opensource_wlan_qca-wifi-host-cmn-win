@@ -802,6 +802,25 @@ wmi_unified_process_update_edca_param(
 }
 
 QDF_STATUS
+wmi_unified_send_pdev_get_edca_param_cmd(wmi_unified_t wmi_handle, uint8_t pdev_id)
+{
+	if (wmi_handle->ops->send_pdev_get_edca_param_cmd)
+		return wmi_handle->ops->send_pdev_get_edca_param_cmd(wmi_handle,pdev_id);
+
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS
+wmi_extract_edca_resp_param(wmi_unified_t wmi_hdl, void *evt_buf,
+		struct wmi_host_edca_resp_param *param)
+{
+	if (wmi_hdl->ops->extract_edca_resp_event)
+		return wmi_hdl->ops->extract_edca_resp_event(wmi_hdl, evt_buf, param);
+
+	return QDF_STATUS_E_FAILURE;
+}
+
+QDF_STATUS
 wmi_unified_probe_rsp_tmpl_send_cmd(
 		wmi_unified_t wmi_handle,
 		uint8_t vdev_id,
