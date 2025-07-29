@@ -127,6 +127,8 @@ qdf_export_symbol(mlo_is_ml_soc);
 void mlo_set_soc_list(uint8_t grp_id, struct wlan_objmgr_psoc *psoc)
 {
 	struct mlo_mgr_context *mlo_ctx = wlan_objmgr_get_mlo_ctx();
+	uint8_t psoc_id;
+	uint8_t chip_id;
 	uint8_t idx;
 
 	if (!mlo_ctx)
@@ -141,9 +143,15 @@ void mlo_set_soc_list(uint8_t grp_id, struct wlan_objmgr_psoc *psoc)
 		return;
 	}
 
+	psoc_id = psoc->soc_objmgr.psoc_id;
 	for (idx = 0; idx < mlo_ctx->setup_info[grp_id].tot_socs; idx++) {
-		if (mlo_ctx->setup_info[grp_id].soc_id_list[idx] ==
-				psoc->soc_objmgr.psoc_id) {
+		if (mlo_ctx->setup_info[grp_id].static_bypass_enabled) {
+			chip_id = mlo_ctx->setup_info[grp_id].chip_info.chip_id[psoc_id];
+			if (mlo_ctx->setup_info[grp_id].soc_id_list[idx] == chip_id) {
+				mlo_ctx->setup_info[grp_id].soc_list[idx] = psoc;
+				mlo_wsi_link_info_update_soc(psoc, grp_id);
+			}
+		} else if (mlo_ctx->setup_info[grp_id].soc_id_list[idx] == psoc_id) {
 			mlo_ctx->setup_info[grp_id].soc_list[idx] = psoc;
 			mlo_wsi_link_info_update_soc(psoc, grp_id);
 		}
@@ -493,6 +501,7 @@ void mlo_setup_init(uint8_t total_grp)
 		mlo_ctx->setup_info[id].tsf_sync_enabled = true;
 		mlo_ctx->setup_info[id].wsi_stats_info_support = 0xff;
 		mlo_ctx->setup_info[id].wsi_remap_support = 0xff;
+		mlo_ctx->setup_info[id].static_bypass_enabled = false;
 
 		if (qdf_event_create(&mlo_ctx->setup_info[id].event) !=
 							QDF_STATUS_SUCCESS)
