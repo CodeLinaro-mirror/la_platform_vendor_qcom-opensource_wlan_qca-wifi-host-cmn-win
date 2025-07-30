@@ -1317,6 +1317,8 @@ reg_modify_chan_list_for_freq_range(struct regulatory_channel *chan_list,
 	reg_find_low_limit_chan_enum(chan_list, low_freq_5g, &low_limit_5g);
 	reg_find_high_limit_chan_enum(chan_list, high_freq_2g, &high_limit_2g);
 	reg_find_high_limit_chan_enum(chan_list, high_freq_5g, &high_limit_5g);
+	reg_info("low_limit_2g: %d, high_limit_2g:%d, low_limit_5g: %d, high_limit_5g: %d",
+		 low_limit_2g, high_limit_2g, low_limit_5g, high_limit_5g);
 
 	for (chan_enum = 0; chan_enum < NUM_CHANNELS; chan_enum++) {
 		chan_in_range = false;

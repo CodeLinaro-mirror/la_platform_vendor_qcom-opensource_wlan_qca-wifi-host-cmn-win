@@ -2340,6 +2340,10 @@ QDF_STATUS reg_update_hal_reg_range_caps(struct wlan_objmgr_psoc *psoc,
 	reg_cap->low_5ghz_chan = low_5g_chan;
 	reg_cap->high_5ghz_chan = high_5g_chan;
 
+	reg_info("phy_id: %d, Range caps updated. low_2ghz_chan: %d, high_2g_chan: %d, low_5g_chan: %d, high_5g_chan: %d",
+		 phy_id, reg_cap->low_2ghz_chan, reg_cap->high_2ghz_chan,
+		 reg_cap->low_5ghz_chan, reg_cap->high_5ghz_chan);
+
 	return QDF_STATUS_SUCCESS;
 }
 
