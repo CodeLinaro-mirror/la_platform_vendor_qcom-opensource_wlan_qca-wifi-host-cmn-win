@@ -1480,10 +1480,10 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 	    !qdf_is_macaddr_broadcast((struct qdf_mac_addr *)wh->i_addr1)) {
 
 #ifdef ATH_SUPPORT_WAPI
-	if (priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_CMAC ||
+	if (priv_key && (priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_CMAC ||
 		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GMAC ||
 		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_SMS4 ||
-		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GCM4){
+		priv_key->igtk_key_type == WLAN_CRYPTO_CIPHER_WAPI_GCM4)){
 		mpdu_data_ptr += IEEE80211_WAPI_HEADERLEN;
 		}
 	else
