@@ -1377,6 +1377,19 @@ QDF_STATUS qdf_uint16_array_parse(const char *in_str, uint16_t *out_array,
 QDF_STATUS qdf_uint8_array_parse(const char *in_str, uint8_t *out_array,
 				 qdf_size_t array_size, qdf_size_t *out_size);
 
+/**
+ * qdf_ini_lock_init() - Init function for spin lock init
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS qdf_ini_lock_init(void);
+
+/**
+ * qdf_ini_lock_deinit() - De-init function for destroying the spin lock
+ *
+ */
+void qdf_ini_lock_deinit(void);
+
 #define QDF_BCAST_MAC_ADDR (0xFF)
 #define QDF_MCAST_IPV4_MAC_ADDR (0x01)
 #define QDF_MCAST_IPV6_MAC_ADDR (0x33)
