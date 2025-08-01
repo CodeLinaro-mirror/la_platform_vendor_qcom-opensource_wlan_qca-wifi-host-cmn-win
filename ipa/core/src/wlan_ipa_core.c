@@ -2669,14 +2669,25 @@ static QDF_STATUS wlan_ipa_setup_iface(struct wlan_ipa_priv *ipa_ctx,
 		sessid = wlan_ipa_set_session_id(session_id, is_2g_iface);
 		ipv6_en = wlan_ipa_is_ipv6_enabled(ipa_ctx->config);
 
-		status = cdp_ipa_setup_iface(ipa_ctx->dp_soc,
-					     net_dev->name,
-					     (uint8_t *)net_dev->dev_addr,
-					     iface_context->prod_client,
-					     iface_context->cons_client,
-					     sessid,
-					     ipv6_en,
-					     ipa_ctx->hdl);
+		if (device_mode == QDF_SAP_MODE) {
+			status = cdp_ipa_setup_iface(ipa_ctx->dp_soc,
+						     net_dev->name,
+						     mac_addr,
+						     iface_context->prod_client,
+						     iface_context->cons_client,
+						     sessid,
+						     ipv6_en,
+						     ipa_ctx->hdl);
+		} else {
+			status = cdp_ipa_setup_iface(ipa_ctx->dp_soc,
+						     net_dev->name,
+						     (uint8_t *)net_dev->dev_addr,
+						     iface_context->prod_client,
+						     iface_context->cons_client,
+						     sessid,
+						     ipv6_en,
+						     ipa_ctx->hdl);
+		}
 		if (QDF_IS_STATUS_ERROR(status))
 			goto end;
 	}
