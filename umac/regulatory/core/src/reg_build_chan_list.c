@@ -4592,6 +4592,8 @@ reg_process_hw_blacklist_chans(struct hbl_reg_info *hw_bl_reg_info) {
 	wlan_objmgr_ref_dbgid dbg_id = WLAN_REGULATORY_NB_ID;
 	struct wlan_objmgr_pdev *pdev;
 	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
+	struct hbl_chans *hw_bl_sp;
+	struct hbl_chans *hw_bl_vlp;
 
 	psoc = hw_bl_reg_info->psoc;
 	phy_id = hw_bl_reg_info->phy_id;
@@ -4615,6 +4617,14 @@ reg_process_hw_blacklist_chans(struct hbl_reg_info *hw_bl_reg_info) {
 		return QDF_STATUS_E_FAILURE;
 	}
 
+	hw_bl_sp = &pdev_priv_obj->hbl_pm_chlst[REG_STANDARD_POWER_AP];
+	hw_bl_vlp = &pdev_priv_obj->hbl_pm_chlst[REG_VERY_LOW_POWER_AP];
+	if (!hw_bl_reg_info->hbl_allpm_iobj.is_hbl_msg_valid) {
+		reg_err("hw blacklist info is not valid. Ignoring");
+		reg_free_hw_blacklist_chan(hw_bl_sp);
+		reg_free_hw_blacklist_chan(hw_bl_vlp);
+		return QDF_STATUS_SUCCESS;
+	}
 	status = reg_set_pdev_hw_blacklist(pdev_priv_obj,
 					   &hw_bl_reg_info->hbl_allpm_iobj);
 	if (QDF_IS_STATUS_ERROR(status)) {
@@ -4640,6 +4650,8 @@ reg_set_hw_black_list(struct wlan_objmgr_pdev *pdev,
 		      struct cur_regulatory_info *reg_info)
 {
 	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
+	struct hbl_chans *hw_bl_sp;
+	struct hbl_chans *hw_bl_vlp;
 
 	pdev_priv_obj = reg_get_pdev_obj(pdev);
 	if (!IS_VALID_PDEV_REG_OBJ(pdev_priv_obj)) {
@@ -4647,6 +4659,14 @@ reg_set_hw_black_list(struct wlan_objmgr_pdev *pdev,
 		return QDF_STATUS_E_FAILURE;
 	}
 
+	hw_bl_sp = &pdev_priv_obj->hbl_pm_chlst[REG_STANDARD_POWER_AP];
+	hw_bl_vlp = &pdev_priv_obj->hbl_pm_chlst[REG_VERY_LOW_POWER_AP];
+	if (!reg_info->hbl_allpm_iobj.is_hbl_msg_valid) {
+		reg_err("hw blacklist info is not valid. Ignoring");
+		reg_free_hw_blacklist_chan(hw_bl_sp);
+		reg_free_hw_blacklist_chan(hw_bl_vlp);
+		return QDF_STATUS_SUCCESS;
+	}
 	return reg_set_pdev_hw_blacklist(pdev_priv_obj,
 					 &reg_info->hbl_allpm_iobj);
 }
@@ -4663,6 +4683,13 @@ static QDF_STATUS
 reg_set_sp_hw_black_list(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
 			 struct afc_regulatory_info *afc_info)
 {
+	struct hbl_chans *hw_bl_sp;
+	hw_bl_sp = &pdev_priv_obj->hbl_pm_chlst[REG_STANDARD_POWER_AP];
+	if (!afc_info->hbl_allpm_iobj.is_hbl_msg_valid) {
+		reg_err("hw blacklist info is not valid. Ignoring");
+		reg_free_hw_blacklist_chan(hw_bl_sp);
+		return QDF_STATUS_SUCCESS;
+	}
 	return reg_set_pdev_hw_blacklist(pdev_priv_obj,
 			&afc_info->hbl_allpm_iobj);
 }
