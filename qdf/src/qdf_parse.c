@@ -31,6 +31,20 @@
 #define QDF_SECTION_FOUND continue
 #endif
 
+static qdf_spinlock_t __qdf_ini_lock;
+
+QDF_STATUS qdf_ini_lock_init(void)
+{
+        qdf_spinlock_create(&__qdf_ini_lock);
+
+        return QDF_STATUS_SUCCESS;
+}
+
+void qdf_ini_lock_deinit(void)
+{
+        qdf_spinlock_destroy(&__qdf_ini_lock);
+}
+
 static QDF_STATUS qdf_ini_read_values(char **main_cursor,
 				      char **read_key, char **read_value,
 				      bool *section_item)
@@ -153,6 +167,7 @@ QDF_STATUS qdf_ini_parse(const char *ini_path, void *context,
 	}
 
 	/* foreach line */
+	qdf_spin_lock_bh(&__qdf_ini_lock);
 	cursor = fbuf;
 
 	while (qdf_ini_read_values(&cursor, &read_key, &read_value,
@@ -191,6 +206,8 @@ QDF_STATUS qdf_ini_parse(const char *ini_path, void *context,
 	else
 		qdf_file_buf_free(fbuf);
 
+	qdf_spin_unlock_bh(&__qdf_ini_lock);
+
 	return status;
 }
 
@@ -220,6 +237,7 @@ QDF_STATUS qdf_ini_section_parse(const char *ini_path, void *context,
 	}
 
 	/* foreach line */
+	qdf_spin_lock_bh(&__qdf_ini_lock);
 	cursor = fbuf;
 
 	while (qdf_ini_read_values(&cursor, &read_key, &read_value,
@@ -259,6 +277,8 @@ QDF_STATUS qdf_ini_section_parse(const char *ini_path, void *context,
 		qdf_module_param_file_free(fbuf);
 	else
 		qdf_file_buf_free(fbuf);
+
+	qdf_spin_unlock_bh(&__qdf_ini_lock);
 
 	return status;
 }
