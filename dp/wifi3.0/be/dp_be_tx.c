@@ -2049,11 +2049,19 @@ QDF_STATUS dp_tx_desc_pool_init_be(struct dp_soc *soc,
 		dp_tx_desc_set_magic(tx_desc, DP_TX_MAGIC_PATTERN_FREE);
 		tx_desc = tx_desc->next;
 		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
+#ifdef IPA_OFFLOAD
+			page_desc->page_p_addr =
+				qdf_nbuf_map_nbytes_single(soc->osdev,
+						page_desc->page_v_addr,
+						QDF_DMA_FROM_DEVICE,
+						qdf_page_size);
+#else
 			qdf_mem_dma_sync_single_for_device(
 						soc->osdev,
 						page_desc->page_p_addr,
 						qdf_page_size,
 						DMA_FROM_DEVICE);
+#endif
 		}
 
 		avail_entry_index = (avail_entry_index + 1) &
