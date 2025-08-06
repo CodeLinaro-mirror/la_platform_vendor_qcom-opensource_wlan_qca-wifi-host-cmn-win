@@ -23,6 +23,7 @@
 #include <wlan_utility.h>
 #include <wlan_reg_services_api.h>
 #include "../dfs_process_radar_found_ind.h"
+#include "wlan_dfs_mlme_api.h"
 
 #ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
 /*
@@ -1068,6 +1069,46 @@ dfs_populate_available_channel_for_freq(struct wlan_dfs *dfs,
 #endif
 
 /**
+ * dfs_intersect_chan_list_with_prim_chlist()- Intersect the given
+ * channel list with the primary channel list.
+ * @dfs: Pointer to DFS structure.
+ * @output_freq_lst: Output frequency list after intersection.
+ * @output_num_chan: Number of channels in the output list.
+ * @in_freq_lst: Frequency list to be intersected.
+ * @in_num_chan: Number of channels in the list.
+ *
+ * This function checks each channel in the given frequency list
+ * against the primary channel list and retains only those channels
+ * that are allowed in the primary channel list.
+ *
+ * Return: None
+ */
+static void
+dfs_intersect_chan_list_with_prim_chlist(struct wlan_dfs *dfs,
+					 uint16_t *out_freq_lst,
+					 uint8_t *output_num_chan,
+					 uint16_t *in_freq_lst,
+					 uint8_t in_num_chan)
+{
+	uint8_t i, j;
+
+	for (i = 0, j = 0; i < in_num_chan; i++) {
+		if (!dfs_mlme_check_allowed_prim_chanlist(dfs->dfs_pdev_obj,
+							  in_freq_lst[i])) {
+			dfs_debug(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+				  "Freq %d is not allowed in primary chan list",
+				  in_freq_lst[i]);
+			continue;
+		}
+
+		dfs_debug(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			  "Adding Freq %d for Random channel Selection", in_freq_lst[i]);
+		out_freq_lst[j++] = in_freq_lst[i];
+	}
+	*output_num_chan = j;
+}
+
+/**
  * dfs_get_rand_from_lst_for_freq()- Get random channel from a given channel
  * list.
  * @dfs: Pointer to DFS structure.
@@ -1085,7 +1126,7 @@ static uint16_t dfs_get_rand_from_lst_for_freq(struct wlan_dfs *dfs,
 					       uint8_t num_chan)
 {
 	uint8_t i;
-	uint32_t rand_byte = 0;
+	uint32_t rand_byte;
 
 	if (!num_chan || !freq_lst) {
 		dfs_err(NULL, WLAN_DEBUG_DFS_ALWAYS,
@@ -1094,6 +1135,15 @@ static uint16_t dfs_get_rand_from_lst_for_freq(struct wlan_dfs *dfs,
 		return 0;
 	}
 
+	dfs_intersect_chan_list_with_prim_chlist(dfs, freq_lst, &num_chan,
+						 freq_lst, num_chan);
+	if (num_chan == 0) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"No valid channels found in the list");
+		return 0;
+	}
+
+	rand_byte = 0;
 	get_random_bytes((uint8_t *)&rand_byte, 1);
 	i = (rand_byte + qdf_mc_timer_get_system_ticks()) % num_chan;
 
@@ -1193,42 +1243,242 @@ dfs_find_num_sub_channels_for_chwidth_320_160(uint16_t chan_width)
 }
 
 /**
- * dfs_find_next_chan_start_freq_for_320_160() - Find the next 160/320 channel's
- * start freq based on the available channel list. Validate the
- * continuity of the sub channels of 160/320M BW, if they are contiguous
- * declare channel to be found. Return the start_freq of the channel band found.
- * @chan_count: Total number of available channels.
- * @freq_list: Available list of frequency
- * @chan_width: Target channel width
- * @chan_found: Bool to indicate if channel is found
+ * dfs_is_target_bw_chan_found() - Check if the target bandwidth channel
+ * is found in the frequency list.
+ * @num_sub_chans: Number of sub-channels in the target bandwidth.
+ * @freq_list: Frequency list of the channels.
  *
- * Return: Next chan's start freq
+ * Return: true if the target bandwidth channel is found, false otherwise.
  */
-
-static qdf_freq_t
-dfs_find_next_chan_start_freq_for_320_160(uint8_t chan_count,
-					  uint16_t *freq_list,
-					  uint16_t chan_width, bool *chan_found)
+static bool
+dfs_is_target_bw_chan_found(uint8_t num_sub_chans, uint16_t *freq_list)
 {
 	uint8_t i;
-	uint8_t count = 0;
-	qdf_freq_t next_chan_start_freq = 0;
-	uint8_t num_sub_chans =
-		dfs_find_num_sub_channels_for_chwidth_320_160(chan_width);
 
-	for (i = 1; i < chan_count; i++) {
-		if ((freq_list[i] - freq_list[i - 1]) ==
-		    DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET)
-			count++;
-		else
-			count = 0;
-		if (count == num_sub_chans - 1) {
-			*chan_found = true;
-			next_chan_start_freq = freq_list[i - count];
+	if (!num_sub_chans) {
+		dfs_err(NULL, WLAN_DEBUG_DFS_ALWAYS,
+			"Invalid parameters: num_sub_chans = %d",
+			num_sub_chans);
+		return false;
+	}
+
+	/* For 20MHz, we always have a channel */
+	if (num_sub_chans == 1) {
+		return true;
+	}
+
+	for (i = 1; i < num_sub_chans; i++) {
+		uint16_t diff;
+
+		diff = freq_list[i] - freq_list[i - 1];
+		if (diff != DFS_NEXT_5GHZ_CHANNEL_FREQ_OFFSET)
+			return false;
+	}
+
+	return true;
+}
+
+/**
+ * dfs_get_rand_from_lst_for_320_160() - Get random channel from a given
+ * channel list for 320/160 MHz bandwidth.
+ * @dfs: Pointer to DFS structure.
+ * @chan_count: Number of channels in the frequency list.
+ * @freq_list: Frequency list of channels.
+ * @chan_width: Channel width (320/160 MHz).
+ *
+ * This function valiadates if the frequency list of individual 80 MHz
+ * channels are contiguous to form a valid 320/160 MHz channel.
+ *
+ * If the target bandwidth channel is found, it intersects the
+ * frequency list with the primary channel list and does an in-place
+ * update of the frequency list, pushing the valid channels to the
+ * left side of the list. Skip the number of sub-channels in the
+ * target bandwidth and continue to the next set of channels.
+ *
+ * If the target bandwidth channel is not found, skip to the start
+ * of the next 80 MHz channel in the frequency list and continue
+ * the search.
+ *
+ * Return: Random channel frequency for the specified bandwidth.
+ */
+static qdf_freq_t
+dfs_get_rand_from_lst_for_320_160(struct wlan_dfs *dfs,
+				  uint8_t chan_count,
+				  uint16_t *freq_list,
+				  uint16_t chan_width)
+{
+	uint8_t i;
+	uint32_t rand_byte;
+	uint8_t num_sub_chans;
+	uint8_t new_ch_cnt;
+
+	if (!chan_count || !freq_list) {
+		dfs_err(NULL, WLAN_DEBUG_DFS_ALWAYS,
+			"invalid param freq_list %pK, chan_count = %d",
+			freq_list, chan_count);
+		return 0;
+	}
+
+	num_sub_chans = dfs_find_num_sub_channels_for_chwidth_320_160(chan_width);
+
+	new_ch_cnt = 0;
+	i = 0;
+	/* Ensure that the frequency list is large enough for target bandwidth */
+	while (i + num_sub_chans <= chan_count) {
+		bool is_found = dfs_is_target_bw_chan_found(num_sub_chans,
+							    freq_list + i);
+		if (is_found) {
+			dfs_intersect_chan_list_with_prim_chlist(dfs,
+								 freq_list + new_ch_cnt,
+								 &new_ch_cnt,
+								 freq_list + i,
+								 num_sub_chans);
+			i += num_sub_chans;
+		} else {
+			dfs_debug(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+				  "No valid channels found for width %d at index %d",
+				  chan_width, i);
+			i = i + DFS_80_NUM_SUB_CHANNEL;
+		}
+	}
+
+	if (!new_ch_cnt) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"No valid channels found for width %d", chan_width);
+		return 0;
+	}
+
+	rand_byte = 0;
+	get_random_bytes((uint8_t *)&rand_byte, 1);
+	i = (rand_byte + qdf_mc_timer_get_system_ticks()) % new_ch_cnt;
+
+	return freq_list[i];
+}
+
+/**
+ * dfs_get_rand_from_lst_for_80_p_80() - Get random channel from a given
+ * channel list for 80+80 MHz bandwidth.
+ * @dfs: Pointer to DFS structure.
+ * @final_cnt: Number of channels in the final list.
+ * @final_lst: Frequency list of channels.
+ * @chan_wd: Channel width to be set.
+ * @center_freq_seg1: Output pointer to center frequency of secondary segment.
+ *
+ * This function selects a random channel from the given frequency list
+ * and calculates the center frequency for the secondary segment based on
+ * the selected random primary segment channel.
+ *
+ * Return: Random channel frequency for 80+80 MHz bandwidth.
+ */
+static qdf_freq_t
+dfs_get_rand_from_lst_for_80_p_80(struct wlan_dfs *dfs,
+				  uint8_t final_cnt,
+				  uint16_t *final_lst,
+				  uint16_t *chan_wd,
+				  qdf_freq_t *center_freq_seg1)
+{
+	uint16_t *freq_lst_new;
+	uint8_t new_ch_cnt;
+	uint32_t rand_byte;
+	uint32_t target_channel;
+	uint16_t primary_seg_start_ch, sec_seg_ch;
+	uint8_t i, index;
+
+	if (!final_cnt || !final_lst) {
+		dfs_err(NULL, WLAN_DEBUG_DFS_ALWAYS,
+			"invalid param final_lst %pK, final_cnt = %d",
+			final_lst, final_cnt);
+		return 0;
+	}
+
+	freq_lst_new = qdf_mem_malloc(final_cnt * sizeof(*freq_lst_new));
+	if (!freq_lst_new) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"Memory allocation failed for freq_lst_new");
+		return 0;
+	}
+
+	new_ch_cnt = 0;
+	dfs_intersect_chan_list_with_prim_chlist(dfs, freq_lst_new,
+						 &new_ch_cnt, final_lst,
+						 final_cnt);
+	if (new_ch_cnt == 0) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"No valid channels found in the list");
+		qdf_mem_free(freq_lst_new);
+		return 0;
+	}
+
+	rand_byte = 0;
+	get_random_bytes((uint8_t *)&rand_byte, 1);
+	i = (rand_byte + qdf_mc_timer_get_system_ticks()) % new_ch_cnt;
+	target_channel = freq_lst_new[i];
+	qdf_mem_free(freq_lst_new);
+
+	index = 0;
+	/* Find Original index of target channel */
+	for (i = 0; i < final_cnt; i++) {
+		if (final_lst[i] == target_channel) {
+			index = i;
 			break;
 		}
 	}
-	return next_chan_start_freq;
+	if (i == final_cnt) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+			"Target channel %d not found in the list", target_channel);
+		return 0;
+	}
+
+	index -= (index % DFS_80_NUM_SUB_CHANNEL);
+	primary_seg_start_ch = final_lst[index];
+
+	sec_seg_ch = 0;
+	/* reset channels associate with primary 80Mhz */
+	for (i = 0; i < DFS_80_NUM_SUB_CHANNEL; i++)
+		final_lst[i + index] = 0;
+	/* select and calculate center freq for secondary segment */
+	for (i = 0; i < final_cnt / DFS_80_NUM_SUB_CHANNEL; i++) {
+		if (final_lst[i * DFS_80_NUM_SUB_CHANNEL] &&
+		    (abs(primary_seg_start_ch -
+			 final_lst[i * DFS_80_NUM_SUB_CHANNEL]) >
+		     (DFS_80P80M_FREQ_DIFF * 2))) {
+			sec_seg_ch = final_lst[i *
+				DFS_80_NUM_SUB_CHANNEL] +
+				DFS_80MHZ_START_CENTER_CH_FREQ_DIFF;
+			break;
+		}
+	}
+
+	if (!sec_seg_ch && (final_cnt == DFS_MAX_NUM_160_SUBCHAN))
+		*chan_wd = DFS_CH_WIDTH_160MHZ;
+	else if (!sec_seg_ch)
+		*chan_wd = DFS_CH_WIDTH_80MHZ;
+
+	*center_freq_seg1 = sec_seg_ch;
+	dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+		 "Center frequency seg1 = %d", sec_seg_ch);
+
+	return target_channel;
+}
+
+static void
+dfs_find_lower_width(uint16_t *chan_wd, struct wlan_dfs *dfs)
+{
+	switch (*chan_wd) {
+	case DFS_CH_WIDTH_320MHZ:
+		*chan_wd = DFS_CH_WIDTH_160MHZ;
+		break;
+	case DFS_CH_WIDTH_160MHZ:
+	case DFS_CH_WIDTH_80P80MHZ:
+		*chan_wd = DFS_CH_WIDTH_80MHZ;
+		break;
+	case DFS_CH_WIDTH_80MHZ:
+		*chan_wd = DFS_CH_WIDTH_40MHZ;
+		break;
+	default:
+		*chan_wd = DFS_CH_WIDTH_20MHZ;
+		break;
+	}
 }
 
 /**
@@ -1251,12 +1501,9 @@ static uint16_t dfs_find_ch_with_fallback_for_freq(struct wlan_dfs *dfs,
 						   uint16_t *freq_lst,
 						   uint32_t num_chan)
 {
-	bool flag = false;
-	uint32_t rand_byte = 0;
 	struct  chan_bonding_bitmap ch_map = { { {0} } };
-	uint8_t i, index = 0, final_cnt = 0;
+	uint8_t i, final_cnt = 0;
 	uint16_t target_channel = 0;
-	uint16_t primary_seg_start_ch = 0, sec_seg_ch = 0, new_start_ch = 0;
 	uint16_t final_lst[NUM_CHANNELS] = {0};
 
 	/* initialize ch_map for all 80 MHz bands: we have 6 80MHz bands */
@@ -1316,84 +1563,33 @@ static uint16_t dfs_find_ch_with_fallback_for_freq(struct wlan_dfs *dfs,
 		/*
 		 * Only 2 blocks for 160Mhz bandwidth i.e 36-64 & 100-128
 		 * and all the channels in these blocks are continuous
-		 * and separated by 4Mhz.
+		 * and separated by 20 Mhz.
 		 * Only 1 block of 240 channel is
 		 * available from 100 - 140 comprising of 12 sub 20 channels.
 		 * These are continuous and separated by 20MHZ in
 		 * frequency spectrum.
 		 */
-		new_start_ch =
-		    dfs_find_next_chan_start_freq_for_320_160(final_cnt,
-							      final_lst,
-							      *chan_wd,
-							      &flag);
+		target_channel = dfs_get_rand_from_lst_for_320_160(dfs, final_cnt,
+								   final_lst, *chan_wd);
 	} else if (*chan_wd == DFS_CH_WIDTH_80P80MHZ) {
-		flag = true;
-	}
-
-	if (!flag) {
-		if (*chan_wd == DFS_CH_WIDTH_320MHZ) {
-			dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-				 "from [%d] to 160Mhz", *chan_wd);
-			*chan_wd = DFS_CH_WIDTH_160MHZ;
-			return 0;
-		} else if (*chan_wd == DFS_CH_WIDTH_160MHZ) {
-			dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-				 "from [%d] to 80Mhz", *chan_wd);
-			*chan_wd = DFS_CH_WIDTH_80MHZ;
-			return 0;
-		}
-	}
-
-	if (*chan_wd == DFS_CH_WIDTH_320MHZ ||
-	    *chan_wd == DFS_CH_WIDTH_160MHZ) {
-		get_random_bytes((uint8_t *)&rand_byte, 1);
-		rand_byte = (rand_byte + qdf_mc_timer_get_system_ticks())
-			% dfs_find_num_sub_channels_for_chwidth_320_160
-			(*chan_wd);
-		target_channel = new_start_ch + (rand_byte *
-				DFS_80_NUM_SUB_CHANNEL_FREQ);
-	} else if (*chan_wd == DFS_CH_WIDTH_80P80MHZ) {
-		get_random_bytes((uint8_t *)&rand_byte, 1);
-		index = (rand_byte + qdf_mc_timer_get_system_ticks()) %
-			final_cnt;
-		target_channel = final_lst[index];
-		index -= (index % DFS_80_NUM_SUB_CHANNEL);
-		primary_seg_start_ch = final_lst[index];
-
-		/* reset channels associate with primary 80Mhz */
-		for (i = 0; i < DFS_80_NUM_SUB_CHANNEL; i++)
-			final_lst[i + index] = 0;
-		/* select and calculate center freq for secondary segment */
-		for (i = 0; i < final_cnt / DFS_80_NUM_SUB_CHANNEL; i++) {
-			if (final_lst[i * DFS_80_NUM_SUB_CHANNEL] &&
-			    (abs(primary_seg_start_ch -
-				 final_lst[i * DFS_80_NUM_SUB_CHANNEL]) >
-			     (DFS_80P80M_FREQ_DIFF * 2))) {
-				sec_seg_ch = final_lst[i *
-					DFS_80_NUM_SUB_CHANNEL] +
-					DFS_80MHZ_START_CENTER_CH_FREQ_DIFF;
-				break;
-			}
-		}
-
-		if (!sec_seg_ch && (final_cnt == DFS_MAX_NUM_160_SUBCHAN))
-			*chan_wd = DFS_CH_WIDTH_160MHZ;
-		else if (!sec_seg_ch)
-			*chan_wd = DFS_CH_WIDTH_80MHZ;
-
-		*center_freq_seg1 = sec_seg_ch;
-		dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-			 "Center frequency seg1 = %d", sec_seg_ch);
+		target_channel = dfs_get_rand_from_lst_for_80_p_80(dfs, final_cnt,
+								   final_lst, chan_wd,
+								   center_freq_seg1);
 	} else {
 		target_channel = dfs_get_rand_from_lst_for_freq(dfs,
 								final_lst,
 								final_cnt);
 	}
 	dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-		 "target channel = %d", target_channel);
+		 "target channel = %d BW %d", target_channel, *chan_wd);
+        if (target_channel)
+		return target_channel;
 
-	return target_channel;
+	dfs_find_lower_width(chan_wd, dfs);
+	dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+		"Downgrading to width %d", *chan_wd);
+
+	return 0;
 }
 #endif
 

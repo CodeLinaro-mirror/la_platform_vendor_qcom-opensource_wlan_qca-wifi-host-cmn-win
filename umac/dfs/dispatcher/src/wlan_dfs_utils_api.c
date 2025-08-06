@@ -817,9 +817,6 @@ static void utils_dfs_get_channel_list(struct wlan_objmgr_pdev *pdev,
 		chan_num = tmp_chan_list[i].dfs_ch_ieee;
 		center_freq = tmp_chan_list[i].dfs_ch_freq;
 		flagext = tmp_chan_list[i].dfs_ch_flagext;
-		/* No change in prototype needed. Hence retaining same func */
-		if (!dfs_mlme_check_allowed_prim_chanlist(pdev, center_freq))
-			continue;
 
 		if (is_curchan_5g) {
 			/*
@@ -977,12 +974,15 @@ QDF_STATUS utils_dfs_get_vdev_random_channel_for_freq(
 		utils_dfs_get_max_sup_width(pdev,
 					    (uint8_t *)&chan_params->ch_width);
 
+	dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
+		 "input width=%d", chan_params->ch_width);
+
 	*target_chan_freq = dfs_prepare_random_channel_for_freq(
 			dfs, chan_list, num_chan, flags, chan_params,
 			(uint8_t)dfs_reg, acs_info);
 
 	dfs_info(dfs, WLAN_DEBUG_DFS_RANDOM_CHAN,
-		 "input width=%d", chan_params->ch_width);
+		 "Computed Width=%d", chan_params->ch_width);
 
 	if (*target_chan_freq) {
 		wlan_reg_set_channel_params_for_pwrmode(
