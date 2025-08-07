@@ -1202,6 +1202,24 @@ dp_tx_mon_generate_prot_frm(struct dp_pdev *pdev,
 }
 
 /**
+ * dp_tx_mon_check_ba_tlv_missing() - API to check ba tlv missing
+ * @tx_ppdu_info: pointer to tx ppdu info structure
+ * @tx_mon_be: pointer to tx_monitor_be structure
+ *
+ * Return: bool
+ */
+static inline bool
+dp_tx_mon_check_ba_tlv_missing(struct dp_tx_ppdu_info *tx_ppdu_info,
+			       struct dp_pdev_tx_monitor_be *tx_mon_be)
+{
+	if (qdf_unlikely(TXMON_PPDU_HAL(tx_ppdu_info, ba_user_id) == -1)) {
+		tx_mon_be->stats.ppdu_drop_tlv_missing++;
+		return true;
+	}
+	return false;
+}
+
+/**
  * dp_tx_mon_generated_response_frm() - API to handle generated response frame
  * @pdev: pdev Handle
  * @tx_ppdu_info: pointer to tx ppdu info structure
@@ -1251,19 +1269,17 @@ dp_tx_mon_generated_response_frm(struct dp_pdev *pdev,
 		break;
 	}
 	case TXMON_GEN_RESP_SELFGEN_BA:
-	{	/* drop ppdu if WIFIRX_FRAME_BITMAP_ACK_E TLV is missing */
-		if (qdf_unlikely(TXMON_PPDU_HAL(tx_ppdu_info, ba_user_id)
-						== -1)) {
-			tx_mon_be->stats.ppdu_drop_tlv_missing++;
+	{
+		if (dp_tx_mon_check_ba_tlv_missing(tx_ppdu_info, tx_mon_be))
 			break;
-		}
-
 		dp_tx_mon_generate_block_ack_frm(pdev, tx_ppdu_info,
 						 RESPONSE_WINDOW, mac_id);
 		break;
 	}
 	case TXMON_GEN_RESP_SELFGEN_MBA:
 	{
+		if (dp_tx_mon_check_ba_tlv_missing(tx_ppdu_info, tx_mon_be))
+			break;
 		dp_tx_mon_generate_mu_block_ack_frm(pdev, tx_ppdu_info,
 						    RESPONSE_WINDOW, mac_id);
 		break;
