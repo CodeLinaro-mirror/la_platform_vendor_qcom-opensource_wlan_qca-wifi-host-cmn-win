@@ -468,7 +468,8 @@ bool vdev_mgr_is_sta_max_phy_enabled(enum QDF_OPMODE op_mode,
 
 static QDF_STATUS vdev_mgr_start_param_update(
 					struct vdev_mlme_obj *mlme_obj,
-					struct vdev_start_params *param)
+					struct vdev_start_params *param,
+					bool is_lower_in_mixed_mode)
 {
 	struct wlan_channel *des_chan;
 	uint32_t dfs_reg;
@@ -504,7 +505,8 @@ static QDF_STATUS vdev_mgr_start_param_update(
 	op_mode = wlan_vdev_mlme_get_opmode(vdev);
 	if (!vdev_mgr_is_sta_max_phy_enabled(op_mode, pdev) &&
 	    vdev_mgr_is_opmode_sap_or_p2p_go(op_mode) &&
-	    vdev_mgr_is_49G_5G_chan_freq(des_chan->ch_freq)) {
+	    vdev_mgr_is_49G_5G_chan_freq(des_chan->ch_freq) &&
+	    !is_lower_in_mixed_mode) {
 		vdev_mgr_set_cur_chan_punc_bitmap(des_chan, &puncture_bitmap);
 		/*
 		 * This code flow is for vdev start where we reinitialize the
@@ -657,7 +659,8 @@ vdev_update_dfs_master_state(struct wlan_objmgr_vdev *vdev)
 
 QDF_STATUS vdev_mgr_start_send(
 			struct vdev_mlme_obj *mlme_obj,
-			bool restart)
+			bool restart,
+			bool is_lower_in_mixed_mode)
 {
 	QDF_STATUS status;
 	struct vdev_start_params param = {0};
@@ -667,7 +670,8 @@ QDF_STATUS vdev_mgr_start_send(
 		return QDF_STATUS_E_INVAL;
 	}
 
-	status = vdev_mgr_start_param_update(mlme_obj, &param);
+	status = vdev_mgr_start_param_update(mlme_obj, &param,
+					     is_lower_in_mixed_mode);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		mlme_err("Param Update Error: %d", status);
 		return status;
