@@ -13818,6 +13818,7 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 	.txrx_peer_stats_deter = dp_get_peer_stats_deter,
 	.txrx_update_pdev_chan_util_stats = dp_update_pdev_chan_util_stats,
 	.txrx_pdev_erp_stats = dp_get_pdev_erp_stats,
+	.txrx_get_tx_pkt_stats = dp_txrx_get_tx_pkt_stats,
 #ifdef QCA_PEER_EXT_STATS
 	.txrx_get_peer_tx_ext_stats = dp_get_peer_tx_ext_stats,
 #endif

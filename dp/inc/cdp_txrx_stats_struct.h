@@ -1708,6 +1708,16 @@ struct cdp_rx_err_proto_stats {
 #endif /* QCA_DP_PROTOCOL_STATS */
 
 /**
+ * struct cdp_tx_pkt_stats - tx cmplt pkt and mcs stats
+ * @comp_pkt: Pkt Info for which completions were received
+ * @pkt_type:
+ */
+struct cdp_tx_pkt_stats {
+	struct cdp_pkt_info comp_pkt;
+	struct cdp_pkt_type pkt_type[DOT11_MAX];
+};
+
+/**
  * struct cdp_tx_stats - tx stats
  * @comp_pkt: Pkt Info for which completions were received
  * @ucast: Unicast Packet Count
