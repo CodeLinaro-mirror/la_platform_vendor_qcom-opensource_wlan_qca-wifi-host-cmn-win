@@ -2454,10 +2454,10 @@ clamp_fft_bin_value(uint16_t fft_bin_value, uint16_t pwr_format)
 		break;
 
 	case SPECTRAL_PWR_FORMAT_DBM:
-		if (qdf_unlikely((int16_t)fft_bin_value >
+		if (qdf_unlikely((int8_t)fft_bin_value >
 		    MAX_FFTBIN_VALUE_DBM_MODE))
 			clamped_fft_bin_value = MAX_FFTBIN_VALUE_DBM_MODE;
-		else if (qdf_unlikely((int16_t)fft_bin_value <
+		else if (qdf_unlikely((int8_t)fft_bin_value <
 			 MIN_FFTBIN_VALUE_DBM_MODE))
 			clamped_fft_bin_value = MIN_FFTBIN_VALUE_DBM_MODE;
 		else
