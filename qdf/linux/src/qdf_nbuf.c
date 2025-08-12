@@ -2058,6 +2058,8 @@ bool __qdf_nbuf_data_is_ipv4_eapol_pkt(uint8_t *data)
 {
 	uint16_t ether_type;
 
+	if (!data)
+		return false;
 	ether_type = __qdf_nbuf_get_ether_type(data);
 
 	return qdf_is_eapol_type(ether_type);
