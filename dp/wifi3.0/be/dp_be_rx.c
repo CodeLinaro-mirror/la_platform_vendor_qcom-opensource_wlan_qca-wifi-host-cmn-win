@@ -2687,6 +2687,7 @@ dp_rx_null_q_invalid_peer_handler_eapol(struct dp_soc *soc, qdf_nbuf_t nbuf,
 		goto fail;
 
 	vdev = txrx_peer->vdev;
+	nbuf->next = NULL;
 	dp_rx_deliver_to_osif_stack(soc, vdev, txrx_peer, nbuf, NULL, true);
 	dp_peer_unref_delete(dp_peer, DP_MOD_ID_RX);
 	return true;
