@@ -1339,6 +1339,13 @@ dp_attach_vdev_list_in_mlo_dev_ctxt(struct dp_soc_be *be_soc,
 				    struct dp_mlo_dev_ctxt *mlo_dev_ctxt)
 {
 	uint8_t pdev_id = vdev->pdev->pdev_id;
+	struct dp_vdev_be *be_vdev = NULL;
+
+	be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
+	if (!be_vdev) {
+		dp_err("be_vdev is null");
+		return QDF_STATUS_E_INVAL;
+	}
 
 	qdf_spin_lock_bh(&mlo_dev_ctxt->vdev_list_lock);
 	if (vdev->is_bridge_vdev) {
@@ -1352,7 +1359,8 @@ dp_attach_vdev_list_in_mlo_dev_ctxt(struct dp_soc_be *be_soc,
 				 vdev->vdev_id);
 
 			/* ignore vdev attach req if the vdev is present */
-			if (mlo_dev_ctxt->bridge_vdev[be_soc->mlo_chip_id][pdev_id]
+			if (be_vdev->mlo_dev_ctxt &&
+			    mlo_dev_ctxt->bridge_vdev[be_soc->mlo_chip_id][pdev_id]
 							== vdev->vdev_id) {
 				qdf_spin_unlock_bh(&mlo_dev_ctxt->vdev_list_lock);
 				return QDF_STATUS_E_INVAL;
@@ -1372,7 +1380,8 @@ dp_attach_vdev_list_in_mlo_dev_ctxt(struct dp_soc_be *be_soc,
 				 vdev->vdev_id);
 
 			/* ignore vdev attach req if the vdev is present */
-			if (mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id]
+			if (be_vdev->mlo_dev_ctxt &&
+			    mlo_dev_ctxt->vdev_list[be_soc->mlo_chip_id][pdev_id]
 							== vdev->vdev_id) {
 				qdf_spin_unlock_bh(&mlo_dev_ctxt->vdev_list_lock);
 				return QDF_STATUS_E_INVAL;
