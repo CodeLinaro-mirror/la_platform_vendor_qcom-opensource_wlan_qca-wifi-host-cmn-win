@@ -2671,7 +2671,7 @@ static QDF_STATUS wlan_ipa_setup_iface(struct wlan_ipa_priv *ipa_ctx,
 
 		status = cdp_ipa_setup_iface(ipa_ctx->dp_soc,
 					     net_dev->name,
-					     (uint8_t *)net_dev->dev_addr,
+					     mac_addr,
 					     iface_context->prod_client,
 					     iface_context->cons_client,
 					     sessid,
