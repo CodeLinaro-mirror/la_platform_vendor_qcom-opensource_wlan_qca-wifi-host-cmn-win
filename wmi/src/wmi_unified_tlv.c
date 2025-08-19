@@ -23687,6 +23687,7 @@ vbss_set_sta_context_send_tlv(
 	QDF_STATUS ret;
 	wmi_buf_t buf;
 	uint32_t i;
+	uint8_t num_pn_info = 1;
 
 	/* Calculate the length of the buffer */
 	len = sizeof(*cmd) + (3 * WMI_TLV_HDR_SIZE);
@@ -23694,6 +23695,10 @@ vbss_set_sta_context_send_tlv(
 	len += (sizeof(wmi_vdev_vbss_peer_sn_info) * vbss_sta_context->num_sn_tids);
 	if (vbss_sta_context->is_valid_dyn_info)
 		len += sizeof(wmi_vdev_vbss_peer_dyn_info);
+	if (vbss_sta_context->is_valid_tx_gpn) {
+		len += sizeof(wmi_vdev_vbss_peer_pn_info);
+		num_pn_info++;
+	}
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -23717,7 +23722,7 @@ vbss_set_sta_context_send_tlv(
 
 	buf_ptr += sizeof(*cmd);
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
-			(sizeof(wmi_vdev_vbss_peer_pn_info)));
+			(num_pn_info * sizeof(wmi_vdev_vbss_peer_pn_info)));
 	buf_ptr += WMI_TLV_HDR_SIZE;
 
 	/* Fill PN info first */
@@ -23726,14 +23731,28 @@ vbss_set_sta_context_send_tlv(
 			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_pn_info,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_pn_info));
 
-	/* Assuming single context ID*/
-	pn_info->pn_ctxt_id = 0;
+	pn_info->pn_ctxt_id = WMI_VBSS_UNICAST_PN_INFO;
 	for (i = 0; i < WLAN_MAX_TX_PN_SIZE; i++) {
 		pn_info->pn[i] = vbss_sta_context->tx_pn[i];
 		wmi_debug("Setting PN[%d]: %d", i, pn_info->pn[i]);
 	}
 
 	buf_ptr += sizeof(wmi_vdev_vbss_peer_pn_info);
+
+	/* Fill TX GPN */
+	if (vbss_sta_context->is_valid_tx_gpn) {
+		pn_info = (wmi_vdev_vbss_peer_pn_info *)buf_ptr;
+		WMITLV_SET_HDR(&pn_info->tlv_header,
+			WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_pn_info,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_pn_info));
+		pn_info->pn_ctxt_id = WMI_VBSS_MULTICAST_PN_INFO;
+		for (i = 0; i < WLAN_MAX_TX_PN_SIZE; i++) {
+			pn_info->pn[i] = vbss_sta_context->tx_gpn[i];
+			wmi_debug("Setting GPN[%d]: %d", i, pn_info->pn[i]);
+		}
+		buf_ptr += sizeof(wmi_vdev_vbss_peer_pn_info);
+	}
+
 	WMITLV_SET_HDR(
 		buf_ptr, WMITLV_TAG_ARRAY_STRUC,
 		(sizeof(wmi_vdev_vbss_peer_sn_info) *
@@ -23768,10 +23787,15 @@ vbss_set_sta_context_send_tlv(
 			       WMITLV_TAG_STRUC_wmi_vdev_vbss_peer_dyn_info,
 			       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_vbss_peer_dyn_info));
 		dyn_info->peer_dyn_info1_word32 = vbss_sta_context->omn_info;
-		dyn_info->pm = vbss_sta_context->extd_info & 1;
+		dyn_info->peer_dyn_info2_word32 = vbss_sta_context->extd_info;
+		dyn_info->peer_dyn_info3_word32 = vbss_sta_context->extd_info2;
 		buf_ptr += sizeof(wmi_vdev_vbss_peer_dyn_info);
-		qdf_info("Parsed OMI 0x%x EHT_OMI 0x%x and PM %d",
-			 dyn_info->omi, dyn_info->eht_omi, dyn_info->pm);
+		wmi_debug("Parsed OMI 0x%x EHT_OMI 0x%x and PM %d",
+			  dyn_info->omi, dyn_info->eht_omi, dyn_info->pm);
+		wmi_debug("Delay: padding 0x%x transition 0x%x & timeout 0x%x",
+			  dyn_info->padding_delay_us,
+			  dyn_info->transition_delay_us,
+			  dyn_info->transition_timeout_us);
 	}
 
 	wmi_debug("WMI CMD Params for VBSS SET CMD: vdev_id: %u, action: %u, macaddr: "
@@ -23821,11 +23845,26 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 		vbss_sta_context->tx_pn[i] = pn_info->pn[i];
 		wmi_debug("Parsed PN[%d]: %d", i, vbss_sta_context->tx_pn[i]);
 	}
+	/* Parse TX GPN info */
+	if (param_buf->num_vbss_peer_pn_info > 1) {
+		pn_info++;
+		vbss_sta_context->is_valid_tx_gpn = true;
+		for (i = 0; i < WLAN_MAX_TX_PN_SIZE; i++) {
+			vbss_sta_context->tx_gpn[i] = pn_info->pn[i];
+			wmi_debug("Parsed GPN[%d]: %d",
+				  i, vbss_sta_context->tx_gpn[i]);
+		}
+	}
 
 	/* Parse SN info */
 	vbss_sta_context->num_sn_tids = param_buf->num_vbss_peer_sn_info;
+	if (vbss_sta_context->num_sn_tids > WLAN_MAX_PER_PEER_SN_TIDS) {
+		wmi_err("Truncating Num SN TIDs from %d to %d",
+			vbss_sta_context->num_sn_tids, WLAN_MAX_PER_PEER_SN_TIDS);
+		vbss_sta_context->num_sn_tids = WLAN_MAX_PER_PEER_SN_TIDS;
+	}
 	sn_info = param_buf->vbss_peer_sn_info;
-	for (i = 0; i < param_buf->num_vbss_peer_sn_info; i++) {
+	for (i = 0; i < vbss_sta_context->num_sn_tids; i++) {
 		vbss_sta_context->sn[i] = sn_info[i].tid_num;
 		vbss_sta_context->sn[i] |=
 				((sn_info[i].ssn << 16) & 0xFFFF0000);
@@ -23835,11 +23874,13 @@ extract_vbss_sta_context_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	dyn_info = param_buf->vbss_peer_dyn_info;
 	if (dyn_info) {
 		vbss_sta_context->omn_info = dyn_info->peer_dyn_info1_word32;
-		vbss_sta_context->extd_info = dyn_info->pm;
+		vbss_sta_context->extd_info = dyn_info->peer_dyn_info2_word32;
+		vbss_sta_context->extd_info2 = dyn_info->peer_dyn_info3_word32;
 		vbss_sta_context->is_valid_dyn_info = true;
-		qdf_info("Parsed OMN info 0x%x and Extended info 0x%x",
+		qdf_info("Parsed OMN info 0x%x and Extd info 0x%x info2 0x%x",
 			 vbss_sta_context->omn_info,
-			 vbss_sta_context->extd_info);
+			 vbss_sta_context->extd_info,
+			 vbss_sta_context->extd_info2);
 	}
 
 	wmi_debug("Extracted VBSS STA context: vdev_id %u, MAC "
