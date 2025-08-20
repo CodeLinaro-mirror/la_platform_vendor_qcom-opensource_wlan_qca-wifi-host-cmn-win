@@ -423,7 +423,8 @@ dfs_find_radar_affected_subchans_for_freq(struct wlan_dfs *dfs,
 	for (i = 0, num_radar_subchans = 0; i < DFS_NUM_FREQ_OFFSET; i++) {
 		candidate_subchan_freq = freq_offset.freq[i];
 		for (j = 0; j < n_cur_subchans; j++) {
-			if (cur_subchans[j] == candidate_subchan_freq) {
+			if (cur_subchans[j] == candidate_subchan_freq &&
+			    wlan_reg_is_dfs_for_freq(dfs->dfs_pdev_obj, cur_subchans[j])) {
 				freq_list[num_radar_subchans++] =
 						candidate_subchan_freq;
 				dfs_info(dfs, WLAN_DEBUG_DFS,
