@@ -1025,11 +1025,14 @@ void mlo_peer_cleanup(struct wlan_mlo_peer_context *ml_peer)
 		return;
 	}
 
-	mlo_dev_mlpeer_detach(ml_dev, ml_peer);
+	/* mlo_peer_list lock is already acquired, so arg 3 is set to false */
+	mlo_dev_mlpeer_detach(ml_dev, ml_peer, false);
 	/* If any Auth req is received during ML peer delete */
 	mlo_peer_process_pending_auth(ml_dev, ml_peer);
 	mlo_peer_free(ml_peer);
 }
+
+qdf_export_symbol(mlo_peer_cleanup);
 
 static QDF_STATUS mlo_peer_attach_link_peer(
 		struct wlan_mlo_peer_context *ml_peer,
@@ -1868,6 +1871,7 @@ wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 			ml_peer->max_links = ml_info->num_partner_links;
 			wlan_mlo_peer_set_t2lm_enable_val(ml_peer, ml_info);
 			is_ml_peer_attached = true;
+			wlan_mlo_peer_release_ref(ml_peer);
 		}
 	}
 	if (!ml_peer) {
@@ -1958,7 +1962,7 @@ wlan_mlo_peer_create(struct wlan_objmgr_vdev *vdev,
 		if (is_ml_peer_attached && ml_peer->link_peer_cnt)
 			return NULL;
 		if (is_ml_peer_attached)
-			mlo_dev_mlpeer_detach(ml_dev, ml_peer);
+			mlo_dev_mlpeer_detach(ml_dev, ml_peer, true);
 		mlo_peer_free(ml_peer);
 		wlan_mlo_dev_release_link_vdevs(link_vdevs);
 		return NULL;

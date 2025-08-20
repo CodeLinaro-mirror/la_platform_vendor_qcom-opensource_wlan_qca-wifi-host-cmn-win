@@ -1066,6 +1066,8 @@ void mlo_mlme_ptqm_migrate_timer_cb(void *arg)
 				wlan_mlo_peer_deauth_init(ml_peer,
 							  NULL, 0);
 			}
+			if (ml_peer)
+				wlan_mlo_peer_release_ref(ml_peer);
 			qdf_clear_bit(i, ml_dev->mlo_peer_id_bmap);
 		}
 	}
