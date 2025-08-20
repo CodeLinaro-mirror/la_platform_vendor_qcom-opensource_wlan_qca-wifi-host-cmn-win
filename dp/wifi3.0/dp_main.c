@@ -4178,6 +4178,7 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 	if (pdev->pdev_deinit)
 		return;
 
+	dp_ipa_uc_detach(pdev);
 	dp_tx_me_exit(pdev);
 	dp_rx_pdev_buffers_free(pdev);
 	dp_rx_pdev_desc_pool_deinit(pdev);
@@ -14592,6 +14593,8 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 	.ipa_rx_buf_smmu_pool_mapping = dp_ipa_rx_buf_pool_smmu_mapping,
 	.ipa_set_smmu_mapped = dp_ipa_set_smmu_mapped,
 	.ipa_get_smmu_mapped = dp_ipa_get_smmu_mapped,
+	.ipa_rx_buf_smmu_mapping = dp_ipa_rx_buf_smmu_mapping,
+	.ipa_rx_buf_smmu_unmapping = dp_ipa_rx_buf_smmu_unmapping,
 #ifdef QCA_SUPPORT_WDS_EXTENDED
 	.ipa_rx_wdsext_iface = dp_ipa_rx_wdsext_iface,
 #endif
@@ -16059,6 +16062,9 @@ static QDF_STATUS dp_pdev_init(struct cdp_soc_t *txrx_soc,
 	dp_ipa_rx_desc_list_init(pdev);
 	/* allocate buffers and replenish the RxDMA ring */
 	dp_rx_pdev_buffers_alloc(pdev);
+
+	if (dp_ipa_uc_attach(pdev) != QDF_STATUS_SUCCESS)
+		dp_init_err("%pK: dp_ipa_uc_attach failed", soc);
 
 	dp_init_tso_stats(pdev);
 	dp_init_link_peer_stats_enabled(pdev);
