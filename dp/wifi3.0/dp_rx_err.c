@@ -49,6 +49,7 @@
 #define dp_rx_err_debug(params...) QDF_TRACE_DEBUG(QDF_MODULE_ID_DP_RX_ERROR, params)
 
 #define MAX_RING_FULL_WAIT_CNT 200
+#define L3_HEADER_PAD 2
 
 #ifndef QCA_HOST_MODE_WIFI_DISABLED
 
