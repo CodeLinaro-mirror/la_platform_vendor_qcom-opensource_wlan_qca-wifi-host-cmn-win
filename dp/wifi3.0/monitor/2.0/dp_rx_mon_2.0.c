@@ -2595,7 +2595,9 @@ dp_rx_mon_srng_process_2_0(struct dp_soc *soc, struct dp_intr *int_ctx,
 	uint32_t work_done = 0;
 	struct hal_rx_ppdu_info *ppdu_info = NULL;
 	QDF_STATUS status;
+#if defined(DP_MON_DEBUG_DESC_SUPPORT)
 	uint32_t cookie_2;
+#endif
 	struct dp_mon_mac *mon_mac;
 
 	if (!pdev || !hal_soc) {
@@ -2645,16 +2647,21 @@ dp_rx_mon_srng_process_2_0(struct dp_soc *soc, struct dp_intr *int_ctx,
 			continue;
 		}
 		desc = hal_mon_rx_desc.buf_addr;
+
+#if defined(DP_MON_DEBUG_DESC_SUPPORT)
 		cookie_2 = DP_MON_GET_COOKIE(desc);
+#endif
 		mon_desc = dp_mon_get_desc_addr(desc);
 
 		qdf_assert_always(mon_desc);
 
+#if defined(DP_MON_DEBUG_DESC_SUPPORT)
 		if (mon_desc->cookie_2 != cookie_2) {
 			mon_mac->rx_mon_stats.dup_mon_sw_desc++;
 			qdf_err("duplicate cookie found mon_desc:%pK", mon_desc);
 			qdf_assert_always(0);
 		}
+#endif
 
 		if ((mon_desc == mon_pdev_be->prev_rxmon_desc) &&
 		    (mon_desc->cookie == mon_pdev_be->prev_rxmon_cookie)) {

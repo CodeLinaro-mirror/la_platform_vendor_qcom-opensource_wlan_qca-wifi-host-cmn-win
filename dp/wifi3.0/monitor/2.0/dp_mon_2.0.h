@@ -682,8 +682,10 @@ dp_mon_get_debug_desc_addr(union dp_mon_desc_list_elem_t **desc_list)
 	unsigned long long desc;
 
 	desc = (unsigned long)&((*desc_list)->mon_desc);
+#if defined(DP_MON_DEBUG_DESC_SUPPORT)
 	desc = (unsigned long long)((unsigned long long)desc & DP_MON_DESC_ADDR_MASK);
 	desc = (desc | ((unsigned long long)(*desc_list)->mon_desc.cookie_2 << DP_MON_DESC_ADDR_SHIFT));
+#endif
 	return desc;
 }
 
@@ -696,6 +698,7 @@ dp_mon_get_debug_desc_addr(union dp_mon_desc_list_elem_t **desc_list)
 static inline struct dp_mon_desc*
 dp_mon_get_desc_addr(unsigned long long desc)
 {
+#if defined(DP_MON_DEBUG_DESC_SUPPORT)
 	if (sizeof(void *) == DP_MON_DESC_64B_PTR_SZ) {
 		return ((struct dp_mon_desc *)(uintptr_t)(((unsigned long long)(desc) &
 						DP_MON_DESC_ADDR_MASK) | ((unsigned long long)DP_MON_DESC_FIXED_ADDR)));
@@ -703,5 +706,8 @@ dp_mon_get_desc_addr(unsigned long long desc)
 		return ((struct dp_mon_desc *)(uintptr_t)(((unsigned long)(desc) &
 						DP_MON_DESC_ADDR_MASK)));
 	}
+#else
+	return (struct dp_mon_desc *) desc;
+#endif
 }
 #endif /* _DP_MON_2_0_H_ */
