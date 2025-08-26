@@ -1347,7 +1347,7 @@ struct hif_opaque_softc *hif_open(qdf_device_t qdf_ctx,
 	hif_ce_desc_history_log_register(scn);
 	hif_desc_history_log_register();
 	qdf_ssr_driver_dump_register_region("hif", scn, sizeof(*scn));
-
+	qdf_minidump_log(scn, sizeof(*scn), "hif_softc", THIS_MODULE->name);
 out:
 	return GET_HIF_OPAQUE_HDL(scn);
 }
@@ -1393,6 +1393,7 @@ void hif_close(struct hif_opaque_softc *hif_ctx)
 		return;
 	}
 
+	qdf_minidump_remove(scn, sizeof(*scn), "hif_softc");
 	qdf_ssr_driver_dump_unregister_region("hif");
 	hif_desc_history_log_unregister();
 	hif_ce_desc_history_log_unregister();
