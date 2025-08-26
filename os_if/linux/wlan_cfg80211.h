@@ -656,7 +656,7 @@ static inline void wlan_cfg80211_unregister_netdevice(struct net_device *dev)
 }
 #endif
 
-#if defined(CFG80211_RU_PUNC_CHANDEF) || defined(CONFIG_TARGET_SDX85)
+#ifdef CFG80211_RU_PUNC_CHANDEF
 static inline
 void wlan_cfg80211_ch_switch_notify(struct net_device *dev,
 				    struct cfg80211_chan_def *chandef,
