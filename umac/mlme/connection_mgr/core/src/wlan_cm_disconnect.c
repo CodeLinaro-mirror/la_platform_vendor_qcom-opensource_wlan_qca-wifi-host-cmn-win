@@ -33,6 +33,8 @@
 #include <wlan_mlo_mgr_peer.h>
 #endif
 #include <wlan_mlo_mgr_link_switch.h>
+#include <wlan_vdev_mlme_api.h>
+#include <ieee80211_var.h>
 
 void cm_send_disconnect_resp(struct cnx_mgr *cm_ctx, wlan_cm_id cm_id)
 {
@@ -906,6 +908,7 @@ QDF_STATUS cm_disconnect_rsp(struct wlan_objmgr_vdev *vdev,
 	QDF_STATUS qdf_status;
 	wlan_cm_id cm_id;
 	uint32_t prefix;
+	struct ieee80211vap *vap = NULL;
 
 	cm_ctx = cm_get_cm_ctx(vdev);
 	if (!cm_ctx)
@@ -925,6 +928,8 @@ QDF_STATUS cm_disconnect_rsp(struct wlan_objmgr_vdev *vdev,
 		cm_sm_deliver_event(vdev,
 				    WLAN_CM_SM_EV_DISCONNECT_DONE,
 				    sizeof(*resp), resp);
+	vap = wlan_vdev_mlme_get_ext_hdl(vdev);
+	qdf_mem_zero(&vap->ap_mld_addr, sizeof(vap->ap_mld_addr));
 	if (QDF_IS_STATUS_ERROR(qdf_status))
 		goto disconnect_complete;
 
