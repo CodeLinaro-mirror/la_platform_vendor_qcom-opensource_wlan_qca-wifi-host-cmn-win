@@ -3046,6 +3046,93 @@ static struct dp_int_mask_assignment dp_mask_assignment[NUM_INTERRUPT_COMBINATIO
 };
 #endif
 
+#ifdef IPA_OFFLOAD
+struct dp_int_mask_assignment dp_ipa_tx_two_pipe_disable_mask_assignment =
+	{
+		/* tx ring masks */
+		{ WLAN_CFG_TX_RING_MASK_0,
+		  WLAN_CFG_TX_RING_MASK_1,
+		  0,
+		  WLAN_CFG_TX_RING_MASK_3,
+		  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		/* rx ring masks */
+		{ 0, 0, 0, 0,
+		  WLAN_CFG_RX_RING_MASK_0,
+		  WLAN_CFG_RX_RING_MASK_1,
+		  WLAN_CFG_RX_RING_MASK_2,
+		  WLAN_CFG_RX_RING_MASK_3,
+		  0, 0, 0, 0, 0, 0, 0, 0},
+		/* rx mon ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_RX_MON_RING_MASK_0,
+		  WLAN_CFG_RX_MON_RING_MASK_1,
+		  WLAN_CFG_RX_MON_RING_MASK_2,
+		  0, 0, 0, 0, 0},
+		/* host2rxdma ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_HOST2RXDMA_RING_MASK_0,
+		  WLAN_CFG_HOST2RXDMA_RING_MASK_1,
+		  WLAN_CFG_HOST2RXDMA_RING_MASK_2,
+		  0, 0, 0, 0, 0},
+		/* rxdma2host ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_RXDMA2HOST_RING_MASK_0,
+		  WLAN_CFG_RXDMA2HOST_RING_MASK_1,
+		  WLAN_CFG_RXDMA2HOST_RING_MASK_2,
+		  0, 0, 0, 0, 0},
+		/* host2rxdma mon ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_HOST2RXDMA_MON_RING_MASK_0,
+		  WLAN_CFG_HOST2RXDMA_MON_RING_MASK_1,
+		  WLAN_CFG_HOST2RXDMA_MON_RING_MASK_2,
+		  0, 0, 0, 0, 0},
+		/* rxdma2host mon ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_RXDMA2HOST_MON_RING_MASK_0,
+		  WLAN_CFG_RXDMA2HOST_MON_RING_MASK_1,
+		  WLAN_CFG_RXDMA2HOST_MON_RING_MASK_2,
+		  0, 0, 0, 0, 0},
+		/* rx err ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_RX_ERR_RING_MASK_0,
+		  0, 0, 0, 0},
+		/* rx wbm rel ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_RX_WBM_REL_RING_MASK_0,
+		  0, 0, 0, 0},
+		/* reo status ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_REO_STATUS_RING_MASK_0,
+		  0, 0, 0, 0},
+		/* rx_ring_near_full_irq mask */
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		/* rx_ring_near_full_irq_2 mask */
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		/* tx_ring_near_full_irq mask */
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		/* host2txmon ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_HOST2TXMON_RING_MASK_0,
+		  0, 0, 0, 0, 0, 0, 0},
+		/* tx mon ring masks */
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		  WLAN_CFG_TX_MON_RING_MASK_0,
+		  WLAN_CFG_TX_MON_RING_MASK_1,
+		  0, 0, 0, 0, 0},
+		/* ppe ds wbm release ring ring mask */
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		  0, WLAN_CFG_PPEDS_WBM_RELEASE_RING_MASK_0, 0, 0, 0},
+		/* Reo2ppe ring mask */
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		 0, 0, WLAN_CFG_REO2PPE_RING_MASK_0, 0, 0},
+		/* ppe2tcl ring mask */
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		 0, 0, 0, WLAN_CFG_PPE2TCL_RING_MASK_0, 0},
+		/* umac reset mask */
+		{0, 0, 0, 0, 0, 0, 0, 0,
+		 0, 0, 0, 0, 0, 0, 0, WLAN_CFG_UMAC_RESET_INTR_MASK_0},
+	};
+
 struct dp_int_mask_assignment dp_ipa_disable_mask_assignment =
 	{
 		/* tx ring masks */
@@ -3131,6 +3218,7 @@ struct dp_int_mask_assignment dp_ipa_disable_mask_assignment =
 		{0, 0, 0, 0, 0, 0, 0, 0,
 		 0, 0, 0, 0, 0, 0, 0, WLAN_CFG_UMAC_RESET_INTR_MASK_0},
 	};
+#endif
 
 struct dp_int_mask_assignment dp_ur_mask_assignment_8msi =
 	/* Interrupt assignment for 8 MSI combination with Umac reset support */
@@ -3737,10 +3825,18 @@ void wlan_cfg_fill_interrupt_mask(struct wlan_cfg_dp_soc_ctxt *wlan_cfg_ctx,
 		if (!ppeds_attached) {
 			if (interrupt_index == 8 && umac_reset_support) {
 				mask_assignment = &dp_ur_mask_assignment_8msi;
-			} else if (interrupt_index == 16 &&
+			}
+#ifdef IPA_OFFLOAD
+			else if (interrupt_index == 16 &&
 				   !wlan_cfg_is_ipa_enabled(wlan_cfg_ctx)) {
 				mask_assignment = &dp_ipa_disable_mask_assignment;
-			} else {
+			} else if (interrupt_index == 16 &&
+				   (wlan_cfg_is_ipa_enabled(wlan_cfg_ctx) &&
+				   !wlan_cfg_is_ipa_two_tx_pipes_enabled(wlan_cfg_ctx))) {
+				mask_assignment = &dp_ipa_tx_two_pipe_disable_mask_assignment;
+			}
+#endif
+			else {
 				mask_assignment =
 					&dp_mask_assignment[interrupt_index];
 			}
