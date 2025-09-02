@@ -2672,6 +2672,25 @@ static inline struct wlan_mlo_dev_context *wlan_vdev_get_mlo_dev_ctx(
 	return vdev->mlo_dev_ctx;
 }
 
+#ifdef WLAN_FEATURE_VBSS
+/**
+ * wlan_vdev_get_mlo_vbss_ctx() - Get MLO VBSS context from VDEV
+ * @vdev: VDEV object
+ *
+ * API to get MLO VBSS context pointer from VDEV object
+ *
+ * Return: Pointer to MLO VBSS context or NULL if not available
+ */
+static inline struct wlan_mlo_vbss_context *wlan_vdev_get_mlo_vbss_ctx(
+				struct wlan_objmgr_vdev *vdev)
+{
+	if (!vdev || !vdev->mlo_dev_ctx)
+		return NULL;
+
+	return &vdev->mlo_dev_ctx->mlo_vbss_ctx;
+}
+#endif
+
 /**
  * wlan_objmgr_vdev_init_ml_peer_count() - initialize ml_peer_count
  * @vdev: vdev object pointer
