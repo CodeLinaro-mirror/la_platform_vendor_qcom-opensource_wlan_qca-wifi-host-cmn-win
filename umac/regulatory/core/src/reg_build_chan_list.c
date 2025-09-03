@@ -4417,6 +4417,53 @@ static bool reg_is_pwrmode_not_required(
 }
 #endif
 
+QDF_STATUS
+reg_process_tpc_ie_mgmt_tx_power_event(struct mgmt_tx_power_info *tx_power_info)
+{
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_lmac_if_reg_tx_ops *tx_ops;
+	uint8_t phy_id, pdev_id;
+	QDF_STATUS status;
+	wlan_objmgr_ref_dbgid dbg_id = WLAN_REGULATORY_NB_ID;
+	struct wlan_objmgr_pdev *pdev;
+	struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj;
+
+	psoc = tx_power_info->psoc;
+	phy_id = tx_power_info->phy_id;
+	tx_ops = reg_get_psoc_tx_ops(psoc);
+	if (tx_ops->get_pdev_id_from_phy_id)
+		tx_ops->get_pdev_id_from_phy_id(psoc, phy_id, &pdev_id);
+	else
+		pdev_id = phy_id;
+
+	pdev = wlan_objmgr_get_pdev_by_id(psoc, pdev_id, dbg_id);
+	if (!pdev) {
+		reg_err("pdev is NULL");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	pdev_priv_obj = reg_get_pdev_obj(pdev);
+	if (!IS_VALID_PDEV_REG_OBJ(pdev_priv_obj)) {
+		reg_err("reg pdev priv obj is NULL");
+		wlan_objmgr_pdev_release_ref(pdev, dbg_id);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (tx_ops->set_tpc_ie_mgmt_tx_power) {
+		status =
+		    tx_ops->set_tpc_ie_mgmt_tx_power(pdev, tx_power_info->vdev_id,
+						     tx_power_info->tx_power);
+		if (QDF_IS_STATUS_ERROR(status))
+			reg_err("Failed to set mgmt tx power");
+	} else {
+		reg_err("No regulatory tx_ops");
+		status = QDF_STATUS_E_FAILURE;
+	}
+
+	wlan_objmgr_pdev_release_ref(pdev, dbg_id);
+	return status;
+}
+
 /**
  * reg_free_hw_blacklist_chan - Free blacklist chans
  * @reg_hw_bl_chans: Regulatory hardware blacklist chans

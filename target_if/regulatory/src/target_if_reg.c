@@ -528,6 +528,118 @@ clean:
 }
 
 /**
+ * tgt_reg_query_mgmt_tx_power_event_handler() - Tx power event handler
+ * @handle: scn handle
+ * @event_buf: pointer to event buffer
+ * @len: buffer length
+ *
+ * Return: 0 on success
+ */
+static int
+tgt_reg_query_mgmt_tx_power_event_handler(ol_scn_t handle, uint8_t *event_buf,
+					  uint32_t len)
+{
+	struct wlan_objmgr_psoc *psoc;
+	struct wlan_lmac_if_reg_rx_ops *reg_rx_ops;
+	struct mgmt_tx_power_info *tpc_ie_power_info = NULL;
+	QDF_STATUS status;
+	struct wmi_unified *wmi_handle;
+	int ret_val = 0;
+
+	TARGET_IF_ENTER();
+	psoc = target_if_get_psoc_from_scn_hdl(handle);
+	if (!psoc) {
+		target_if_err("psoc ptr is NULL");
+		ret_val = -EINVAL;
+		goto clean;
+	}
+
+	reg_rx_ops = target_if_regulatory_get_rx_ops(psoc);
+	if (!reg_rx_ops) {
+		target_if_err("reg_rx_ops is NULL");
+		ret_val = -EINVAL;
+		goto clean;
+	}
+
+	if (!reg_rx_ops->tpc_ie_tx_power_handler) {
+		target_if_err("query_mgmt_tx_power_handler is NULL");
+		ret_val = -EINVAL;
+		goto clean;
+	}
+
+	wmi_handle = get_wmi_unified_hdl_from_psoc(psoc);
+	if (!wmi_handle) {
+		target_if_err("invalid wmi handle");
+		ret_val = -EINVAL;
+		goto clean;
+	}
+
+	tpc_ie_power_info = qdf_mem_malloc(sizeof(*tpc_ie_power_info));
+	if (!tpc_ie_power_info) {
+		target_if_err("Failed to allocate memory for tpc_ie_power_info");
+		ret_val = -ENOMEM;
+		goto clean;
+	}
+
+	qdf_mem_set(tpc_ie_power_info, sizeof(*tpc_ie_power_info), 0);
+	status = wmi_extract_vdev_tpc_ie_power_event(wmi_handle,
+						     event_buf,
+						     tpc_ie_power_info, len);
+	if (!QDF_IS_STATUS_SUCCESS(status)) {
+		target_if_err("Extraction of tpc ie power event failed");
+		ret_val = -EFAULT;
+		goto clean;
+	}
+
+	if (tpc_ie_power_info->phy_id >= PSOC_MAX_PHY_REG_CAP) {
+		target_if_err_rl("phy_id %d is out of bounds",
+				 tpc_ie_power_info->phy_id);
+		ret_val = -EFAULT;
+		goto clean;
+	}
+
+	tpc_ie_power_info->psoc = psoc;
+	status = reg_rx_ops->tpc_ie_tx_power_handler(tpc_ie_power_info);
+	if (!QDF_IS_STATUS_SUCCESS(status)) {
+		target_if_err("Failed to process tpc ie tx power handler");
+		ret_val = -EFAULT;
+	}
+
+clean:
+	if (tpc_ie_power_info)
+		qdf_mem_free(tpc_ie_power_info);
+
+	TARGET_IF_EXIT();
+	return ret_val;
+}
+
+static QDF_STATUS tgt_if_regulatory_register_query_mgmt_tx_power_handler(
+	struct wlan_objmgr_psoc *psoc, void *arg)
+{
+	wmi_unified_t wmi_handle = get_wmi_unified_hdl_from_psoc(psoc);
+
+	if (!wmi_handle)
+		return QDF_STATUS_E_FAILURE;
+
+	return wmi_unified_register_event_handler(
+			wmi_handle, wmi_vdev_tpc_ie_power_event_id,
+			tgt_reg_query_mgmt_tx_power_event_handler,
+			WMI_RX_UMAC_CTX);
+}
+
+static QDF_STATUS tgt_if_regulatory_unregister_query_mgmt_tx_power_handler(
+	struct wlan_objmgr_psoc *psoc, void *arg)
+{
+	wmi_unified_t wmi_handle = get_wmi_unified_hdl_from_psoc(psoc);
+
+	if (!wmi_handle)
+		return QDF_STATUS_E_FAILURE;
+
+	return wmi_unified_unregister_event_handler(
+			wmi_handle, wmi_vdev_tpc_ie_power_event_id);
+}
+
+/**
  * tgt_if_regulatory_register_master_list_ext_handler() - Register extended
  * master channel list event handler
  * @psoc: Pointer to psoc
@@ -1018,6 +1130,16 @@ static QDF_STATUS tgt_if_regulatory_get_pdev_id_from_phy_id(
 	return QDF_STATUS_SUCCESS;
 }
 
+static void target_if_regulatory_register_tx_power_event_handler(
+				struct wlan_lmac_if_reg_tx_ops *reg_ops)
+{
+	reg_ops->register_query_mgmt_tx_power_handler =
+		tgt_if_regulatory_register_query_mgmt_tx_power_handler;
+
+	reg_ops->unregister_query_mgmt_tx_power_handler =
+		tgt_if_regulatory_unregister_query_mgmt_tx_power_handler;
+}
+
 #ifdef CONFIG_BAND_6GHZ
 static void target_if_register_master_ext_handler(
 				struct wlan_lmac_if_reg_tx_ops *reg_ops)
@@ -1129,6 +1251,45 @@ tgt_if_regulatory_set_tpc_power(struct wlan_objmgr_psoc *psoc,
 	status = wmi_unified_send_set_tpc_power_cmd(wmi_handle, vdev_id, param);
 	if (QDF_IS_STATUS_ERROR(status))
 		target_if_err("send tpc power cmd failed, status: %d", status);
+
+free_pdevref:
+	wlan_objmgr_pdev_release_ref(pdev, WLAN_REGULATORY_NB_ID);
+
+	return status;
+}
+
+/**
+ * tgt_if_regulatory_query_mgmt_tx_power() - Query management frame tx power
+ *
+ * @psoc: Pointer to psoc
+ * @pdev_id: Pdev id
+ * @vdev_id: Vdev id
+ * @mgmt_rate: Management rate
+ *
+ * Return: QDF_STATUS
+ */
+static QDF_STATUS
+tgt_if_regulatory_query_mgmt_tx_power(struct wlan_objmgr_psoc *psoc,
+				      uint8_t pdev_id, uint8_t vdev_id,
+				      uint32_t mgmt_rate)
+{
+	wmi_unified_t wmi_handle;
+	struct wlan_objmgr_pdev *pdev;
+	QDF_STATUS status;
+
+	pdev = wlan_objmgr_get_pdev_by_id(psoc, pdev_id,
+					  WLAN_REGULATORY_NB_ID);
+	wmi_handle = get_wmi_unified_hdl_from_pdev(pdev);
+	if (!wmi_handle) {
+		status = QDF_STATUS_E_FAILURE;
+		goto free_pdevref;
+	}
+
+	status = wmi_unified_send_mgmt_tx_power_query_cmd(wmi_handle, pdev_id,
+							  vdev_id, mgmt_rate);
+	if (QDF_IS_STATUS_ERROR(status))
+		target_if_err("mgmt tx power query cmd failed, status: %d",
+			      status);
 
 free_pdevref:
 	wlan_objmgr_pdev_release_ref(pdev, WLAN_REGULATORY_NB_ID);
@@ -1661,6 +1822,8 @@ QDF_STATUS target_if_register_regulatory_tx_ops(
 
 	target_if_register_hw_blacklist_chan_event_handler(reg_ops);
 
+	target_if_regulatory_register_tx_power_event_handler(reg_ops);
+
 	reg_ops->set_country_code = tgt_if_regulatory_set_country_code;
 
 	reg_ops->fill_umac_legacy_chanlist = NULL;
@@ -1722,6 +1885,8 @@ QDF_STATUS target_if_register_regulatory_tx_ops(
 	reg_ops->is_80p80_supported = NULL;
 
 	reg_ops->is_freq_80p80_supported = NULL;
+
+	reg_ops->query_mgmt_tx_power = tgt_if_regulatory_query_mgmt_tx_power;
 
 	return QDF_STATUS_SUCCESS;
 }

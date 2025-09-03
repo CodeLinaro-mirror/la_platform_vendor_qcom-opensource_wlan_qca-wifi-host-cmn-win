@@ -102,6 +102,12 @@ tgt_reg_get_both_psd_eirp_preferred_support(struct wlan_objmgr_psoc *psoc,
 						reg_is_both_psd_eirp_support);
 }
 
+QDF_STATUS
+tgt_reg_process_tpc_ie_mgmt_tx_power_event(struct mgmt_tx_power_info *tx_power_info)
+{
+	return reg_process_tpc_ie_mgmt_tx_power_event(tx_power_info);
+}
+
 #ifdef CONFIG_AFC_SUPPORT
 QDF_STATUS
 tgt_reg_process_afc_event(struct afc_regulatory_info *afc_info)

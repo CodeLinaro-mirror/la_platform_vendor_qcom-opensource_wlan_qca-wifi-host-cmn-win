@@ -472,6 +472,22 @@ static void regulatory_assign_unregister_hw_blacklist_chan_event_handler(
 		tx_ops->unregister_hw_blacklist_chan_event_handler(psoc, NULL);
 }
 
+static void regulatory_assign_register_mgmt_tx_power_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+	if (tx_ops->register_query_mgmt_tx_power_handler)
+		tx_ops->register_query_mgmt_tx_power_handler(psoc, NULL);
+}
+
+static void regulatory_assign_unregister_mgmt_tx_power_event_handler(
+		struct wlan_objmgr_psoc *psoc,
+		struct wlan_lmac_if_reg_tx_ops *tx_ops)
+{
+	if (tx_ops->unregister_query_mgmt_tx_power_handler)
+		tx_ops->unregister_query_mgmt_tx_power_handler(psoc, NULL);
+}
+
 #ifdef CONFIG_AFC_SUPPORT
 static void regulatory_assign_register_afc_event_handler(
 		struct wlan_objmgr_psoc *psoc,
@@ -537,6 +553,7 @@ QDF_STATUS regulatory_psoc_open(struct wlan_objmgr_psoc *psoc)
 	regulatory_assign_register_master_ext_handler(psoc, tx_ops);
 	regulatory_assign_register_afc_event_handler(psoc, tx_ops);
 	regulatory_assign_register_hw_blacklist_chan_event_handler(psoc, tx_ops);
+	regulatory_assign_register_mgmt_tx_power_event_handler(psoc, tx_ops);
 	if (tx_ops->register_11d_new_cc_handler)
 		tx_ops->register_11d_new_cc_handler(psoc, NULL);
 	if (tx_ops->register_ch_avoid_event_handler)
@@ -559,6 +576,7 @@ QDF_STATUS regulatory_psoc_close(struct wlan_objmgr_psoc *psoc)
 		tx_ops->unregister_master_handler(psoc, NULL);
 	regulatory_assign_unregister_master_ext_handler(psoc, tx_ops);
 	regulatory_assign_unregister_afc_event_handler(psoc, tx_ops);
+	regulatory_assign_unregister_mgmt_tx_power_event_handler(psoc, tx_ops);
 	if (tx_ops->unregister_ch_avoid_event_handler)
 		tx_ops->unregister_ch_avoid_event_handler(psoc, NULL);
 	if (tx_ops->unregister_rate2power_table_update_event_handler)

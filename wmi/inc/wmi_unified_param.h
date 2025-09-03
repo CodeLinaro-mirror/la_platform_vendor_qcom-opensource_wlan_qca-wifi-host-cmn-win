@@ -5653,6 +5653,8 @@ typedef enum {
 	wmi_vdev_vbss_config_eventid,
 #endif
 	wmi_pdev_multi_vdev_ac_queue_depth_eventid,
+	wmi_vdev_tpc_ie_power_event_id,
+
 	wmi_events_max,
 } wmi_conv_event_id;
 

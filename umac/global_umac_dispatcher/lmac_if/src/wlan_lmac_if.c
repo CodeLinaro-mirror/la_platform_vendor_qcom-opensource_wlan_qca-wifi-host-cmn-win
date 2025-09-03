@@ -603,6 +603,9 @@ static void wlan_lmac_if_umac_reg_rx_ops_register(
 	rx_ops->reg_rx_ops.reg_set_ext_tpc_supported =
 		tgt_reg_set_ext_tpc_supported;
 
+	rx_ops->reg_rx_ops.tpc_ie_tx_power_handler =
+		tgt_reg_process_tpc_ie_mgmt_tx_power_event;
+
 	wlan_lmac_if_register_6g_edge_chan_supp(rx_ops);
 
 	wlan_lmac_if_register_afc_handlers(rx_ops);

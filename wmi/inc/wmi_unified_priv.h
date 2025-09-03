@@ -2480,6 +2480,12 @@ QDF_STATUS (*extract_reg_chan_list_update_event)(wmi_unified_t wmi_handle,
 						 struct cur_regulatory_info
 						 *reg_info,
 						 uint32_t len);
+QDF_STATUS
+(*extract_vdev_tpc_ie_power_event)(wmi_unified_t wmi_handle,
+				uint8_t *evt_buf,
+				struct mgmt_tx_power_info *tpc_ie_power_info,
+				uint32_t len);
+
 #ifdef CONFIG_BAND_6GHZ
 QDF_STATUS (*extract_reg_chan_list_ext_update_event)(wmi_unified_t wmi_handle,
 						     uint8_t *evt_buf,
@@ -3179,6 +3185,11 @@ QDF_STATUS
 QDF_STATUS (*send_set_tpc_power_cmd)(wmi_unified_t wmi_handle,
 				     uint8_t vdev_id,
 				     struct reg_tpc_power_info *param);
+
+QDF_STATUS (*send_mgmt_tx_power_query_cmd)(wmi_unified_t wmi_handle,
+					   uint8_t pdev_id,
+					   uint8_t vdev_id,
+					   uint32_t mgmt_rate);
 
 #ifdef CONFIG_AFC_SUPPORT
 QDF_STATUS

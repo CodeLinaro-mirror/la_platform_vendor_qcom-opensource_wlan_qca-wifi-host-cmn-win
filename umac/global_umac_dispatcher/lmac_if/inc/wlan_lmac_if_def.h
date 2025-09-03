@@ -1211,6 +1211,13 @@ struct wlan_lmac_if_ftm_rx_ops {
  * blacklist event handler.
  * @reg_hw_blacklist_chan_support: Callback function to check if lower power HW
  * blacklisted channel list supported.
+ * @query_mgmt_tx_power: Query management tx power from firmware
+ * @register_query_mgmt_tx_power_handler: pointer to register query management
+ * tx power event handler.
+ * @unregister_query_mgmt_tx_power_handler: pointer to unregister query
+ * management tx power event handler.
+ * @set_tpc_ie_mgmt_tx_power: Callback to store the Tx power received from the
+ * target.
  */
 struct wlan_lmac_if_reg_tx_ops {
 	QDF_STATUS (*register_master_handler)(struct wlan_objmgr_psoc *psoc,
@@ -1296,6 +1303,17 @@ struct wlan_lmac_if_reg_tx_ops {
 #endif
 	bool (*reg_hw_blacklist_chan_support)(
 			struct wlan_objmgr_psoc *psoc);
+	QDF_STATUS (*query_mgmt_tx_power)(struct wlan_objmgr_psoc *psoc,
+					  uint8_t pdev_id, uint8_t vdev_id,
+					  uint32_t mgtm_rate);
+	QDF_STATUS (*register_query_mgmt_tx_power_handler)(
+			struct wlan_objmgr_psoc *psoc, void *arg);
+	QDF_STATUS (*unregister_query_mgmt_tx_power_handler)(
+			struct wlan_objmgr_psoc *psoc, void *arg);
+	QDF_STATUS (*set_tpc_ie_mgmt_tx_power)(
+			struct wlan_objmgr_pdev *pdev,
+			uint8_t vdev_id,
+			int32_t mgmt_tx_power);
 };
 
 /**
@@ -2167,6 +2185,8 @@ struct wlan_lmac_if_mgmt_txrx_rx_ops {
  *		rate2power update response from fw.
  * @reg_is_5dot9_ghz_supported: Function pointer to get the 5.9GHz support
  * information.
+ * @tpc_ie_tx_power_handler: function pointer to handle TPC IE tx power
+ * information from FW.
  */
 struct wlan_lmac_if_reg_rx_ops {
 	QDF_STATUS (*master_list_handler)(struct cur_regulatory_info
@@ -2271,6 +2291,8 @@ struct wlan_lmac_if_reg_rx_ops {
 			struct wlan_objmgr_psoc *psoc,
 			uint32_t pdev_id);
 	bool (*reg_is_5dot9_ghz_supported)(struct wlan_objmgr_psoc *psoc);
+	QDF_STATUS (*tpc_ie_tx_power_handler)
+		    (struct mgmt_tx_power_info *tpc_ie_power_info);
 };
 
 #ifdef CONVERGED_P2P_ENABLE

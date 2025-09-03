@@ -5151,6 +5151,21 @@ QDF_STATUS wmi_unified_send_set_tpc_power_cmd(wmi_unified_t wmi_handle,
 					      struct reg_tpc_power_info *param);
 
 /**
+ * wmi_unified_send_mgmt_tx_power_query_cmd() - send WMI command to query
+ * mgmt tx power
+ * @wmi_handle: wmi handle
+ * @pdev_id: pdev id
+ * @vdev_id: vdev id
+ * @mgmt_rate: mgmt rate
+ *
+ * Return: QDF_STATUS_SUCCESS for success or error code
+ */
+QDF_STATUS wmi_unified_send_mgmt_tx_power_query_cmd(wmi_unified_t wmi_handle,
+						    uint8_t pdev_id,
+						    uint8_t vdev_id,
+						    uint32_t mgmt_rate);
+
+/**
  * wmi_extract_dpd_status_ev_param() - extract dpd status from FW event
  * @wmi_handle: wmi handle
  * @evt_buf: pointer to event buf

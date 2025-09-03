@@ -78,6 +78,22 @@ QDF_STATUS wmi_extract_hw_blacklist_chan_event(
 
 qdf_export_symbol(wmi_extract_hw_blacklist_chan_event);
 
+QDF_STATUS
+wmi_extract_vdev_tpc_ie_power_event(
+		wmi_unified_t wmi_handle,
+		uint8_t *evt_buf,
+		struct mgmt_tx_power_info *tpc_ie_power_info,
+		uint32_t len)
+{
+	if (wmi_handle &&
+	    wmi_handle->ops->extract_vdev_tpc_ie_power_event)
+		return wmi_handle->ops->extract_vdev_tpc_ie_power_event
+					(wmi_handle, evt_buf,
+					 tpc_ie_power_info, len);
+
+	return QDF_STATUS_E_FAILURE;
+}
+
 #ifdef CONFIG_AFC_SUPPORT
 QDF_STATUS wmi_extract_afc_event(wmi_unified_t wmi_handle,
 				 uint8_t *evt_buf,

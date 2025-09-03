@@ -1631,6 +1631,20 @@ struct afc_regulatory_info {
 #endif
 
 /**
+ * struct mgmt_tx_power_info
+ * @psoc: psoc pointer
+ * @phy_id: phy id
+ * @vdev_id: vdev id
+ * @tx_power: mgmt tx power value
+ */
+struct mgmt_tx_power_info {
+	struct wlan_objmgr_psoc *psoc;
+	uint8_t phy_id;
+	uint8_t vdev_id;
+	int32_t tx_power;
+};
+
+/**
  * struct reg_rule_info
  * @alpha2: alpha2 of reg rules
  * @dfs_region: dfs region

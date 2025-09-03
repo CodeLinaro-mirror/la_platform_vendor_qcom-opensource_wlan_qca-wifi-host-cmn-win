@@ -18944,6 +18944,35 @@ extract_hw_blacklist_event_tlv(
 #endif
 #endif
 
+static QDF_STATUS
+extract_vdev_tpc_ie_power_event_tlv(
+		wmi_unified_t wmi_handle,
+		uint8_t *evt_buf,
+		struct mgmt_tx_power_info *pow_info,
+		uint32_t len)
+{
+	WMI_VDEV_TPC_IE_POWER_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_tpc_ie_power_event_fixed_param *pow_evt_hdr;
+
+	param_buf = (WMI_VDEV_TPC_IE_POWER_EVENTID_param_tlvs *)evt_buf;
+	if (!param_buf) {
+		wmi_err("Invalid VDEV TPC IE power event buf");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	pow_evt_hdr = param_buf->fixed_param;
+	pow_info->vdev_id = pow_evt_hdr->vdev_id;
+	pow_info->phy_id = wmi_handle->ops->convert_phy_id_target_to_host(
+				wmi_handle, pow_evt_hdr->pdev_id);
+	pow_info->tx_power = pow_evt_hdr->tx_pwr;
+
+	wmi_debug("vdev_id %d host phy_id %d target pdev_id %d tx_power %d",
+		  pow_info->vdev_id, pow_info->phy_id, pow_evt_hdr->pdev_id,
+		  pow_info->tx_power);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 static QDF_STATUS extract_reg_chan_list_update_event_tlv(
 	wmi_unified_t wmi_handle, uint8_t *evt_buf,
 	struct cur_regulatory_info *reg_info, uint32_t len)
@@ -22689,6 +22718,57 @@ static QDF_STATUS send_set_tpc_power_cmd_tlv(wmi_unified_t wmi_handle,
 }
 
 /**
+ * send_mgmt_tx_power_query_cmd_tlv() - Sends the mgmt Tx power query cmd to FW
+ * @wmi_handle: wmi handle
+ * @pdev_id: pdev id
+ * @vdev_id: vdev id
+ * @mgmt_rate: management frame rate
+ *
+ * Return: QDF_STATUS_SUCCESS for success or error code
+ */
+static QDF_STATUS
+send_mgmt_tx_power_query_cmd_tlv(wmi_unified_t wmi_handle,
+				 uint8_t pdev_id, uint8_t vdev_id,
+				 uint32_t mgmt_rate)
+{
+	wmi_buf_t buf;
+	wmi_vdev_get_tpc_ie_power_cmd_fixed_param *fixed_param;
+	uint32_t len;
+	QDF_STATUS ret;
+
+	len = sizeof(wmi_vdev_get_tpc_ie_power_cmd_fixed_param);
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf)
+		return QDF_STATUS_E_NOMEM;
+
+	fixed_param = (wmi_vdev_get_tpc_ie_power_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&fixed_param->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_get_tpc_ie_power_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_get_tpc_ie_power_cmd_fixed_param));
+
+	fixed_param->pdev_id = wmi_handle->ops->convert_pdev_id_host_to_target(
+								wmi_handle,
+								pdev_id);
+
+	fixed_param->vdev_id = vdev_id;
+	fixed_param->mgmt_rate = mgmt_rate;
+
+	wmi_debug("Querying mgmt Tx power for pdev id %d vdev id %d rate %d",
+		  fixed_param->pdev_id, fixed_param->vdev_id,
+		  fixed_param->mgmt_rate);
+	wmi_mtrace(WMI_VDEV_GET_TPC_IE_POWER_CMDID, vdev_id, 0);
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+				   WMI_VDEV_GET_TPC_IE_POWER_CMDID);
+	if (QDF_IS_STATUS_ERROR(ret)) {
+		wmi_err("Failed to send WMI_VDEV_GET_TPC_IE_POWER_CMDID");
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
+/**
  * extract_dpd_status_ev_param_tlv() - extract dpd status from FW event
  * @wmi_handle: wmi handle
  * @evt_buf: event buffer
@@ -24295,6 +24375,7 @@ struct wmi_ops tlv_ops =  {
 	.extract_afc_event = extract_afc_event_tlv,
 #endif
 #endif
+	.extract_vdev_tpc_ie_power_event = extract_vdev_tpc_ie_power_event_tlv,
 #ifdef WLAN_SUPPORT_RF_CHARACTERIZATION
 	.extract_num_rf_characterization_entries =
 		extract_num_rf_characterization_entries_tlv,
@@ -24439,6 +24520,7 @@ struct wmi_ops tlv_ops =  {
 	.extract_pdev_csa_switch_count_status =
 		extract_pdev_csa_switch_count_status_tlv,
 	.send_set_tpc_power_cmd = send_set_tpc_power_cmd_tlv,
+	.send_mgmt_tx_power_query_cmd = send_mgmt_tx_power_query_cmd_tlv,
 #ifdef CONFIG_AFC_SUPPORT
 	.send_afc_cmd = send_afc_cmd_tlv,
 #endif
@@ -25121,6 +25203,9 @@ static void populate_tlv_events_id(WMI_EVT_ID *event_ids)
 #endif
 	event_ids[wmi_pdev_multi_vdev_ac_queue_depth_eventid] =
 				WMI_PDEV_MULTI_VDEV_AC_QUEUE_DEPTH_EVENTID;
+	event_ids[wmi_vdev_tpc_ie_power_event_id] =
+		WMI_VDEV_TPC_IE_POWER_EVENTID;
+
 }
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS

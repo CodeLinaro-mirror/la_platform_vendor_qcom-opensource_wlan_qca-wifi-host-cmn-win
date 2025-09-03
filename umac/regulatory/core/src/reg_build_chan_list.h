@@ -212,6 +212,16 @@ reg_process_hw_blacklist_chans(struct hbl_reg_info *hw_bl_reg_info);
 #endif
 
 /**
+ * reg_process_tpc_ie_mgmt_tx_power_event() - Process the maganement Tx power
+ * event and store the Tx power.
+ * @tpc_ie_power_info: Pointer to management Tx power info
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+reg_process_tpc_ie_mgmt_tx_power_event(struct mgmt_tx_power_info *tpc_ie_power_info);
+
+/**
  * reg_psd_2_eirp() - Calculate EIRP from PSD and bandwidth
  * channel list
  * @pdev: pdev pointer

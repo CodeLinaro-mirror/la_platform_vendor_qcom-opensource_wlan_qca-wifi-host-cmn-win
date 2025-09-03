@@ -40,6 +40,23 @@ QDF_STATUS wmi_extract_reg_chan_list_update_event(
 		struct cur_regulatory_info *reg_info,
 		uint32_t len);
 
+/**
+ * wmi_extract_vdev_tpc_ie_power_event() - function to extract the Tx power
+ * info from the event
+ * @wmi_handle: wmi handle
+ * @evt_buf: event buffer
+ * @tpc_ie_power_info: pointer to tpc ie power info
+ * @len: length of buffer
+ *
+ * Return: QDF_STATUS_SUCCESS on success, QDF_STATUS_E_** on error
+ */
+QDF_STATUS
+wmi_extract_vdev_tpc_ie_power_event(
+		wmi_unified_t wmi_handle,
+		uint8_t *evt_buf,
+		struct mgmt_tx_power_info *tpc_ie_power_info,
+		uint32_t len);
+
 #ifdef CONFIG_BAND_6GHZ
 /**
  * wmi_extract_reg_chan_list_ext_update_event() - function to update the

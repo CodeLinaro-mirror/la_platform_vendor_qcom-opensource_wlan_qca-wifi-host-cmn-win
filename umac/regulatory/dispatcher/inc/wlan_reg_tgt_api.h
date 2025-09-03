@@ -96,6 +96,16 @@ tgt_reg_process_afc_event(struct afc_regulatory_info *afc_info);
 #endif
 
 /**
+ * tgt_reg_process_tpc_ie_mgmt_tx_power_event() - process TPC IE mgmt tx power
+ * event
+ * @tpc_ie_power_info: TPC IE mgmt tx power info
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+tgt_reg_process_tpc_ie_mgmt_tx_power_event(struct mgmt_tx_power_info *tpc_ie_power_info);
+
+/**
  * tgt_reg_process_11d_new_country() - process new 11d country event
  * @psoc: pointer to psoc
  * @reg_11d_new_cc: new 11d country pointer
