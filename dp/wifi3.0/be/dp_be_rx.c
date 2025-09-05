@@ -128,6 +128,13 @@ dp_rx_update_flow_info(struct dp_pdev *pdev, qdf_nbuf_t nbuf,
 		return;
 	}
 
+	if (!flow_invalid) {
+		/*
+		 * Extract egress_macid from fse_metadata and set nbuf->mark for PPE-VP mode
+		 */
+		qdf_nbuf_set_mark(nbuf, DP_RX_FSE_FLOW_EXTRACT_EGRESS_MACID(fse_metadata));
+	}
+
 	qdf_nbuf_set_rx_flow_idx_valid(nbuf, !flow_invalid);
 }
 #else

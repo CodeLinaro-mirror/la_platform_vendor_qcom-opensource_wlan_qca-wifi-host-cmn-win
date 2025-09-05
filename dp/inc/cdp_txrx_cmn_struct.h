@@ -3387,7 +3387,7 @@ struct cdp_rx_flow_info {
 	uint8_t ring_id;
 	enum cdp_flow_fst_operation op_code;
 	struct cdp_rx_flow_tuple_info flow_tuple_info;
-	uint16_t fse_metadata;
+	uint32_t fse_metadata;
 	uint8_t priority_vld;
 	uint8_t tid;
 	uint16_t service_code;
