@@ -5652,6 +5652,7 @@ typedef enum {
 #ifdef WLAN_FEATURE_VBSS
 	wmi_vdev_vbss_config_eventid,
 #endif
+	wmi_pdev_multi_vdev_ac_queue_depth_eventid,
 	wmi_events_max,
 } wmi_conv_event_id;
 
@@ -10524,6 +10525,28 @@ struct wmi_health_mon_params {
 struct edca_pifs_vparam {
 	uint8_t vdev_id;
 	struct wlan_edca_pifs_param_ie param;
+};
+
+/**
+ * struct wmi_host_vdev_ac_info
+ * @data_buffered_per_ac: No of packets pending in queue per access category
+ * @vdev_id: vdev id
+ */
+struct wmi_host_vdev_ac_info {
+	uint32_t data_buffered_per_ac[WME_NUM_AC];
+	uint8_t vdev_id;
+};
+
+/**
+ * struct wmi_host_edca_resp_param
+ * @pdev_id: pdev id
+ * @num_vdev: number of active vdevs
+ * @vdev_info: Pointer to wmi_host_vdev_ac_info structure
+ */
+struct wmi_host_edca_resp_param {
+	uint8_t pdev_id;
+	uint8_t num_vdev;
+	struct wmi_host_vdev_ac_info *vdev_info;
 };
 
 /**

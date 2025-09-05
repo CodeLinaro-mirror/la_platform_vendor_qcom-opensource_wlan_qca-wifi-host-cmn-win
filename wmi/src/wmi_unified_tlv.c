@@ -6019,6 +6019,108 @@ fail:
 	return QDF_STATUS_E_FAILURE;
 }
 
+/**
+ * send_pdev_get_edca_param_cmd_tlv() - Send WMI command to get EDCA buffered data
+ * @wmi_handle: WMI handle used to communicate with firmware
+ * @pdev_id: pdev id for which EDCA data is requested
+ *
+ * This function constructs and sends a WMI command to the firmware to retrieve
+ * EDCA buffered data for the specified radio
+ *
+ * Context: Any context. Caller must ensure @wmi_handle is valid
+ *
+ * Return:
+ * * %QDF_STATUS_SUCCESS     - Command sent successfully
+ * * %QDF_STATUS_E_NOMEM     - Failed to allocate WMI buffer
+ * * %QDF_STATUS_E_FAILURE   - Command send failed
+ */
+static QDF_STATUS send_pdev_get_edca_param_cmd_tlv(wmi_unified_t wmi_handle, uint8_t pdev_id)
+{
+	wmi_pdev_multi_vdev_get_ac_queue_depth_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint32_t len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf)
+		return QDF_STATUS_E_NOMEM;
+
+	cmd = (wmi_pdev_multi_vdev_get_ac_queue_depth_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_pdev_multi_vdev_get_ac_queue_depth_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN
+			(wmi_pdev_multi_vdev_get_ac_queue_depth_cmd_fixed_param));
+
+	cmd->pdev_id = wmi_handle->ops->convert_host_pdev_id_to_target(wmi_handle, pdev_id);
+	wmi_mtrace(WMI_PDEV_MULTI_VDEV_GET_AC_QUEUE_DEPTH_CMDID, cmd->pdev_id, 0);
+	if (wmi_unified_cmd_send(wmi_handle, buf, len, WMI_PDEV_MULTI_VDEV_GET_AC_QUEUE_DEPTH_CMDID)) {
+		wmi_buf_free(buf);
+		wmi_err("Failed to get EDCA data buffered parameter");
+		return QDF_STATUS_E_FAILURE;
+	}
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * extract_edca_resp_event_tlv() - Extract EDCA response parameters from TLV event
+ * @wmi_handle: WMI handle used to parse the event
+ * @evt_buf: Pointer to the raw event buffer received from firmware
+ * @resp: Pointer to structure where extracted EDCA parameters will be stored
+ *
+ * This function parses the event buffer received from firmware and extracts
+ * the EDCA response parameters into the provided "resp" structure
+ *
+ * Context: Any context. Caller must ensure @wmi_handle and @resp are valid
+ *
+ * Return:
+ * * %QDF_STATUS_SUCCESS    - Parameters successfully extracted
+ * * QDF_STATUS_E_INVAL     - Invalid input buffer or missing fields
+ * * QDF_STATUS_E_NOMEM     - Memory allocation failure
+ */
+static QDF_STATUS
+extract_edca_resp_event_tlv(wmi_unified_t wmi_handle, void *evt_buf,
+                            struct wmi_host_edca_resp_param *resp)
+{
+	WMI_PDEV_MULTI_VDEV_AC_QUEUE_DEPTH_EVENTID_param_tlvs *param_buf;
+	wmi_pdev_multi_vdev_ac_queue_depth_event_fixed_param *ev;
+	wmi_vdev_ac_info *vdev_params;
+
+	param_buf = evt_buf;
+	if (!param_buf) {
+		wmi_err("EDCA resp evt_buf is NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	ev = param_buf->fixed_param;
+	if (!ev) {
+		wmi_err("Fixed param is NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	resp->num_vdev = param_buf->num_vdev_ac_info;
+	if (resp->num_vdev == 0)
+		return QDF_STATUS_E_INVAL;
+
+	vdev_params = param_buf->vdev_ac_info;
+	if (!vdev_params) {
+		wmi_err("vdev_params is NULL");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	resp->vdev_info = qdf_mem_malloc(sizeof(*resp->vdev_info) * resp->num_vdev);
+	if (!resp->vdev_info)
+		return QDF_STATUS_E_NOMEM;
+
+	resp->pdev_id = wmi_handle->ops->convert_target_pdev_id_to_host(wmi_handle, ev->pdev_id);
+	for (uint8_t i = 0; i < resp->num_vdev; i++) {
+		resp->vdev_info[i].vdev_id = vdev_params[i].vdev_id;
+		memcpy(resp->vdev_info[i].data_buffered_per_ac,
+			vdev_params[i].pending_packets_per_ac,
+			sizeof(resp->vdev_info[i].data_buffered_per_ac));
+	}
+
+	return QDF_STATUS_SUCCESS;
+}
+
 static WMI_EDCA_PARAM_TYPE
 wmi_convert_edca_pifs_param_type(enum host_edca_param_type type)
 {
@@ -24026,6 +24128,8 @@ struct wmi_ops tlv_ops =  {
 		send_thermal_mitigation_param_cmd_tlv,
 	.send_process_update_edca_param_cmd =
 				 send_process_update_edca_param_cmd_tlv,
+	.send_pdev_get_edca_param_cmd = send_pdev_get_edca_param_cmd_tlv,
+	.extract_edca_resp_event = extract_edca_resp_event_tlv,
 	.send_bss_color_change_enable_cmd =
 		send_bss_color_change_enable_cmd_tlv,
 	.send_coex_config_cmd = send_coex_config_cmd_tlv,
@@ -24974,6 +25078,8 @@ static void populate_tlv_events_id(WMI_EVT_ID *event_ids)
 #ifdef WLAN_FEATURE_VBSS
 	event_ids[wmi_vdev_vbss_config_eventid] = WMI_VDEV_VBSS_CONFIG_EVENTID;
 #endif
+	event_ids[wmi_pdev_multi_vdev_ac_queue_depth_eventid] =
+				WMI_PDEV_MULTI_VDEV_AC_QUEUE_DEPTH_EVENTID;
 }
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS

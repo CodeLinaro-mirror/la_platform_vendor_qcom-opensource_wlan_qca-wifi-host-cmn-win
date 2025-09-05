@@ -1426,6 +1426,12 @@ QDF_STATUS (*send_process_update_edca_param_cmd)(wmi_unified_t wmi_handle,
 		uint8_t vdev_id, bool mu_edca_param,
 		struct wmi_host_wme_vparams wmm_vparams[WMI_MAX_NUM_AC]);
 
+QDF_STATUS (*send_pdev_get_edca_param_cmd)(wmi_unified_t wmi_handle,
+		uint8_t pdev_id);
+
+QDF_STATUS (*extract_edca_resp_event)(wmi_unified_t wmi_handle,
+		void *evt_buf, struct wmi_host_edca_resp_param *resp);
+
 QDF_STATUS (*send_set_ratepwr_table_cmd)(wmi_unified_t wmi_handle,
 		struct ratepwr_table_params *param);
 

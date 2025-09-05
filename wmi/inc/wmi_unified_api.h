@@ -5554,4 +5554,34 @@ wmi_extract_vbss_sta_context(
 			wmi_unified_t wmi_handle, uint8_t *evt_buf,
 			struct win_host_vbss_sta_context *vbss_sta_context);
 #endif /* WLAN_FEATURE_VBSS */
+
+/**
+ * wmi_unified_send_pdev_get_edca_param_cmd - WMI to get edca param from FW
+ * @wmi_handle: Handle to the WMI interface
+ * @pdev_id: ID of the radio
+ *
+ * Context: Any context. Caller must ensure @wmi_handle is valid
+ *
+ * Return:
+ * * %QDF_STATUS_SUCCESS     - Command sent successfully
+ * * %QDF_STATUS_E_FAILURE   - WMI operation handler not available
+ */
+QDF_STATUS
+wmi_unified_send_pdev_get_edca_param_cmd(wmi_unified_t wmi_handle, uint8_t pdev_id);
+
+/**
+ * wmi_extract_edca_resp_param - WMI to extract edca param
+ * @wmi_handle: Handle to the WMI interface
+ * @evt_buf: Pointer to the event buffer received from firmware
+ * @param: Pointer to structure where extracted EDCA parameters will be stored
+ *
+ * Context: Any context. Caller must ensure @wmi_handle is valid
+ *
+ * Return:
+ * * %QDF_STATUS_SUCCESS     - Command sent successfully
+ * * %QDF_STATUS_E_FAILURE   - WMI operation handler not available
+ */
+QDF_STATUS
+wmi_extract_edca_resp_param(wmi_unified_t wmi_hdl, void *evt_buf,
+                            struct wmi_host_edca_resp_param *param);
 #endif /* _WMI_UNIFIED_API_H_ */
