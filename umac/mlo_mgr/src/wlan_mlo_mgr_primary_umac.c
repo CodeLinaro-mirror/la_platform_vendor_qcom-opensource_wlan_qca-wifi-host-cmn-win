@@ -387,7 +387,8 @@ wlan_mld_get_best_primary_umac_w_rssi(struct wlan_mlo_peer_context *ml_peer,
 		}
 	}
 
-	if (prim_link != ML_INVALID_PRIMARY_TQM)
+	if (prim_link != ML_INVALID_PRIMARY_TQM &&
+	    !wlan_vdev_skip_pumac(link_vdevs[prim_link]))
 		return prim_link;
 
 	/* If primary link id is not found, return id of 1st available link */
