@@ -264,7 +264,11 @@ dp_rx_mon_mpdu_pop(struct dp_soc *soc, uint32_t mac_id,
 			rx_desc = dp_rx_get_mon_desc(soc,
 						     msdu_list.sw_cookie[i]);
 
-			qdf_assert_always(rx_desc);
+			if (!rx_desc) {
+				drop_mpdu = true;
+				mon_mac->rx_mon_stats.empty_rx_desc_cnt++;
+				continue;
+			}
 
 			msdu = DP_RX_MON_GET_NBUF_FROM_DESC(rx_desc);
 			buf_paddr = dp_rx_mon_get_paddr_from_desc(rx_desc);

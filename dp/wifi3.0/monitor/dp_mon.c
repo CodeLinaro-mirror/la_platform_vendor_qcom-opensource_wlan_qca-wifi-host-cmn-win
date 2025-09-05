@@ -1148,6 +1148,8 @@ dp_print_pdev_rx_mon_stats(struct dp_pdev *pdev)
 			       rx_mon_stats->dup_mon_linkdesc_cnt);
 		DP_PRINT_STATS("dup_mon_buf_cnt = %d",
 			       rx_mon_stats->dup_mon_buf_cnt);
+		DP_PRINT_STATS("empty rx_desc_cnt = %d",
+			       rx_mon_stats->empty_rx_desc_cnt);
 		DP_PRINT_STATS("mon_rx_buf_reaped = %u",
 			       rx_mon_stats->mon_rx_bufs_reaped_dest);
 		DP_PRINT_STATS("mon_rx_buf_replenished = %u",
