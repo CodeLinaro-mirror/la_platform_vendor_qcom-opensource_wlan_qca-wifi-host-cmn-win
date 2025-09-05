@@ -1274,6 +1274,8 @@ struct wlan_lmac_if_reg_tx_ops {
 #endif
 	bool (*is_chip_11be)(struct wlan_objmgr_psoc *psoc,
 			     uint16_t phy_id);
+	QDF_STATUS (*is_scan_radio)(struct wlan_objmgr_pdev *pdev,
+			      bool *is_scan_radio_supported);
 	QDF_STATUS (*register_rate2power_table_update_event_handler)(
 			struct wlan_objmgr_psoc *psoc,
 			void *arg);
