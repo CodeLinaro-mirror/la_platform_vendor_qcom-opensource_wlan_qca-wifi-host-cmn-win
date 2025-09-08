@@ -2228,6 +2228,7 @@ static inline QDF_STATUS dp_tx_msdu_single_map(struct dp_vdev *vdev,
 }
 #endif
 
+static inline
 qdf_dma_addr_t dp_tx_nbuf_map_regular(struct dp_vdev *vdev,
 				      struct dp_tx_desc_s *tx_desc,
 				      qdf_nbuf_t nbuf)
@@ -2241,6 +2242,7 @@ qdf_dma_addr_t dp_tx_nbuf_map_regular(struct dp_vdev *vdev,
 	return qdf_nbuf_mapped_paddr_get(nbuf);
 }
 
+static inline
 void dp_tx_nbuf_unmap_regular(struct dp_soc *soc, struct dp_tx_desc_s *desc)
 {
 	qdf_nbuf_unmap_nbytes_single_paddr(soc->osdev,
@@ -7009,7 +7011,6 @@ dp_tx_comp_process_desc_list(struct dp_soc *soc,
 		dp_tx_comp_process_desc(soc, desc, &ts, txrx_peer);
 
 		if (qdf_likely(desc->flags & DP_TX_DESC_FLAG_FAST)) {
-			dp_tx_nbuf_unmap_be(soc, desc);
 			dp_tx_nbuf_dev_queue_free(&h, desc);
 			dp_tx_desc_free(soc, desc, desc->pool_id);
 		} else {

@@ -6410,8 +6410,8 @@ dp_print_wbm2sw_ring_stats_from_hal(struct dp_pdev *pdev)
 	uint8_t i = 0;
 
 	for (i = 0; i < pdev->soc->num_tcl_data_rings; i++) {
-		if (!wlan_cfg_is_ipa_enabled(pdev->soc->wlan_cfg_ctx) ||
-			((i != IPA_TX_COMP_RING_IDX) && (i != IPA_TX_ALT_COMP_RING_IDX)))
+		if ((i != IPA_TX_COMP_RING_IDX) &&
+		    (i != IPA_TX_ALT_COMP_RING_IDX))
 			dp_print_ring_stat_from_hal(pdev->soc,
 						    &pdev->soc->tx_comp_ring[i],
 						    WBM2SW_RELEASE);
@@ -6424,8 +6424,7 @@ dp_print_wbm2sw_ring_stats_from_hal(struct dp_pdev *pdev)
 	uint8_t i = 0;
 
 	for (i = 0; i < pdev->soc->num_tcl_data_rings; i++) {
-		if (!wlan_cfg_is_ipa_enabled(pdev->soc->wlan_cfg_ctx) ||
-			(i != IPA_TX_COMP_RING_IDX))
+		if (i != IPA_TX_COMP_RING_IDX)
 			dp_print_ring_stat_from_hal(pdev->soc,
 						    &pdev->soc->tx_comp_ring[i],
 						    WBM2SW_RELEASE);

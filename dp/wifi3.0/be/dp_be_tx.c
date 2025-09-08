@@ -2285,16 +2285,6 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 	qdf_dsb();
 }
 
-
-#ifdef IPA_OFFLOAD
-static inline
-qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
-				 struct dp_tx_desc_s *tx_desc,
-				 qdf_nbuf_t nbuf)
-{
-	return dp_tx_nbuf_map_regular(vdev, tx_desc, nbuf);
-}
-#else
 static inline
 qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 				 struct dp_tx_desc_s *tx_desc,
@@ -2305,21 +2295,13 @@ qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
-#endif /* IPA_OFFLOAD */
 #endif /* CONFIG_IO_COHERENCY */
 
-#ifdef IPA_OFFLOAD
-void dp_tx_nbuf_unmap_be(struct dp_soc *soc,
-			 struct dp_tx_desc_s *desc)
-{
-	dp_tx_nbuf_unmap_regular(soc, desc);
-}
-#else
+static inline
 void dp_tx_nbuf_unmap_be(struct dp_soc *soc,
 			 struct dp_tx_desc_s *desc)
 {
 }
-#endif /* IPA_OFFLOAD */
 
 #ifdef QCA_DP_TX_NBUF_LIST_FREE
 qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
@@ -2663,7 +2645,6 @@ add_to_pool2:
 
 			if (tx_desc->flags & DP_TX_DESC_FLAG_FASTPATH_SIMPLE ||
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS) {
-				dp_tx_nbuf_unmap_be(soc, tx_desc);
 				dp_tx_nbuf_dev_queue_free(&h, tx_desc);
 				fast_desc_count++;
 				if (!fast_tail_desc) {
