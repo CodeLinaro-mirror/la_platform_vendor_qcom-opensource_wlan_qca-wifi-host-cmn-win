@@ -49,7 +49,7 @@ QDF_STATUS vdev_mgr_create_send(struct vdev_mlme_obj *mlme_obj);
  *
  * Return: QDF_STATUS - Success or Failure
  */
-QDF_STATUS vdev_mgr_start_send(struct vdev_mlme_obj *mlme_obj, bool restart);
+QDF_STATUS vdev_mgr_start_send(struct vdev_mlme_obj *mlme_obj, bool restart, bool is_lower_in_mixed_mode);
 
 /**
  * vdev_mgr_delete_send() - MLME API to send delete request to
