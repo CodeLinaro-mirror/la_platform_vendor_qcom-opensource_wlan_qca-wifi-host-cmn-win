@@ -180,7 +180,11 @@ static inline __qdf_workqueue_t *__qdf_create_singlethread_workqueue(char *name)
 static inline
 __qdf_workqueue_t *__qdf_alloc_high_prior_ordered_workqueue(char *name)
 {
+#if defined CONFIG_SDX_WAIKIKI
+	return  alloc_ordered_workqueue("%s", WQ_HIGHPRI, name);
+#else
 	return  alloc_ordered_workqueue(name, WQ_HIGHPRI);
+#endif
 }
 
 /**
@@ -191,7 +195,11 @@ __qdf_workqueue_t *__qdf_alloc_high_prior_ordered_workqueue(char *name)
  */
 static inline __qdf_workqueue_t *__qdf_alloc_unbound_workqueue(char *name)
 {
+#if defined CONFIG_SDX_WAIKIKI
+	return alloc_workqueue("%s", WQ_UNBOUND, 0, name);
+#else
 	return alloc_workqueue(name, WQ_UNBOUND, 0);
+#endif
 }
 
 /**

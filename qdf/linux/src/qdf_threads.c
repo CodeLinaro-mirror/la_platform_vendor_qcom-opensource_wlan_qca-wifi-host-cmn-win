@@ -161,7 +161,11 @@ qdf_thread_t *qdf_create_thread(int (*thread_handler)(void *data), void *data,
 {
 	struct task_struct *task;
 
+#if defined CONFIG_SDX_WAIKIKI
+	task = kthread_create(thread_handler, data, "%s", thread_name);
+#else
 	task = kthread_create(thread_handler, data, thread_name);
+#endif
 
 	if (IS_ERR(task))
 		return NULL;
