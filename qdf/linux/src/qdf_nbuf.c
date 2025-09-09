@@ -612,12 +612,6 @@ skb_alloc:
 #endif
 qdf_export_symbol(__qdf_nbuf_alloc);
 
-#if defined(IPA_OFFLOAD) && defined(QCA_DP_NBUF_FAST_RECYCLE_CHECK)
-#define __qdf_nbuf_netdev_alloc(d, s, f) __netdev_alloc_skb_fast(d, s, f)
-#else
-#define __qdf_nbuf_netdev_alloc(d, s, f) __netdev_alloc_skb(d, s, f)
-#endif
-
 struct sk_buff *__qdf_nbuf_frag_alloc(qdf_device_t osdev, size_t size,
 				      int reserve, int align, int prio,
 				      const char *func, uint32_t line)
@@ -643,7 +637,7 @@ struct sk_buff *__qdf_nbuf_frag_alloc(qdf_device_t osdev, size_t size,
 #endif
 	}
 
-	skb = __qdf_nbuf_netdev_alloc(NULL, size, flags);
+	skb = __netdev_alloc_skb(NULL, size, flags);
 	if (skb)
 		goto skb_alloc;
 

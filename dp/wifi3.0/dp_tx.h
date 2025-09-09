@@ -2613,11 +2613,4 @@ struct dp_tx_desc_pool_s *dp_get_tx_desc_pool_wrapper(struct dp_soc *soc)
 	return NULL;
 }
 #endif /* QCA_DP_OPTIMIZED_TX_DESC */
-
-qdf_dma_addr_t dp_tx_nbuf_map_regular(struct dp_vdev *vdev,
-				      struct dp_tx_desc_s *tx_desc,
-				      qdf_nbuf_t nbuf);
-void dp_tx_nbuf_unmap_regular(struct dp_soc *soc, struct dp_tx_desc_s *desc);
-void dp_tx_nbuf_unmap_be(struct dp_soc *soc, struct dp_tx_desc_s *desc);
-
 #endif
