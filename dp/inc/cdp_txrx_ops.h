@@ -1419,6 +1419,10 @@ struct cdp_host_stats_ops {
 	QDF_STATUS
 		(*txrx_get_pdev_stats)(struct cdp_soc_t *soc, uint8_t pdev_id,
 				       struct cdp_pdev_stats *buf);
+
+	QDF_STATUS
+		(*txrx_get_tx_pkt_stats)(struct cdp_soc_t *soc, uint8_t pdev_id,
+				       struct cdp_tx_pkt_stats *buf);
 	int
 		(*txrx_get_ratekbps)(int preamb, int mcs,
 				     int htflag, int gintval);

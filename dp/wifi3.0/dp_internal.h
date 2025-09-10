@@ -5717,6 +5717,19 @@ QDF_STATUS
 dp_get_pdev_erp_stats(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 		      struct cdp_pdev_erp_stats *stats);
 
+/**
+ * dp_txrx_get_tx_pkt_stats() - API to get pdev tx rate stats
+ * @soc_hdl: soc handle
+ * @pdev_id: id of pdev handle
+ * @stats: pointer to tx rate stats
+ *
+ * Return: QDF_STATUS_SUCCESS: Success
+ *         QDF_STATUS_E_FAILURE: Error
+ */
+QDF_STATUS
+dp_txrx_get_tx_pkt_stats(struct cdp_soc_t *soc, uint8_t pdev_id,
+		       struct cdp_tx_pkt_stats *pdev_tx_stats);
+
 #ifdef QCA_PEER_EXT_STATS
 /**
  * dp_get_peer_tx_ext_stats() - API to get peer tx stats

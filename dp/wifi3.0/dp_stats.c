@@ -11031,6 +11031,33 @@ dp_get_pdev_erp_stats(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 
 	return QDF_STATUS_SUCCESS;
 }
+
+QDF_STATUS
+dp_txrx_get_tx_pkt_stats(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
+		       struct cdp_tx_pkt_stats *pdev_tx_stats)
+{
+	struct dp_soc *soc = (struct dp_soc *)soc_hdl;
+	struct dp_pdev *pdev = dp_get_pdev_from_soc_pdev_id_wifi3(soc, pdev_id);
+	uint8_t mcs, pkt_type;
+
+	if (!pdev)
+		return QDF_STATUS_E_FAILURE;
+
+	dp_aggregate_pdev_stats(pdev);
+
+	for (pkt_type = 0; pkt_type < DOT11_MAX; pkt_type++) {
+		for (mcs = 0; mcs < MAX_MCS; mcs++) {
+			if (!cdp_rate_string[pkt_type][mcs].valid)
+				continue;
+
+			pdev_tx_stats->pkt_type[pkt_type].mcs_count[mcs] =
+			    pdev->stats.tx.pkt_type[pkt_type].mcs_count[mcs];
+		}
+	}
+	pdev_tx_stats->comp_pkt = pdev->stats.tx.comp_pkt;
+	return QDF_STATUS_SUCCESS;
+}
+
 #endif
 #ifndef CONFIG_AP_PLATFORM
 #if defined WLAN_FEATURE_11BE_MLO && defined DP_MLO_LINK_STATS_SUPPORT

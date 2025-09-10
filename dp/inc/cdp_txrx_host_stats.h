@@ -854,6 +854,31 @@ cdp_host_get_pdev_stats(ol_txrx_soc_handle soc,
 }
 
 /**
+ * cdp_host_get_pdev_tx_stats() - Call to get cdp_tx_stats
+ * @soc: soc handle
+ * @pdev_id: id of dp pdev object
+ * @buf: buffer to hold cdp_tx_stats
+ *
+ * Return: success/failure
+ */
+static inline int
+cdp_host_get_tx_pkt_stats(ol_txrx_soc_handle soc,
+			uint8_t pdev_id, struct cdp_tx_pkt_stats *buf)
+{
+	if (!soc || !soc->ops) {
+		dp_cdp_debug("Invalid Instance");
+		QDF_BUG(0);
+		return 0;
+	}
+
+	if (!soc->ops->host_stats_ops ||
+	    !soc->ops->host_stats_ops->txrx_get_tx_pkt_stats)
+		return 0;
+
+	return soc->ops->host_stats_ops->txrx_get_tx_pkt_stats(soc, pdev_id, buf);
+}
+
+/**
  * cdp_host_get_radio_stats() - Call to get radio stats
  * @soc: soc handle
  * @pdev_id: id of dp pdev object
