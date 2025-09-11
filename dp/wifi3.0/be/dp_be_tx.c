@@ -2049,13 +2049,7 @@ QDF_STATUS dp_tx_desc_pool_init_be(struct dp_soc *soc,
 		dp_tx_desc_set_magic(tx_desc, DP_TX_MAGIC_PATTERN_FREE);
 		tx_desc = tx_desc->next;
 		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
-#ifdef IPA_OFFLOAD
-			page_desc->page_p_addr =
-				qdf_nbuf_map_nbytes_single(soc->osdev,
-						page_desc->page_v_addr,
-						QDF_DMA_FROM_DEVICE,
-						qdf_page_size);
-#else
+#ifndef IPA_OFFLOAD
 			qdf_mem_dma_sync_single_for_device(
 						soc->osdev,
 						page_desc->page_p_addr,
@@ -2293,6 +2287,15 @@ void dp_tx_populate_hal_desc(struct dp_soc *soc, struct dp_tx_desc_s *tx_desc,
 	qdf_dsb();
 }
 
+#if defined(IPA_OFFLOAD) && defined(QCA_DP_NBUF_FAST_RECYCLE_CHECK)
+static inline
+qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
+				 struct dp_tx_desc_s *tx_desc,
+				 qdf_nbuf_t nbuf)
+{
+	return dp_tx_nbuf_map_regular(vdev, tx_desc, nbuf);
+}
+#else
 static inline
 qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 				 struct dp_tx_desc_s *tx_desc,
@@ -2303,13 +2306,21 @@ qdf_dma_addr_t dp_tx_nbuf_map_be(struct dp_vdev *vdev,
 
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
+#endif /* IPA_OFFLOAD && QCA_DP_NBUF_FAST_RECYCLE_CHECK */
 #endif /* CONFIG_IO_COHERENCY */
 
-static inline
+#if defined(IPA_OFFLOAD) && defined(QCA_DP_NBUF_FAST_RECYCLE_CHECK)
+void dp_tx_nbuf_unmap_be(struct dp_soc *soc,
+			 struct dp_tx_desc_s *desc)
+{
+	dp_tx_nbuf_unmap_regular(soc, desc);
+}
+#else
 void dp_tx_nbuf_unmap_be(struct dp_soc *soc,
 			 struct dp_tx_desc_s *desc)
 {
 }
+#endif /* IPA_OFFLOAD && QCA_DP_NBUF_FAST_RECYCLE_CHECK */
 
 #ifdef QCA_DP_TX_NBUF_LIST_FREE
 qdf_nbuf_t dp_tx_fast_send_be(struct cdp_soc_t *soc_hdl, uint8_t vdev_id,
@@ -2653,6 +2664,7 @@ add_to_pool2:
 
 			if (tx_desc->flags & DP_TX_DESC_FLAG_FASTPATH_SIMPLE ||
 			    tx_desc->flags & DP_TX_DESC_FLAG_PPEDS) {
+				dp_tx_nbuf_unmap_be(soc, tx_desc);
 				dp_tx_nbuf_dev_queue_free(&h, tx_desc);
 				fast_desc_count++;
 				if (!fast_tail_desc) {
