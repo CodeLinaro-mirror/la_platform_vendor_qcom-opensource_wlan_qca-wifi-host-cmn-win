@@ -576,6 +576,47 @@ static QDF_STATUS dp_get_cmem_allocation(struct dp_soc *soc,
 }
 #endif
 
+#ifndef IPA_OFFLOAD
+static inline void
+dp_hw_cookie_spt_page_map(qdf_device_t osdev, qdf_dma_addr_t *page_p_addr,
+			  void *cacheable_pages)
+{
+	*page_p_addr = qdf_mem_virt_to_phys(cacheable_pages);
+}
+
+static inline void
+dp_hw_cookie_spt_page_unmap(qdf_device_t osdev,
+			    struct dp_spt_page_desc *spt_desc,
+			    uint32_t page_num)
+{
+}
+#else
+static inline void
+dp_hw_cookie_spt_page_map(qdf_device_t osdev, qdf_dma_addr_t *page_p_addr,
+			  void *cacheable_pages)
+{
+	qdf_mem_map_nbytes_single(osdev,
+				  cacheable_pages,
+				  QDF_DMA_FROM_DEVICE,
+				  qdf_page_size,
+				  page_p_addr);
+}
+
+static inline void
+dp_hw_cookie_spt_page_unmap(qdf_device_t osdev,
+			    struct dp_spt_page_desc *spt_desc,
+			    uint32_t page_num)
+{
+	int i;
+
+	for (i = 0; i < page_num; i++)
+		qdf_mem_unmap_nbytes_single(osdev,
+					    spt_desc[i].page_p_addr,
+					    QDF_DMA_FROM_DEVICE,
+					    qdf_page_size);
+}
+#endif
+
 QDF_STATUS
 dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 			       struct dp_hw_cookie_conversion_t *cc_ctx,
@@ -624,8 +665,8 @@ dp_hw_cookie_conversion_attach(struct dp_soc_be *be_soc,
 
 	for (i = 0; i < num_spt_pages; i++) {
 		spt_desc[i].page_v_addr = cacheable_pages[i];
-		spt_desc[i].page_p_addr =
-				qdf_mem_virt_to_phys(cacheable_pages[i]);
+		dp_hw_cookie_spt_page_map(soc->osdev, &spt_desc[i].page_p_addr,
+					  cacheable_pages[i]);
 	}
 
 	cc_ctx->total_page_num = num_spt_pages;
@@ -643,6 +684,10 @@ dp_hw_cookie_conversion_detach(struct dp_soc_be *be_soc,
 			       struct dp_hw_cookie_conversion_t *cc_ctx)
 {
 	struct dp_soc *soc = DP_SOC_BE_GET_SOC(be_soc);
+
+	dp_hw_cookie_spt_page_unmap(soc->osdev,
+				    cc_ctx->page_desc_base,
+				    cc_ctx->total_page_num);
 
 	qdf_mem_multi_pages_free_no_header(soc->osdev, &cc_ctx->page_pool);
 	if (cc_ctx->page_desc_base)

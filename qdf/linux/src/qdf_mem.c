@@ -2319,30 +2319,6 @@ out_fail:
 
 qdf_export_symbol(qdf_mem_multi_pages_alloc_no_header);
 
-#ifdef IPA_OFFLOAD
-void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
-					struct qdf_mem_multi_page_t *pages)
-{
-	unsigned int page_idx;
-
-	if (!pages->page_size)
-		pages->page_size = qdf_page_size;
-
-	for (page_idx = 0; page_idx < pages->num_pages; page_idx++) {
-		qdf_nbuf_unmap_nbytes_single(osdev, pages->cacheable_pages[page_idx],
-					     QDF_DMA_FROM_DEVICE,
-					     pages->page_size);
-		qdf_mem_free_no_header(pages->cacheable_pages[page_idx],
-				       pages->page_size);
-	}
-	qdf_mem_free(pages->cacheable_pages);
-
-	pages->cacheable_pages = NULL;
-	pages->dma_pages = NULL;
-	pages->num_pages = 0;
-	return;
-}
-#else
 void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
 					struct qdf_mem_multi_page_t *pages)
 {
@@ -2361,7 +2337,6 @@ void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
 	pages->num_pages = 0;
 	return;
 }
-#endif
 qdf_export_symbol(qdf_mem_multi_pages_free_no_header);
 
 void qdf_mem_multi_pages_zero(struct qdf_mem_multi_page_t *pages,

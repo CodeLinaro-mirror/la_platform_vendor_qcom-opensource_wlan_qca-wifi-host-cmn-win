@@ -1291,19 +1291,11 @@ dp_rx_desc_pool_init_be_cc(struct dp_soc *soc,
 		rx_desc_elem->rx_desc.in_use = 0;
 		rx_desc_elem = rx_desc_elem->next;
 		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
-#ifdef IPA_OFFLOAD
-			page_desc->page_p_addr =
-				qdf_nbuf_map_nbytes_single(soc->osdev,
-						page_desc->page_v_addr,
-						QDF_DMA_FROM_DEVICE,
-						qdf_page_size);
-#else
 			qdf_mem_dma_sync_single_for_device(
 							soc->osdev,
 							page_desc->page_p_addr,
 							qdf_page_size,
 							DMA_FROM_DEVICE);
-#endif
 		}
 		avail_entry_index = (avail_entry_index + 1) &
 					DP_CC_SPT_PAGE_MAX_ENTRIES_MASK;
@@ -1362,19 +1354,11 @@ dp_rx_desc_pool_init_be_cc(struct dp_soc *soc,
 		rx_desc_pool->array[i].rx_desc.chip_id =
 					dp_mlo_get_chip_id(soc);
 		if (avail_entry_index == DP_CC_SPT_PAGE_MAX_ENTRIES_MASK) {
-#ifdef IPA_OFFLOAD
-			page_desc->page_p_addr =
-				qdf_nbuf_map_nbytes_single(soc->osdev,
-						page_desc->page_v_addr,
-						QDF_DMA_FROM_DEVICE,
-						qdf_page_size);
-#else
 			qdf_mem_dma_sync_single_for_device(
 						soc->osdev,
 						page_desc->page_p_addr,
 						qdf_page_size,
 						DMA_FROM_DEVICE);
-#endif
 		}
 		avail_entry_index = (avail_entry_index + 1) &
 					DP_CC_SPT_PAGE_MAX_ENTRIES_MASK;
