@@ -2538,6 +2538,8 @@ struct cdp_tx_indication_info {
 #ifdef QCA_SUPPORT_LITE_MONITOR
 	ol_osif_vdev_handle osif_vdev;
 #endif
+	uint8_t ack_type;
+	uint8_t ack_recvd;
 };
 
 /**

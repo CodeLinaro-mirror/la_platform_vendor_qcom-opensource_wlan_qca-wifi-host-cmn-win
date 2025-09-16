@@ -1755,7 +1755,7 @@ dp_tx_mon_generate_ack_rx_frm(struct dp_pdev *pdev,
  */
 static void
 dp_tx_mon_send_to_stack(struct dp_pdev *pdev, qdf_nbuf_t mpdu,
-			uint32_t num_frag, uint32_t ppdu_id,
+			uint32_t num_frag, struct dp_tx_ppdu_info *ppdu_info,
 			uint8_t mac_id)
 {
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
@@ -1764,9 +1764,15 @@ dp_tx_mon_send_to_stack(struct dp_pdev *pdev, qdf_nbuf_t mpdu,
 	struct dp_pdev_tx_monitor_be *tx_mon_be =
 			dp_mon_pdev_get_tx_mon(mon_pdev_be, mac_id);
 	struct cdp_tx_indication_info tx_capture_info = {0};
+	uint32_t ppdu_id = 0;
+
+	if (ppdu_info) {
+		ppdu_id = TXMON_PPDU(ppdu_info, ppdu_id);
+		tx_capture_info.ack_type = TXMON_PPDU_HAL(ppdu_info, ack_type);
+		tx_capture_info.ack_recvd = TXMON_PPDU_HAL(ppdu_info, ack_recvd);
+        }
 
 	tx_mon_be->stats.pkt_buf_to_stack += num_frag;
-
 	tx_capture_info.radiotap_done = 1;
 	tx_capture_info.mpdu_nbuf = mpdu;
 	tx_capture_info.mpdu_info.ppdu_id = ppdu_id;
@@ -1909,7 +1915,8 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 	usr_mpdu_q = &TXMON_PPDU_USR(ppdu_info, user_idx, mpdu_q);
 
 	if (user_idx == 0 &&
-	    (TXMON_PPDU_HAL(ppdu_info, ack_recvd) ||
+	    ((TXMON_PPDU_HAL(ppdu_info, ack_recvd) &&
+	     !TXMON_PPDU_HAL(ppdu_info, ack_type)) ||
 	     TXMON_PPDU_HAL(ppdu_info, cts_recvd))) {
 		uint32_t sz_ppdu_info = (sizeof(struct dp_tx_ppdu_info) +
 					 (sizeof(struct mon_rx_user_status)));
@@ -1955,13 +1962,13 @@ dp_tx_mon_send_per_usr_mpdu(struct dp_pdev *pdev,
 		}
 
 		dp_tx_mon_send_to_stack(pdev, buf, num_frag,
-					TXMON_PPDU(ppdu_info, ppdu_id),
+					ppdu_info,
 					mac_id);
 	}
 
 	if ((user_idx == 0) && rx_nbuf) {
 		dp_tx_mon_send_to_stack(pdev, rx_nbuf,
-					0, 0, mac_id);
+					0, NULL, mac_id);
 		rx_nbuf = NULL;
 
 		if (rx_ppdu_info)

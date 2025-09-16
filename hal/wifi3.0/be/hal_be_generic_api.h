@@ -2062,6 +2062,8 @@ hal_txmon_status_parse_tlv_generic_be(hal_soc_handle_t hal_soc_hdl,
 			TXMON_HAL(ppdu_info, ack_recvd) = true;
 			TXMON_HAL(ppdu_info, ack_rssi) = ack->ack_frame_rssi;
 		}
+
+		TXMON_HAL(ppdu_info, ack_type) = ack->ack_ba_status_type;
 		status = HAL_MON_TX_FES_STATUS_ACK_BA;
 		SHOW_DEFINED(WIFITX_FES_STATUS_ACK_OR_BA_E);
 		break;
