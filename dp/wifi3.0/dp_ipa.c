@@ -4959,7 +4959,7 @@ QDF_STATUS dp_ipa_rx_buf_smmu_mapping(
 		dp_debug("SMMU S1 disabled");
 		return QDF_STATUS_SUCCESS;
 	}
-	ret = dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, true, func, line, 0);
+	ret = dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, true, false, func, line, 0);
 
 	return ret;
 }
@@ -4975,7 +4975,7 @@ QDF_STATUS dp_ipa_rx_buf_smmu_unmapping(
 		return QDF_STATUS_SUCCESS;
 	}
 
-	if (dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, false, func, line, 0))
+	if (dp_ipa_handle_rx_buf_pool_smmu_mapping(soc, false, false, func, line, 0))
 		return QDF_STATUS_E_FAILURE;
 
 	return QDF_STATUS_SUCCESS;

@@ -2041,7 +2041,12 @@ void qdf_minidump_log(void *start_addr,
 		      const size_t size, const char *name,
 		      const char *module_name)
 {
+
+#ifdef CONFIG_SDX_WAIKIKI
+	__qdf_minidump_log(start_addr, size, name);
+#else
 	__qdf_minidump_log(start_addr, size, name, module_name);
+#endif
 }
 
 /**
