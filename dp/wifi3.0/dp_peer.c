@@ -3187,6 +3187,37 @@ void dp_rx_reset_roaming_peer(struct dp_soc *soc, uint8_t vdev_id,
 }
 #endif
 
+#ifdef WLAN_FEATURE_11BE_MLO
+static inline void dp_peer_dump_info(struct dp_soc *soc, uint16_t peer_id,
+				     uint16_t hw_peer_id, uint8_t vdev_id,
+				     uint8_t *peer_mac_addr,
+				     struct dp_peer *peer)
+{
+	dp_err("(soc:%pK) peer_id %u, hw_peer_id %u"
+	       " peer_mac "QDF_MAC_ADDR_FMT" vdev_id %d",
+	       soc, peer_id, hw_peer_id, QDF_MAC_ADDR_REF(peer_mac_addr),
+	       vdev_id);
+
+	dp_err("reo_shared_qaddr_is_enable %u, rx_tid[%pK]",
+	       hal_reo_shared_qaddr_is_enable(soc->hal_soc), peer->rx_tid);
+	dp_err("peer_type %u, mld_peer %u", peer->peer_type, peer->mld_peer);
+}
+#else
+static inline void dp_peer_dump_info(struct dp_soc *soc, uint16_t peer_id,
+				     uint16_t hw_peer_id, uint8_t vdev_id,
+				     uint8_t *peer_mac_addr,
+				     struct dp_peer *peer)
+{
+	dp_err("(soc:%pK) peer_id %u, hw_peer_id %u"
+	       " peer_mac "QDF_MAC_ADDR_FMT" vdev_id %d",
+	       soc, peer_id, hw_peer_id, QDF_MAC_ADDR_REF(peer_mac_addr),
+	       vdev_id);
+
+	dp_err("reo_shared_qaddr_is_enable %u, rx_tid[%pK]",
+	       hal_reo_shared_qaddr_is_enable(soc->hal_soc), peer->rx_tid);
+}
+#endif
+
 QDF_STATUS
 dp_rx_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 		       uint16_t hw_peer_id, uint8_t vdev_id,
@@ -3283,6 +3314,11 @@ dp_rx_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 						type, 0);
 			}
 
+			if (!peer->rx_tid && !IS_MLO_DP_LINK_PEER(peer)) {
+				dp_peer_dump_info(soc, peer_id, hw_peer_id,
+						  vdev_id, peer_mac_addr, peer);
+			}
+
 			/* If peer setup and hence rx_tid setup got called
 			 * before htt peer map then Qref write to LUT did
 			 * not happen in rx_tid setup as peer_id was invalid.
@@ -3291,8 +3327,9 @@ dp_rx_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 			 * write to LUT for Tid 0 and 16.
 			 */
 			if (hal_reo_shared_qaddr_is_enable(soc->hal_soc) &&
-			    peer->rx_tid[0].hw_qdesc_vaddr_unaligned &&
-			    !IS_MLO_DP_LINK_PEER(peer)) {
+			    !IS_MLO_DP_LINK_PEER(peer) &&
+			    peer->rx_tid &&
+			    peer->rx_tid[0].hw_qdesc_vaddr_unaligned) {
 				add_entry_write_list(soc, peer, 0);
 				hal_reo_shared_qaddr_write(soc->hal_soc,
 							   peer_id,
