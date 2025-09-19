@@ -2337,7 +2337,6 @@ void qdf_mem_multi_pages_free_no_header(qdf_device_t osdev,
 	pages->num_pages = 0;
 	return;
 }
-
 qdf_export_symbol(qdf_mem_multi_pages_free_no_header);
 
 void qdf_mem_multi_pages_zero(struct qdf_mem_multi_page_t *pages,

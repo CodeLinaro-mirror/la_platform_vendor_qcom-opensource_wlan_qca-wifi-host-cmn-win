@@ -170,6 +170,7 @@ wlan_find_mlpeer_link_mac_addr(struct wlan_mlo_dev_context *ml_dev,
 		if (qdf_is_macaddr_equal(&link_mac_arg->mac_addr,
 					 &link_peer->link_addr)) {
 			link_mac_arg->ml_peer = ml_peer;
+			wlan_mlo_peer_get_ref(link_mac_arg->ml_peer);
 			return QDF_STATUS_SUCCESS;
 		}
 	}
@@ -193,6 +194,7 @@ wlan_find_mlpeer_mld_mac_addr(struct wlan_mlo_dev_context *ml_dev,
 	if (qdf_is_macaddr_equal(&mld_mac_arg->mac_addr,
 				 &ml_peer->peer_mld_addr)) {
 		mld_mac_arg->ml_peer = ml_peer;
+		wlan_mlo_peer_get_ref(mld_mac_arg->ml_peer);
 		return QDF_STATUS_SUCCESS;
 	}
 
@@ -210,6 +212,7 @@ static QDF_STATUS wlan_find_mlpeer_aid(struct wlan_mlo_dev_context *ml_dev,
 
 	if (aid_arg->aid == ml_peer->assoc_id) {
 		aid_arg->ml_peer = ml_peer;
+		wlan_mlo_peer_get_ref(aid_arg->ml_peer);
 		return QDF_STATUS_SUCCESS;
 	}
 
@@ -228,6 +231,7 @@ wlan_find_mlpeer_ml_peerid(struct wlan_mlo_dev_context *ml_dev,
 
 	if (mlpeer_id_arg->ml_peerid == ml_peer->mlo_peer_id) {
 		mlpeer_id_arg->ml_peer = ml_peer;
+		wlan_mlo_peer_get_ref(mlpeer_id_arg->ml_peer);
 		return QDF_STATUS_SUCCESS;
 	}
 
@@ -250,8 +254,6 @@ struct wlan_mlo_peer_context *wlan_mlo_get_mlpeer_by_linkmac(
 	if (status == QDF_STATUS_SUCCESS)
 		return link_mac_arg.ml_peer;
 
-	/* TODO: Take ref */
-
 	return NULL;
 }
 
@@ -271,8 +273,6 @@ struct wlan_mlo_peer_context *wlan_mlo_get_mlpeer_by_aid(
 	if (status == QDF_STATUS_SUCCESS)
 		return aid_arg.ml_peer;
 
-	/* TODO: Take ref */
-
 	return NULL;
 }
 
@@ -291,8 +291,6 @@ struct wlan_mlo_peer_context *wlan_mlo_get_mlpeer_by_mld_mac(
 					      &mld_mac_arg);
 	if (QDF_IS_STATUS_SUCCESS(status))
 		return mld_mac_arg.ml_peer;
-
-	/* TODO: Take ref */
 
 	return NULL;
 }
@@ -347,8 +345,6 @@ struct wlan_mlo_peer_context *wlan_mlo_get_mlpeer_by_ml_peerid(
 	if (status == QDF_STATUS_SUCCESS)
 		return peerid_arg.ml_peer;
 
-	/* TODO: Take ref */
-
 	return NULL;
 }
 
@@ -370,7 +366,8 @@ struct wlan_mlo_peer_context *wlan_mlo_get_mlpeer(
 		ml_peerlist_lock_release(mlo_peer_list);
 		return NULL;
 	}
-	/* TODO: Take ref */
+	/* Take ref here, release it in the caller */
+	wlan_mlo_peer_get_ref(ml_peer);
 
 	ml_peerlist_lock_release(mlo_peer_list);
 	return ml_peer;
@@ -431,7 +428,8 @@ QDF_STATUS mlo_dev_mlpeer_attach(struct wlan_mlo_dev_context *ml_dev,
 }
 
 QDF_STATUS mlo_dev_mlpeer_detach(struct wlan_mlo_dev_context *ml_dev,
-				 struct wlan_mlo_peer_context *ml_peer)
+				 struct wlan_mlo_peer_context *ml_peer,
+				 bool is_lock_required)
 {
 	uint8_t hash_index;
 	QDF_STATUS status;
@@ -439,12 +437,14 @@ QDF_STATUS mlo_dev_mlpeer_detach(struct wlan_mlo_dev_context *ml_dev,
 	struct mlo_mgr_context *mlo_mgr_ctx = wlan_objmgr_get_mlo_ctx();
 
 	mlo_peer_list = &ml_dev->mlo_peer_list;
-	ml_peerlist_lock_acquire(mlo_peer_list);
+	if (is_lock_required)
+		ml_peerlist_lock_acquire(mlo_peer_list);
 	hash_index = WLAN_PEER_HASH(ml_peer->peer_mld_addr.bytes);
 	status = wlan_mlo_peerlist_remove_mlpeer(
 					&mlo_peer_list->peer_hash[hash_index],
 					ml_peer);
-	ml_peerlist_lock_release(mlo_peer_list);
+	if (is_lock_required)
+		ml_peerlist_lock_release(mlo_peer_list);
 
 	qdf_atomic_dec(&mlo_mgr_ctx->ml_peer_count);
 
