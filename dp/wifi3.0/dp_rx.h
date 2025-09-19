@@ -3000,7 +3000,6 @@ qdf_dma_addr_t dp_rx_nbuf_sync_no_dsb(struct dp_soc *dp_soc,
 	return (qdf_dma_addr_t)qdf_mem_virt_to_phys(nbuf->data);
 }
 #else
-#define L3_HEADER_PAD 2
 static inline
 qdf_dma_addr_t dp_rx_nbuf_sync_no_dsb(struct dp_soc *dp_soc,
 				      qdf_nbuf_t nbuf,
