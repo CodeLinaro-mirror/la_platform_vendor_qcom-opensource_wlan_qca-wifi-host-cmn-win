@@ -552,6 +552,8 @@ QDF_STATUS hif_ahb_enable_bus(struct hif_softc *ol_sc,
 		ol_sc->mem_pa = memres->start;
 	}
 
+	ol_sc->irq_unlazy_disable = 1;
+
 	ret = pfrm_dma_set_mask(dev, 32);
 	if (ret) {
 		hif_err("ath: 32-bit DMA not available");

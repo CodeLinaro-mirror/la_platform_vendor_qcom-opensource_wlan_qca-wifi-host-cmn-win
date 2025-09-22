@@ -3888,11 +3888,9 @@ again:
 	tgt_info->target_type = target_type;
 
 	/*
-	 * Disable unlzay interrupt registration for QCN9000
+	 * Disable unlazy interrupt registration
 	 */
-	if (target_type == TARGET_TYPE_QCN9000 ||
-	    target_type == TARGET_TYPE_QCN9224)
-		ol_sc->irq_unlazy_disable = 1;
+	ol_sc->irq_unlazy_disable = 1;
 
 	if (ce_srng_based(ol_sc)) {
 		hif_info("Skip tgt_wake up for srng devices");
