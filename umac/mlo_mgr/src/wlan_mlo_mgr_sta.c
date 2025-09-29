@@ -2959,11 +2959,6 @@ void mlo_process_ml_reconfig_ie(struct wlan_objmgr_vdev *vdev,
 
 check_ml_rv:
 	/* Processing for ML Reconfig IE */
-	if (vdev_count == 1) {
-		/* Single link MLO, no need to process link delete */
-		goto err_release_refs;
-	}
-
 	status = util_find_mlie_by_variant(ml_ie,
 					   ml_ie_len,
 					   &ml_rv_ie,
@@ -2983,6 +2978,38 @@ check_ml_rv:
 
 	if (!reconfig_info.num_links) {
 		mlo_err("No. of links is 0 in ML reconfig IE");
+		goto err_release_refs;
+	}
+
+	if (vdev_count == 1) {
+		link_ix = wlan_vdev_get_link_id(vdev);
+
+		for (i = 0; i < reconfig_info.num_links; i++) {
+			if (link_ix != reconfig_info.link_info[i].link_id)
+				continue;
+
+			/* Non-AP STA has only one link and the corresponding
+			 * AP link of the AP MLD is getting removed. Disconnect
+			 * with the AP MLD since there is no link to migrate
+			 * primary TQM and continue traffic. Skipping this may
+			 * keep STA connected if inactivity timer or broadcast
+			 * disassociation is lost in the environment.
+			 */
+			mlo_info("STA has only one link; disconnect MLD");
+			mlo_disconnect(vdev, CM_SB_DISCONNECT,
+				       REASON_DEAUTH_NETWORK_LEAVING, NULL);
+			break;
+		}
+
+		/* We reach this point in on two scenarios:
+		 * 1. Link ID of the only available link STA matches with an
+		 *    AP reported in the per-STA profile subelement and
+		 *    we initiated an MLD disconnect; or
+		 * 2. Link ID of the only available link STA does not match with
+		 *    any AP reported in the per-STA profile subelement.
+		 *
+		 * In either case, there is no need to process any further.
+		 */
 		goto err_release_refs;
 	}
 
