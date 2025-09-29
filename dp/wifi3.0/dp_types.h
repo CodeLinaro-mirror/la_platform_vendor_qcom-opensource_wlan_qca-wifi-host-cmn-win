@@ -2775,6 +2775,9 @@ struct dp_arch_ops {
 						   int mac_addr_is_aligned,
 						   enum dp_mod_id mod_id,
 						   uint8_t vdev_id);
+	QDF_STATUS (*dp_wds_ext_clear_peer_handle)
+					(struct dp_soc *soc,
+					 ol_osif_peer_handle osif_peer);
 #ifdef WLAN_MLO_MULTI_CHIP
 	uint8_t (*mlo_get_chip_id)(struct dp_soc *soc);
 	struct dp_peer *(*mlo_link_peer_find_hash_find_by_chip_id)

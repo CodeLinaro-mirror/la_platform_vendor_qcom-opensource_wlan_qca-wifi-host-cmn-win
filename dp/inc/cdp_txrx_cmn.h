@@ -3125,6 +3125,23 @@ cdp_wds_ext_set_bit(ol_txrx_soc_handle soc, uint8_t *mac)
 
 	return soc->ops->cmn_drv_ops->set_wds_ext_peer_bit(soc, mac);
 }
+
+static inline QDF_STATUS
+cdp_wds_ext_clear_peer_handle(ol_txrx_soc_handle soc,
+				   ol_osif_peer_handle osif_peer)
+{
+	if (!soc || !soc->ops) {
+		dp_cdp_debug("Invalid Instance");
+		return QDF_STATUS_E_FAULT;
+	}
+
+	if (!soc->ops->cmn_drv_ops ||
+			!soc->ops->cmn_drv_ops->clear_wds_ext_peer_handle)
+		return QDF_STATUS_E_FAULT;
+
+	return soc->ops->cmn_drv_ops->clear_wds_ext_peer_handle(soc,
+								osif_peer);
+}
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 
 /**
