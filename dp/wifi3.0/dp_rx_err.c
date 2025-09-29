@@ -1981,7 +1981,9 @@ static int dp_rx_err_handle_msdu_buf(struct dp_soc *soc,
 
 	hal_rx_reo_buf_paddr_get(soc->hal_soc, ring_desc, &hbi);
 
-	rx_desc = dp_rx_cookie_2_va_rxdma_buf(soc, hbi.sw_cookie);
+	rx_desc = soc->arch_ops.dp_rx_desc_cookie_2_va(
+						soc,
+						hbi.sw_cookie);
 
 	/* sanity */
 	if (!rx_desc) {
