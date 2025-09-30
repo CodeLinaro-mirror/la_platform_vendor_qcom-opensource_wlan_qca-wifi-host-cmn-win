@@ -63,6 +63,9 @@
 #define WLAN_IPA_FLAG_MSG_USES_LIST_FLT_DEL 0x2
 #define WLAN_IPA_FLT_DEL_WAIT_TIMEOUT_MS 200
 
+#define AT_MCAST_MAC_ADDRESS {0x01, 0x80, 0xc2, 0x00, 0x00, 0x13}
+#define AT_DISCOVERY_PROTOCOL 0x893A
+
 static struct wlan_ipa_priv *gp_ipa;
 static void wlan_ipa_set_pending_tx_timer(struct wlan_ipa_priv *ipa_ctx);
 static void wlan_ipa_reset_pending_tx_timer(struct wlan_ipa_priv *ipa_ctx);
@@ -1689,6 +1692,10 @@ static void __wlan_ipa_w2i_cb(void *priv, qdf_ipa_dp_evt_type_t evt,
 	struct wlan_ipa_iface_context *iface_context;
 	bool is_eapol_wapi = false;
 	struct qdf_mac_addr peer_mac_addr = QDF_MAC_ADDR_ZERO_INIT;
+	struct vlan_ethhdr *vethhdr;
+	struct qdf_mac_addr mcast_mac_addr = { .bytes = AT_MCAST_MAC_ADDRESS };
+	struct qdf_mac_addr dest_mac;
+	bool at_discovery = false;
 
 	ipa_ctx = (struct wlan_ipa_priv *)priv;
 	if (!ipa_ctx) {
@@ -1783,10 +1790,18 @@ static void __wlan_ipa_w2i_cb(void *priv, qdf_ipa_dp_evt_type_t evt,
 			return;
 		}
 
+		/* Custom handling Airties Topology discovery frames */
+
+		vethhdr = (struct vlan_ethhdr *)qdf_nbuf_data(skb);
+		qdf_mem_copy(dest_mac.bytes, vethhdr->h_dest, QDF_MAC_ADDR_SIZE);
+		if ((vethhdr->h_vlan_encapsulated_proto ==  htons(AT_DISCOVERY_PROTOCOL)) && (qdf_is_macaddr_equal((struct qdf_mac_addr *)dest_mac.bytes, (struct qdf_mac_addr *)mcast_mac_addr.bytes))) {
+				at_discovery = true;
+		}
+
 		/* Disable to forward Intra-BSS Rx packets when
 		 * ap_isolate=1 in hostapd.conf
 		 */
-		if (!ipa_ctx->disable_intrabss_fwd[iface_context->session_id] &&
+		if ((!at_discovery && !ipa_ctx->disable_intrabss_fwd[iface_context->session_id]) &&
 		    iface_context->device_mode == QDF_SAP_MODE) {
 			/*
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
