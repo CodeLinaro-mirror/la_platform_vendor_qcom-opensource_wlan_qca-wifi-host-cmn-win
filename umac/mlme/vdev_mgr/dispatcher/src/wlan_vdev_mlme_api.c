@@ -489,3 +489,19 @@ bool wlan_mlme_is_fd_disabled_in_6ghz_band(struct wlan_objmgr_vdev *vdev)
 
 	return vdev_mlme->mgmt.generic.disable_fd_in_6ghz_band;
 }
+
+QDF_STATUS wlan_vdev_is_cac_needed(struct wlan_objmgr_vdev *vdev)
+{
+	enum wlan_vdev_state state;
+	enum wlan_vdev_state substate;
+
+	state = wlan_vdev_mlme_get_state(vdev);
+	substate = wlan_vdev_mlme_get_substate(vdev);
+	if ((state == WLAN_VDEV_S_UP) ||
+	    ((state == WLAN_VDEV_S_SUSPEND) &&
+	     (substate == WLAN_VDEV_SS_SUSPEND_CSA_RESTART)))
+		return QDF_STATUS_SUCCESS;
+
+	return QDF_STATUS_E_FAILURE;
+}
+qdf_export_symbol(wlan_vdev_is_cac_needed);

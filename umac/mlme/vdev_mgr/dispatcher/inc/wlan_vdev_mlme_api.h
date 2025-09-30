@@ -363,4 +363,27 @@ void wlan_mlme_disable_fd_in_6ghz_band(struct wlan_objmgr_vdev *vdev,
  * Return: true/false
  */
 bool wlan_mlme_is_fd_disabled_in_6ghz_band(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * wlan_vdev_is_cac_needed() - Checks whether VDEV is in UP /SUSPEND state
+ * @vdev: Object manager VDEV object
+ *
+ * API to checks the VDEV STATE in UP or SUSPEND
+ *
+ * Consider scenario:
+ * AP has 15 3-Link MLDs (AP VAPs).
+ * stop_ap is triggered, causing some MLDs to go down.
+ * MLD0 receives start_ap for 5G and 2G, skips CAC due to active VAPs.
+ * Other MLDs continue transitioning to down state.
+ * MLD10 receives start_ap and initiates CAC as no VAPs are active.
+ * Later, MLD0 receives start_ap for 6G and transitions to UP.
+ * Remaining MLDs also move to UP, except MLD10.
+ * Hence , wlan_vdev_allow_connect_n_tx cannot be used in this case as it
+ * checks both vdev state and substate. This API will check only for vdev
+ * state UP instead of vdev substate to ensure CAC is skipped.
+ *
+ * Return: SUCCESS: if VDEV STATE in UP or SUSPEND
+ *         FAILURE: otherwise failure
+ */
+QDF_STATUS wlan_vdev_is_cac_needed(struct wlan_objmgr_vdev *vdev);
 #endif
