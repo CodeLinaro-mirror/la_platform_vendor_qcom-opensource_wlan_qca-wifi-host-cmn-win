@@ -3285,6 +3285,12 @@ static void dp_txrx_set_mlo_mcast_primary_vdev_param_be(
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(
 						be_vdev->vdev.pdev->soc);
 
+	if (!be_vdev->mlo_dev_ctxt)
+		dp_alert("mlo_dev_ctxt not present | vdev_id:%d mac "
+			 QDF_MAC_ADDR_FMT " mldmac " QDF_MAC_ADDR_FMT,
+			 vdev->vdev_id, QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+			 QDF_MAC_ADDR_REF(vdev->mld_mac_addr.raw));
+
 	be_vdev->mcast_primary = val.cdp_vdev_param_mcast_vdev;
 	vdev->mlo_vdev = 1;
 
@@ -3708,6 +3714,9 @@ QDF_STATUS dp_mlo_dev_ctxt_create(struct cdp_soc_t *soc_hdl,
 		return QDF_STATUS_E_NOMEM;
 	}
 
+	dp_alert("mlo_dev_ctxt create | mldmac " QDF_MAC_ADDR_FMT,
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
+
 	wlan_minidump_log(mlo_dev_ctxt, sizeof(*mlo_dev_ctxt), soc->ctrl_psoc,
 			  WLAN_MD_DP_MLO_DEV_CTX, "dp_mlo_dev_ctxt");
 	qdf_copy_macaddr((struct qdf_mac_addr *)&mlo_dev_ctxt->mld_mac_addr.raw[0],
@@ -3778,6 +3787,9 @@ QDF_STATUS dp_mlo_dev_ctxt_destroy(struct cdp_soc_t *soc_hdl,
 		     mlo_dev_ctxt, ml_dev_list_elem);
 	qdf_spin_unlock_bh(&mlo_dev_obj->mlo_dev_list_lock);
 
+	dp_alert("mlo_dev_ctxt destroy | mldmac " QDF_MAC_ADDR_FMT,
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
+
 	/* unref for MLO ctxt ref released from Global list */
 	dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_CONFIG);
 
@@ -3826,10 +3838,20 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_attach(struct cdp_soc_t *soc_hdl,
 	if (QDF_STATUS_E_INVAL == ret) {
 		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 		dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_MLO_DEV);
+		dp_info("mlo_dev_ctxt attach skipped | vdev_id %d macaddr "
+		        QDF_MAC_ADDR_FMT " mldmac "QDF_MAC_ADDR_FMT, vdev_id,
+		        QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		        QDF_MAC_ADDR_REF(mld_mac_addr));
+
 		return QDF_STATUS_SUCCESS;
 	}
 
 	be_vdev->mlo_dev_ctxt = mlo_dev_ctxt;
+
+	dp_alert("mlo_dev_ctxt attach | vdev_id %d macaddr " QDF_MAC_ADDR_FMT
+		 " mldmac " QDF_MAC_ADDR_FMT, vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
 
 	/* ref for holding MLO ctxt in be_vdev */
 	dp_mlo_dev_get_ref(mlo_dev_ctxt, DP_MOD_ID_CHILD);
@@ -3886,12 +3908,22 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 	    != QDF_STATUS_SUCCESS) {
 		dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_MLO_DEV);
 		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
+		dp_info("mlo_dev_ctxt detach skipped | vdev_id %d macaddr "
+		        QDF_MAC_ADDR_FMT " mldmac "QDF_MAC_ADDR_FMT, vdev_id,
+		        QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		        QDF_MAC_ADDR_REF(mld_mac_addr));
+
 		return QDF_STATUS_SUCCESS;
 	}
 
 	qdf_spin_lock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 	be_vdev->mlo_dev_ctxt = NULL;
 	qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
+
+	dp_alert("mlo_dev_ctxt detach | vdev_id %d macaddr " QDF_MAC_ADDR_FMT
+		 " mldmac " QDF_MAC_ADDR_FMT, vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
 
 	/* Save vdev stats in MLO dev ctx */
 	dp_update_mlo_mld_vdev_ctxt_stats(&mlo_dev_ctxt->stats, &vdev->stats);
