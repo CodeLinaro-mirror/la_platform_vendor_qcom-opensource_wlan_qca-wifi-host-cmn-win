@@ -5367,6 +5367,7 @@ reg_get_chan_state_for_320(struct wlan_objmgr_pdev *pdev,
 	const struct bonded_channel_freq *bonded_ch_ptr[2] = {
 		NULL, NULL};
 	uint16_t punct_pattern;
+	enum channel_state chan_state;
 
 	/* For now sending band center freq as 0 */
 	num_bonded_pairs =
@@ -5380,13 +5381,25 @@ reg_get_chan_state_for_320(struct wlan_objmgr_pdev *pdev,
 	/* Taking only first bonded pair */
 	*bonded_chan_ptr_ptr = bonded_ch_ptr[0];
 
-	return reg_get_320_bonded_channel_state_for_pwrmode(pdev, freq,
-							    bonded_ch_ptr[0],
-							    ch_width,
-							    &punct_pattern,
-							    in_6g_pwr_type,
-							    treat_nol_chan_as_disabled,
-							    input_punc_bitmap);
+	chan_state = reg_get_320_bonded_channel_state_for_pwrmode(pdev, freq,
+								  bonded_ch_ptr[0],
+								  ch_width,
+								  &punct_pattern,
+								  in_6g_pwr_type,
+								  treat_nol_chan_as_disabled,
+								  input_punc_bitmap);
+
+	if (bonded_ch_ptr[1] && chan_state != CHANNEL_STATE_ENABLE) {
+		*bonded_chan_ptr_ptr = bonded_ch_ptr[1];
+		chan_state = reg_get_320_bonded_channel_state_for_pwrmode(pdev, freq,
+									  bonded_ch_ptr[1],
+									  ch_width,
+									  &punct_pattern,
+									  in_6g_pwr_type,
+									  treat_nol_chan_as_disabled,
+									  input_punc_bitmap);
+	}
+	return chan_state;
 }
 #endif
 
@@ -10942,8 +10955,7 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
  * reg_is_hw_blacklisted_channel() - Check if a channel is hardware blacklisted
  * @pdev: Pointer to pdev object
  * @freq: Primary frequency
- * @c_freq: Center frequency
- * @c_freq2: Center frequency 2
+ * @c_freq2: Center frequency 2 (used only when bandwidth is 320 MHz)
  * @bw: Bandwidth
  * @ap_pwr_type: AP power type
  * @in_punc_pattern: Puncture pattern
@@ -10952,10 +10964,10 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
  */
 bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 				   qdf_freq_t freq,
-				   qdf_freq_t c_freq, qdf_freq_t c_freq2,
+				   qdf_freq_t c_freq2,
 				   uint16_t bw,
 				   enum supported_6g_pwr_types ap_pwr_type,
-				   uint32_t in_punc_pattern)
+				   uint16_t in_punc_pattern)
 {
 	struct wlan_regulatory_pdev_priv_obj *po = reg_get_pdev_obj(pdev);;
 	enum reg_6g_ap_type b_ap;
@@ -10978,7 +10990,7 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 		return false;
 	}
 
-	if (!in_punc_pattern) {
+	if (!reg_is_chan_punc(in_punc_pattern, bw)) {
 		if (!bl->fb_chan) {
 			reg_debug("No full blacklist channels for AP type: %d", b_ap);
 			return false;
