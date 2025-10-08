@@ -43,6 +43,11 @@
 #include "dp_ratetable.h"
 #endif
 #include "enet.h"
+#ifdef IPA_OFFLOAD
+#define DP_RX_NON_IPA_REPLENISH_FEATURES false
+#else
+#define DP_RX_NON_IPA_REPLENISH_FEATURES true
+#endif
 
 #ifndef WLAN_SOFTUMAC_SUPPORT /* WLAN_SOFTUMAC_SUPPORT */
 
@@ -987,8 +992,9 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 	dp_verbose_debug("%pK: requested %d buffers for replenish",
 			 dp_soc, num_req_buffers);
 
-	if (dp_rx_buffers_is_skip_replenish(dp_soc, rx_desc_pool, desc_list,
-					    tail, &num_req_buffers, mac_id))
+	if (DP_RX_NON_IPA_REPLENISH_FEATURES &&
+		dp_rx_buffers_is_skip_replenish(dp_soc, rx_desc_pool, desc_list,
+					    	tail, &num_req_buffers, mac_id))
 		return QDF_STATUS_SUCCESS;
 
 	hal_srng_access_start(dp_soc->hal_soc, rxdma_srng);
@@ -1000,7 +1006,7 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 	dp_verbose_debug("%pK: no of available entries in rxdma ring: %d",
 			 dp_soc, num_entries_avail);
 
-	if (!req_only && !(*desc_list) &&
+	if (DP_RX_NON_IPA_REPLENISH_FEATURES && !req_only && !(*desc_list) &&
 	    (force_replenish || (num_entries_avail >
 	     ((dp_rxdma_srng->num_entries * 3) / 4)))) {
 		num_req_buffers = num_entries_avail;
@@ -1008,7 +1014,7 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 	} else if (num_entries_avail < num_req_buffers) {
 		num_desc_to_free = num_req_buffers - num_entries_avail;
 		num_req_buffers = num_entries_avail;
-	} else if (((*desc_list) &&
+	} else if (DP_RX_NON_IPA_REPLENISH_FEATURES && ((*desc_list) &&
 		   dp_rxdma_srng->num_entries - num_entries_avail <
 		   CRITICAL_BUFFER_THRESHOLD) &&
 		   dp_rx_buffers_is_critical_threshold(rx_desc_pool)) {
@@ -1128,9 +1134,10 @@ QDF_STATUS __dp_rx_buffers_replenish(struct dp_soc *dp_soc, uint32_t mac_id,
 				 (unsigned long long)(nbuf_frag_info.paddr),
 				 (*desc_list)->rx_desc.cookie);
 
-		if (qdf_likely(!rx_desc_pool->rx_mon_dest_frag_enable))
-			qdf_assert_always(nbuf_frag_info.paddr ==
-				QDF_NBUF_CB_PADDR((*desc_list)->rx_desc.nbuf));
+		if (DP_RX_NON_IPA_REPLENISH_FEATURES &&
+			qdf_likely(!rx_desc_pool->rx_mon_dest_frag_enable))
+				qdf_assert_always(nbuf_frag_info.paddr ==
+					QDF_NBUF_CB_PADDR((*desc_list)->rx_desc.nbuf));
 
 		hal_rxdma_buff_addr_info_set(dp_soc->hal_soc, rxdma_ring_entry,
 					     nbuf_frag_info.paddr,
