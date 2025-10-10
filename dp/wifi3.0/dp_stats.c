@@ -106,6 +106,7 @@
 #define MAX_SRC_STR 6
 #define MAX_TQM_REL_RSN_STR 27
 #define MAX_FW_REL_STR 24
+#define BITS_IN_U64 sizeof(uint64_t) * 8
 
 static const char tx_comp_rel_src[HAL_TX_COMP_RELEASE_SOURCE_MAX][MAX_SRC_STR] = {
 	"TQM  ",
@@ -4915,7 +4916,8 @@ void dp_htt_stats_copy_tag(struct dp_pdev *pdev, uint8_t tag_type, uint32_t *tag
 	uint32_t size_expected = 0;
 	uint64_t val = 1;
 
-	pdev->fw_stats_tlv_bitmap_rcvd |= (val << tag_type);
+	if (tag_type < BITS_IN_U64)
+		pdev->fw_stats_tlv_bitmap_rcvd |= (val << tag_type);
 	switch (tag_type) {
 	case HTT_STATS_TX_PDEV_CMN_TAG:
 		dest_ptr = &pdev->stats.htt_tx_pdev_stats.cmn_tlv;
