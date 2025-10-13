@@ -3270,6 +3270,54 @@ void dp_check_for_valid_link_addr(struct dp_vdev *vdev,
 			      DP_VDEV_ITERATE_SKIP_SELF);
 }
 
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+/**
+ * dp_wds_ext_clear_peer_handle_be - this is error case handler when peer not
+ * found on wds_ext_dev stop, we will iterate through other peers which match
+ * the osif_peer pointer and clear wds_ext objects in rx peer.
+ *
+ * @soc: opaque soc handle
+ * @osif_peer: osif_peer pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_wds_ext_clear_peer_handle_be(struct dp_soc *soc,
+					   ol_osif_peer_handle osif_peer)
+{
+	uint32_t index;
+	struct dp_peer *peer;
+	struct dp_txrx_peer *txrx_peer;
+	dp_mld_peer_hash_obj_t mld_hash_obj;
+
+	mld_hash_obj = dp_mlo_get_peer_hash_obj(soc);
+
+	if (!mld_hash_obj)
+		return QDF_STATUS_E_INVAL;
+
+	qdf_spin_lock_bh(&mld_hash_obj->mld_peer_hash_lock);
+	for (index = 0; index < mld_hash_obj->mld_peer_hash.mask; index++) {
+		TAILQ_FOREACH(peer, &mld_hash_obj->mld_peer_hash.bins[index],
+				hash_list_elem) {
+			txrx_peer = dp_get_txrx_peer(peer);
+
+			if (!txrx_peer ||
+			     (txrx_peer->wds_ext.osif_peer != osif_peer))
+				continue;
+			txrx_peer->osif_rx = NULL;
+			txrx_peer->wds_ext.osif_peer = NULL;
+			qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
+			return QDF_STATUS_SUCCESS;
+		}
+	}
+	qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
+	return QDF_STATUS_E_INVAL;
+}
+#else
+QDF_STATUS dp_wds_ext_clear_peer_handle_be(struct dp_soc *soc,
+					   ol_osif_peer_handle osif_peer)
+{
+}
+#endif
 #else /* WLAN_FEATURE_11BE_MLO */
 void dp_mlo_dev_ctxt_list_attach_wrapper(dp_mlo_dev_obj_t mlo_dev_obj)
 {
@@ -4058,6 +4106,20 @@ dp_initialize_arch_ops_be_mlo_multi_chip(struct dp_arch_ops *arch_ops)
 }
 #endif
 
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+static inline
+void dp_initialize_arch_ops_be_wds_ext_peer(struct dp_arch_ops *arch_ops)
+{
+	arch_ops->dp_wds_ext_clear_peer_handle =
+					dp_wds_ext_clear_peer_handle_be;
+}
+#else
+static inline
+void dp_initialize_arch_ops_be_wds_ext_peer(struct dp_arch_ops *arch_ops)
+{
+}
+#endif
+
 static inline void
 dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 {
@@ -4076,6 +4138,7 @@ dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 	arch_ops->mlo_umac_reset_notify_asserted_soc =
 					dp_umac_reset_notify_asserted_soc;
 #endif
+	dp_initialize_arch_ops_be_wds_ext_peer(arch_ops);
 }
 
 static struct cdp_cmn_mlo_ops dp_cmn_mlo_ops = {

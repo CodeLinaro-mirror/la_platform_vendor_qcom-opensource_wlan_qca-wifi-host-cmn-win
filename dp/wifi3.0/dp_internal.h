@@ -5123,6 +5123,17 @@ QDF_STATUS dp_wds_ext_get_peer_osif_handle(
  */
 QDF_STATUS dp_wds_ext_set_peer_bit(ol_txrx_soc_handle soc, uint8_t *mac);
 
+/**
+ * dp_wds_ext_clear_peer_handler(): function to clear wds-ext peer context
+ * @soc: Datapath soc handle
+ * @osif_peer: OSIF peer handle
+ *
+ * Return: QDF_STATUS_SUCCESS on success
+ *         QDF_STATUS_E_INVAL if peer is not found
+ */
+QDF_STATUS dp_wds_ext_clear_peer_handle(ol_txrx_soc_handle soc,
+					ol_osif_peer_handle osif_peer);
+
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 
 #ifdef DP_MEM_PRE_ALLOC

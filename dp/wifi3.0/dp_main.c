@@ -13622,6 +13622,7 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 	.set_wds_ext_peer_rx = dp_wds_ext_set_peer_rx,
 	.get_wds_ext_peer_osif_handle = dp_wds_ext_get_peer_osif_handle,
 	.set_wds_ext_peer_bit = dp_wds_ext_set_peer_bit,
+	.clear_wds_ext_peer_handle = dp_wds_ext_clear_peer_handle,
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 
 #if defined(FEATURE_RUNTIME_PM) || defined(DP_POWER_SAVE)
@@ -15666,6 +15667,18 @@ QDF_STATUS dp_wds_ext_set_peer_bit(ol_txrx_soc_handle soc, uint8_t *mac)
 	qdf_atomic_test_and_set_bit(WDS_EXT_PEER_INIT_BIT,
 				    &txrx_peer->wds_ext.init);
 	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS dp_wds_ext_clear_peer_handle(ol_txrx_soc_handle soc,
+				  ol_osif_peer_handle osif_peer)
+{
+	struct dp_soc *dp_soc = (struct dp_soc *)soc;
+
+	if (dp_soc->arch_ops.dp_wds_ext_clear_peer_handle)
+		return dp_soc->arch_ops.dp_wds_ext_clear_peer_handle
+						(dp_soc, osif_peer);
 
 	return QDF_STATUS_SUCCESS;
 }
