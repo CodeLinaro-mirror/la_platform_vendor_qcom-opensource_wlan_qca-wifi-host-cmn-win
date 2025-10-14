@@ -227,8 +227,12 @@ os_if_spectral_destroy_netlink(struct wlan_objmgr_pdev *pdev)
 	}
 	ps->spectral_sock = NULL;
 	if (atomic_dec_and_test(&spectral_nl_users)) {
-		sock_release(os_if_spectral_nl_sock->sk_socket);
-		os_if_spectral_nl_sock = NULL;
+		if (os_if_spectral_nl_sock != NULL && os_if_spectral_nl_sock->sk_socket != NULL) {
+			sock_release(os_if_spectral_nl_sock->sk_socket);
+			os_if_spectral_nl_sock = NULL;
+		 } else {
+			 osif_err("Spectral NL socket is NULL");
+		 }
 	}
 	return 0;
 }
