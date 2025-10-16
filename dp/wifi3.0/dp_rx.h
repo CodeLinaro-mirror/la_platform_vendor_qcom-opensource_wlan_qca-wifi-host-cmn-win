@@ -3233,6 +3233,13 @@ void dp_rx_desc_reuse(struct dp_soc *soc, qdf_nbuf_t *nbuf_list);
  * Return: void
  */
 void dp_rx_desc_delayed_free(struct dp_soc *soc);
+#ifdef IPA_OFFLOAD
+void dp_ipa_uc_attach_umac_reset(struct dp_soc *soc);
+#else
+static inline void dp_ipa_uc_attach_umac_reset(struct dp_soc *soc)
+{
+}
+#endif
 #endif
 
 /**
