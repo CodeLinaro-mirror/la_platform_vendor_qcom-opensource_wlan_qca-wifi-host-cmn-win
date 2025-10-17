@@ -425,7 +425,8 @@ void dfs_cac_valid_reset_for_freq(struct wlan_dfs *dfs,
 
 #ifdef CONFIG_CHAN_FREQ_API
 bool
-dfs_is_subset_channel_for_freq(uint16_t *old_subchans_freq,
+dfs_is_subset_channel_for_freq(struct wlan_dfs *dfs,
+			       uint16_t *old_subchans_freq,
 			       uint8_t old_n_chans,
 			       uint16_t *new_subchans_freq,
 			       uint8_t new_n_chans)
@@ -436,10 +437,10 @@ dfs_is_subset_channel_for_freq(uint16_t *old_subchans_freq,
 	if (!new_n_chans)
 		return true;
 
-	if (new_n_chans > old_n_chans)
-		return false;
-
 	for (i = 0; i < new_n_chans; i++) {
+		if (!wlan_reg_is_dfs_for_freq(dfs->dfs_pdev_obj, new_subchans_freq[i]))
+			continue;
+
 		is_found = false;
 		for (j = 0; j < old_n_chans; j++) {
 			if (new_subchans_freq[i] == old_subchans_freq[j]) {
@@ -513,7 +514,7 @@ dfs_is_new_chan_subset_of_old_chan(struct wlan_dfs *dfs,
 	n_new_subchans = dfs_find_dfs_sub_channels_for_freq(dfs, new_chan,
 							    new_subchans);
 
-	return dfs_is_subset_channel_for_freq(old_subchans,
+	return dfs_is_subset_channel_for_freq(dfs, old_subchans,
 					      n_old_subchans,
 					      new_subchans,
 					      n_new_subchans);
