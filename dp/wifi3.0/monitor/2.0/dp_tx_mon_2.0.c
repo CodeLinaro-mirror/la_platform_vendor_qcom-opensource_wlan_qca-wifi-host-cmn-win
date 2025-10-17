@@ -717,6 +717,8 @@ void dp_print_pdev_tx_monitor_stats_2_0(struct dp_pdev *pdev)
 			tx_mon_be->dp_tx_pkt_cap_stats[0]);
 	DP_PRINT_STATS("\tPkt drop sw filter : %llu",
 		       stats.ppdu_drop_sw_filter);
+	DP_PRINT_STATS("\tInvalid first tlv: %d",
+		       tx_mon_be->tx_invalid_first_mon_tlv);
 }
 
 QDF_STATUS
