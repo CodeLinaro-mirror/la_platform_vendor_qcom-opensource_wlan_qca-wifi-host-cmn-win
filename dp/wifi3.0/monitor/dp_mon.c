@@ -6522,6 +6522,9 @@ QDF_STATUS dp_mon_pdev_deinit(struct dp_pdev *pdev)
 {
 	struct dp_mon_pdev *mon_pdev = pdev->monitor_pdev;
 	struct dp_mon_ops *mon_ops = NULL;
+	struct dp_vdev *vdev;
+	struct dp_peer *peer;
+	struct dp_mon_mac *mon_mac = dp_get_mon_mac(pdev, 0);
 
 	mon_ops = dp_mon_ops_get(pdev->soc);
 	if (!mon_ops) {
@@ -6531,6 +6534,20 @@ QDF_STATUS dp_mon_pdev_deinit(struct dp_pdev *pdev)
 
 	if (!mon_pdev->is_dp_mon_pdev_initialized)
 		return QDF_STATUS_SUCCESS;
+
+	qdf_spin_lock_bh(&pdev->vdev_list_lock);
+	TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+		qdf_spin_lock_bh(&vdev->peer_list_lock);
+		TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem)
+			dp_mon_peer_detach(peer);
+		qdf_spin_unlock_bh(&vdev->peer_list_lock);
+
+		dp_mon_vdev_detach(vdev);
+	}
+	qdf_spin_unlock_bh(&pdev->vdev_list_lock);
+
+	if (mon_mac->mvdev)
+		dp_mon_vdev_detach(mon_mac->mvdev);
 
 	dp_mon_filters_reset(pdev);
 

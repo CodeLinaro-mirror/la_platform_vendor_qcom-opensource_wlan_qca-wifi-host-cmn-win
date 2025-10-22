@@ -4194,9 +4194,8 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 	dp_tx_desc_flush(pdev, NULL, true);
 
 	qdf_spinlock_destroy(&pdev->tx_mutex);
-	qdf_spinlock_destroy(&pdev->vdev_list_lock);
-
 	dp_monitor_pdev_deinit(pdev);
+	qdf_spinlock_destroy(&pdev->vdev_list_lock);
 
 	dp_pdev_srng_deinit(pdev);
 
