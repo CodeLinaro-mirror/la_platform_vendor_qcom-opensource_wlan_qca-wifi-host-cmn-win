@@ -13172,6 +13172,8 @@ static QDF_STATUS dp_umac_reset_handle_post_reset(struct dp_soc *soc)
 
 		dp_rx_desc_reuse(soc, nbuf_list);
 
+		dp_ipa_uc_attach_umac_reset(soc);
+
 		dp_cleanup_reo_cmd_module(soc);
 
 		dp_umac_reset_ppeds_txdesc_pool_reset(soc, nbuf_list);
