@@ -10629,6 +10629,9 @@ QDF_STATUS reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev)
 		return QDF_STATUS_E_FAILURE;
 	}
 
+	if (reg_is_scan_radio(pdev))
+		qdf_info("Displaying HW Blacklist for Scan Radio. (only for reference)\n");
+
 	hw_blacklist = pdev_priv_obj->hbl_pm_chlst;
 
 	for (p = REG_INDOOR_AP; p <= REG_VERY_LOW_POWER_AP; p++) {
@@ -10979,6 +10982,11 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 
 	if (!po) {
 		reg_err("pdev priv obj is NULL");
+		return false;
+	}
+
+	if (reg_is_scan_radio(pdev)) {
+		reg_err("scan radio pdev. Ignore Blacklist channels\n");
 		return false;
 	}
 
