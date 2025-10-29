@@ -198,6 +198,14 @@ uint8_t reg_get_subchannels_for_opclass(uint8_t cfi,
 					uint8_t *subchannels);
 #endif
 
+/**
+ * reg_is_scan_radio() - Check if the pdev supports scan radio capabilities.
+ * @pdev: Pointer to pdev object
+ *
+ * Return: True, if the pdev is a scan radio. False otherwise.
+ */
+bool reg_is_scan_radio(struct wlan_objmgr_pdev *pdev);
+
 #ifndef CONFIG_REG_CLIENT
 /**
  * reg_process_hw_blacklist_chans() - Process the hardware blacklist channels

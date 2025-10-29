@@ -4562,7 +4562,7 @@ static void reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
 	}
 }
 
-static bool
+bool
 reg_is_scan_radio(struct wlan_objmgr_pdev *pdev)
 {
 	struct wlan_objmgr_psoc *psoc;
@@ -4597,11 +4597,6 @@ reg_set_pdev_hw_blacklist(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
 {
 	struct hbl_chans *hw_bl_sp;
 	struct hbl_chans *hw_bl_vlp;
-
-	if (reg_is_scan_radio(pdev_priv_obj->pdev_ptr)) {
-		reg_err("scan radio. Blacklist chans will not be parsed\n");
-		return QDF_STATUS_SUCCESS;
-	}
 
 	if (!hbl_allpm_iobj->is_hbl_msg_valid) {
 		reg_err("hw blacklist info is not valid. Ignoring");
