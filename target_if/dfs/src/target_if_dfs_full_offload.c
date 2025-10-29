@@ -393,7 +393,7 @@ QDF_STATUS target_send_agile_ch_cfg_cmd(struct wlan_objmgr_pdev *pdev,
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	vdev = wlan_objmgr_pdev_get_first_active_vdev(pdev, WLAN_DFS_ID);
+	vdev = wlan_objmgr_pdev_get_first_active_ap_vdev(pdev, WLAN_DFS_ID);
 
 	if (!vdev) {
 		target_if_err("null vdev");
