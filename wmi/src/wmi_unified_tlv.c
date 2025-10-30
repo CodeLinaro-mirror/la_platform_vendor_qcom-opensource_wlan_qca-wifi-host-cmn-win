@@ -17932,7 +17932,7 @@ static QDF_STATUS fill_full_bw_list(enum reg_6g_ap_type ap_type,
 {
 	enum phy_ch_width hw_phy_cw;
 	enum phy_ch_width *max_bw;
-	qdf_freq_t *cen320_freq;
+	qdf_freq_t *cen_freq;
 	qdf_freq_t *pri_freq;
 
 	if (*reg_info_bl_idx >= hw_bl_info->nfbchans[ap_type]) {
@@ -17941,12 +17941,12 @@ static QDF_STATUS fill_full_bw_list(enum reg_6g_ap_type ap_type,
 	}
 
 	hw_phy_cw = wmi_map_ch_width(bw);
-	cen320_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].cen320_freq;
+	cen_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].center_freq;
 	max_bw = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].max_bw;
 	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq;
 
 	*pri_freq = primary_freq;
-	*cen320_freq = center_freq;
+	*cen_freq = center_freq;
 
 	*max_bw = hw_phy_cw;
 	(*reg_info_bl_idx)++;

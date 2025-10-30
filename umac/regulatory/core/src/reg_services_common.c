@@ -10644,7 +10644,7 @@ QDF_STATUS reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev)
 			qdf_info("Blocked primary bitmap: %x \t -- Max BW %d \t -- Blocked center freq %d",
 				 hw_blacklist[p].fb_chan[i].pri_freq,
 				 reg_get_bw_value(hw_blacklist[p].fb_chan[i].max_bw),
-				 hw_blacklist[p].fb_chan[i].cen320_freq);
+				 hw_blacklist[p].fb_chan[i].center_freq);
 		}
 
 		qdf_info("Punctured channels\n");
@@ -10889,31 +10889,55 @@ reg_find_non_punctured_bw(uint16_t bw,  uint16_t in_punc_pattern)
 #endif
 
 /**
- * reg_find_usable_pwr_mode() - Determine the best AP power type
- * @pdev: Pointer to pdev object
- * @freq: Primary frequency
- * @c_freq2: Center frequency 2
- * @bw: Bandwidth
- * @punc: Puncture pattern
- * @ap_pwr_type: Requested AP power type
+ * reg_get_ap_type_from_6g_pwr_mode() - Map 6 GHz power mode to AP type
+ * @pdev: Pointer to the radio object.
+ * @freq: Primary frequency in MHz.
+ * @cf:   Center frequency in MHz used for the configured @bw.
+ * @bw:   Channel bandwidth in MHz.
+ * @in_punc_pattern: Puncturing pattern.
+ * @ap_pwr_type: Supported 6 GHz power mode selector. Accepts
+ *               %REG_BEST_PWR_MODE, %REG_CURRENT_PWR_MODE,
+ *               %REG_AP_LPI, %REG_AP_SP, %REG_AP_VLP.
  *
- * Return: Best AP power type to use
+ * Convert a 6 GHz power mode into the corresponding regulatory
+ * AP power type used by the regulatory core.
+ * When @ap_pwr_type is %REG_BEST_PWR_MODE, this routine queries the regulatory
+ * engine to choose the best AP type.
+ * When @ap_pwr_type is %REG_CURRENT_PWR_MODE, it returns the device's current
+ * AP power type.
+ * For explicit modes (e.g., %REG_AP_LPI/%REG_AP_SP/%REG_AP_VLP),
+ * it performs a direct conversion to the matching %enum reg_6g_ap_type value.
+ *
+ * Context: Any context. Does not sleep. Caller must ensure @pdev is valid.
+ *
+ * Return:
+ * * %REG_INDOOR_AP          - Mapped AP type for LPI.
+ * * %REG_STANDARD_POWER_AP  - Mapped AP type for Standard Power.
+ * * %REG_VERY_LOW_POWER_AP  - Mapped AP type for VLP.
+ * * %REG_MAX_AP_TYPE        - On error, invalid input, or failed lookup of
+ *                             current/best power mode.
  */
 static enum reg_6g_ap_type
-reg_find_usable_pwr_mode(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
-			 qdf_freq_t c_freq2, uint16_t bw, uint16_t punc,
-			 enum supported_6g_pwr_types ap_pwr_type)
+reg_get_ap_type_from_6g_pwr_mode(struct wlan_objmgr_pdev *pdev,
+				qdf_freq_t freq,
+				qdf_freq_t cf,
+				uint16_t bw,
+				uint16_t in_punc_pattern,
+				enum supported_6g_pwr_types ap_pwr_type)
 {
-	static const enum reg_6g_ap_type conv[] = {
-		[REG_AP_LPI] = REG_INDOOR_AP,
-		[REG_AP_SP]  = REG_STANDARD_POWER_AP,
-		[REG_AP_VLP] = REG_VERY_LOW_POWER_AP,
-	};
-
 	if (ap_pwr_type == REG_BEST_PWR_MODE)
-		return reg_get_best_pwr_mode(pdev, freq, c_freq2, bw, punc);
+		return reg_get_best_pwr_mode(pdev, freq, cf, bw, in_punc_pattern);
 
-	return conv[ap_pwr_type];
+	if (ap_pwr_type == REG_CURRENT_PWR_MODE) {
+		enum reg_6g_ap_type cur_ap_type;
+
+		QDF_STATUS st = reg_get_cur_6g_ap_pwr_type(pdev, &cur_ap_type);
+		if (QDF_IS_STATUS_ERROR(st))
+			return REG_MAX_AP_TYPE;
+		return cur_ap_type;
+	}
+
+	return reg_convert_supported_6g_pwr_type_to_ap_pwr_type(ap_pwr_type);
 }
 
 /**
@@ -10921,14 +10945,14 @@ reg_find_usable_pwr_mode(struct wlan_objmgr_pdev *pdev, qdf_freq_t freq,
  * @fbw: List of full BW blacklisted channels
  * @n: Number of entries
  * @freq: Primary frequency
- * @c_freq2: Center frequency 2
+ * @c_freq: Center frequency of the given bandwidth
  * @bw: Bandwidth
  *
  * Return: true if blacklisted, false otherwise
  */
 static bool
 reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
-			      qdf_freq_t freq, qdf_freq_t c_freq2,
+			      qdf_freq_t freq, qdf_freq_t c_freq,
 			      uint16_t bw)
 {
 	for (uint32_t i = 0; i < n; i++) {
@@ -10936,14 +10960,14 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
 		uint16_t b_bw = reg_get_bw_value(fbw[i].max_bw);
 		uint64_t x;
 
-		if (b_bw == bw && fbw[i].cen320_freq == c_freq2) {
+		if (b_bw == bw && fbw[i].center_freq == c_freq) {
 			if (bw == 20) {
 				start_freq = freq;
 			} else {
 				const struct bonded_channel_freq *bond;
 
 				enum phy_ch_width chwidth = reg_find_chwidth_from_bw(bw);
-				bond = reg_get_bonded_chan_entry(freq, chwidth, c_freq2);
+				bond = reg_get_bonded_chan_entry(freq, chwidth, c_freq);
 				if (!bond)
 					continue;
 
@@ -10990,7 +11014,8 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 		return false;
 	}
 
-	b_ap = reg_find_usable_pwr_mode(pdev, freq, c_freq2, bw, in_punc_pattern, ap_pwr_type);
+	b_ap = reg_get_ap_type_from_6g_pwr_mode(pdev, freq, c_freq2, bw,
+						in_punc_pattern, ap_pwr_type);
 	if (b_ap >= REG_CURRENT_MAX_AP_TYPE) {
 		reg_err("Invalid AP type: %d", b_ap);
 		return false;
