@@ -1291,7 +1291,8 @@ QDF_STATUS tgt_mgmt_txrx_rx_frame_handler(
 
 	if (mgmt_type == IEEE80211_FC0_TYPE_MGT) {
 		frm_type = mgmt_txrx_get_frm_type(mgmt_subtype, mpdu_data_ptr);
-		if (frm_type == MGMT_FRM_UNSPECIFIED) {
+		if ((frm_type == MGMT_FRM_UNSPECIFIED) &&
+		    (!(mgmt_rx_params->status & WMI_HOST_RXERR_DECRYPT))) {
 			mgmt_txrx_debug_rl(
 			"Unspecified mgmt frame type fc: %x %x", wh->i_fc[0],
 								wh->i_fc[1]);
