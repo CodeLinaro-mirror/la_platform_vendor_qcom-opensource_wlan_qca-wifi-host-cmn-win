@@ -2095,6 +2095,25 @@ void dp_peer_free_ast_entry(struct dp_soc *soc,
 	soc->num_ast_entries--;
 }
 
+#ifdef IPA_OFFLOAD
+static inline
+void dp_peer_unlink_ast_sanity(struct dp_soc *soc,
+			       struct dp_ast_entry *ast_entry,
+			       struct dp_peer *peer)
+{
+	if (!soc->host_ast_db_enable)
+		qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+}
+#else
+static inline
+void dp_peer_unlink_ast_sanity(struct dp_soc *soc,
+			       struct dp_ast_entry *ast_entry,
+			       struct dp_peer *peer)
+{
+	qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+}
+#endif
+
 void dp_peer_unlink_ast_entry(struct dp_soc *soc,
 			      struct dp_ast_entry *ast_entry,
 			      struct dp_peer *peer)
@@ -2115,7 +2134,7 @@ void dp_peer_unlink_ast_entry(struct dp_soc *soc,
 	 * after soc->ast_lock is taken
 	 */
 
-	qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+	dp_peer_unlink_ast_sanity(soc, ast_entry, peer);
 	TAILQ_REMOVE(&peer->ast_entry_list, ast_entry, ase_list_elem);
 
 	if (ast_entry == peer->self_ast_entry)
