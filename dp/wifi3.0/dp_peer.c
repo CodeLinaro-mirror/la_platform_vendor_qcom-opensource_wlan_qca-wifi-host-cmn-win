@@ -313,17 +313,8 @@ dp_peer_wds_ext_create(struct dp_soc *soc, struct dp_peer *peer)
 	if (!ta_txrx_peer)
 		return QDF_STATUS_E_INVAL;
 
-	if (ta_txrx_peer->is_mld_peer) {
-		ta_base_peer = dp_get_primary_link_peer_by_id(
-						soc,
-						ta_txrx_peer->peer_id,
-						DP_MOD_ID_IPA);
-	} else {
-		ta_base_peer = dp_peer_get_ref_by_id(
-						soc,
-						ta_txrx_peer->peer_id,
-						DP_MOD_ID_IPA);
-	}
+	ta_base_peer = dp_peer_get_ref_by_id(soc, ta_txrx_peer->peer_id,
+					     DP_MOD_ID_IPA);
 	if (!ta_base_peer)
 		return QDF_STATUS_E_INVAL;
 
