@@ -2789,15 +2789,6 @@ void wlan_ipa_uc_handle_last_discon(struct wlan_ipa_priv *ipa_ctx,
 #else
 static QDF_STATUS wlan_ipa_uc_handle_first_con(struct wlan_ipa_priv *ipa_ctx)
 {
-	ipa_debug("enter");
-
-	if (wlan_ipa_uc_enable_pipes(ipa_ctx) != QDF_STATUS_SUCCESS) {
-		ipa_err("IPA WDI Pipe activation failed");
-		return QDF_STATUS_E_BUSY;
-	}
-
-	ipa_debug("exit");
-
 	return QDF_STATUS_SUCCESS;
 }
 
@@ -2805,11 +2796,6 @@ static
 void wlan_ipa_uc_handle_last_discon(struct wlan_ipa_priv *ipa_ctx,
 				    bool force_disable)
 {
-	ipa_debug("enter");
-
-	wlan_ipa_uc_disable_pipes(ipa_ctx, force_disable);
-
-	ipa_debug("exit: IPA WDI Pipes deactivated");
 }
 #endif
 
@@ -6076,7 +6062,7 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 		if (status) {
 			ipa_err("Failure to map Rx buffers for IPA(status=%d)",
 				status);
-			return status;
+			goto free_res;
 		}
 		ipa_info("RX buffers mapped to IPA");
 
@@ -6084,6 +6070,13 @@ QDF_STATUS wlan_ipa_uc_ol_init(struct wlan_ipa_priv *ipa_ctx,
 		wlan_ipa_init_metering(ipa_ctx);
 		if (wlan_ipa_init_perf_level(ipa_ctx) != QDF_STATUS_SUCCESS)
 			ipa_err("Failed to init perf level");
+
+		ipa_info("Enabling WDI IPA pipes");
+		status = wlan_ipa_uc_enable_pipes(ipa_ctx);
+		if (status != QDF_STATUS_SUCCESS) {
+			ipa_err("IPA WDI Pipe activation failed");
+			goto free_res;
+		}
 	}
 
 	cdp_ipa_register_op_cb(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
