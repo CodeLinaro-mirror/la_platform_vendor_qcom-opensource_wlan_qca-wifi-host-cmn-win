@@ -863,7 +863,7 @@ struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_roam_vdev(
 	return NULL;
 }
 
-struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_active_vdev(
+struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_active_ap_vdev(
 		struct wlan_objmgr_pdev *pdev,
 		wlan_objmgr_ref_dbgid dbg_id)
 {
@@ -887,7 +887,8 @@ struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_active_vdev(
 					vdev_node);
 		if ((wlan_objmgr_vdev_try_get_ref(vdev, dbg_id)
 			 == QDF_STATUS_SUCCESS)) {
-			if (wlan_vdev_chan_config_valid(vdev) ==
+			if ((wlan_vdev_mlme_get_opmode(vdev) == QDF_SAP_MODE) &&
+			    wlan_vdev_chan_config_valid(vdev) ==
 				QDF_STATUS_SUCCESS) {
 				wlan_pdev_obj_unlock(pdev);
 				return vdev;
@@ -903,7 +904,7 @@ struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_active_vdev(
 	return NULL;
 }
 
-qdf_export_symbol(wlan_objmgr_pdev_get_first_active_vdev);
+qdf_export_symbol(wlan_objmgr_pdev_get_first_active_ap_vdev);
 
 #ifdef WLAN_OBJMGR_REF_ID_TRACE
 struct wlan_objmgr_vdev *wlan_objmgr_get_vdev_by_id_from_pdev_debug(
