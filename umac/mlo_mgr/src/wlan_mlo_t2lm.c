@@ -2195,6 +2195,36 @@ static void wlan_mlo_t2lm_handle_expected_duration_expiry(
 	wlan_clear_peer_level_tid_to_link_mapping(vdev);
 }
 
+/**
+ * wlan_t2lm_extend_link_disablement() - Callback to extend the link disablement
+ * @vdev: Pointer to vdev object
+ *
+ * Return: QDF_STATUS
+ */
+static inline QDF_STATUS wlan_t2lm_extend_link_disablement(
+		struct wlan_objmgr_vdev *vdev)
+{
+	struct vdev_mlme_obj *vdev_mlme;
+	QDF_STATUS status = QDF_STATUS_SUCCESS;
+
+	if (!vdev) {
+		t2lm_err("vdev is null");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
+	vdev_mlme = wlan_vdev_mlme_get_cmpt_obj(vdev);
+	if (!vdev_mlme) {
+		t2lm_err("vdev_mlme is null");
+		return QDF_STATUS_E_NULL_VALUE;
+	}
+
+	if (vdev_mlme->ops &&
+	    vdev_mlme->ops->mlme_t2lm_extend_link_disablement)
+		status = vdev_mlme->ops->mlme_t2lm_extend_link_disablement(vdev);
+
+	return status;
+}
+
 QDF_STATUS wlan_mlo_vdev_tid_to_link_map_event(
 		struct wlan_objmgr_psoc *psoc,
 		struct mlo_vdev_host_tid_to_link_map_resp *event)
@@ -2202,6 +2232,7 @@ QDF_STATUS wlan_mlo_vdev_tid_to_link_map_event(
 	struct wlan_objmgr_vdev *vdev;
 	struct wlan_t2lm_context *t2lm_ctx;
 	struct vdev_mlme_obj *vdev_mlme;
+	QDF_STATUS status;
 
 	vdev = wlan_objmgr_get_vdev_by_id_from_psoc(psoc, event->vdev_id,
 						    WLAN_MLO_MGR_ID);
@@ -2259,6 +2290,14 @@ QDF_STATUS wlan_mlo_vdev_tid_to_link_map_event(
 		wlan_mlo_dev_t2lm_notify_link_update(vdev,
 					&t2lm_ctx->established_t2lm.t2lm);
 		break;
+	case WLAN_EXPECTED_DUR_NEAR_TO_EXPIRY:
+		t2lm_dev_lock_release(t2lm_ctx);
+		status = wlan_t2lm_extend_link_disablement(vdev);
+		if (QDF_IS_STATUS_ERROR(status))
+			t2lm_err("vdev_id:%d Failed to extend link disablement, status:%d",
+				 event->vdev_id, status);
+		mlo_release_vdev_ref(vdev);
+		return status;
 	default:
 		t2lm_err("Invalid status");
 	}
@@ -2267,6 +2306,40 @@ QDF_STATUS wlan_mlo_vdev_tid_to_link_map_event(
 	mlo_release_vdev_ref(vdev);
 
 	return QDF_STATUS_SUCCESS;
+}
+
+static bool wlan_mlo_t2lm_is_ieee_link_disabled(struct wlan_objmgr_vdev *vdev,
+						uint8_t ieee_link_id)
+{
+	struct wlan_mlo_dev_context *mlo_dev_ctx;
+	struct wlan_t2lm_context *t2lm_ctx;
+	uint16_t disabled_link_bitmap;
+
+	if (!vdev)
+		return false;
+
+	mlo_dev_ctx = wlan_vdev_get_mlo_dev_ctx(vdev);
+	if (!mlo_dev_ctx)
+		return false;
+
+	t2lm_ctx = &mlo_dev_ctx->t2lm_ctx;
+
+	t2lm_dev_lock_acquire(t2lm_ctx);
+	disabled_link_bitmap = t2lm_ctx->established_t2lm.disabled_link_bitmap;
+	t2lm_dev_lock_release(t2lm_ctx);
+
+	return (disabled_link_bitmap & BIT(ieee_link_id)) ? true : false;
+}
+
+bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev)
+{
+	uint8_t link_id;
+
+	if (!vdev)
+		return false;
+
+	link_id = wlan_vdev_get_link_id(vdev);
+	return wlan_mlo_t2lm_is_ieee_link_disabled(vdev, link_id);
 }
 
 #ifdef WLAN_FEATURE_11BE_MLO_ADV_FEATURE

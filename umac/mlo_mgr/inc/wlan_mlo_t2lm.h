@@ -1116,6 +1116,15 @@ wlan_send_peer_level_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
  */
 void wlan_t2lm_timer_stop(struct wlan_t2lm_timer *t2lm_timer);
 
+/**
+ * wlan_mlo_t2lm_is_link_disabled() - Check if vdev link is disabled using
+ * advertised T2LM disabled link bitmap.
+ * @vdev: VDEV objmgr pointer
+ *
+ * Return: true if disabled per established T2LM; false otherwise
+ */
+bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev);
+
 #else
 static inline QDF_STATUS wlan_mlo_parse_t2lm_ie(
 	struct wlan_t2lm_onging_negotiation_info *t2lm, uint8_t *ie,
@@ -1256,6 +1265,12 @@ wlan_send_peer_level_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
 {
 	return QDF_STATUS_SUCCESS;
 }
+
+static inline bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
 #endif /* WLAN_FEATURE_11BE */
 
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_FEATURE_11BE_MLO_ADV_FEATURE)
