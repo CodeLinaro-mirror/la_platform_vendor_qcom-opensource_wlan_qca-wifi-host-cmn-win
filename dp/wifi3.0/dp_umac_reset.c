@@ -180,6 +180,17 @@ QDF_STATUS dp_soc_umac_reset_init(struct cdp_soc_t *txrx_soc)
 		return status;
 	}
 
+	/* Initialize the work queue */
+	umac_reset_ctx->reset_wq = qdf_alloc_unbound_workqueue("dp_reset_wq");
+	if(umac_reset_ctx->reset_wq) {
+		qdf_create_work(0, &umac_reset_ctx->pre_reset_disable_ipa_pipes_work, 
+                dp_ipa_umac_reset_disable_work, soc);
+		qdf_create_work(0, &umac_reset_ctx->pre_reset_enable_ipa_pipes_work, 
+                dp_ipa_umac_reset_enable_work, soc);
+	} else {
+		dp_umac_reset_err("Unable to create WorkQueue");
+	}
+
 	/* Send the setup cmd to the target */
 	return dp_umac_reset_send_setup_cmd(soc, target_type);
 }
@@ -1134,6 +1145,14 @@ dp_soc_umac_reset_deinit(struct cdp_soc_t *txrx_soc, uint8_t recovery_type)
 		dp_resume_reo_send_cmd(soc);
 		dp_umac_reset_notify_action_completion(soc,
 						       UMAC_RESET_ACTION_ABORT);
+	}
+
+	/* Cancel any pending work */
+	qdf_cancel_work(&soc->umac_reset_ctx.pre_reset_enable_ipa_pipes_work);
+	qdf_cancel_work(&soc->umac_reset_ctx.pre_reset_disable_ipa_pipes_work);
+	if (soc->umac_reset_ctx.reset_wq) {
+		qdf_destroy_workqueue(0, soc->umac_reset_ctx.reset_wq);
+		soc->umac_reset_ctx.reset_wq = NULL;
 	}
 
 	nbuf_list = soc->umac_reset_ctx.nbuf_list;

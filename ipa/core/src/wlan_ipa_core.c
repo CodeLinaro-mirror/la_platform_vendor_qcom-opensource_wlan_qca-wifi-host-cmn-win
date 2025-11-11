@@ -2128,6 +2128,9 @@ end:
 	return qdf_status;
 }
 
+qdf_export_symbol(wlan_ipa_uc_enable_pipes);
+
+
 #ifndef IPA_OPT_WIFI_DP_CTRL
 static inline
 int wlan_ipa_wdi_opt_dpath_ctrl_flt_rem_cb(
@@ -2261,6 +2264,8 @@ end:
 		  qdf_atomic_read(&ipa_ctx->pipes_disabled));
 	return qdf_status;
 }
+
+qdf_export_symbol(wlan_ipa_uc_disable_pipes);
 
 /**
  * wlan_ipa_uc_find_add_assoc_sta() - Find associated station

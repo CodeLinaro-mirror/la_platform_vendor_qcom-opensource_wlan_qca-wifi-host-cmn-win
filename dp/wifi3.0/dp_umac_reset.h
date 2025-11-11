@@ -231,6 +231,10 @@ struct dp_soc_umac_reset_ctx {
 	qdf_nbuf_t nbuf_list;
 	bool skel_enable;
 	struct reset_ts ts;
+	qdf_work_t pre_reset_enable_ipa_pipes_work;
+	qdf_work_t pre_reset_disable_ipa_pipes_work;
+	/* Work queue for post reset processing */
+	qdf_workqueue_t *reset_wq;
 };
 
 /**
