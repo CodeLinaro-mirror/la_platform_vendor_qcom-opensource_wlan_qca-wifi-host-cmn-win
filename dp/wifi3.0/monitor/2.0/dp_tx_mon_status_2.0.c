@@ -1982,7 +1982,8 @@ dp_tx_mon_process_tlv_2_0(struct dp_pdev *pdev,
 	if (tlv_status == HAL_MON_TX_STATUS_PPDU_NOT_DONE || !num_users) {
 		dp_tx_mon_free_ppdu_info(tx_prot_ppdu_info, tx_mon_be);
 		tx_mon_be->tx_prot_ppdu_info = NULL;
-		dp_mon_err("window open with tlv_tag[0x%x] num_users[%d]!\n",
+		tx_mon_be->tx_invalid_first_mon_tlv++;
+		dp_mon_info("window open with tlv_tag[0x%x] num_users[%d]!\n",
 			   hal_tx_status_get_tlv_tag(tx_tlv), num_users);
 		return QDF_STATUS_E_INVAL;
 	}

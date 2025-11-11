@@ -6589,5 +6589,7 @@ dp_rx_flow_dump_hal_fse_entries(struct cdp_soc_t *soc_hdl, uint8_t pdev_id);
  *	   else false.
  */
 bool dp_get_peer_vdev_roaming_in_progress(struct dp_peer *peer);
+void dp_ipa_umac_reset_enable_work(void *);
+void dp_ipa_umac_reset_disable_work(void *);
 
 #endif /* #ifndef _DP_INTERNAL_H_ */
