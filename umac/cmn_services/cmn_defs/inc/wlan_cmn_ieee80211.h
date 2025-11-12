@@ -229,6 +229,7 @@
  * @QCN_ATTRIB_ECSA_SUPP: ECSA support
  * @QCN_ATTRIB_EDCA_PIFS_PARAM: EDCA PIFS param
  * @QCN_ATTRIB_ECSA_TARGET_TSF_INFO: ECSA Target TSF information
+ * @QCN_ATTRIB_CCK_SUPPORT: CCK RX 5G support
  * @QCN_ATTRIB_MAX: Maximum attribute
  */
 enum qcn_attribute_id {
@@ -246,7 +247,8 @@ enum qcn_attribute_id {
 	QCN_ATTRIB_ECSA_SUPP                = 0X0C,
 	QCN_ATTRIB_EDCA_PIFS_PARAM          = 0X0D,
 	QCN_ATTRIB_ECSA_TARGET_TSF_INFO     = 0x0E,
-	QCN_ATTRIB_MAX                      = 0x0F
+	QCN_ATTRIB_CCK_SUPPORT              = 0x0F,
+	QCN_ATTRIB_MAX                      = 0x10
 };
 
 /* Extender vendor specific IE */
