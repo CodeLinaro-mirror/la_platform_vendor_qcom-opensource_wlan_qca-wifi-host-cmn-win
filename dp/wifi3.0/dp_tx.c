@@ -8544,7 +8544,9 @@ bool dp_tx_multipass_process(struct dp_soc *soc, struct dp_vdev *vdev,
 	}
 
 	dp_tx_multipass_send_pkt_to_repeater(soc, vdev, nbuf, msdu_info);
-	group_key = vdev->iv_vlan_map[vlan_id];
+
+	if (vdev->iv_vlan_map && vlan_id < DP_MAX_VLAN_IDS)
+		group_key = vdev->iv_vlan_map[vlan_id];
 
 	/*
 	 * If group key is not installed, drop the frame.

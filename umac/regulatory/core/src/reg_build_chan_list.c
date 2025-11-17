@@ -1317,6 +1317,8 @@ reg_modify_chan_list_for_freq_range(struct regulatory_channel *chan_list,
 	reg_find_low_limit_chan_enum(chan_list, low_freq_5g, &low_limit_5g);
 	reg_find_high_limit_chan_enum(chan_list, high_freq_2g, &high_limit_2g);
 	reg_find_high_limit_chan_enum(chan_list, high_freq_5g, &high_limit_5g);
+	reg_info("low_limit_2g: %d, high_limit_2g:%d, low_limit_5g: %d, high_limit_5g: %d",
+		 low_limit_2g, high_limit_2g, low_limit_5g, high_limit_5g);
 
 	for (chan_enum = 0; chan_enum < NUM_CHANNELS; chan_enum++) {
 		chan_in_range = false;
@@ -4560,7 +4562,7 @@ static void reg_hw_blacklist_update(struct hbl_chans *reg_hw_bl_chans,
 	}
 }
 
-static bool
+bool
 reg_is_scan_radio(struct wlan_objmgr_pdev *pdev)
 {
 	struct wlan_objmgr_psoc *psoc;
@@ -4595,11 +4597,6 @@ reg_set_pdev_hw_blacklist(struct wlan_regulatory_pdev_priv_obj *pdev_priv_obj,
 {
 	struct hbl_chans *hw_bl_sp;
 	struct hbl_chans *hw_bl_vlp;
-
-	if (reg_is_scan_radio(pdev_priv_obj->pdev_ptr)) {
-		reg_err("scan radio. Blacklist chans will not be parsed\n");
-		return QDF_STATUS_SUCCESS;
-	}
 
 	if (!hbl_allpm_iobj->is_hbl_msg_valid) {
 		reg_err("hw blacklist info is not valid. Ignoring");

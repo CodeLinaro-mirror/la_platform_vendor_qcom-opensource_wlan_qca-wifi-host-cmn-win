@@ -663,4 +663,12 @@ ucfg_dfs_is_agile_rcac_enabled(struct wlan_objmgr_pdev *pdev)
 }
 #endif
 
+/**
+ * ucfg_dfs_set_cac_aborted - Set cac aborted variable.
+ * @pdev: Pointer to DFS pdev object.
+ * @cac_aborted: true or false.
+ *
+ */
+QDF_STATUS ucfg_dfs_set_cac_aborted(struct wlan_objmgr_pdev *pdev,
+				    bool cac_aborted);
 #endif /* _WLAN_DFS_UCFG_API_H_ */

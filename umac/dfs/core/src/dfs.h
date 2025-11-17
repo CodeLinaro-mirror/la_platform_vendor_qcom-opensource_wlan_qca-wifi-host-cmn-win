@@ -1030,6 +1030,8 @@ struct dfs_cacelem {
  * @DFS_PUNC_SM_EV_CAC_EXPIRY: CAC expiry event on DFS puncturing SM.
  * @DFS_PUNC_SM_EV_STOP: STOP event on DFS puncturing SM.
  * @DFS_PUNC_SM_EV_USR_PUNC: User triggered event on DFS puncturing SM.
+ * @DFS_PUNC_SM_EV_ADJ_RADAR: Radar event for Adjacent channel derived from the nearest
+ *                            puncture pattern of the radar hit channel on DFS puncturing SM.
  */
 enum dfs_punc_sm_evt {
 	DFS_PUNC_SM_EV_RADAR      = 0,
@@ -1037,6 +1039,7 @@ enum dfs_punc_sm_evt {
 	DFS_PUNC_SM_EV_CAC_EXPIRY = 2,
 	DFS_PUNC_SM_EV_STOP       = 3,
 	DFS_PUNC_SM_EV_USER_PUNC  = 4,
+	DFS_PUNC_SM_EV_ADJ_RADAR  = 5,
 };
 
 /**

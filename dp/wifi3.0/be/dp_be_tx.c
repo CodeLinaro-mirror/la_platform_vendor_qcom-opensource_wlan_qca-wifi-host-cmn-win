@@ -666,7 +666,10 @@ dp_tx_mlo_mcast_multipass_send(struct dp_vdev_be *be_vdev,
 
 	be_ptnr_vdev = dp_get_be_vdev_from_dp_vdev(ptnr_vdev);
 	if (be_vdev != be_ptnr_vdev) {
-		nbuf_clone = qdf_nbuf_clone(ptr->nbuf);
+		if (ptr->vlan_id == MULTIPASS_WITH_VLAN_ID)
+			nbuf_clone = qdf_nbuf_clone(ptr->nbuf);
+		else
+			nbuf_clone = qdf_nbuf_copy(ptr->nbuf);
 		if (qdf_unlikely(!nbuf_clone)) {
 			dp_tx_debug("nbuf clone failed");
 			return;

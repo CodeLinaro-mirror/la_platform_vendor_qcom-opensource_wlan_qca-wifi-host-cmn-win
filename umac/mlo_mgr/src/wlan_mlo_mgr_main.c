@@ -1186,6 +1186,11 @@ static QDF_STATUS mlo_dev_ctx_init(struct wlan_objmgr_vdev *vdev)
 			break;
 		}
 		mlo_dev_lock_release(ml_dev);
+		mlo_info("mlo_dev_ctx init | vdev_id %d mac_addr " QDF_MAC_ADDR_FMT
+			 " mld_macaddr " QDF_MAC_ADDR_FMT,
+			 vdev->vdev_objmgr.vdev_id,
+			 QDF_MAC_ADDR_REF(vdev->vdev_mlme.macaddr),
+			 QDF_MAC_ADDR_REF(vdev->vdev_mlme.mldaddr));
 		return QDF_STATUS_SUCCESS;
 	}
 
@@ -1205,6 +1210,12 @@ static QDF_STATUS mlo_dev_ctx_init(struct wlan_objmgr_vdev *vdev)
 	ml_dev->wlan_vdev_list[0] = vdev;
 	ml_dev->wlan_vdev_count++;
 	vdev->mlo_dev_ctx = ml_dev;
+
+	mlo_info("mlo_dev_ctx init | vdev_id %d mac_addr " QDF_MAC_ADDR_FMT
+		 " mld_macaddr " QDF_MAC_ADDR_FMT, vdev->vdev_objmgr.vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->vdev_mlme.macaddr),
+		 QDF_MAC_ADDR_REF(vdev->vdev_mlme.mldaddr));
+
 
 	mlo_dev_lock_create(ml_dev);
 	tsf_recalculation_lock_create(ml_dev);
@@ -1422,6 +1433,11 @@ static QDF_STATUS mlo_dev_ctx_deinit(struct wlan_objmgr_vdev *vdev)
 		id++;
 	}
 	mlo_dev_lock_release(ml_dev);
+
+	mlo_info("mlo_dev_ctx deinit | vdev_id %d mac_addr " QDF_MAC_ADDR_FMT
+		 " mld_macaddr " QDF_MAC_ADDR_FMT, vdev->vdev_objmgr.vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->vdev_mlme.macaddr),
+		 QDF_MAC_ADDR_REF(vdev->vdev_mlme.mldaddr));
 
 	if (wlan_vdev_mlme_is_mlo_bridge_vdev(vdev)) {
 		status = mld_delete_from_bridge_vdev_list(vdev);

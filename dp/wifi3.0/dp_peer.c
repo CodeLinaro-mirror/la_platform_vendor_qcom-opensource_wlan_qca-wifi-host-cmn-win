@@ -313,17 +313,8 @@ dp_peer_wds_ext_create(struct dp_soc *soc, struct dp_peer *peer)
 	if (!ta_txrx_peer)
 		return QDF_STATUS_E_INVAL;
 
-	if (ta_txrx_peer->is_mld_peer) {
-		ta_base_peer = dp_get_primary_link_peer_by_id(
-						soc,
-						ta_txrx_peer->peer_id,
-						DP_MOD_ID_IPA);
-	} else {
-		ta_base_peer = dp_peer_get_ref_by_id(
-						soc,
-						ta_txrx_peer->peer_id,
-						DP_MOD_ID_IPA);
-	}
+	ta_base_peer = dp_peer_get_ref_by_id(soc, ta_txrx_peer->peer_id,
+					     DP_MOD_ID_IPA);
 	if (!ta_base_peer)
 		return QDF_STATUS_E_INVAL;
 
@@ -2095,6 +2086,25 @@ void dp_peer_free_ast_entry(struct dp_soc *soc,
 	soc->num_ast_entries--;
 }
 
+#ifdef IPA_OFFLOAD
+static inline
+void dp_peer_unlink_ast_sanity(struct dp_soc *soc,
+			       struct dp_ast_entry *ast_entry,
+			       struct dp_peer *peer)
+{
+	if (!soc->host_ast_db_enable)
+		qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+}
+#else
+static inline
+void dp_peer_unlink_ast_sanity(struct dp_soc *soc,
+			       struct dp_ast_entry *ast_entry,
+			       struct dp_peer *peer)
+{
+	qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+}
+#endif
+
 void dp_peer_unlink_ast_entry(struct dp_soc *soc,
 			      struct dp_ast_entry *ast_entry,
 			      struct dp_peer *peer)
@@ -2115,7 +2125,7 @@ void dp_peer_unlink_ast_entry(struct dp_soc *soc,
 	 * after soc->ast_lock is taken
 	 */
 
-	qdf_assert_always(ast_entry->peer_id == peer->peer_id);
+	dp_peer_unlink_ast_sanity(soc, ast_entry, peer);
 	TAILQ_REMOVE(&peer->ast_entry_list, ast_entry, ase_list_elem);
 
 	if (ast_entry == peer->self_ast_entry)

@@ -720,6 +720,8 @@ struct cdp_cmn_ops {
 					 ol_osif_peer_handle *osif_peer);
 	QDF_STATUS (*set_wds_ext_peer_bit)(ol_txrx_soc_handle soc,
 					   uint8_t *mac);
+	QDF_STATUS (*clear_wds_ext_peer_handle)(ol_txrx_soc_handle soc,
+						ol_osif_peer_handle osif_peer);
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 	QDF_STATUS (*txrx_drain)(ol_txrx_soc_handle soc, uint8_t rx_only);
 	int (*get_free_desc_poolsize)(struct cdp_soc_t *soc);

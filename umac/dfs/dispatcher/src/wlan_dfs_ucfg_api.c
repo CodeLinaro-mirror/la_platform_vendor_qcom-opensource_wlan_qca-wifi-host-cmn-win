@@ -512,5 +512,25 @@ bool ucfg_dfs_is_agile_rcac_enabled(struct wlan_objmgr_pdev *pdev)
 }
 
 qdf_export_symbol(ucfg_dfs_is_agile_rcac_enabled);
+
 #endif
+
+QDF_STATUS ucfg_dfs_set_cac_aborted(struct wlan_objmgr_pdev *pdev,
+				    bool cac_aborted)
+{
+	struct wlan_dfs *dfs;
+
+	dfs = wlan_pdev_get_dfs_obj(pdev);
+	if (!dfs) {
+		dfs_err(dfs, WLAN_DEBUG_DFS_ALWAYS, "null dfs");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	dfs->dfs_cac_aborted = false;
+
+	return QDF_STATUS_SUCCESS;
+}
+
+qdf_export_symbol(ucfg_dfs_set_cac_aborted);
+
 

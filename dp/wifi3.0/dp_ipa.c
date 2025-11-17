@@ -791,6 +791,50 @@ static void dp_ipa_tx_alt_pool_detach(struct dp_soc *soc, struct dp_pdev *pdev)
 	qdf_mem_free_sgtable(&ipa_res->tx_alt_comp_ring.sgtable);
 }
 
+#ifdef DP_UMAC_HW_RESET_SUPPORT
+static int dp_ipa_tx_alt_pool_attach_umac_reset(struct dp_soc *soc, struct dp_pdev *pdev)
+{
+	struct hal_srng *wbm_srng;
+	int tx_buf_cnt = soc->ipa_uc_tx_rsc_alt.alloc_tx_buf_cnt;
+	qdf_dma_addr_t buffer_paddr;
+	void *ring_entry;
+	uint32_t wbm_bm_id;
+	int i;
+
+	if (!wlan_cfg_is_ipa_two_tx_pipes_enabled(soc->wlan_cfg_ctx))
+		return 0;
+
+	wbm_bm_id = wlan_cfg_get_rbm_id_for_index(soc->wlan_cfg_ctx,
+						  IPA_TX_ALT_RING_IDX);
+	wbm_srng = (struct hal_srng *)
+			soc->tx_comp_ring[IPA_TX_ALT_COMP_RING_IDX].hal_srng;
+	hal_srng_access_start_unlocked(soc->hal_soc,
+				       hal_srng_to_hal_ring_handle(wbm_srng));
+
+	for (i = 0;i < tx_buf_cnt; i++) {
+		ring_entry = hal_srng_dst_get_next_hp(soc->hal_soc,
+				hal_srng_to_hal_ring_handle(wbm_srng));
+		if (!ring_entry) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_INFO,
+				  "%s: Failed to get WBM ring entry",
+				  __func__);
+			return -EFAULT;
+		}
+
+		buffer_paddr = qdf_nbuf_get_frag_paddr(
+				(qdf_nbuf_t)soc->ipa_uc_tx_rsc_alt.tx_buf_pool_vaddr_unaligned[i], 0);
+
+		hal_rxdma_buff_addr_info_set(soc->hal_soc, ring_entry,
+					     buffer_paddr, 0, wbm_bm_id);
+	}
+	qdf_info("Allocated TX_ALT buffer as part of umac_reset: TX_BUF_CNT:%d",i);
+
+	hal_srng_access_end_unlocked(soc->hal_soc,
+				     hal_srng_to_hal_ring_handle(wbm_srng));
+	return 0;
+}
+#endif
+
 static int dp_ipa_tx_alt_pool_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 {
 	uint32_t tx_buffer_count;
@@ -1854,6 +1898,97 @@ static int dp_rx_ipa_uc_attach(struct dp_soc *soc, struct dp_pdev *pdev)
 }
 
 #ifdef QCA_IPA_LL_TX_FLOW_CONTROL
+#ifdef DP_UMAC_HW_RESET_SUPPORT
+static int dp_tx_ipa_uc_attach_umac_reset(struct dp_soc *soc, struct dp_pdev *pdev)
+{
+
+	struct hal_srng *wbm_srng = (struct hal_srng *)
+			soc->tx_comp_ring[IPA_TX_COMP_RING_IDX].hal_srng;
+	int tx_buf_cnt = soc->ipa_uc_tx_rsc.alloc_tx_buf_cnt;
+	qdf_dma_addr_t buffer_paddr;
+	void *ring_entry;
+	uint32_t wbm_bm_id;
+	int i;
+	int count = 0;
+
+	wbm_bm_id = wlan_cfg_get_rbm_id_for_index(soc->wlan_cfg_ctx,
+						  IPA_TCL_DATA_RING_IDX);
+	hal_srng_access_start_unlocked(soc->hal_soc,
+				       hal_srng_to_hal_ring_handle(wbm_srng));
+
+	for (i = 0;i < tx_buf_cnt; i++) {
+		ring_entry = hal_srng_dst_get_next_hp(soc->hal_soc,
+				hal_srng_to_hal_ring_handle(wbm_srng));
+		if (!ring_entry) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_INFO,
+				  "%s: Failed to get WBM ring entry",
+				  __func__);
+			return -EFAULT;
+		}
+
+		if (!(qdf_nbuf_t)soc->ipa_uc_tx_rsc.tx_buf_pool_vaddr_unaligned[i])
+			continue;
+
+		buffer_paddr = qdf_nbuf_get_frag_paddr(
+				(qdf_nbuf_t)soc->ipa_uc_tx_rsc.tx_buf_pool_vaddr_unaligned[i], 0);
+		hal_rxdma_buff_addr_info_set(soc->hal_soc, ring_entry,
+					     buffer_paddr, 0, wbm_bm_id);
+		count++;
+	}
+	qdf_info("Allocated TX buffer as part of umac_reset: TX_BUF_CNT:%d",count);
+
+	hal_srng_access_end_unlocked(soc->hal_soc,
+				     hal_srng_to_hal_ring_handle(wbm_srng));
+	return 0;
+}
+
+void dp_ipa_uc_attach_umac_reset(struct dp_soc *soc)
+{
+	struct dp_pdev *pdev = soc->pdev_list[0];
+	int ret;
+
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+		return;
+
+	if (!pdev) {
+		qdf_err("PDEV is null soc:%pK",soc);
+		return;
+	}
+
+	if (pdev->pdev_id == 0) {
+		ret = dp_tx_ipa_uc_attach_umac_reset(soc, pdev);
+		if (ret) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+					"%s: DP IPA UC TX Attach fail for UMAC RESET %d",
+					__func__, ret);
+			/* If this fail Better crash the system anyhow GSI will crash it due to
+			 * no BUFFER available issue
+			 */
+			QDF_BUG(0);
+		}
+	}
+
+	/* Refill 2nd TX pipe */
+	if (dp_ipa_is_alt_tx_required(soc)) {
+		pdev = soc->pdev_list[1];
+		if (!pdev) {
+			qdf_err("PDEV is null soc:%pK",soc);
+			return;
+		}
+		ret = dp_ipa_tx_alt_pool_attach_umac_reset(soc, pdev);
+		if (ret) {
+			QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_ERROR,
+				  "%s: DP IPA TX pool2 attach fail for UMAC RESET code %d",
+				  __func__, ret);
+			/* If this fail Better crash the system anyhow GSI will crash it due to
+			* no BUFFER available issue
+			*/
+			QDF_BUG(0);
+		}
+	}
+}
+#endif
+
 int dp_ipa_uc_attach(struct dp_pdev *pdev)
 {
 	int error;

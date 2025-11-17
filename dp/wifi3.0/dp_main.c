@@ -35,6 +35,10 @@
 #include "dp_tx.h"
 #include "dp_tx_desc.h"
 #include "dp_rx.h"
+#ifdef IPA_OFFLOAD
+#include "cdp_txrx_ipa.h"
+#include "wlan_ipa_core.h"
+#endif
 #ifdef WLAN_FEATURE_UL_JITTER
 #include "dp_hist.h"
 #endif
@@ -4194,9 +4198,8 @@ static void dp_pdev_deinit(struct cdp_pdev *txrx_pdev, int force)
 	dp_tx_desc_flush(pdev, NULL, true);
 
 	qdf_spinlock_destroy(&pdev->tx_mutex);
-	qdf_spinlock_destroy(&pdev->vdev_list_lock);
-
 	dp_monitor_pdev_deinit(pdev);
+	qdf_spinlock_destroy(&pdev->vdev_list_lock);
 
 	dp_pdev_srng_deinit(pdev);
 
@@ -8113,7 +8116,7 @@ dp_txrx_host_stats_clr(struct dp_vdev *vdev, struct dp_soc *soc)
 	}
 
 	dp_vdev_stats_hw_offload_target_clear(soc, vdev->pdev->pdev_id,
-					      (1 << vdev->vdev_id));
+					      (1ULL << vdev->vdev_id));
 
 	DP_STATS_CLR(vdev->pdev);
 	DP_STATS_CLR(vdev->pdev->soc);
@@ -13103,6 +13106,13 @@ static inline void dp_umac_reset_ppeds_start(struct dp_soc *soc)
 	}
 }
 #else
+
+#ifdef IPA_OFFLOAD
+static QDF_STATUS dp_umac_reset_service_handle_n_notify_done(struct dp_soc *soc)
+{
+	return QDF_STATUS_SUCCESS;
+}
+#else
 static QDF_STATUS dp_umac_reset_service_handle_n_notify_done(struct dp_soc *soc)
 {
 	dp_register_notify_umac_pre_reset_fw_callback(soc);
@@ -13110,6 +13120,7 @@ static QDF_STATUS dp_umac_reset_service_handle_n_notify_done(struct dp_soc *soc)
 	soc->umac_reset_ctx.nbuf_list = NULL;
 	return QDF_STATUS_SUCCESS;
 }
+#endif
 
 static inline void dp_umac_reset_ppeds_txdesc_pool_reset(struct dp_soc *soc,
 							 qdf_nbuf_t *nbuf_list)
@@ -13117,6 +13128,86 @@ static inline void dp_umac_reset_ppeds_txdesc_pool_reset(struct dp_soc *soc,
 }
 
 static inline void dp_umac_reset_ppeds_start(struct dp_soc *soc)
+{
+}
+#endif
+
+#ifdef IPA_OFFLOAD
+
+static QDF_STATUS check_n_notify_umac_prereset_done(struct dp_soc *soc)
+{
+	dp_register_notify_umac_pre_reset_fw_callback(soc);
+	dp_umac_reset_trigger_pre_reset_notify_cb(soc);
+	soc->umac_reset_ctx.nbuf_list = NULL;
+	return QDF_STATUS_SUCCESS;
+}
+
+void dp_ipa_umac_reset_enable_work(void *data)
+{
+	struct dp_soc *soc = (struct dp_soc *) data;
+
+	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+	{
+		struct wlan_ipa_priv *ipa_ctx;
+
+		struct wlan_objmgr_psoc *psoc = (struct wlan_objmgr_psoc *)(soc->ctrl_psoc);
+		if (!psoc)
+			goto end;
+
+		ipa_ctx = ipa_psoc_get_priv_obj(psoc);
+		if (!ipa_ctx)
+			goto end;
+
+		wlan_ipa_uc_enable_pipes(ipa_ctx);
+	}
+end:
+	return;
+}
+
+void dp_ipa_umac_reset_disable_work(void *data)
+{
+	struct dp_soc *soc = (struct dp_soc *)data;
+
+	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+	{
+		struct wlan_ipa_priv *ipa_ctx;
+		struct wlan_objmgr_psoc *psoc = (struct wlan_objmgr_psoc *)(soc->ctrl_psoc);
+		if (!psoc)
+			goto end;
+
+		ipa_ctx = ipa_psoc_get_priv_obj(psoc);
+		if (!ipa_ctx)
+			goto end;
+
+		wlan_ipa_uc_disable_pipes(ipa_ctx, true);
+	}
+end:
+	check_n_notify_umac_prereset_done(soc);
+}
+
+
+static void dp_ipa_umac_reset_enable(struct dp_soc *soc)
+{
+	qdf_queue_work(0, soc->umac_reset_ctx.reset_wq,
+		      &soc->umac_reset_ctx.pre_reset_enable_ipa_pipes_work);
+}
+
+static void dp_ipa_umac_reset_disable(struct dp_soc *soc)
+{
+	qdf_queue_work(0, soc->umac_reset_ctx.reset_wq,
+			&soc->umac_reset_ctx.pre_reset_disable_ipa_pipes_work);
+}
+#else
+void dp_ipa_umac_reset_enable_work(void *data)
+{
+}
+void dp_ipa_umac_reset_disable_work(void *data)
+{
+}
+static void dp_ipa_umac_reset_enable(struct dp_soc *soc)
+{
+}
+static void dp_ipa_umac_reset_disable(struct dp_soc *soc)
 {
 }
 #endif
@@ -13137,6 +13228,7 @@ static QDF_STATUS dp_umac_reset_handle_pre_reset(struct dp_soc *soc)
 
 	dp_pause_tx_hardstart(soc);
 	dp_pause_reo_send_cmd(soc);
+	dp_ipa_umac_reset_disable(soc);
 	dp_umac_reset_service_handle_n_notify_done(soc);
 
 	/*
@@ -13173,6 +13265,8 @@ static QDF_STATUS dp_umac_reset_handle_post_reset(struct dp_soc *soc)
 
 		dp_rx_desc_reuse(soc, nbuf_list);
 
+		dp_ipa_uc_attach_umac_reset(soc);
+
 		dp_cleanup_reo_cmd_module(soc);
 
 		dp_umac_reset_ppeds_txdesc_pool_reset(soc, nbuf_list);
@@ -13204,6 +13298,8 @@ static QDF_STATUS dp_umac_reset_handle_post_reset_complete(struct dp_soc *soc)
 	soc->umac_reset_ctx.nbuf_list = NULL;
 
 	soc->service_rings_running = 0;
+
+	dp_ipa_umac_reset_enable(soc);
 
 	dp_resume_reo_send_cmd(soc);
 
@@ -13622,6 +13718,7 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 	.set_wds_ext_peer_rx = dp_wds_ext_set_peer_rx,
 	.get_wds_ext_peer_osif_handle = dp_wds_ext_get_peer_osif_handle,
 	.set_wds_ext_peer_bit = dp_wds_ext_set_peer_bit,
+	.clear_wds_ext_peer_handle = dp_wds_ext_clear_peer_handle,
 #endif /* QCA_SUPPORT_WDS_EXTENDED */
 
 #if defined(FEATURE_RUNTIME_PM) || defined(DP_POWER_SAVE)
@@ -15666,6 +15763,18 @@ QDF_STATUS dp_wds_ext_set_peer_bit(ol_txrx_soc_handle soc, uint8_t *mac)
 	qdf_atomic_test_and_set_bit(WDS_EXT_PEER_INIT_BIT,
 				    &txrx_peer->wds_ext.init);
 	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+QDF_STATUS dp_wds_ext_clear_peer_handle(ol_txrx_soc_handle soc,
+				  ol_osif_peer_handle osif_peer)
+{
+	struct dp_soc *dp_soc = (struct dp_soc *)soc;
+
+	if (dp_soc->arch_ops.dp_wds_ext_clear_peer_handle)
+		return dp_soc->arch_ops.dp_wds_ext_clear_peer_handle
+						(dp_soc, osif_peer);
 
 	return QDF_STATUS_SUCCESS;
 }

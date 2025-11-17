@@ -3270,6 +3270,54 @@ void dp_check_for_valid_link_addr(struct dp_vdev *vdev,
 			      DP_VDEV_ITERATE_SKIP_SELF);
 }
 
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+/**
+ * dp_wds_ext_clear_peer_handle_be - this is error case handler when peer not
+ * found on wds_ext_dev stop, we will iterate through other peers which match
+ * the osif_peer pointer and clear wds_ext objects in rx peer.
+ *
+ * @soc: opaque soc handle
+ * @osif_peer: osif_peer pointer
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS dp_wds_ext_clear_peer_handle_be(struct dp_soc *soc,
+					   ol_osif_peer_handle osif_peer)
+{
+	uint32_t index;
+	struct dp_peer *peer;
+	struct dp_txrx_peer *txrx_peer;
+	dp_mld_peer_hash_obj_t mld_hash_obj;
+
+	mld_hash_obj = dp_mlo_get_peer_hash_obj(soc);
+
+	if (!mld_hash_obj)
+		return QDF_STATUS_E_INVAL;
+
+	qdf_spin_lock_bh(&mld_hash_obj->mld_peer_hash_lock);
+	for (index = 0; index < mld_hash_obj->mld_peer_hash.mask; index++) {
+		TAILQ_FOREACH(peer, &mld_hash_obj->mld_peer_hash.bins[index],
+				hash_list_elem) {
+			txrx_peer = dp_get_txrx_peer(peer);
+
+			if (!txrx_peer ||
+			     (txrx_peer->wds_ext.osif_peer != osif_peer))
+				continue;
+			txrx_peer->osif_rx = NULL;
+			txrx_peer->wds_ext.osif_peer = NULL;
+			qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
+			return QDF_STATUS_SUCCESS;
+		}
+	}
+	qdf_spin_unlock_bh(&mld_hash_obj->mld_peer_hash_lock);
+	return QDF_STATUS_E_INVAL;
+}
+#else
+QDF_STATUS dp_wds_ext_clear_peer_handle_be(struct dp_soc *soc,
+					   ol_osif_peer_handle osif_peer)
+{
+}
+#endif
 #else /* WLAN_FEATURE_11BE_MLO */
 void dp_mlo_dev_ctxt_list_attach_wrapper(dp_mlo_dev_obj_t mlo_dev_obj)
 {
@@ -3329,6 +3377,12 @@ static void dp_txrx_set_mlo_mcast_primary_vdev_param_be(
 	struct dp_vdev_be *be_vdev = dp_get_be_vdev_from_dp_vdev(vdev);
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(
 						be_vdev->vdev.pdev->soc);
+
+	if (!be_vdev->mlo_dev_ctxt)
+		dp_alert("mlo_dev_ctxt not present | vdev_id:%d mac "
+			 QDF_MAC_ADDR_FMT " mldmac " QDF_MAC_ADDR_FMT,
+			 vdev->vdev_id, QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+			 QDF_MAC_ADDR_REF(vdev->mld_mac_addr.raw));
 
 	be_vdev->mcast_primary = val.cdp_vdev_param_mcast_vdev;
 	vdev->mlo_vdev = 1;
@@ -3753,6 +3807,9 @@ QDF_STATUS dp_mlo_dev_ctxt_create(struct cdp_soc_t *soc_hdl,
 		return QDF_STATUS_E_NOMEM;
 	}
 
+	dp_alert("mlo_dev_ctxt create | mldmac " QDF_MAC_ADDR_FMT,
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
+
 	wlan_minidump_log(mlo_dev_ctxt, sizeof(*mlo_dev_ctxt), soc->ctrl_psoc,
 			  WLAN_MD_DP_MLO_DEV_CTX, "dp_mlo_dev_ctxt");
 	qdf_copy_macaddr((struct qdf_mac_addr *)&mlo_dev_ctxt->mld_mac_addr.raw[0],
@@ -3823,6 +3880,9 @@ QDF_STATUS dp_mlo_dev_ctxt_destroy(struct cdp_soc_t *soc_hdl,
 		     mlo_dev_ctxt, ml_dev_list_elem);
 	qdf_spin_unlock_bh(&mlo_dev_obj->mlo_dev_list_lock);
 
+	dp_alert("mlo_dev_ctxt destroy | mldmac " QDF_MAC_ADDR_FMT,
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
+
 	/* unref for MLO ctxt ref released from Global list */
 	dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_CONFIG);
 
@@ -3871,10 +3931,20 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_attach(struct cdp_soc_t *soc_hdl,
 	if (QDF_STATUS_E_INVAL == ret) {
 		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
 		dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_MLO_DEV);
+		dp_info("mlo_dev_ctxt attach skipped | vdev_id %d macaddr "
+		        QDF_MAC_ADDR_FMT " mldmac "QDF_MAC_ADDR_FMT, vdev_id,
+		        QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		        QDF_MAC_ADDR_REF(mld_mac_addr));
+
 		return QDF_STATUS_SUCCESS;
 	}
 
 	be_vdev->mlo_dev_ctxt = mlo_dev_ctxt;
+
+	dp_alert("mlo_dev_ctxt attach | vdev_id %d macaddr " QDF_MAC_ADDR_FMT
+		 " mldmac " QDF_MAC_ADDR_FMT, vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
 
 	/* ref for holding MLO ctxt in be_vdev */
 	dp_mlo_dev_get_ref(mlo_dev_ctxt, DP_MOD_ID_CHILD);
@@ -3931,12 +4001,22 @@ QDF_STATUS dp_mlo_dev_ctxt_vdev_detach(struct cdp_soc_t *soc_hdl,
 	    != QDF_STATUS_SUCCESS) {
 		dp_mlo_dev_ctxt_unref_delete(mlo_dev_ctxt, DP_MOD_ID_MLO_DEV);
 		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
+		dp_info("mlo_dev_ctxt detach skipped | vdev_id %d macaddr "
+		        QDF_MAC_ADDR_FMT " mldmac "QDF_MAC_ADDR_FMT, vdev_id,
+		        QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		        QDF_MAC_ADDR_REF(mld_mac_addr));
+
 		return QDF_STATUS_SUCCESS;
 	}
 
 	qdf_spin_lock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
 	be_vdev->mlo_dev_ctxt = NULL;
 	qdf_spin_unlock_bh(&be_soc->ml_ctxt->mlo_dev_list_lock);
+
+	dp_alert("mlo_dev_ctxt detach | vdev_id %d macaddr " QDF_MAC_ADDR_FMT
+		 " mldmac " QDF_MAC_ADDR_FMT, vdev_id,
+		 QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
+		 QDF_MAC_ADDR_REF(mld_mac_addr));
 
 	/* Save vdev stats in MLO dev ctx */
 	dp_update_mlo_mld_vdev_ctxt_stats(&mlo_dev_ctxt->stats, &vdev->stats);
@@ -4058,6 +4138,20 @@ dp_initialize_arch_ops_be_mlo_multi_chip(struct dp_arch_ops *arch_ops)
 }
 #endif
 
+#ifdef QCA_SUPPORT_WDS_EXTENDED
+static inline
+void dp_initialize_arch_ops_be_wds_ext_peer(struct dp_arch_ops *arch_ops)
+{
+	arch_ops->dp_wds_ext_clear_peer_handle =
+					dp_wds_ext_clear_peer_handle_be;
+}
+#else
+static inline
+void dp_initialize_arch_ops_be_wds_ext_peer(struct dp_arch_ops *arch_ops)
+{
+}
+#endif
+
 static inline void
 dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 {
@@ -4076,6 +4170,7 @@ dp_initialize_arch_ops_be_mlo(struct dp_arch_ops *arch_ops)
 	arch_ops->mlo_umac_reset_notify_asserted_soc =
 					dp_umac_reset_notify_asserted_soc;
 #endif
+	dp_initialize_arch_ops_be_wds_ext_peer(arch_ops);
 }
 
 static struct cdp_cmn_mlo_ops dp_cmn_mlo_ops = {

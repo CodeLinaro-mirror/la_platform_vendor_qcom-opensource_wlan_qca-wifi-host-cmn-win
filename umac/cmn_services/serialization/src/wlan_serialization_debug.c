@@ -185,7 +185,9 @@ QDF_STATUS wlan_ser_print_history(
 	case SER_PDEV_QUEUE_COMP_SCAN:
 		ser_err_no_fl("Serialization SCAN Queues(LIVE)");
 		pdev_q = &ser_pdev->pdev_q[SER_PDEV_QUEUE_COMP_SCAN];
+		wlan_serialization_acquire_lock(&pdev_q->pdev_queue_lock);
 		wlan_ser_print_pdev_queue(pdev_q, WLAN_SER_PDEV_NODE);
+		wlan_serialization_release_lock(&pdev_q->pdev_queue_lock);
 		break;
 	/*
 	 * Print non scan queues
@@ -198,7 +200,9 @@ QDF_STATUS wlan_ser_print_history(
 		 * Print non scan pdev queues
 		 */
 		case SER_PDEV_QUEUE_TYPE:
+			wlan_serialization_acquire_lock(&pdev_q->pdev_queue_lock);
 			wlan_ser_print_pdev_queue(pdev_q, WLAN_SER_PDEV_NODE);
+			wlan_serialization_release_lock(&pdev_q->pdev_queue_lock);
 			break;
 		/*
 		 * Print non scan pdev queues
@@ -208,7 +212,9 @@ QDF_STATUS wlan_ser_print_history(
 			    &ser_vdev->vdev_q[SER_VDEV_QUEUE_COMP_NON_SCAN];
 			for_vdev_queue = true;
 			vdev_id = wlan_vdev_get_id(vdev);
+			wlan_serialization_acquire_lock(&pdev_q->pdev_queue_lock);
 			wlan_ser_print_vdev_queue(vdev_q, WLAN_SER_VDEV_NODE);
+			wlan_serialization_release_lock(&pdev_q->pdev_queue_lock);
 			break;
 		default:
 			ser_err("Invalid parameter for queue type(pdev/vdev)");

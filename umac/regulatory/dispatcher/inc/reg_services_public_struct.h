@@ -1288,14 +1288,12 @@ enum wmi_msg_frag_flag {
  * struct hbl_fb_chan
  * @pri_freq: Blocked primary frequency
  * @max_bw: Maximum blocked bandwidth
- * @cen320_freq: Blocked 320 center frequency
- *                           Valid only if one of the two 320 cen freq is
- *                           blocked.
+ * @center_freq: Blocked center frequency
  */
 struct hbl_fb_chan {
 	qdf_freq_t pri_freq;
 	enum phy_ch_width max_bw;
-	qdf_freq_t cen320_freq;
+	qdf_freq_t center_freq;
 };
 
 /**
