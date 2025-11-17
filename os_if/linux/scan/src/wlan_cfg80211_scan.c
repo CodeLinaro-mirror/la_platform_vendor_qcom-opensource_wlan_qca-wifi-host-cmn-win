@@ -1608,7 +1608,6 @@ int wlan_cfg80211_scan(struct wlan_objmgr_vdev *vdev,
 	struct wlan_objmgr_psoc *psoc;
 	wlan_scan_id scan_id;
 	bool is_p2p_scan = false;
-	enum wlan_band band;
 	QDF_STATUS qdf_status;
 	enum QDF_OPMODE opmode;
 	uint32_t extra_ie_len = 0;
@@ -1787,13 +1786,22 @@ int wlan_cfg80211_scan(struct wlan_objmgr_vdev *vdev,
 			      WLAN_REG_IS_6GHZ_CHAN_FREQ(c_freq)))) {
 				req->scan_req.chan_list.chan[num_chan].freq =
 									c_freq;
-				band = util_scan_scm_freq_to_band(c_freq);
-				if (band == WLAN_BAND_2_4_GHZ)
+				/* phymode=11G for 2GHz channels */
+				if (WLAN_REG_IS_24GHZ_CH_FREQ(c_freq)) {
 					req->scan_req.chan_list.chan[num_chan].phymode =
 						SCAN_PHY_MODE_11G;
-				else
+				}
+				/* phymode=11AX_HE20 for 6GHz when wideband scan enabled */
+				else if (WLAN_REG_IS_6GHZ_CHAN_FREQ(c_freq) &&
+						ucfg_scan_get_wide_band_scan(pdev)) {
+					req->scan_req.chan_list.chan[num_chan].phymode =
+						SCAN_PHY_MODE_11AX_HE20;
+				}
+				/* phymode=11A for all other cases (5GHz and 6GHz) */
+				else {
 					req->scan_req.chan_list.chan[num_chan].phymode =
 						SCAN_PHY_MODE_11A;
+				}
 				num_chan++;
 				if (num_chan >= NUM_CHANNELS)
 					break;
