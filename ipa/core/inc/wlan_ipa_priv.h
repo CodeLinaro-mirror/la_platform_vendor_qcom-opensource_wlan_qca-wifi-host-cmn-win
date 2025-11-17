@@ -491,6 +491,8 @@ struct ipa_uc_stas_map {
 	bool is_reserved;
 	struct qdf_mac_addr mac_addr;
 	uint8_t is_authenticated;
+	uint8_t vdev_id;
+	qdf_netdev_t net_dev;
 };
 
 /**
