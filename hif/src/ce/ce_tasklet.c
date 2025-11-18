@@ -174,6 +174,25 @@ hif_record_tasklet_sched_entry_ts(struct hif_softc *scn, uint8_t ce_id)
 					qdf_get_log_timestamp_usecs();
 }
 
+static inline
+void hif_dump_buffer(char *buf, uint32_t len)
+{
+	char *pline_start = buf;
+	char *pline_end;
+	uint32_t rem_buf_len = len;
+
+	while (rem_buf_len > 0 && (pline_end = memchr(pline_start, '\n', rem_buf_len))) {
+		qdf_nofl_err("%.*s", (int)(pline_end - pline_start), pline_start);
+		rem_buf_len -= (pline_end - pline_start + 1);
+		pline_start = pline_end + 1;
+	}
+
+	/* Print any remaining content without newline */
+	if (rem_buf_len > 0) {
+		qdf_nofl_err("%.*s", (int)rem_buf_len, pline_start);
+	}
+}
+
 /**
  * hif_ce_latency_stats() - Display ce latency information
  * @hif_ctx: hif_softc struct
@@ -181,58 +200,190 @@ hif_record_tasklet_sched_entry_ts(struct hif_softc *scn, uint8_t ce_id)
  * Return: None
  */
 static void
-hif_ce_latency_stats(struct hif_softc *hif_ctx)
+hif_ce_latency_stats(struct hif_softc *hif_ctx, char *sysfs_buf,
+		     uint32_t *len, bool is_ts)
 {
 	uint8_t i, j;
 	uint32_t index, start_index;
 	uint64_t secs, usecs;
-	static const char * const buck_str[] = {"0 - 0.5", "0.5 - 1", "1  -  2",
-					       "2  -  5", "5  - 10", "  >  10"};
+	char *buffer;
+	uint32_t offset = 0;
+	static const char * const header1[] =
+		{" CE Rings ",  "Execution(ms)", "Scheduled(ms)"};
+	static const char * const header2[] =
+		{" CE Rings ",  "Execution last update(us)","Scheduled last update(us)"};
+	static const char * const buck_str[CE_BUCKET_MAX] =
+		{ "0-0.5ms","0.5-1ms","1-2ms","2-5ms", "5-10ms",">10ms"};
 	struct HIF_CE_state *hif_ce_state = HIF_GET_CE_STATE(hif_ctx);
 	struct ce_stats *stats = &hif_ce_state->stats;
+#define MAX_BUF_SIZE 8192
 
-	hif_err("\tCE TASKLET ARRIVAL AND EXECUTION STATS");
-	for (i = 0; i < CE_COUNT_MAX; i++) {
-		hif_nofl_err("\n\t\tCE Ring %d Tasklet Execution Bucket", i);
-		for (j = 0; j < CE_BUCKET_MAX; j++) {
-			qdf_log_timestamp_to_secs(
-				       stats->ce_tasklet_exec_last_update[i][j],
-				       &secs, &usecs);
-			hif_nofl_err("\t Bucket %sms :%llu\t last update:% 8lld.%06lld",
-				     buck_str[j],
-				     stats->ce_tasklet_exec_bucket[i][j],
-				     secs, usecs);
+	buffer = (char *)qdf_mem_malloc(MAX_BUF_SIZE);
+	if (!buffer) {
+		hif_err("Failed to allocate memory for buffer");
+		return;
+	 }
+
+	qdf_mem_set(buffer, MAX_BUF_SIZE, 0);
+
+	/* Helper macro to append formatted string to buffer with overflow checking */
+#define BUF_APPEND(fmt, ...) do { \
+	int _ret = snprintf(buffer + offset, MAX_BUF_SIZE - offset, fmt, ##__VA_ARGS__); \
+	if (_ret < 0 || _ret >= (int)(MAX_BUF_SIZE - offset)) { \
+		hif_err("Buffer overflow at offset %u", offset); \
+		goto cleanup; \
+	} \
+	offset += _ret; \
+} while (0)
+
+	if (sysfs_buf == NULL || (sysfs_buf != NULL && is_ts == 0)) {
+		BUF_APPEND(" \t CE TASKLETS - STATS ON TIME SPENT - ON EXECUTION AND SCHEDULED STATE \n");
+		BUF_APPEND("--------------------------------------\n");
+		BUF_APPEND("%s   %40s   %40s\n", header1[0], header1[1],
+			   header1[2]);
+		BUF_APPEND("--------------------------------------\n");
+
+		BUF_APPEND("\t|  ");
+		for (j = 0; j < (CE_BUCKET_MAX*2); j++) {
+			BUF_APPEND("%8s", buck_str[j%(CE_BUCKET_MAX)]);
+			if (j == (CE_BUCKET_MAX-1))
+				BUF_APPEND(" |  ");
 		}
 
-		hif_nofl_err("\n\t\tCE Ring %d Tasklet Scheduled Bucket", i);
-		for (j = 0; j < CE_BUCKET_MAX; j++) {
-			qdf_log_timestamp_to_secs(
-				      stats->ce_tasklet_sched_last_update[i][j],
-				      &secs, &usecs);
-			hif_nofl_err("\t Bucket %sms :%llu\t last update :% 8lld.%06lld",
-				     buck_str[j],
-				     stats->ce_tasklet_sched_bucket[i][j],
-				     secs, usecs);
+		BUF_APPEND("|\n");
+
+		for (i = 0; i < CE_COUNT_MAX; i++) {
+			BUF_APPEND("CE-%02d  | ", i);
+
+			for (j = 0; j < CE_BUCKET_MAX; j++)
+				BUF_APPEND("%8llu",
+					   stats->ce_tasklet_exec_bucket[i][j]);
+
+			BUF_APPEND("  | ");
+
+			for (j = 0; j < CE_BUCKET_MAX; j++)
+				BUF_APPEND("%8llu",
+					  stats->ce_tasklet_sched_bucket[i][j]);
+
+			BUF_APPEND("  | ");
+			BUF_APPEND("\n");
+		}
+        }
+
+	if (sysfs_buf == NULL || (sysfs_buf != NULL && is_ts == 1)) {
+		BUF_APPEND("-------------------------------------\n");
+		BUF_APPEND("\t%-2s   %55s \t\t\t%55s\n",
+			   header2[0], header2[1], header2[2]);
+		BUF_APPEND("-------------------------------------\n");
+
+		BUF_APPEND("\t");
+		for (j = 0; j < (CE_BUCKET_MAX*2); j++) {
+			BUF_APPEND("%15s", buck_str[j%(CE_BUCKET_MAX)]);
+			if ( j == (CE_BUCKET_MAX-1))
+				BUF_APPEND("  | ");
+		}
+		BUF_APPEND("\n");
+
+		for ( i = 0; i < CE_COUNT_MAX; i++) {
+			BUF_APPEND("CE-%02d\t", i);
+
+			for (j = 0; j < CE_BUCKET_MAX; j++) {
+				qdf_log_timestamp_to_secs(
+				    stats->ce_tasklet_exec_last_update[i][j],
+				    &secs, &usecs);
+				BUF_APPEND("%8lld.%06lld", secs, usecs);
+			}
+			BUF_APPEND("  | ");
+			for (j = 0; j < CE_BUCKET_MAX; j++) {
+				qdf_log_timestamp_to_secs(
+				    stats->ce_tasklet_sched_last_update[i][j],
+				    &secs, &usecs);
+				BUF_APPEND("%8lld.%06lld", secs, usecs);
+			}
+			BUF_APPEND("  | ");
+			BUF_APPEND("\n");
 		}
 
-		hif_nofl_err("\n\t\t CE RING %d Last %d time records",
-			     i, HIF_REQUESTED_EVENTS);
-		index = stats->record_index[i];
-		start_index = stats->record_index[i];
-
-		for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
-			hif_nofl_err("\tExecution time: %lluus Total Scheduled time: %lluus",
-				     stats->tasklet_exec_time_record[i][index],
-				     stats->
-					   tasklet_sched_time_record[i][index]);
-			if (index)
-				index = (index - 1) % HIF_REQUESTED_EVENTS;
-			else
-				index = HIF_REQUESTED_EVENTS - 1;
-			if (index == start_index)
-				break;
-		}
 	}
+
+	if (sysfs_buf == NULL) {
+		/* Dump CE tasklet history in tabular format */
+		BUF_APPEND("\n CE TASKLET HISTORY - LAST %d RECORDS PER CE RING\n",
+			   HIF_REQUESTED_EVENTS);
+		BUF_APPEND("S/D/E(us) -> Start time/Delay while waiting (scheduled)/Execution time taken, in microseconds\n");
+		BUF_APPEND("--------------------------------------"
+			   "--------------------------------------\n");
+
+		/* Print header row with record numbers */
+		BUF_APPEND("%-8s", "CE Ring");
+		for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
+			BUF_APPEND(" %8s%02d", "Rec", j);
+		}
+		BUF_APPEND("\n");
+
+		/* Print sub-header for time types */
+		BUF_APPEND("%-8s", "");
+		for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
+			BUF_APPEND(" %10s", "S/D/E(us)");
+		}
+		BUF_APPEND("\n");
+		BUF_APPEND("--------------------------------------"
+			   "--------------------------------------\n");
+
+		/* Print data for each CE ring */
+		for (i = 0; i < CE_COUNT_MAX; i++) {
+			index = stats->record_index[i];
+			start_index = stats->record_index[i];
+
+			BUF_APPEND("\n");
+			/* Print Start Time row */
+			BUF_APPEND("CE-%02d(S)", i);
+			for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
+				BUF_APPEND(" %10llu",
+					stats->tasklet_entry_time_record[i][j]);
+			}
+			BUF_APPEND("\n");
+
+			/* Print Scheduled (Delay) Time row */
+			BUF_APPEND("CE-%02d(D)", i);
+			for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
+				BUF_APPEND(" %10llu",
+					stats->tasklet_sched_time_record[i][j]);
+			}
+			BUF_APPEND("\n");
+
+			/* Print Execution Time row */
+			BUF_APPEND("CE-%02d(E)", i);
+			for (j = 0; j < HIF_REQUESTED_EVENTS; j++) {
+				BUF_APPEND(" %10llu",
+					stats->tasklet_exec_time_record[i][j]);
+			}
+			BUF_APPEND("\n");
+		}
+
+		hif_dump_buffer(buffer, offset);
+	} else {
+		/* Copy to sysfs buffer with proper bounds checking */
+		uint32_t copy_len = (offset < 4096) ? offset : 4095;
+		qdf_mem_copy(sysfs_buf, buffer, copy_len);
+		sysfs_buf[copy_len] = '\0';
+		if (len)
+			*len = copy_len;
+		if (offset >= 4096)
+			hif_err("CE stats truncated: %u bytes to fit in 4096 byte sysfs buffer",
+				offset);
+	}
+
+cleanup:
+	qdf_mem_free(buffer);
+#undef BUF_APPEND
+#undef MAX_BUF_SIZE
+}
+
+void hif_ce_latency_stats_sysfs(struct hif_softc *hif_ctx,
+				char *sysfs_buf, uint32_t *len,
+				bool is_ts) {
+	hif_ce_latency_stats(hif_ctx, sysfs_buf, len, is_ts);
 }
 
 /**
@@ -252,6 +403,11 @@ static void ce_tasklet_update_bucket(struct HIF_CE_state *hif_ce_state,
 	uint64_t curr_time = qdf_get_log_timestamp_usecs();
 	struct ce_stats *stats = &hif_ce_state->stats;
 
+	if (ce_id >= CE_COUNT_MAX) {
+		hif_err("Invalid ce_id %d, max %d", ce_id, CE_COUNT_MAX);
+		return;
+	}
+
 	exec_time = curr_time - (stats->tasklet_exec_entry_ts[ce_id]);
 	sched_time = (stats->tasklet_exec_entry_ts[ce_id]) -
 		      (stats->tasklet_sched_entry_ts[ce_id]);
@@ -259,6 +415,8 @@ static void ce_tasklet_update_bucket(struct HIF_CE_state *hif_ce_state,
 	index = stats->record_index[ce_id];
 	index = (index + 1) % HIF_REQUESTED_EVENTS;
 
+	stats->tasklet_entry_time_record[ce_id][index] =
+		stats->tasklet_exec_entry_ts[ce_id];
 	stats->tasklet_exec_time_record[ce_id][index] = exec_time;
 	stats->tasklet_sched_time_record[ce_id][index] = sched_time;
 	stats->record_index[ce_id] = index;
@@ -335,7 +493,14 @@ hif_record_tasklet_sched_entry_ts(struct hif_softc *scn, uint8_t ce_id)
 }
 
 static void
-hif_ce_latency_stats(struct hif_softc *hif_ctx)
+hif_ce_latency_stats(struct hif_softc *hif_ctx, char *sysfs_buf,
+		     uint32_t *len, bool is_ts)
+{
+}
+
+void hif_ce_latency_stats_sysfs(struct hif_softc *hif_ctx,
+				char *sysfs_buf, uint32_t *len,
+				bool is_ts)
 {
 }
 #endif /*CE_TASKLET_DEBUG_ENABLE*/
@@ -688,7 +853,7 @@ void hif_display_ce_stats(struct hif_softc *hif_ctx)
 	}
 
 	if (hif_ctx->ce_latency_stats)
-		hif_ce_latency_stats(hif_ctx);
+		hif_ce_latency_stats(hif_ctx, NULL, NULL, 0);
 #undef STR_SIZE
 }
 
