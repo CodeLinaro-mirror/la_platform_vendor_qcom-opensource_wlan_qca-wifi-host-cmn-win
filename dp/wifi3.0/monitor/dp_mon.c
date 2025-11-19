@@ -6382,11 +6382,43 @@ dp_init_mon_chan_band(struct dp_mon_pdev *mon_pdev)
 	for (mac_id = 0; mac_id < MAX_NUM_LMAC_HW; mac_id++)
 		mon_pdev->mon_mac[mac_id].mon_chan_band = REG_BAND_UNKNOWN;
 }
+
+static inline void
+dp_init_mon_lock(struct dp_mon_pdev *mon_pdev)
+{
+	int mac_id;
+
+	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++)
+		qdf_spinlock_create(&mon_pdev->mon_mac[mac_id].mon_lock);
+}
+
+static inline void
+dp_deinit_mon_lock(struct dp_mon_pdev *mon_pdev)
+{
+	int mac_id;
+
+	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++)
+		qdf_spinlock_destroy(&mon_pdev->mon_mac[mac_id].mon_lock);
+}
 #else
 static inline void
 dp_init_mon_chan_band(struct dp_mon_pdev *mon_pdev)
 {
 	mon_pdev->mon_mac.mon_chan_band = REG_BAND_UNKNOWN;
+}
+
+static inline void
+dp_init_mon_lock(struct dp_mon_pdev *mon_pdev)
+{
+
+	qdf_spinlock_create(&mon_pdev->mon_mac.mon_lock);
+}
+
+static inline void
+dp_deinit_mon_lock(struct dp_mon_pdev *mon_pdev)
+{
+
+	qdf_spinlock_destroy(&mon_pdev->mon_mac.mon_lock);
 }
 #endif
 
@@ -6468,6 +6500,9 @@ QDF_STATUS dp_mon_pdev_init(struct dp_pdev *pdev)
 		goto fail4;
 	}
 
+	/* initialize mon lock */
+	dp_init_mon_lock(mon_pdev);
+
 	/* initialize sw monitor rx descriptors */
 	if (mon_ops->rx_mon_desc_pool_init)
 		mon_ops->rx_mon_desc_pool_init(pdev);
@@ -6499,6 +6534,8 @@ QDF_STATUS dp_mon_pdev_init(struct dp_pdev *pdev)
 fail5:
 	if (mon_ops->rx_mon_desc_pool_deinit)
 		mon_ops->rx_mon_desc_pool_deinit(pdev);
+
+	dp_deinit_mon_lock(mon_pdev);
 
 	dp_mon_rings_deinit(pdev);
 fail4:
@@ -6566,8 +6603,13 @@ QDF_STATUS dp_mon_pdev_deinit(struct dp_pdev *pdev)
 
 	if (mon_ops->rx_mon_buffers_free)
 		mon_ops->rx_mon_buffers_free(pdev);
+
 	if (mon_ops->rx_mon_desc_pool_deinit)
 		mon_ops->rx_mon_desc_pool_deinit(pdev);
+
+	/* destroy mon lock */
+	dp_deinit_mon_lock(mon_pdev);
+
 	dp_mon_rings_deinit(pdev);
 	dp_cal_client_detach(&mon_pdev->cal_client_ctx);
 	dp_htt_ppdu_stats_detach(pdev);
