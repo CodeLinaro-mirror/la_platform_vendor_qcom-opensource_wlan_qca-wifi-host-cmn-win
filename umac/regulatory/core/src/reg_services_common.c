@@ -10183,6 +10183,32 @@ reg_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
 	return !(super_chan_ent->chan_flags_arr[in_6g_pwr_mode] &
 		 REGULATORY_CHAN_AFC_NOT_DONE);
 }
+
+bool
+reg_validate_freq_in_afc_payload(struct wlan_objmgr_pdev *pdev,
+				 qdf_freq_t primary_freq,
+				 qdf_freq_t center_320, uint16_t bw,
+				 uint16_t pp)
+{
+
+	if (!reg_is_afc_power_event_received(pdev)) {
+		reg_err("afc power event is not received\n");
+		return false;
+	}
+
+	if (pp == 0xFFFF)
+		pp = NO_SCHANS_PUNC;
+
+	if (bw >= BW_80_MHZ && pp)
+		return reg_validate_freq_in_afc_punc_chans(pdev,
+							   primary_freq,
+							   center_320,
+							   bw, pp);
+
+	return reg_validate_freq_in_afc_chan_obj(pdev, primary_freq,
+						 center_320, bw);
+}
+
 #endif
 
 #ifdef CONFIG_BAND_6GHZ

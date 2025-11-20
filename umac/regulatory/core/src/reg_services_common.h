@@ -3063,6 +3063,25 @@ bool reg_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
  */
 QDF_STATUS reg_set_afc_power_event_received(struct wlan_objmgr_pdev *pdev,
 					    bool val);
+
+/**
+ * reg_validate_freq_in_afc_payload() - Check if the input freq parameters are
+ * present in the AFC payload.
+ *
+ * @pdev: Pointer to pdev
+ * @primary_freq: Input primary frequency
+ * @center_320: Center frequency of 320 MHz BW
+ * @bw: Bandwidth
+ * @pp; Puncture Pattern
+ *
+ * Return: True, if the frequency params are present in the AFC payload.
+ */
+bool
+reg_validate_freq_in_afc_payload(struct wlan_objmgr_pdev *pdev,
+				 qdf_freq_t primary_freq,
+				 qdf_freq_t center_320, uint16_t bw,
+				 uint16_t pp);
+
 #else
 static inline bool
 reg_is_sup_chan_entry_afc_done(struct wlan_objmgr_pdev *pdev,
@@ -3076,6 +3095,15 @@ static inline QDF_STATUS
 reg_set_afc_power_event_received(struct wlan_objmgr_pdev *pdev, bool val)
 {
 	return QDF_STATUS_E_FAILURE;
+}
+
+bool
+reg_validate_freq_in_afc_payload(struct wlan_objmgr_pdev *pdev,
+				 qdf_freq_t primary_freq,
+				 qdf_freq_t center_320, uint16_t bw,
+				 uint16_t pp)
+{
+	return false;
 }
 #endif
 
