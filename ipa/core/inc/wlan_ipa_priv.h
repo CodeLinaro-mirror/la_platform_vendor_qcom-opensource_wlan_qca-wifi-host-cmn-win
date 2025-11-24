@@ -486,6 +486,8 @@ struct wlan_ipa_stats {
  * @is_reserved: STA reserved flag
  * @is_authenticated: is peer authenticated
  * @mac_addr: Station mac address
+ * @vdev_id: Vdev Id
+ * @net_dev: Pointer to network device
  */
 struct ipa_uc_stas_map {
 	bool is_reserved;

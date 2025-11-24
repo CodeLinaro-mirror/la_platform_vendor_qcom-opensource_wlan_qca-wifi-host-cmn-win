@@ -2221,6 +2221,8 @@ static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
  * @ipa_ctx: Global IPA IPA context
  * @sta_add: Should station be added
  * @mac_addr: mac address of station being queried
+ * @vdev_id: Vdev Id
+ * @net_dev: Pointer to network device
  *
  * Return: true if the station was found
  */
