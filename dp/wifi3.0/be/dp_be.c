@@ -3378,11 +3378,13 @@ static void dp_txrx_set_mlo_mcast_primary_vdev_param_be(
 	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(
 						be_vdev->vdev.pdev->soc);
 
-	if (!be_vdev->mlo_dev_ctxt)
+	if (!be_vdev->mlo_dev_ctxt) {
 		dp_alert("mlo_dev_ctxt not present | vdev_id:%d mac "
 			 QDF_MAC_ADDR_FMT " mldmac " QDF_MAC_ADDR_FMT,
 			 vdev->vdev_id, QDF_MAC_ADDR_REF(vdev->mac_addr.raw),
 			 QDF_MAC_ADDR_REF(vdev->mld_mac_addr.raw));
+		return;
+	}
 
 	be_vdev->mcast_primary = val.cdp_vdev_param_mcast_vdev;
 	vdev->mlo_vdev = 1;
