@@ -2326,6 +2326,7 @@ struct cdp_peer_tid_stats {
  * @rx_byte_count: rx byte count
  * @per: per error rate
  * @ack_rssi: RSSI of the last ack received
+ * @avg_ack_rssi: Average RSSI of the acks received
  * @free_buff: free tx descriptor count
  * @rx_avg_snr: Avg Rx SNR
  */
@@ -2342,6 +2343,7 @@ struct cdp_interface_peer_stats {
 	uint32_t rx_byte_count;
 	uint32_t per;
 	uint32_t ack_rssi;
+	uint32_t avg_ack_rssi;
 	uint32_t free_buff;
 	uint32_t rx_avg_snr;
 };
