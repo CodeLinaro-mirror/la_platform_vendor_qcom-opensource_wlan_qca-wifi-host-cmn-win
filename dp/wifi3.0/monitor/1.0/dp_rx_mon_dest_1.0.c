@@ -1531,7 +1531,6 @@ dp_rx_pdev_mon_desc_pool_deinit(struct dp_pdev *pdev)
 
 	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++) {
 		dp_rx_pdev_mon_cmn_desc_pool_deinit(pdev, mac_id);
-		qdf_spinlock_destroy(&pdev->monitor_pdev->mon_mac[mac_id].mon_lock);
 		dp_rx_lpc_lock_destroy(&pdev->monitor_pdev->mon_mac[mac_id]);
 	}
 }
@@ -1543,7 +1542,6 @@ dp_rx_pdev_mon_desc_pool_init(struct dp_pdev *pdev)
 
 	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++) {
 		dp_rx_pdev_mon_cmn_desc_pool_init(pdev, mac_id);
-		qdf_spinlock_create(&pdev->monitor_pdev->mon_mac[mac_id].mon_lock);
 		dp_rx_lpc_lock_create(&pdev->monitor_pdev->mon_mac[mac_id]);
 	}
 }
@@ -1555,7 +1553,6 @@ dp_rx_pdev_mon_desc_pool_deinit(struct dp_pdev *pdev)
 
 	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++)
 		dp_rx_pdev_mon_cmn_desc_pool_deinit(pdev, mac_id);
-	qdf_spinlock_destroy(&pdev->monitor_pdev->mon_mac.mon_lock);
 	dp_rx_lpc_lock_destroy(&pdev->monitor_pdev->mon_mac);
 }
 
@@ -1566,7 +1563,6 @@ dp_rx_pdev_mon_desc_pool_init(struct dp_pdev *pdev)
 
 	for (mac_id = 0; mac_id < NUM_RXDMA_STATUS_RINGS_PER_PDEV; mac_id++)
 		dp_rx_pdev_mon_cmn_desc_pool_init(pdev, mac_id);
-	qdf_spinlock_create(&pdev->monitor_pdev->mon_mac.mon_lock);
 	dp_rx_lpc_lock_create(&pdev->monitor_pdev->mon_mac);
 }
 #endif

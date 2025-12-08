@@ -1350,6 +1350,8 @@ void hif_enable_ce_latency_stats(struct hif_opaque_softc *hif_ctx,
 #endif
 void hif_display_stats(struct hif_opaque_softc *hif_ctx);
 void hif_clear_stats(struct hif_opaque_softc *hif_ctx);
+void hif_ce_latency_stats_sysfs(struct hif_softc *hif_ctx, char *sysfs_buf,
+				uint32_t *len, bool is_ts);
 
 /**
  * enum hif_pm_wake_irq_type - Wake interrupt type for Power Management
