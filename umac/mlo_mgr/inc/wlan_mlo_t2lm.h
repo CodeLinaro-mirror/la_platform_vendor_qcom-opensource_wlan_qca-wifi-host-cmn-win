@@ -1125,6 +1125,19 @@ void wlan_t2lm_timer_stop(struct wlan_t2lm_timer *t2lm_timer);
  */
 bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev);
 
+/**
+ * wlan_mlo_t2lm_update_peer_to_peer_negotiation() - API to update peer-to-peer
+ * level T2LM negotiation data structure on mapping switch time expiry and
+ * expected duration expiry.
+ * @ml_dev: Pointer to ML dev structure
+ * @ml_peer: Pointer to ML peer
+ * @arg: Pointer to advertised T2LM structure
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
+		struct wlan_mlo_dev_context *ml_dev,
+		void *ml_peer, void *arg);
 #else
 static inline QDF_STATUS wlan_mlo_parse_t2lm_ie(
 	struct wlan_t2lm_onging_negotiation_info *t2lm, uint8_t *ie,
@@ -1271,6 +1284,12 @@ static inline bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev)
 	return false;
 }
 
+static inline QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
+		struct wlan_mlo_dev_context *ml_dev,
+		void *ml_peer, void *arg)
+{
+	return QDF_STATUS_SUCCESS;
+}
 #endif /* WLAN_FEATURE_11BE */
 
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(WLAN_FEATURE_11BE_MLO_ADV_FEATURE)

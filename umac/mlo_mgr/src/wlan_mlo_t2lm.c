@@ -2678,7 +2678,7 @@ static inline QDF_STATUS mlme_vdev_notify_link_update_event(
  *
  * Return: QDF_STATUS
  */
-static QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
+QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
 		struct wlan_mlo_dev_context *ml_dev,
 		void *ml_peer, void *arg)
 {
@@ -2714,7 +2714,18 @@ static QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
 	qdf_mem_copy(&negotiated_t2lm->t2lm_info[WLAN_T2LM_BIDI_DIRECTION],
 		     t2lm, sizeof(struct wlan_t2lm_info));
 
-	return QDF_STATUS_SUCCESS;
+	/* In AP mode, when the mapping switch time or expected duration
+	 * expires, the P2P T2LM data structures must be cleared for all
+	 * connected ML peers.
+	 * This callback API is invoked from an iterator that typically stops
+	 * iterating when the callback returns success (for example, when
+	 * searching for an ML peer by a given ML peer ID).
+	 * In this case, because the callback needs to run for all connected
+	 * ML peers, it should return QDF_STATUS_E_AGAIN so that the iterator
+	 * continues and the callback is invoked for the remaining ML peers as
+	 * well.
+	 */
+	return QDF_STATUS_E_AGAIN;
 }
 
 /**
