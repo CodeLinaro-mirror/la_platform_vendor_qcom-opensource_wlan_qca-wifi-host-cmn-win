@@ -753,6 +753,7 @@ static void ce_srng_msi_ring_params_setup(struct hif_softc *scn, uint32_t ce_id,
 	uint32_t msi_irq_start;
 	int ret;
 	int irq_id;
+	int vector, msi_data;
 
 	ret = pld_get_user_msi_assignment(scn->qdf_dev->dev, "CE",
 					  &msi_data_count, &msi_data_start,
@@ -767,7 +768,21 @@ static void ce_srng_msi_ring_params_setup(struct hif_softc *scn, uint32_t ce_id,
 
 	ring_params->msi_addr = addr_low;
 	ring_params->msi_addr |= (qdf_dma_addr_t)(((uint64_t)addr_high) << 32);
-	ring_params->msi_data =  irq_id + msi_data_start;
+	vector = irq_id + msi_irq_start;
+	/* Fetch msi_data from the msi_desc for multi-pd devices like
+         * QCN6432, QCN6122 etc. as the MSI interrupts allocated
+         * could potentially be non-contiguous. Internally, this API
+	 * is defined to fetch the HW IRQ from msi_desciptor only for hybrid
+	 * devices. For PCI devices, we return -EINVAL as we can directly get
+	 * the HW IRQ from the vector and MSI base as the interrupts will be
+	 * contiguous.
+         */
+	msi_data = pld_get_msi_data(scn->qdf_dev->dev, vector);
+	if (msi_data < 0) {
+		ring_params->msi_data =  irq_id + msi_data_start;
+	} else {
+		ring_params->msi_data = msi_data;
+	}
 	ring_params->flags |= HAL_SRNG_MSI_INTR;
 
 	hif_debug("ce_id %d irq_id %d, msi_addr %pK, msi_data %d", ce_id,

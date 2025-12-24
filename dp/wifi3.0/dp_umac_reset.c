@@ -62,6 +62,7 @@ dp_umac_reset_send_setup_cmd(struct dp_soc *soc,
 	struct dp_soc_umac_reset_ctx *umac_reset_ctx;
 	int msi_vector_count, ret;
 	uint32_t msi_base_data, msi_vector_start;
+	int vector, msi_data;
 	struct dp_htt_umac_reset_setup_cmd_params params;
 
 	umac_reset_ctx = &soc->umac_reset_ctx;
@@ -77,8 +78,15 @@ dp_umac_reset_send_setup_cmd(struct dp_soc *soc,
 		if (ret) {
 			params.msi_data = UMAC_RESET_IPC_5332;
 		} else {
-			params.msi_data = (umac_reset_ctx->intr_offset %
-					   msi_vector_count) + msi_base_data;
+			vector = (umac_reset_ctx->intr_offset %
+				  msi_vector_count) + msi_vector_start;
+			msi_data = pld_get_msi_data(soc->osdev->dev, vector);
+			if (msi_data < 0) {
+				params.msi_data = (umac_reset_ctx->intr_offset %
+                                           msi_vector_count) + msi_base_data;
+			} else {
+				params.msi_data = msi_data;
+			}
 		}
 	}
 
