@@ -17943,7 +17943,7 @@ static QDF_STATUS fill_full_bw_list(enum reg_6g_ap_type ap_type,
 	hw_phy_cw = wmi_map_ch_width(bw);
 	cen_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].center_freq;
 	max_bw = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].max_bw;
-	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq;
+	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq_bitmap;
 
 	*pri_freq = primary_freq;
 	*cen_freq = center_freq;

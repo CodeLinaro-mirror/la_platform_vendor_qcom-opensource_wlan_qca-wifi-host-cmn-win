@@ -1286,12 +1286,12 @@ enum wmi_msg_frag_flag {
 
 /**
  * struct hbl_fb_chan
- * @pri_freq: Blocked primary frequency
+ * @pri_freq_bitmap: Blocked primary frequencies bitmap
  * @max_bw: Maximum blocked bandwidth
  * @center_freq: Blocked center frequency
  */
 struct hbl_fb_chan {
-	qdf_freq_t pri_freq;
+	qdf_freq_t pri_freq_bitmap;
 	enum phy_ch_width max_bw;
 	qdf_freq_t center_freq;
 };

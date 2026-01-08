@@ -2161,14 +2161,25 @@ bool wlan_reg_is_vlp_depriority_freq(struct wlan_objmgr_pdev *pdev,
 #endif
 
 #if defined(CONFIG_BAND_6GHZ)
+/**
+ * wlan_reg_is_hw_blacklisted_channel() - Check if a channel is hw blacklisted
+ * @pdev: Pointer to pdev object
+ * @freq: Primary frequency
+ * @c_freq: Center frequency
+ * @bw: Bandwidth
+ * @ap_pwr_type: AP power type
+ * @in_punc_pattern: Puncture pattern
+ *
+ * Return: true if blacklisted, false otherwise
+ */
 bool wlan_reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 					qdf_freq_t freq,
-					qdf_freq_t c_freq2,
+					qdf_freq_t c_freq,
 					uint16_t bw,
 					enum supported_6g_pwr_types ap_pwr_type,
 					uint16_t in_punc_pattern)
 {
-	return reg_is_hw_blacklisted_channel(pdev, freq, c_freq2, bw,
+	return reg_is_hw_blacklisted_channel(pdev, freq, c_freq, bw,
 					     ap_pwr_type, in_punc_pattern);
 }
 #endif

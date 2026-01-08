@@ -337,6 +337,67 @@ struct bw_puncture_bitmap_pair bw_puncture_bitmap_pair_map[] = {
 		QDF_ARRAY_SIZE(chan_80mhz_puncture_bitmap)},
 };
 
+
+/* Map of puncture patterns to their corresponding bitmaps for 80 MHz
+ * bandwidth as defined in WMI enum WMI_11BE_PUNCTURE_PATTERNAS_80MHZ.
+ */
+static const uint16_t reg_wmi_punc_map_80[] = {
+	0x1, /* PUNCTURE_PATTERN_80MHZ_MINUS_20MHZ_0x1 */
+	0x2, /* PUNCTURE_PATTERN_80MHZ_MINUS_20MHZ_0x2 */
+	0x4, /* PUNCTURE_PATTERN_80MHZ_MINUS_20MHZ_0x4 */
+	0x8, /* PUNCTURE_PATTERN_80MHZ_MINUS_20MHZ_0x8 */
+};
+
+
+/* Map of puncture patterns to their corresponding bitmaps for 160 MHz
+ * bandwidth as defined in WMI enum WMI_11BE_PUNCTURE_PATTERNAS_160MHZ.
+ */
+static const uint16_t reg_wmi_punc_map_160[] = {
+	0x1,  /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x1 */
+	0x2,  /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x2 */
+	0x4,  /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x4 */
+	0x8,  /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x8 */
+	0x10, /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x10 */
+	0x20, /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x20 */
+	0x40, /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x40 */
+	0x80, /* PUNCTURE_PATTERN_160MHZ_MINUS_20MHZ_0x80 */
+	0x0C, /* PUNCTURE_PATTERN_160MHZ_MINUS_40MHZ_0x0C */
+	0x03, /* PUNCTURE_PATTERN_160MHZ_MINUS_40MHZ_0x03 */
+	0xC0, /* PUNCTURE_PATTERN_160MHZ_MINUS_40MHZ_0xC0 */
+	0x30, /* PUNCTURE_PATTERN_160MHZ_MINUS_40MHZ_0x30 */
+};
+
+
+/* Map of puncture patterns to their corresponding bitmaps for 320 MHz
+ * bandwidth as defined in WMI enum WMI_11BE_PUNCTURE_PATTERNAS_320MHZ.
+ */
+static const uint16_t reg_wmi_punc_map_320[] = {
+	0x000C, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0xC */
+	0x0003, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0x3 */
+	0x00C0, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0xC0 */
+	0x0030, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0x30 */
+	0x0C00, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0xC00 */
+	0x0300, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0x300 */
+	0xC000, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0xC000 */
+	0x3000, /* PUNCTURE_PATTERN_320MHZ_MINUS_40MHZ_0x3000 */
+	0x000F, /* PUNCTURE_PATTERN_320MHZ_MINUS_80MHZ_0xF */
+	0x00F0, /* PUNCTURE_PATTERN_320MHZ_MINUS_80MHZ_0xF0 */
+	0x0F00, /* PUNCTURE_PATTERN_320MHZ_MINUS_80MHZ_0xF00 */
+	0xF000, /* PUNCTURE_PATTERN_320MHZ_MINUS_80MHZ_0xF000 */
+	0xF003, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xF003 */
+	0xF00C, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xF00C */
+	0xF030, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xF030 */
+	0xF0C0, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xF0C0 */
+	0xF300, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xF300 */
+	0xFC00, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xFC00 */
+	0x003F, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0x003F */
+	0x00CF, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0x00CF */
+	0x030F, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0x030F */
+	0x0C0F, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0x0C0F */
+	0x300F, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0x300F */
+	0xC00F, /* PUNCTURE_PATTERN_320MHZ_MINUS_120MHZ_0xC00F */
+};
+
 static inline qdf_freq_t
 reg_get_band_cen_from_bandstart(uint16_t bw, qdf_freq_t bandstart)
 {
@@ -10642,16 +10703,16 @@ QDF_STATUS reg_display_hw_blacklist(struct wlan_objmgr_pdev *pdev)
 
 		for (i = 0; i < hw_blacklist[p].nfbchans; i++) {
 			qdf_info("Blocked primary bitmap: %x \t -- Max BW %d \t -- Blocked center freq %d",
-				 hw_blacklist[p].fb_chan[i].pri_freq,
+				 hw_blacklist[p].fb_chan[i].pri_freq_bitmap,
 				 reg_get_bw_value(hw_blacklist[p].fb_chan[i].max_bw),
 				 hw_blacklist[p].fb_chan[i].center_freq);
 		}
 
 		qdf_info("Punctured channels\n");
 		for (i = 0; i < hw_blacklist[p].npcchans; i++) {
-			qdf_info("Center Freq %d \t BW %d \t Blocked Puncture pattern bitmap %d",
+			qdf_info("Center Freq %d \t -- Max BW %d \t -- Blocked Puncture pattern bitmap %d",
 				 hw_blacklist[p].pc_chan[i].cen_freq,
-				 hw_blacklist[p].pc_chan[i].bw,
+				 reg_get_bw_value(hw_blacklist[p].pc_chan[i].bw),
 				 hw_blacklist[p].pc_chan[i].bl_pat_bitmap);
 		}
 	}
@@ -10951,11 +11012,11 @@ reg_get_ap_type_from_6g_pwr_mode(struct wlan_objmgr_pdev *pdev,
  * Return: true if blacklisted, false otherwise
  */
 static bool
-reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
+reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint8_t n,
 			      qdf_freq_t freq, qdf_freq_t c_freq,
 			      uint16_t bw)
 {
-	for (uint32_t i = 0; i < n; i++) {
+	for (uint8_t i = 0; i < n; i++) {
 		qdf_freq_t start_freq;
 		uint16_t b_bw = reg_get_bw_value(fbw[i].max_bw);
 		uint64_t x;
@@ -10975,8 +11036,98 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
 			}
 
 			x = (freq - start_freq) / BW_20_MHZ;
-			if (fbw[i].pri_freq & BIT(x))
+			if (fbw[i].pri_freq_bitmap & BIT(x)) {
+				reg_err_rl("Channel BLACKLISTED for the freq: %u: BIT(%llu) is set in the full bw blacklisted channels primary_freq_bitmap:0x%x for the bandwidth:%u",
+					  freq, x, fbw[i].pri_freq_bitmap, bw);
 				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+/**
+ * reg_get_punc_pattern_index() - Get the bitmap of the given puncture pattern
+ * @bw: Bandwidth in MHz (e.g., BW_80_MHZ, BW_160_MHZ, BW_320_MHZ)
+ * @pp: Puncture pattern
+ *
+ * This function retuens the puncture_bitmap corresponding to the
+ * puncture pattern given. The order of puncture pattern used in the array
+ * should match the order given by firmware.
+ *
+ * Context: Any context. Does not sleep. Safe to call from interrupt context.
+ *
+ * Return:
+ * * >= 0        - Index of the puncture pattern in the map (puncture_bitmap)
+ * * %-1         - Invalid bandwidth or puncture pattern not found
+ */
+
+static int reg_get_punc_pattern_index(uint16_t bw, uint16_t pp)
+{
+	const uint16_t *patterns = NULL;
+	uint8_t num_patterns = 0;
+	uint8_t i;
+
+	switch (bw) {
+	case BW_80_MHZ:
+		patterns = reg_wmi_punc_map_80;
+		num_patterns = QDF_ARRAY_SIZE(reg_wmi_punc_map_80);
+		break;
+	case BW_160_MHZ:
+		patterns = reg_wmi_punc_map_160;
+		num_patterns = QDF_ARRAY_SIZE(reg_wmi_punc_map_160);
+		break;
+	case BW_320_MHZ:
+		patterns = reg_wmi_punc_map_320;
+		num_patterns = QDF_ARRAY_SIZE(reg_wmi_punc_map_320);
+		break;
+	default:
+		return -1;
+	}
+
+	for (i = 0; i < num_patterns; i++) {
+		if (patterns[i] == pp)
+			return i;
+	}
+	return -1;
+}
+
+/**
+ * reg_is_chan_in_punc_blacklist() - Check if a puncture pattern is in the blacklist
+ * @bl: Pointer to the list of punctured blacklisted channels
+ * @n: Number of entries in the blacklist
+ * @pp: Punctured pattern provided by the user
+ * @cf: Center frequency of the channel
+ * @bw: Bandwidth of the channel
+ *
+ * This function checks if the configured channel is blacklisted for the
+ * specified punctured pattern, bandwidth and center frequency.
+ *
+ * Context: Any context. Does not sleep. Safe to call from interrupt context.
+ *
+ * Return:
+ * true  - Channel is blacklisted for the given puncture pattern
+ * false - Channel is not blacklisted
+ */
+static bool
+reg_is_chan_in_punc_blacklist(struct hbl_pc_chan *bl, uint8_t n,
+			      uint16_t pp, qdf_freq_t cf, uint16_t bw)
+{
+	for (uint8_t i = 0; i < n; i++) {
+		uint16_t b_bw = reg_get_bw_value(bl[i].bw);
+
+		if (b_bw == bw && bl[i].cen_freq == cf) {
+			int idx = reg_get_punc_pattern_index(bw, pp);
+
+			if (idx < 0)
+				continue;
+
+			if (bl[i].bl_pat_bitmap & BIT(idx)) {
+				reg_err_rl("Channel BLACKLISTED for puncture pattern = 0x%x: BIT(%u) is set in the punctured channels blacklisted bitmap:0x%x for the bandwidth:%u",
+					  pp, idx, bl[i].bl_pat_bitmap, bw);
+				return true;
+			}
 		}
 	}
 	return false;
@@ -10986,7 +11137,7 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
  * reg_is_hw_blacklisted_channel() - Check if a channel is hardware blacklisted
  * @pdev: Pointer to pdev object
  * @freq: Primary frequency
- * @c_freq2: Center frequency 2 (used only when bandwidth is 320 MHz)
+ * @c_freq: Center frequency
  * @bw: Bandwidth
  * @ap_pwr_type: AP power type
  * @in_punc_pattern: Puncture pattern
@@ -10995,7 +11146,7 @@ reg_is_chan_in_full_blacklist(struct hbl_fb_chan *fbw, uint32_t n,
  */
 bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 				   qdf_freq_t freq,
-				   qdf_freq_t c_freq2,
+				   qdf_freq_t c_freq,
 				   uint16_t bw,
 				   enum supported_6g_pwr_types ap_pwr_type,
 				   uint16_t in_punc_pattern)
@@ -11005,36 +11156,43 @@ bool reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 	struct hbl_chans *bl;
 
 	if (!po) {
-		reg_err("pdev priv obj is NULL");
+		reg_err_rl("pdev priv obj is NULL");
 		return false;
 	}
 
 	if (reg_is_scan_radio(pdev)) {
-		reg_err("scan radio pdev. Ignore Blacklist channels\n");
+		reg_err_rl("scan radio pdev. Ignore Blacklist channels");
 		return false;
 	}
 
-	b_ap = reg_get_ap_type_from_6g_pwr_mode(pdev, freq, c_freq2, bw,
+	b_ap = reg_get_ap_type_from_6g_pwr_mode(pdev, freq, c_freq, bw,
 						in_punc_pattern, ap_pwr_type);
 	if (b_ap >= REG_CURRENT_MAX_AP_TYPE) {
-		reg_err("Invalid AP type: %d", b_ap);
+		reg_err_rl("Invalid AP type: %d", b_ap);
 		return false;
 	}
 
 	bl = &po->hbl_pm_chlst[b_ap];
 	if (!bl) {
-		reg_err("Blacklist channel list is NULL for AP type: %d", b_ap);
+		reg_err_rl("Blacklist channel list is NULL for AP type: %d", b_ap);
 		return false;
 	}
 
 	if (!reg_is_chan_punc(in_punc_pattern, bw)) {
 		if (!bl->fb_chan) {
-			reg_debug("No full blacklist channels for AP type: %d", b_ap);
+			reg_debug_rl("No full blacklist channels for AP type: %d", b_ap);
 			return false;
 		}
 
 		return reg_is_chan_in_full_blacklist(bl->fb_chan, bl->nfbchans,
-					 freq, c_freq2, bw);
+						 freq, c_freq, bw);
+	} else {
+		if(!bl->pc_chan) {
+			reg_debug_rl("No punctured blacklist channels for AP type: %d", b_ap);
+			return false;
+		}
+
+		return reg_is_chan_in_punc_blacklist(bl->pc_chan, bl->npcchans, in_punc_pattern, c_freq, bw);
 	}
 	return false;
 }
