@@ -10304,7 +10304,7 @@ static int16_t reg_get_sp_eirp(struct wlan_objmgr_pdev *pdev,
 
 	power_info = pdev_priv_obj->power_info;
 	if (!power_info) {
-		reg_err("power_info is NULL");
+		qdf_err("power_info is NULL");
 		return 0;
 	}
 
@@ -10316,17 +10316,27 @@ static int16_t reg_get_sp_eirp(struct wlan_objmgr_pdev *pdev,
 					&op_class,
 					&chan_num);
 
-	for (i = 0; i < power_info->num_chan_objs; i++) {
-		struct afc_chan_obj *chan_obj = &power_info->afc_chan_info[i];
+	if (power_info->num_chan_objs && !power_info->afc_chan_info) {
+		qdf_rl_err("AFC: afc_chan_info NULL (resp_id=%u fw_status=%u serv_resp=%u num_chan_objs=%u)",
+			   power_info->resp_id,
+			   power_info->fw_status_code,
+			   power_info->serv_resp_code,
+			   power_info->num_chan_objs);
+		/* Skip AFC lookup to avoid NULL dereference */
+		return 0;
+	} else {
+		for (i = 0; i < power_info->num_chan_objs; i++) {
+			struct afc_chan_obj *chan_obj =
+						&power_info->afc_chan_info[i];
 
-		afc_eirp_pwr = reg_find_eirp_in_afc_chan_obj(pdev,
-							     chan_obj,
-							     freq,
-							     cen320,
-							     op_class,
-							     is_twice_power);
-		if (afc_eirp_pwr)
-			break;
+			afc_eirp_pwr =
+				reg_find_eirp_in_afc_chan_obj(pdev, chan_obj,
+							      freq, cen320,
+							      op_class,
+							      is_twice_power);
+			if (afc_eirp_pwr)
+				break;
+		}
 	}
 
 	is_psd = reg_is_6g_psd_power(pdev);
