@@ -1124,6 +1124,7 @@ dp_rx_wbm_err_reap_desc_li(struct dp_intr *int_ctx, struct dp_soc *soc,
 	struct hal_rx_mpdu_desc_info mpdu_desc_info = { 0 };
 	uint8_t *rx_tlv_hdr;
 	uint32_t peer_mdata;
+	struct hal_srng *srng;
 
 	qdf_assert(soc && hal_ring_hdl);
 	hal_soc = soc->hal_soc;
@@ -1167,6 +1168,19 @@ dp_rx_wbm_err_reap_desc_li(struct dp_intr *int_ctx, struct dp_soc *soc,
 		if (dp_assert_always_internal_stat(rx_desc, soc,
 						   rx.err.rx_desc_null))
 			continue;
+
+		if (qdf_unlikely(!rx_desc->nbuf)) {
+			srng = (struct hal_srng *)hal_ring_hdl;
+			rx_desc_pool = &soc->rx_desc_buf[rx_desc->pool_id];
+
+			dp_rx_err_err("Invalid nbuf in wbm err pool_id: %d",
+				      rx_desc->pool_id);
+			print_hex_dump(KERN_ERR, "RING_DESC: ", DUMP_PREFIX_NONE,
+				       16, 4, ring_desc, srng->entry_size * 4,
+				       true);
+			dp_rx_desc_inspect(rx_desc_pool, rx_desc);
+			continue;
+		}
 
 		if (!dp_rx_desc_check_magic(rx_desc)) {
 			dp_rx_err_err("%pk: Invalid rx_desc %pk",

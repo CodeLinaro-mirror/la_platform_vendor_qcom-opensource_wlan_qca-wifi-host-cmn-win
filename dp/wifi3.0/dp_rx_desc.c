@@ -28,6 +28,14 @@ A_COMPILE_TIME_ASSERT(cookie_size_check,
 		       sizeof(union dp_rx_desc_list_elem_t))
 		      <= (1 << DP_RX_DESC_PAGE_ID_SHIFT));
 
+void dp_rx_desc_inspect(struct rx_desc_pool *rx_desc_pool,
+			struct dp_rx_desc *rx_desc)
+{
+	print_hex_dump(KERN_ERR, "RX_DESC: ", DUMP_PREFIX_NONE, 16, 4,
+		       rx_desc, rx_desc_pool->elem_size, true);
+}
+qdf_export_symbol(dp_rx_desc_inspect);
+
 QDF_STATUS dp_rx_desc_pool_is_allocated(struct rx_desc_pool *rx_desc_pool)
 {
 	if (!rx_desc_pool->desc_pages.num_pages) {
@@ -274,6 +282,14 @@ void dp_rx_desc_pool_deinit(struct dp_soc *soc,
 
 qdf_export_symbol(dp_rx_desc_pool_deinit);
 #else
+
+void dp_rx_desc_inspect(struct rx_desc_pool *rx_desc_pool,
+			struct dp_rx_desc *rx_desc)
+{
+	return;
+}
+qdf_export_symbol(dp_rx_desc_inspect);
+
 QDF_STATUS dp_rx_desc_pool_is_allocated(struct rx_desc_pool *rx_desc_pool)
 {
 	if (!rx_desc_pool->array) {

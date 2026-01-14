@@ -1013,6 +1013,15 @@ dp_rx_get_num_buffers_required(struct rx_desc_pool *rx_desc_pool,
 #endif
 
 /**
+ * dp_rx_desc_inspect() - inspect allocated memory in descriptor
+ *
+ * @rx_desc_pool: rx descriptor pool pointer
+ * @rx_desc: rx descriptor pointer
+ */
+void dp_rx_desc_inspect(struct rx_desc_pool *rx_desc_pool,
+			struct dp_rx_desc *rx_desc);
+
+/**
  * dp_rx_desc_pool_is_allocated() - check if memory is allocated for the
  *					rx descriptor pool
  * @rx_desc_pool: rx descriptor pool pointer
