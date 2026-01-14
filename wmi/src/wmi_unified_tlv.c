@@ -17943,7 +17943,7 @@ static QDF_STATUS fill_full_bw_list(enum reg_6g_ap_type ap_type,
 	hw_phy_cw = wmi_map_ch_width(bw);
 	cen_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].center_freq;
 	max_bw = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].max_bw;
-	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq;
+	pri_freq = &hw_bl_info->fb_lst_arr[ap_type][*reg_info_bl_idx].pri_freq_bitmap;
 
 	*pri_freq = primary_freq;
 	*cen_freq = center_freq;
@@ -18667,11 +18667,11 @@ copy_afc_chan_obj_info(struct afc_chan_obj *afc_chan_info,
 			channel_info_hdr[count].global_operating_class;
 		afc_chan_info[count].num_chans =
 					channel_info_hdr[count].num_channels;
-		wmi_debug("Chan object count = %d global opclasss = %d",
-			  count,
-			  afc_chan_info[count].global_opclass);
-		wmi_debug("Number of Channel EIRP objects = %d",
-			  afc_chan_info[count].num_chans);
+		qdf_err("Chan object count = %d global opclasss = %d",
+			count,
+			afc_chan_info[count].global_opclass);
+		qdf_err("Number of Channel EIRP objects = %d",
+			afc_chan_info[count].num_chans);
 
 		if (afc_chan_info[count].num_chans > 0) {
 			struct chan_eirp_obj *chan_eirp_info;
@@ -18689,7 +18689,7 @@ copy_afc_chan_obj_info(struct afc_chan_obj *afc_chan_info,
 						&src_pwr_index);
 			afc_chan_info[count].chan_eirp_info = chan_eirp_info;
 		} else {
-			wmi_err("Number of channels is zero in object idx %d",
+			qdf_err("Number of channels is zero in object idx %d",
 				count);
 		}
 	}
@@ -18786,8 +18786,8 @@ static void copy_power_event(struct afc_regulatory_info *afc_info,
 	afc_info->power_info = power_info;
 
 	power_info->num_freq_objs = param_buf->num_freq_info_array;
-	wmi_debug("Number of frequency objects = %d",
-		  power_info->num_freq_objs);
+	qdf_err("Number of frequency objects = %d",
+		power_info->num_freq_objs);
 	if (power_info->num_freq_objs > 0) {
 		wmi_6g_afc_frequency_info *freq_info_hdr;
 
@@ -18802,11 +18802,11 @@ static void copy_power_event(struct afc_regulatory_info *afc_info,
 				       freq_info_hdr);
 		power_info->afc_freq_info = afc_freq_info;
 	} else {
-		wmi_err("Number of frequency objects is zero");
+		qdf_err("Number of frequency objects is zero");
 	}
 
 	power_info->num_chan_objs = param_buf->num_channel_info_array;
-	wmi_debug("Number of channel objects = %d", power_info->num_chan_objs);
+	qdf_err("Number of channel objects = %d", power_info->num_chan_objs);
 	if (power_info->num_chan_objs > 0) {
 		struct afc_chan_obj *afc_chan_info;
 		wmi_6g_afc_channel_info *channel_info_hdr;
@@ -18824,7 +18824,7 @@ static void copy_power_event(struct afc_regulatory_info *afc_info,
 				       param_buf->chan_eirp_power_info_array);
 		power_info->afc_chan_info = afc_chan_info;
 	} else {
-		wmi_err("Number of channel objects is zero");
+		qdf_err("Number of channel objects is zero");
 	}
 }
 
