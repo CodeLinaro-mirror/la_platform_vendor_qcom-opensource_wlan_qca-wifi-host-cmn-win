@@ -148,6 +148,8 @@ static inline PDL_LIST dl_list_remove_item_from_head(PDL_LIST pList)
 
 	if (pList->pNext != pList) {
 		pItem = pList->pNext;
+		if (!pItem)
+			return pItem;
 		/* remove the first item from head */
 		dl_list_remove(pItem);
 	}
@@ -160,6 +162,8 @@ static inline PDL_LIST dl_list_remove_item_from_tail(PDL_LIST pList)
 
 	if (pList->pPrev != pList) {
 		pItem = pList->pPrev;
+		if (!pItem)
+			return pItem;
 		/* remove the item from tail */
 		dl_list_remove(pItem);
 	}
