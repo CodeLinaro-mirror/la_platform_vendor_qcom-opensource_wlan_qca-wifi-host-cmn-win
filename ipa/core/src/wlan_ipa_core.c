@@ -2027,10 +2027,11 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		return QDF_STATUS_E_ALREADY;
 	}
 	ipa_ctx->pipes_enable_in_progress = true;
-	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (qdf_atomic_read(&ipa_ctx->waiting_on_pending_tx))
 		wlan_ipa_reset_pending_tx_timer(ipa_ctx);
+
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
 		result = cdp_ipa_enable_pipes(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
@@ -2043,6 +2044,7 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		qdf_atomic_set(&ipa_ctx->pipes_disabled, 0);
 	}
 
+	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
 	qdf_event_reset(&ipa_ctx->ipa_resource_comp);
 
 	if (qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
@@ -2056,7 +2058,6 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		}
 	}
 end:
-	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
 	if (((!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) ||
 	     wlan_ipa_opt_wifi_dp_enabled()) &&
 	    !qdf_atomic_read(&ipa_ctx->pipes_disabled))
@@ -2135,13 +2136,13 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 		return QDF_STATUS_E_ALREADY;
 	}
 	ipa_ctx->pipes_down_in_progress = true;
-	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
-
 
 	if (!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
 		cdp_ipa_disable_autonomy(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		qdf_atomic_set(&ipa_ctx->autonomy_disabled, 1);
 	}
+
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (!qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
 		if (!force_disable) {
