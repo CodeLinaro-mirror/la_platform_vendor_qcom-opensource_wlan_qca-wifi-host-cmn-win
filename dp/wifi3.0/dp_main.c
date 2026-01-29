@@ -13928,7 +13928,12 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 					dp_get_peer_extd_rate_link_stats,
 	.get_pdev_obss_stats = dp_get_obss_stats,
 	.clear_pdev_obss_pd_stats = dp_clear_pdev_obss_pd_stats,
-	.txrx_get_interface_stats  = dp_txrx_get_interface_stats,
+
+#ifdef IPA_OFFLOAD
+	.txrx_get_interface_stats  = dp_ipa_txrx_get_vdev_stats,
+#else
+ 	.txrx_get_interface_stats  = dp_txrx_get_interface_stats,
+#endif
 #ifdef WLAN_FEATURE_TX_LATENCY_STATS
 	.tx_latency_stats_fetch = dp_tx_latency_stats_fetch,
 	.tx_latency_stats_config = dp_tx_latency_stats_config,
