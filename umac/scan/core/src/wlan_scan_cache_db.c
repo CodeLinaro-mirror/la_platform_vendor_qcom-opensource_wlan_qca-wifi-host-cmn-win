@@ -298,11 +298,16 @@ static void scm_del_scan_node(qdf_list_t *list,
 {
 	QDF_STATUS status;
 
-	status = qdf_list_remove_node(list, &scan_node->node);
-	if (QDF_IS_STATUS_SUCCESS(status)) {
-		util_scan_free_cache_entry(scan_node->entry);
-		qdf_mem_free(scan_node);
+
+	/* Removes only the active node from the list */
+	if (scan_node->cookie == SCAN_NODE_ACTIVE_COOKIE) {
+		status = qdf_list_remove_node(list, &scan_node->node);
+		if (!QDF_IS_STATUS_SUCCESS(status))
+			scm_err("failed to remove node");
 	}
+
+	util_scan_free_cache_entry(scan_node->entry);
+	qdf_mem_free(scan_node);
 }
 
 /**
@@ -398,6 +403,8 @@ static void scm_scan_entry_put_ref(struct scan_dbs *scan_db,
 static void scm_scan_entry_del(struct scan_dbs *scan_db,
 			       struct scan_cache_node *scan_node)
 {
+	uint8_t hash_idx;
+
 	if (!scan_node) {
 		scm_err("scan node is NULL");
 		QDF_ASSERT(0);
@@ -413,6 +420,13 @@ static void scm_scan_entry_del(struct scan_dbs *scan_db,
 		scm_debug("node is already deleted ref 0");
 		return;
 	}
+
+	/* Manually removes the node for safer case */
+	if (scan_node->cookie == SCAN_NODE_ACTIVE_COOKIE) {
+		hash_idx = SCAN_GET_HASH(scan_node->entry->bssid.bytes);
+		qdf_list_remove_node(&scan_db->scan_hash_tbl[hash_idx], &scan_node->node);
+	}
+
 	scan_node->cookie = 0;
 	scm_scan_entry_put_ref(scan_db, scan_node, false);
 }
@@ -440,12 +454,14 @@ static void scm_add_scan_node(struct scan_dbs *scan_db,
 	qdf_atomic_init(&scan_node->ref_cnt);
 	scan_node->cookie = SCAN_NODE_ACTIVE_COOKIE;
 	scm_scan_entry_get_ref(scan_node);
-	if (!dup_node)
-		qdf_list_insert_back(&scan_db->scan_hash_tbl[hash_idx],
-				     &scan_node->node);
-	else
+
+	if (dup_node && dup_node->cookie == SCAN_NODE_ACTIVE_COOKIE) {
 		qdf_list_insert_before(&scan_db->scan_hash_tbl[hash_idx],
 				       &scan_node->node, &dup_node->node);
+	} else {
+		qdf_list_insert_back(&scan_db->scan_hash_tbl[hash_idx],
+				     &scan_node->node);
+	}
 
 	scan_db->num_entries++;
 }
@@ -624,6 +640,8 @@ void scm_age_out_entries(struct wlan_objmgr_psoc *psoc,
 		cur_node = scm_get_next_node(scan_db,
 			&scan_db->scan_hash_tbl[i], NULL);
 		while (cur_node) {
+			next_node = scm_get_next_node(scan_db,
+				&scan_db->scan_hash_tbl[i], cur_node);
 			if (!conn_node /* if there is no connected node */ ||
 			    /* OR cur_node is not part of the MBSSID of the
 			     * connected node
@@ -634,8 +652,6 @@ void scm_age_out_entries(struct wlan_objmgr_psoc *psoc,
 				scm_check_and_age_out(scan_db, cur_node,
 					def_param->scan_cache_aging_time);
 			}
-			next_node = scm_get_next_node(scan_db,
-				&scan_db->scan_hash_tbl[i], cur_node);
 			cur_node = next_node;
 			next_node = NULL;
 		}
@@ -656,7 +672,7 @@ static QDF_STATUS scm_flush_oldest_entry(struct scan_dbs *scan_db)
 {
 	int i;
 	struct scan_cache_node *oldest_node = NULL;
-	struct scan_cache_node *cur_node;
+	struct scan_cache_node *cur_node, *next_node;
 
 	for (i = 0 ; i < SCAN_HASH_SIZE; i++) {
 		/* Get the first valid node for the hash */
@@ -668,6 +684,15 @@ static QDF_STATUS scm_flush_oldest_entry(struct scan_dbs *scan_db)
 		  */
 
 		while (cur_node) {
+			next_node = scm_get_next_node(scan_db,
+						      &scan_db->scan_hash_tbl[i],
+						      cur_node);
+
+			if (cur_node->cookie != SCAN_NODE_ACTIVE_COOKIE) {
+				cur_node = next_node;
+				continue;
+                        }
+
 			if (!oldest_node ||
 			   (util_scan_entry_age(oldest_node->entry) <
 			    util_scan_entry_age(cur_node->entry))) {
@@ -681,9 +706,7 @@ static QDF_STATUS scm_flush_oldest_entry(struct scan_dbs *scan_db)
 				qdf_spin_unlock_bh(&scan_db->scan_db_lock);
 			}
 
-			cur_node = scm_get_next_node(scan_db,
-					&scan_db->scan_hash_tbl[i],
-					cur_node);
+			cur_node = next_node;
 		};
 	}
 
@@ -1112,8 +1135,9 @@ static QDF_STATUS scm_add_update_entry(struct wlan_objmgr_psoc *psoc,
 	qdf_spin_lock_bh(&scan_db->scan_db_lock);
 	scm_add_scan_node(scan_db, scan_node, dup_node);
 
-	if (is_dup_found) {
-		/* release ref taken for dup node and delete it */
+	if (is_dup_found && dup_node) {
+
+		/* release ref taken for dup node and free it */
 		scm_scan_entry_del(scan_db, dup_node);
 		scm_scan_entry_put_ref(scan_db, dup_node, false);
 	}
@@ -1717,10 +1741,10 @@ static void scm_flush_scan_entries(struct wlan_objmgr_psoc *psoc,
 		cur_node = scm_get_next_node(scan_db,
 			   &scan_db->scan_hash_tbl[i], NULL);
 		while (cur_node) {
-			scm_scan_apply_filter_flush_entry(psoc, scan_db,
-				cur_node, filter);
 			next_node = scm_get_next_node(scan_db,
 				&scan_db->scan_hash_tbl[i], cur_node);
+			scm_scan_apply_filter_flush_entry(psoc, scan_db,
+				cur_node, filter);
 			cur_node = next_node;
 		}
 	}
@@ -1824,10 +1848,10 @@ void scm_filter_valid_channel(struct wlan_objmgr_pdev *pdev,
 		cur_node = scm_get_next_node(scan_db,
 			   &scan_db->scan_hash_tbl[i], NULL);
 		while (cur_node) {
-			scm_filter_channels(pdev, scan_db,
-					    cur_node, chan_freq_list, num_chan);
 			next_node = scm_get_next_node(scan_db,
 				&scan_db->scan_hash_tbl[i], cur_node);
+			scm_filter_channels(pdev, scan_db,
+					    cur_node, chan_freq_list, num_chan);
 			cur_node = next_node;
 		}
 	}
