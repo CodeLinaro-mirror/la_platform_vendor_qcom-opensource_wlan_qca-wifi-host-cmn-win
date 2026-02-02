@@ -61,6 +61,7 @@ int qdf_mod_init(void)
 	qdf_nbuf_mod_init();
 	qdf_frag_mod_init();
 	qdf_event_list_init();
+	qdf_minidump_init();
 
 	return 0;
 }
@@ -81,6 +82,7 @@ static void __exit qdf_mod_exit(void)
 void qdf_mod_exit(void)
 #endif
 {
+	qdf_minidump_deinit();
 	qdf_event_list_destroy();
 	qdf_frag_mod_exit();
 	qdf_nbuf_mod_exit();
