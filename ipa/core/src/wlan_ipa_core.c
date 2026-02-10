@@ -3412,6 +3412,8 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 	struct wlan_objmgr_vdev *vdev;
 	bool ipa_wds = false;
 	struct cdp_soc_t *cdp_soc;
+	bool is_mlo_status = false;
+	int ap_disconnect_required = 1;
 
 	ipa_debug("%s: EVT: %d, MAC: "QDF_MAC_ADDR_FMT", session_id: %u is_2g_iface %u",
 		  net_dev->name, type, QDF_MAC_ADDR_REF(mac_addr), session_id,
@@ -3824,6 +3826,13 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 							net_dev, session_id)) {
 				wlan_ipa_cleanup_iface(iface_ctx, mac_addr);
 				break;
+			} else {
+				/* AP_disconnect was already sent in case of SSR,
+				 * so avoid sending the ap _disconnect once again,
+				 * and as part of ssr cleanup iface_context is already
+				 * cleaned.
+				 */
+				ap_disconnect_required = 0;
 			}
 		}
 
@@ -4145,11 +4154,13 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
 	QDF_IPA_WLAN_MSG_HDL(msg) = ipa_ctx->hdl;
 	QDF_IPA_WLAN_MSG_SESSION_ID(msg) = session_id;
-	if (type != WLAN_CLIENT_DISCONNECT)
-		QDF_IPA_WLAN_MSG_IS_MLO(msg) =
-			cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &session_id);
+	if (ap_disconnect_required && (type != WLAN_CLIENT_DISCONNECT)) {
+		is_mlo_status = cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr,
+							   &session_id);
+		QDF_IPA_WLAN_MSG_IS_MLO(msg) = is_mlo_status;
+	}
 
-	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
+	if (ap_disconnect_required && qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
 
 		ipa_err("%s: Evt: %d fail",
 			QDF_IPA_WLAN_MSG_NAME(msg),
@@ -6225,8 +6236,8 @@ static QDF_STATUS wlan_ipa_uc_send_evt(qdf_netdev_t net_dev,
 
 	cdp_soc = (struct cdp_soc_t *)ipa_ctx->dp_soc;
 	QDF_IPA_WLAN_MSG_HDL(msg) = ipa_ctx->hdl;
-	QDF_IPA_WLAN_MSG_IS_MLO(msg) =
-		cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr, &id);
+	QDF_IPA_WLAN_MSG_IS_MLO(msg) = cdp_ipa_get_peer_mlo_state(cdp_soc, mac_addr,
+								  &id);
 	QDF_IPA_WLAN_MSG_SESSION_ID(msg) = id;
 
 	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
@@ -6322,7 +6333,7 @@ void wlan_ipa_uc_ssr_cleanup(struct wlan_ipa_priv *ipa_ctx)
 			if (iface->device_mode == QDF_SAP_MODE)
 				wlan_ipa_uc_send_evt(iface->dev,
 						     QDF_IPA_AP_DISCONNECT,
-						     (uint8_t *)iface->dev->dev_addr,
+						     (uint8_t *)iface->mac_addr,
 						     ipa_ctx);
 			else if (iface->device_mode == QDF_STA_MODE)
 				wlan_ipa_uc_send_evt(iface->dev,
