@@ -266,22 +266,31 @@ bool dp_ipa_is_mlo_peer(struct cdp_soc_t *soc, uint8_t *mac_addr,
 	bool mlo_dev_ctxt = false;
 
 	peer = dp_find_peer_by_macaddr(soc, mac_addr, DP_VDEV_ALL, DP_MOD_ID_IPA);
-	if (!peer)
-		return id;
 
-	vdev = peer->vdev;
-	*vdev_id = vdev->vdev_id;
+	if (peer) {
+		vdev = peer->vdev;
+		*vdev_id = vdev->vdev_id;
+	} else {
+		if (*vdev_id == 0xFF)
+			return id;
+		vdev = dp_vdev_get_ref_by_id(soc, *vdev_id, DP_MOD_ID_IPA);
+	}
+
+	if (!vdev)
+		return id;
 
 	if (dp_soc->arch_ops.ipa_get_mlo_dev_ctxt_status)
 		mlo_dev_ctxt = dp_soc->arch_ops.ipa_get_mlo_dev_ctxt_status(vdev);
 
-	if (!IS_DP_LEGACY_PEER(peer) || (mlo_dev_ctxt && peer->bss_peer)) {
-		id = true;
+	if (peer) {
+		id = (!IS_DP_LEGACY_PEER(peer) || (mlo_dev_ctxt && peer->bss_peer));
+		dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
 	} else {
-		id = false;
+		if (mlo_dev_ctxt)
+			id = true;
+		dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_IPA);
 	}
 
-	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
 	return id;
 }
 
