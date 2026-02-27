@@ -1703,7 +1703,7 @@ static void __wlan_ipa_w2i_cb(void *priv, qdf_ipa_dp_evt_type_t evt,
 	case IPA_RECEIVE:
 		skb = (qdf_nbuf_t) data;
 		if (wlan_ipa_uc_is_enabled(ipa_ctx->config)) {
-			session_id = (uint8_t)skb->cb[0];
+			session_id = ((uint8_t)skb->cb[0]) & 0x1F;
 			iface_id = ipa_ctx->vdev_to_iface[session_id];
 			ipa_ctx->stats.num_rx_excep++;
 			qdf_nbuf_pull_head(skb, WLAN_IPA_UC_WLAN_CLD_HDR_LEN);
