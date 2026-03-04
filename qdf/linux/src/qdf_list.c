@@ -175,6 +175,12 @@ QDF_STATUS qdf_list_remove_node(qdf_list_t *list,
 	if (list_empty(&list->anchor))
 		return QDF_STATUS_E_EMPTY;
 
+	/* Ensure node_to_remove is actually in this list to prevent
+	 * corrupting count or unlinking from another list. */
+	if (!qdf_list_has_node(list, node_to_remove)) {
+		qdf_print("Warning!! Node is not in the list!!!");
+		return QDF_STATUS_E_INVAL;
+	}
 	list_del_init(node_to_remove);
 	list->count--;
 
@@ -221,6 +227,16 @@ QDF_STATUS qdf_list_peek_next(qdf_list_t *list,
 	if (list_empty(&list->anchor))
 		return QDF_STATUS_E_EMPTY;
 
+	/*
+	 * If the provided node is not part of any list (e.g. it has been
+	 * removed and reinitialized via list_del_init, so prev/next point
+	 * to itself), do not return node->next as it would equal node and
+	 * lead to self-loop iterations. Treat as end-of-list.
+	 */
+	if (!qdf_list_node_in_any_list(node)) {
+		qdf_print("Warning!! Node is not in any list!!!");
+		return QDF_STATUS_E_EMPTY;
+	}
 	if (node->next == &list->anchor)
 		return QDF_STATUS_E_EMPTY;
 
@@ -259,6 +275,12 @@ bool qdf_list_node_in_any_list(const qdf_list_node_t *node)
 	if (linux_node->prev->next != linux_node ||
 	    linux_node->next->prev != linux_node)
 		return false;
+
+	if (linux_node->prev == linux_node &&
+	    linux_node->next == linux_node) {
+		qdf_print("Warning!! prev and next node is same as node!!!");
+		return false;
+	}
 
 	return true;
 }
