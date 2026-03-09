@@ -3188,7 +3188,7 @@ wlan_reg_get_class_from_country(const uint8_t *country);
 #if defined(CONFIG_BAND_6GHZ) && !defined(CONFIG_REG_CLIENT)
 bool wlan_reg_is_hw_blacklisted_channel(struct wlan_objmgr_pdev *pdev,
 					qdf_freq_t freq,
-					qdf_freq_t c_freq2,
+					qdf_freq_t c_freq,
 					uint16_t bw,
 					enum supported_6g_pwr_types ap_pwr_type,
 					uint16_t in_punc_pattern);

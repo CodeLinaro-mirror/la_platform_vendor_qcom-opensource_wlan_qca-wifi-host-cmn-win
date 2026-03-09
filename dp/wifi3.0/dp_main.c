@@ -1864,7 +1864,7 @@ void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 	int ret;
 	uint32_t msi_data_start, msi_irq_start, addr_low, addr_high;
 	bool nf_irq_support;
-	int vector;
+	int vector, msi_data;
 
 	ret = pld_get_user_msi_assignment(soc->osdev->dev, "DP",
 					  &msi_data_count, &msi_data_start,
@@ -1905,18 +1905,22 @@ void dp_srng_msi_setup(struct dp_soc *soc, struct dp_srng *srng,
 	}
 
 	pld_get_msi_address(soc->osdev->dev, &addr_low, &addr_high);
-
+	vector = msi_irq_start + (reg_msi_grp_num % msi_data_count);
 	ring_params->msi_addr = addr_low;
 	ring_params->msi_addr |= (qdf_dma_addr_t)(((uint64_t)addr_high) << 32);
-	ring_params->msi_data = (reg_msi_grp_num % msi_data_count)
-		+ msi_data_start;
+
+	msi_data = pld_get_msi_data(soc->osdev->dev, vector);
+	if (msi_data < 0) {
+		ring_params->msi_data = (reg_msi_grp_num % msi_data_count)
+                                        + msi_data_start;
+	} else {
+		ring_params->msi_data = msi_data;
+	}
 	ring_params->flags |= HAL_SRNG_MSI_INTR;
 
 	dp_debug("ring type %u ring_num %u msi->data %u msi_addr %llx",
 		 ring_type, ring_num, ring_params->msi_data,
 		 (uint64_t)ring_params->msi_addr);
-
-	vector = msi_irq_start + (reg_msi_grp_num % msi_data_count);
 
 	/*
 	 * During umac reset ppeds interrupts free is not called.
@@ -13924,7 +13928,12 @@ static struct cdp_host_stats_ops dp_ops_host_stats = {
 					dp_get_peer_extd_rate_link_stats,
 	.get_pdev_obss_stats = dp_get_obss_stats,
 	.clear_pdev_obss_pd_stats = dp_clear_pdev_obss_pd_stats,
-	.txrx_get_interface_stats  = dp_txrx_get_interface_stats,
+
+#ifdef IPA_OFFLOAD
+	.txrx_get_interface_stats  = dp_ipa_txrx_get_vdev_stats,
+#else
+ 	.txrx_get_interface_stats  = dp_txrx_get_interface_stats,
+#endif
 #ifdef WLAN_FEATURE_TX_LATENCY_STATS
 	.tx_latency_stats_fetch = dp_tx_latency_stats_fetch,
 	.tx_latency_stats_config = dp_tx_latency_stats_config,
