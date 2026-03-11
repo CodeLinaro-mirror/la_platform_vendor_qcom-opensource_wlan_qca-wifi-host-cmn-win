@@ -5240,29 +5240,7 @@ QDF_STATUS dp_ipa_update_peer_rx_stats(struct cdp_soc_t *soc,
 void
 dp_peer_aggregate_tid_stats(struct dp_peer *peer)
 {
-	uint8_t i = 0;
-	struct dp_rx_tid *rx_tid = NULL;
-	struct cdp_pkt_info rx_total = {0};
-	struct dp_txrx_peer *txrx_peer = NULL;
-
-	if (!peer->rx_tid)
-		return;
-
-	txrx_peer = dp_get_txrx_peer(peer);
-
-	if (!txrx_peer)
-		return;
-
-	for (i = 0; i < DP_MAX_TIDS; i++) {
-		rx_tid = &peer->rx_tid[i];
-		rx_total.num += rx_tid->rx_msdu_cnt.num;
-		rx_total.bytes += rx_tid->rx_msdu_cnt.bytes;
-	}
-
-	DP_PEER_PER_PKT_STATS_UPD(txrx_peer, rx.rx_total.num,
-				  rx_total.num, 0);
-	DP_PEER_PER_PKT_STATS_UPD(txrx_peer, rx.rx_total.bytes,
-				  rx_total.bytes, 0);
+	return;
 }
 
 /**
