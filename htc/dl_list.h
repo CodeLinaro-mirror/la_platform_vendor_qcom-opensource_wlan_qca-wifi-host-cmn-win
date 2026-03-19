@@ -175,6 +175,9 @@ static inline void dl_list_transfer_items_to_tail(PDL_LIST pDest, PDL_LIST pSrc)
 {
 	/* only concatenate if src is not empty */
 	if (!DL_LIST_IS_EMPTY(pSrc)) {
+		if (!pSrc->pNext || !pSrc->pPrev)
+			return;
+
 		/* cut out circular list in src and re-attach to end of dest */
 		pSrc->pPrev->pNext = pDest;
 		pSrc->pNext->pPrev = pDest->pPrev;
@@ -191,6 +194,9 @@ static inline void dl_list_transfer_items_to_head(PDL_LIST pDest, PDL_LIST pSrc)
 {
 	/* only concatenate if src is not empty */
 	if (!DL_LIST_IS_EMPTY(pSrc)) {
+		if (!pSrc->pNext || !pSrc->pPrev)
+			return;
+
 		/* cut out circular list in src and reattach to start of dest */
 		pSrc->pNext->pPrev = pDest;
 		pDest->pNext->pPrev = pSrc->pPrev;
