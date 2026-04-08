@@ -58,10 +58,7 @@ qdf_declare_param(qdf_log_flush_timer_period, uint);
 #include "wlan_cp_stats_chipset_stats.h"
 #endif
 /* Global qdf print id */
-#ifdef CONFIG_SDX_WAIKIKI
-struct minidump_catalogue *mdump_clog;
-__qdf_export_symbol(mdump_clog);
-#endif
+
 /* Preprocessor definitions and constants */
 
 enum qdf_timestamp_unit qdf_log_timestamp_type = QDF_LOG_TIMESTAMP_UNIT;
