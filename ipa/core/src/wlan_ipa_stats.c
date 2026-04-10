@@ -258,7 +258,7 @@ static void wlan_ipa_dump_ipa_ctx(struct wlan_ipa_priv *ipa_ctx)
 		ipa_ctx->curr_prod_bw,
 		ipa_ctx->curr_cons_bw,
 		ipa_ctx->activated_fw_pipe,
-		ipa_ctx->sap_num_connected_sta,
+		qdf_atomic_read(&ipa_ctx->sap_num_connected_sta),
 		(unsigned int)ipa_ctx->sta_connected);
 
 	ipa_info("\ntx_pipe_handle: 0x%x\n"
@@ -524,7 +524,7 @@ static void wlan_ipa_print_session_info(struct wlan_ipa_priv *ipa_ctx)
 		ipa_ctx->num_iface,
 		ipa_ctx->rm_state,
 		ipa_ctx->activated_fw_pipe,
-		ipa_ctx->sap_num_connected_sta,
+		qdf_atomic_read(&ipa_ctx->sap_num_connected_sta),
 		ipa_ctx->sta_connected,
 		(ipa_ctx->mcc_mode ? "MCC" : "SCC"),
 		ipa_ctx->resource_loading,

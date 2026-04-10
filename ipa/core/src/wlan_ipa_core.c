@@ -67,6 +67,43 @@ static struct wlan_ipa_priv *gp_ipa;
 static void wlan_ipa_set_pending_tx_timer(struct wlan_ipa_priv *ipa_ctx);
 static void wlan_ipa_reset_pending_tx_timer(struct wlan_ipa_priv *ipa_ctx);
 
+/**
+ * struct wlan_ipa_client - Client data structure for global tracking
+ * @node: List node for linking in the global client database
+ * @ipa_ctx: Pointer to the IPA context associated with this client
+ * @mac: MAC address of the client (QDF_MAC_ADDR_SIZE bytes)
+ * @net_dev: Network device associated with this client
+ *
+ * This structure represents a single connected client in the global
+ * client database. Each client is tracked with its MAC address, associated
+ * network device and IPA context.
+ */
+struct wlan_ipa_client {
+	qdf_list_node_t node;
+	struct wlan_ipa_priv *ipa_ctx;
+	u8 mac[QDF_MAC_ADDR_SIZE];
+	qdf_netdev_t net_dev;
+};
+
+/**
+ * struct wlan_ipa_clientdb_t - Global client database
+ * @init: Initialization flag (true if database is initialized)
+ * @list: QDF list containing all connected clients
+ * @lock: Mutex for protecting concurrent access to the database
+ *
+ * This global structure maintains a centralized database of all connected
+ * clients (struct wlan_ipa_client) across all SoCs.
+ */
+struct wlan_ipa_clientdb_t {
+	bool init;
+	qdf_list_t list;
+	qdf_mutex_t lock;
+} wlan_ipa_clientdb;
+
+static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
+				    qdf_ipa_wlan_event type,
+				    const uint8_t *mac_addr);
+
 static inline
 bool wlan_ipa_is_driver_unloading(struct wlan_ipa_priv *ipa_ctx)
 {
@@ -2218,106 +2255,115 @@ static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
 }
 
 /**
- * wlan_ipa_uc_find_add_assoc_sta() - Find associated station
- * @ipa_ctx: Global IPA IPA context
- * @sta_add: Should station be added
- * @mac_addr: mac address of station being queried
- * @vdev_id: Vdev Id
- * @net_dev: Pointer to network device
+ * wlan_ipa_clientdb_add() - Add or update client in global database
+ * @ipa_ctx: IPA context for the current SoC
+ * @mac: MAC address of the client
+ * @net_dev: Network device associated with the client
  *
- * Return: true if the station was found
+ * This function adds a new client to the global database or updates an
+ * existing client's information. It handles roaming scenarios by detecting
+ * when a client moves from one network device to another.
+ *
+ * Context: Must be called from process context. Acquires mutex lock.
+ * Return: true if database was updated/added, false otherwise
+ *
+ * Behavior:
+ * - If client exists on same netdev: Returns false (no update needed)
+ * - If client exists on different netdev (roaming):
+ *   * Sends DISCONNECT event to IPA for old netdev
+ *   * Updates client entry with new netdev and ipa_ctx
+ *   * Adjusts connected station counters appropriately
+ *   * Returns true
+ * - If client is new:
+ *   * Allocates new wlan_ipa_client structure
+ *   * Adds to global list
+ *   * Returns true
  */
-static int wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
-					   bool sta_add,
-					   const uint8_t *mac_addr,
-					   uint8_t vdev_id, qdf_netdev_t net_dev)
+static bool wlan_ipa_clientdb_add(struct wlan_ipa_priv *ipa_ctx, const u8 *mac,
+				  qdf_netdev_t net_dev)
 {
-	int sta_found = 0;
-	uint16_t idx;
-	uint8_t stas_id = 0xFF;
+	struct wlan_ipa_client *curr;
 
-	for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
-		if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
-		    (qdf_is_macaddr_equal(
-			&ipa_ctx->assoc_stas_map[idx].mac_addr,
-			(struct qdf_mac_addr *)mac_addr))) {
-			sta_found = 1;
-			stas_id = ipa_ctx->assoc_stas_map[idx].vdev_id;
-			ipa_debug("found sta with stas_id:%d vdev_id:%d",stas_id,vdev_id);
-			break;
+	qdf_mutex_acquire(&wlan_ipa_clientdb.lock);
+	qdf_list_for_each(&wlan_ipa_clientdb.list, curr, node) {
+		if (!qdf_is_macaddr_equal((struct qdf_mac_addr *)curr->mac,
+					 (struct qdf_mac_addr *)mac))
+			continue;
+
+		ipa_debug("found mac=%pM curr_netdev=%s new_netdev=%s",
+			  mac, curr->net_dev->name, net_dev->name);
+
+		/* client is connected on same vdev, no need to add again */
+		if (curr->net_dev == net_dev) {
+			qdf_mutex_release(&wlan_ipa_clientdb.lock);
+			return false;
+		}
+
+		/* client has roamed, send disconnect to IPA */
+		qdf_atomic_dec(&curr->ipa_ctx->sap_num_connected_sta);
+		ipa_debug("sending evt=%d for mac=%pM to IPA", WLAN_CLIENT_DISCONNECT, mac);
+		wlan_ipa_send_msg(curr->net_dev, WLAN_CLIENT_DISCONNECT, mac);
+
+		/* update the entry with new data */
+		curr->net_dev = net_dev;
+		curr->ipa_ctx = ipa_ctx;
+		qdf_mutex_release(&wlan_ipa_clientdb.lock);
+		return true;
+	}
+
+	/* new client connected, create entry in db */
+	curr = qdf_mem_malloc(sizeof(struct wlan_ipa_client));
+	if (!curr) {
+		ipa_debug("malloc failed");
+		qdf_mutex_release(&wlan_ipa_clientdb.lock);
+		return false;
+	}
+
+	qdf_mem_copy(curr->mac, mac, QDF_MAC_ADDR_SIZE);
+	curr->net_dev = net_dev;
+	curr->ipa_ctx = ipa_ctx;
+
+	qdf_init_list_head(&curr->node);
+	qdf_list_insert_front(&wlan_ipa_clientdb.list, &curr->node);
+
+	qdf_mutex_release(&wlan_ipa_clientdb.lock);
+	ipa_debug("added mac=%pM netdev=%s", mac, net_dev->name);
+	return true;
+}
+
+/**
+ * wlan_ipa_clientdb_del() - Delete client from global database
+ * @mac: MAC address of the client to delete
+ * @net_dev: net device from which client disconnected
+ *
+ * This function removes a client entry from the global database when
+ * the client disconnects.
+ *
+ * Context: Must be called from process context. Acquires mutex lock.
+ * Return: true if client was found and deleted, false if not found
+ */
+static bool wlan_ipa_clientdb_del(const u8 *mac, qdf_netdev_t net_dev)
+{
+	struct wlan_ipa_client *curr;
+
+	qdf_mutex_acquire(&wlan_ipa_clientdb.lock);
+	qdf_list_for_each(&wlan_ipa_clientdb.list, curr, node) {
+		if (curr->net_dev == net_dev &&
+		    qdf_is_macaddr_equal((struct qdf_mac_addr *)curr->mac,
+					 (struct qdf_mac_addr *)mac)) {
+			ipa_debug("found mac=%pM netdev=%s", mac,
+				  curr->net_dev->name);
+			goto found;
 		}
 	}
-	if (sta_add && sta_found && (vdev_id == stas_id)) {
-		ipa_err("STA already exist, cannot add: " QDF_MAC_ADDR_FMT,
-			QDF_MAC_ADDR_REF(mac_addr));
-		return sta_found;
-	}
-
-	if (sta_add && sta_found && (vdev_id != stas_id)) {
-		ipa_debug("STA already exist, need to delete this as it is roaming case delete/add: " QDF_MAC_ADDR_FMT,
-			QDF_MAC_ADDR_REF(mac_addr));
-		wlan_ipa_set_sap_client_auth(ipa_ctx, mac_addr, false);
-		ipa_ctx->sap_num_connected_sta--;
-		ipa_debug("Roaming disconnect case: sap_num_connected_sta=%d",
-		  ipa_ctx->sap_num_connected_sta);
-		wlan_ipa_send_msg(ipa_ctx->assoc_stas_map[idx].net_dev,
-					   WLAN_CLIENT_DISCONNECT,
-					   mac_addr);
-		if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
-		    (qdf_is_macaddr_equal(
-			&ipa_ctx->assoc_stas_map[idx].mac_addr,
-			(struct qdf_mac_addr *)mac_addr))) {
-			ipa_ctx->assoc_stas_map[idx].is_reserved =
-				false;
-			qdf_mem_zero(
-				&ipa_ctx->assoc_stas_map[idx].mac_addr,
-				QDF_NET_ETH_LEN);
-			ipa_ctx->assoc_stas_map[idx].vdev_id = 0xff;
-			ipa_ctx->assoc_stas_map[idx].net_dev = NULL ;
-		}
-	}
-
-	if (sta_add) {
-		for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
-			if (!ipa_ctx->assoc_stas_map[idx].is_reserved) {
-				ipa_ctx->assoc_stas_map[idx].is_reserved = true;
-				qdf_mem_copy(&ipa_ctx->assoc_stas_map[idx].
-					     mac_addr, mac_addr,
-					     QDF_NET_ETH_LEN);
-				ipa_ctx->assoc_stas_map[idx].vdev_id = vdev_id;
-				ipa_ctx->assoc_stas_map[idx].net_dev = net_dev;
-				return 0;
-			}
-		}
-	}
-	if (!sta_add && !sta_found) {
-		ipa_info("STA does not exist, cannot delete: "
-			 QDF_MAC_ADDR_FMT, QDF_MAC_ADDR_REF(mac_addr));
-		return sta_found;
-	}
-
-	if (!sta_add && (vdev_id == stas_id)) {
-		ipa_debug("Deleting the sta vdev_id:%d",vdev_id);
-		for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
-			if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
-			    (qdf_is_macaddr_equal(
-				&ipa_ctx->assoc_stas_map[idx].mac_addr,
-				(struct qdf_mac_addr *)mac_addr))) {
-				ipa_ctx->assoc_stas_map[idx].is_reserved =
-					false;
-				qdf_mem_zero(
-					&ipa_ctx->assoc_stas_map[idx].mac_addr,
-					QDF_NET_ETH_LEN);
-				ipa_ctx->assoc_stas_map[idx].vdev_id = 0xff;
-				ipa_ctx->assoc_stas_map[idx].net_dev = NULL ;
-				return sta_found;
-			}
-		}
-	} else if (!sta_add && (vdev_id != stas_id)) {
-		return 0;
-	}
-
-	return sta_found;
+	ipa_debug("not found mac=%pM", mac);
+	qdf_mutex_release(&wlan_ipa_clientdb.lock);
+	return false;
+found:
+	qdf_list_remove_node(&wlan_ipa_clientdb.list, &curr->node);
+	qdf_mem_free(curr);
+	qdf_mutex_release(&wlan_ipa_clientdb.lock);
+	return true;
 }
 
 /**
@@ -2926,7 +2972,7 @@ void wlan_ipa_reset_pending_tx_timer(struct wlan_ipa_priv *ipa_ctx)
 static inline
 bool wlan_sap_no_client_connected(struct wlan_ipa_priv *ipa_ctx)
 {
-	return !(ipa_ctx->sap_num_connected_sta);
+	return !qdf_atomic_read(&ipa_ctx->sap_num_connected_sta);
 }
 
 static inline
@@ -3087,7 +3133,7 @@ static void wlan_ipa_handle_multiple_sap_evt(struct wlan_ipa_priv *ipa_ctx,
 	if (type == QDF_IPA_AP_DISCONNECT) {
 		ipa_debug("Multiple SAP disconnecting. Enabling IPA");
 
-		if (ipa_ctx->sap_num_connected_sta > 0)
+		if (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) > 0)
 			wlan_ipa_uc_handle_first_con(ipa_ctx);
 
 		for (i = 0; i < WLAN_IPA_MAX_IFACE; i++) {
@@ -3510,7 +3556,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 					     mac_addr);
 
 		if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
-		    (ipa_ctx->sap_num_connected_sta > 0 ||
+		    (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) > 0 ||
 		     wlan_ipa_is_sta_only_offload_enabled()) &&
 		    !ipa_ctx->sta_connected) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
@@ -3524,7 +3570,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		if (!wlan_ipa_is_sta_only_offload_enabled()) {
 			ipa_debug("IPA STA only offload not enabled");
 		} else if (ipa_ctx->uc_loaded &&
-			   !ipa_ctx->sap_num_connected_sta &&
+			   !qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) &&
 			   !ipa_ctx->sta_connected) {
 			status = wlan_ipa_uc_handle_first_con(ipa_ctx);
 			if (status) {
@@ -3543,7 +3589,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		ipa_ctx->sta_connected++;
 
-		if (qdf_ipa_get_lan_rx_napi() && ipa_ctx->sap_num_connected_sta)
+		if (qdf_ipa_get_lan_rx_napi() && qdf_atomic_read(&ipa_ctx->sap_num_connected_sta))
 			ipa_set_rps_per_vdev(ipa_ctx, session_id, true);
 
 		qdf_mutex_release(&ipa_ctx->event_lock);
@@ -3637,7 +3683,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			 */
 			if ((ipa_ctx->num_iface == 1 ||
 			     (wlan_ipa_is_sta_only_offload_enabled() &&
-			      !ipa_ctx->sap_num_connected_sta)) &&
+			      !qdf_atomic_read(&ipa_ctx->sap_num_connected_sta))) &&
 			    wlan_ipa_is_fw_wdi_activated(ipa_ctx) &&
 			    !ipa_ctx->ipa_pipes_down &&
 			    (ipa_ctx->resource_unloading == false)) {
@@ -3658,7 +3704,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 
 		if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
-		    (ipa_ctx->sap_num_connected_sta > 0 ||
+		    (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) > 0 ||
 		     wlan_ipa_is_sta_only_offload_enabled())) {
 			qdf_atomic_set(&ipa_ctx->stats_quota, 0);
 			qdf_mutex_release(&ipa_ctx->event_lock);
@@ -3678,7 +3724,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		if (iface_ctx)
 			wlan_ipa_cleanup_iface(iface_ctx, mac_addr);
 
-		if (qdf_ipa_get_lan_rx_napi() && ipa_ctx->sap_num_connected_sta)
+		if (qdf_ipa_get_lan_rx_napi() && qdf_atomic_read(&ipa_ctx->sap_num_connected_sta))
 			ipa_set_rps_per_vdev(ipa_ctx, session_id, false);
 
 		qdf_mutex_release(&ipa_ctx->event_lock);
@@ -3749,16 +3795,14 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 
 		qdf_mutex_acquire(&ipa_ctx->event_lock);
-		if (wlan_ipa_uc_find_add_assoc_sta(ipa_ctx, true, mac_addr, session_id, net_dev)) {
+		if (!wlan_ipa_clientdb_add(ipa_ctx, mac_addr, net_dev)) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
-			ipa_err("%s: STA found, addr: " QDF_MAC_ADDR_FMT,
-				net_dev->name,
-				QDF_MAC_ADDR_REF(mac_addr));
+			ipa_debug("mac=%pM not added/updated in clientdb", mac_addr);
 			return QDF_STATUS_SUCCESS;
 		}
 
 		/* Enable IPA UC Data PIPEs when first STA connected */
-		if (ipa_ctx->sap_num_connected_sta == 0 &&
+		if (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) == 0 &&
 				ipa_ctx->uc_loaded == true) {
 
 			if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
@@ -3804,7 +3848,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			ipa_info("first sap client connected");
 		}
 
-		ipa_ctx->sap_num_connected_sta++;
+		qdf_atomic_inc(&ipa_ctx->sap_num_connected_sta);
 
 		qdf_mutex_release(&ipa_ctx->event_lock);
 
@@ -3816,7 +3860,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			return QDF_STATUS_E_FAILURE;
 
 		ipa_debug("sap_num_connected_sta=%d",
-			   ipa_ctx->sap_num_connected_sta);
+			   qdf_atomic_read(&ipa_ctx->sap_num_connected_sta));
 
 		return QDF_STATUS_SUCCESS;
 
@@ -3870,7 +3914,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 		ipa_ctx->sap_num_mlo_connected_sta++;
 		qdf_mutex_release(&ipa_ctx->event_lock);
-		break;
+		return QDF_STATUS_SUCCESS;
 
 	case WLAN_CLIENT_DISCONNECT:
 		if (!wlan_ipa_uc_is_enabled(ipa_ctx->config)) {
@@ -3880,8 +3924,14 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 
 		qdf_mutex_acquire(&ipa_ctx->event_lock);
+		if (!wlan_ipa_clientdb_del(mac_addr, net_dev)) {
+			qdf_mutex_release(&ipa_ctx->event_lock);
+			ipa_debug("mac=%pM not in clientdb", mac_addr);
+			return QDF_STATUS_SUCCESS;
+		}
+
 		wlan_ipa_set_sap_client_auth(ipa_ctx, mac_addr, false);
-		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta) {
+		if (!qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) && !ipa_ctx->sap_num_mlo_connected_sta) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			ipa_debug("%s: Evt: %d, Client already disconnected",
 				  msg_ex->name,
@@ -3889,23 +3939,14 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 			return QDF_STATUS_SUCCESS;
 		}
-		if (!wlan_ipa_uc_find_add_assoc_sta(ipa_ctx, false,
-						    mac_addr, session_id, net_dev)) {
-			qdf_mutex_release(&ipa_ctx->event_lock);
-			ipa_debug("%s: STA NOT found, not valid: "
-				QDF_MAC_ADDR_FMT,
-				msg_ex->name, QDF_MAC_ADDR_REF(mac_addr));
-
-			return QDF_STATUS_SUCCESS;
-		}
-		ipa_ctx->sap_num_connected_sta--;
+		qdf_atomic_dec(&ipa_ctx->sap_num_connected_sta);
 
 		/*
 		 * Disable IPA pipes when
 		 * 1. last client disconnected and
 		 * 2. STA is not connected if STA only offload is enabled
 		 */
-		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta &&
+		if (!qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) && !ipa_ctx->sap_num_mlo_connected_sta &&
 		    ipa_ctx->uc_loaded &&
 		    !(wlan_ipa_is_sta_only_offload_enabled() &&
 		      ipa_ctx->sta_connected)) {
@@ -3952,12 +3993,12 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 
 		ipa_debug("sap_num_connected_sta=%d",
-			  ipa_ctx->sap_num_connected_sta);
+			  qdf_atomic_read(&ipa_ctx->sap_num_connected_sta));
 		break;
 
 	case WLAN_IPA_MLO_CLIENT_DISCONNECT:
 		qdf_mutex_acquire(&ipa_ctx->event_lock);
-		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta) {
+		if (!qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) && !ipa_ctx->sap_num_mlo_connected_sta) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			ipa_debug("%s: Evt: %d, Client already disconnected",
 				  msg_ex->name,
@@ -3972,7 +4013,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		 * 1. last client disconnected and
 		 * 2. STA is not connected if STA only offload is enabled
 		 */
-		if (!ipa_ctx->sap_num_connected_sta && !ipa_ctx->sap_num_mlo_connected_sta &&
+		if (!qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) && !ipa_ctx->sap_num_mlo_connected_sta &&
 		    ipa_ctx->uc_loaded &&
 		    !(wlan_ipa_is_sta_only_offload_enabled() &&
 		      ipa_ctx->sta_connected)) {
@@ -4021,7 +4062,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 
 		ipa_debug("sap_num_mlo_connected_sta=%d",
 			  ipa_ctx->sap_num_mlo_connected_sta);
-		break;
+		return QDF_STATUS_SUCCESS;
 
 	default:
 		return QDF_STATUS_SUCCESS;
@@ -4970,7 +5011,7 @@ QDF_STATUS wlan_ipa_setup(struct wlan_ipa_priv *ipa_ctx,
 
 	if (wlan_ipa_uc_is_enabled(ipa_ctx->config)) {
 		qdf_mem_zero(&ipa_ctx->stats, sizeof(ipa_ctx->stats));
-		ipa_ctx->sap_num_connected_sta = 0;
+		qdf_atomic_init(&ipa_ctx->sap_num_connected_sta);
 		ipa_ctx->sap_num_mlo_connected_sta = 0;
 		ipa_ctx->ipa_tx_packets_diff = 0;
 		ipa_ctx->ipa_rx_packets_diff = 0;
@@ -5017,6 +5058,13 @@ QDF_STATUS wlan_ipa_setup(struct wlan_ipa_priv *ipa_ctx,
 	status = wlan_ipa_opt_dp_init(ipa_ctx);
 
 	qdf_event_create(&ipa_ctx->ipa_resource_comp);
+
+	/* since this is global list, init only once */
+	if (!wlan_ipa_clientdb.init) {
+		qdf_list_create(&wlan_ipa_clientdb.list, 0);
+		qdf_mutex_create(&wlan_ipa_clientdb.lock);
+		wlan_ipa_clientdb.init = true;
+	}
 
 	ipa_debug("exit: success");
 
@@ -5116,6 +5164,24 @@ QDF_STATUS wlan_ipa_cleanup(struct wlan_ipa_priv *ipa_ctx)
 	}
 
 	gp_ipa = NULL;
+
+	/* Clean up all remaining clients in database */
+	if (wlan_ipa_clientdb.init) {
+		qdf_mutex_acquire(&wlan_ipa_clientdb.lock);
+		while (!qdf_list_empty(&wlan_ipa_clientdb.list)) {
+			struct wlan_ipa_client *client;
+			qdf_list_node_t *node;
+
+			qdf_list_remove_front(&wlan_ipa_clientdb.list, &node);
+			client = qdf_container_of(node, struct wlan_ipa_client, node);
+			qdf_mem_free(client);
+		}
+		qdf_mutex_release(&wlan_ipa_clientdb.lock);
+
+		qdf_list_destroy(&wlan_ipa_clientdb.list);
+		qdf_mutex_destroy(&wlan_ipa_clientdb.lock);
+		wlan_ipa_clientdb.init = false;
+	}
 
 	ipa_ctx->handle_initialized = false;
 
@@ -5254,7 +5320,7 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 	 * 1. any clients connected to SAP or
 	 * 2. STA connected to remote AP if STA only offload is enabled
 	 */
-	if (ipa_ctx->sap_num_connected_sta ||
+	if (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) ||
 	    (wlan_ipa_is_sta_only_offload_enabled() &&
 	     ipa_ctx->sta_connected)) {
 		ipa_debug("Client already connected, enable IPA/FW PIPEs");
