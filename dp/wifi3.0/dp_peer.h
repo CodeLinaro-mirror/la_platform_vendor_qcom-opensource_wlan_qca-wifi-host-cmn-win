@@ -1830,6 +1830,8 @@ void dp_mld_peer_add_link_peer(struct dp_peer *mld_peer,
 			link_peer_info->chip_id =
 				dp_get_chip_id(link_peer->vdev->pdev->soc);
 			link_peer_info->is_bridge_peer = is_bridge_peer;
+			link_peer_info->htt_map_ts = link_peer->htt_link_map_ts;
+			link_peer_info->htt_unmap_ts = 0;
 			mld_peer->num_links++;
 			break;
 		}
@@ -1872,6 +1874,7 @@ uint8_t dp_mld_peer_del_link_peer(struct dp_peer *mld_peer,
 		    !dp_peer_find_mac_addr_cmp(&link_peer->mac_addr,
 					&link_peer_info->mac_addr)) {
 			link_peer_info->is_valid = false;
+			link_peer_info->htt_unmap_ts = link_peer->htt_link_unmap_ts ? : qdf_get_log_timestamp() ;
 			mld_peer->num_links--;
 			break;
 		}
