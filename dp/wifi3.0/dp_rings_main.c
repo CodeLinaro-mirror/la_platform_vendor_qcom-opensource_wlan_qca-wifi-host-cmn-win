@@ -1788,117 +1788,6 @@ void dp_soc_reset_intr_mask(struct dp_soc *soc)
 	}
 }
 
-#ifdef IPA_OFFLOAD
-bool dp_reo_remap_config(struct dp_soc *soc, uint32_t *remap0,
-			 uint32_t *remap1, uint32_t *remap2)
-{
-	uint32_t ring[WLAN_CFG_NUM_REO_DEST_RING_MAX] = {
-				REO_REMAP_SW1, REO_REMAP_SW2, REO_REMAP_SW3,
-				REO_REMAP_SW5, REO_REMAP_SW6, REO_REMAP_SW7};
-
-	switch (soc->arch_id) {
-	case CDP_ARCH_TYPE_BE:
-		hal_compute_reo_remap_ix2_ix3(soc->hal_soc, ring,
-					      soc->num_reo_dest_rings -
-					      USE_2_IPA_RX_REO_RINGS, remap1,
-					      remap2);
-		break;
-
-	case CDP_ARCH_TYPE_LI:
-		if (wlan_ipa_is_vlan_enabled()) {
-			hal_compute_reo_remap_ix2_ix3(
-					soc->hal_soc, ring,
-					soc->num_reo_dest_rings -
-					USE_2_IPA_RX_REO_RINGS, remap1,
-					remap2);
-
-		} else {
-			hal_compute_reo_remap_ix2_ix3(
-					soc->hal_soc, ring,
-					soc->num_reo_dest_rings -
-					USE_1_IPA_RX_REO_RING, remap1,
-					remap2);
-		}
-
-		hal_compute_reo_remap_ix0(soc->hal_soc, remap0);
-		break;
-	default:
-		dp_err("unknown arch_id 0x%x", soc->arch_id);
-		QDF_BUG(0);
-	}
-
-	dp_debug("remap1 %x remap2 %x", *remap1, *remap2);
-
-	return true;
-}
-
-#ifdef IPA_WDI3_TX_TWO_PIPES
-static bool dp_ipa_is_alt_tx_ring(int index)
-{
-	return index == IPA_TX_ALT_RING_IDX;
-}
-
-static bool dp_ipa_is_alt_tx_comp_ring(int index)
-{
-	return index == IPA_TX_ALT_COMP_RING_IDX;
-}
-#else /* !IPA_WDI3_TX_TWO_PIPES */
-static bool dp_ipa_is_alt_tx_ring(int index)
-{
-	return false;
-}
-
-static bool dp_ipa_is_alt_tx_comp_ring(int index)
-{
-	return false;
-}
-#endif /* IPA_WDI3_TX_TWO_PIPES */
-
-/**
- * dp_ipa_get_tx_ring_size() - Get Tx ring size for IPA
- *
- * @tx_ring_num: Tx ring number
- * @tx_ipa_ring_sz: Return param only updated for IPA.
- * @soc_cfg_ctx: dp soc cfg context
- *
- * Return: None
- */
-static void dp_ipa_get_tx_ring_size(int tx_ring_num, int *tx_ipa_ring_sz,
-				    struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx)
-{
-	if (!soc_cfg_ctx->ipa_enabled)
-		return;
-
-	if (tx_ring_num == IPA_TCL_DATA_RING_IDX)
-		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_ring_size(soc_cfg_ctx);
-	else if (dp_ipa_is_alt_tx_ring(tx_ring_num))
-		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_alt_ring_size(soc_cfg_ctx);
-}
-
-/**
- * dp_ipa_get_tx_comp_ring_size() - Get Tx comp ring size for IPA
- *
- * @tx_comp_ring_num: Tx comp ring number
- * @tx_comp_ipa_ring_sz: Return param only updated for IPA.
- * @soc_cfg_ctx: dp soc cfg context
- *
- * Return: None
- */
-static void dp_ipa_get_tx_comp_ring_size(int tx_comp_ring_num,
-					 int *tx_comp_ipa_ring_sz,
-				       struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx)
-{
-	if (!soc_cfg_ctx->ipa_enabled)
-		return;
-
-	if (tx_comp_ring_num == IPA_TCL_DATA_RING_IDX)
-		*tx_comp_ipa_ring_sz =
-				wlan_cfg_ipa_tx_comp_ring_size(soc_cfg_ctx);
-	else if (dp_ipa_is_alt_tx_comp_ring(tx_comp_ring_num))
-		*tx_comp_ipa_ring_sz =
-				wlan_cfg_ipa_tx_alt_comp_ring_size(soc_cfg_ctx);
-}
-#else
 static uint8_t dp_reo_ring_selection(uint32_t value, uint32_t *ring)
 {
 	uint8_t num = 0;
@@ -2011,6 +1900,129 @@ static uint8_t dp_reo_ring_selection(uint32_t value, uint32_t *ring)
 	return num;
 }
 
+#ifdef IPA_OFFLOAD
+bool dp_reo_remap_config(struct dp_soc *soc, uint32_t *remap0,
+			 uint32_t *remap1, uint32_t *remap2)
+{
+	uint32_t ring[WLAN_CFG_NUM_REO_DEST_RING_MAX] = {
+				REO_REMAP_SW1, REO_REMAP_SW2, REO_REMAP_SW3,
+				REO_REMAP_SW5, REO_REMAP_SW6, REO_REMAP_SW7};
+	uint32_t reo_config, value;
+	uint8_t num;
+
+	switch (soc->arch_id) {
+	case CDP_ARCH_TYPE_BE:
+		if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx)) {
+			hal_compute_reo_remap_ix2_ix3(soc->hal_soc, ring,
+						      soc->num_reo_dest_rings -
+						      USE_2_IPA_RX_REO_RINGS, remap1,
+						      remap2);
+		} else {
+			reo_config = wlan_cfg_get_reo_rings_mapping(soc->wlan_cfg_ctx);
+			qdf_mem_set(ring, sizeof(ring), 0);
+			value = reo_config & WLAN_CFG_NUM_REO_RINGS_MAP_MAX;
+			num = dp_reo_ring_selection(value, ring);
+			hal_compute_reo_remap_ix2_ix3(soc->hal_soc, ring,
+						      num, remap1, remap2);
+			hal_compute_reo_remap_ix0(soc->hal_soc, remap0);
+		}
+		break;
+
+	case CDP_ARCH_TYPE_LI:
+		if (wlan_ipa_is_vlan_enabled()) {
+			hal_compute_reo_remap_ix2_ix3(
+					soc->hal_soc, ring,
+					soc->num_reo_dest_rings -
+					USE_2_IPA_RX_REO_RINGS, remap1,
+					remap2);
+
+		} else {
+			hal_compute_reo_remap_ix2_ix3(
+					soc->hal_soc, ring,
+					soc->num_reo_dest_rings -
+					USE_1_IPA_RX_REO_RING, remap1,
+					remap2);
+		}
+
+		hal_compute_reo_remap_ix0(soc->hal_soc, remap0);
+		break;
+	default:
+		dp_err("unknown arch_id 0x%x", soc->arch_id);
+		QDF_BUG(0);
+	}
+
+	dp_debug("remap1 %x remap2 %x", *remap1, *remap2);
+
+	return true;
+}
+
+#ifdef IPA_WDI3_TX_TWO_PIPES
+static bool dp_ipa_is_alt_tx_ring(int index)
+{
+	return index == IPA_TX_ALT_RING_IDX;
+}
+
+static bool dp_ipa_is_alt_tx_comp_ring(int index)
+{
+	return index == IPA_TX_ALT_COMP_RING_IDX;
+}
+#else /* !IPA_WDI3_TX_TWO_PIPES */
+static bool dp_ipa_is_alt_tx_ring(int index)
+{
+	return false;
+}
+
+static bool dp_ipa_is_alt_tx_comp_ring(int index)
+{
+	return false;
+}
+#endif /* IPA_WDI3_TX_TWO_PIPES */
+
+/**
+ * dp_ipa_get_tx_ring_size() - Get Tx ring size for IPA
+ *
+ * @tx_ring_num: Tx ring number
+ * @tx_ipa_ring_sz: Return param only updated for IPA.
+ * @soc_cfg_ctx: dp soc cfg context
+ *
+ * Return: None
+ */
+static void dp_ipa_get_tx_ring_size(int tx_ring_num, int *tx_ipa_ring_sz,
+				    struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx)
+{
+	if (!soc_cfg_ctx->ipa_enabled)
+		return;
+
+	if (tx_ring_num == IPA_TCL_DATA_RING_IDX)
+		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_ring_size(soc_cfg_ctx);
+	else if (dp_ipa_is_alt_tx_ring(tx_ring_num))
+		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_alt_ring_size(soc_cfg_ctx);
+}
+
+/**
+ * dp_ipa_get_tx_comp_ring_size() - Get Tx comp ring size for IPA
+ *
+ * @tx_comp_ring_num: Tx comp ring number
+ * @tx_comp_ipa_ring_sz: Return param only updated for IPA.
+ * @soc_cfg_ctx: dp soc cfg context
+ *
+ * Return: None
+ */
+static void dp_ipa_get_tx_comp_ring_size(int tx_comp_ring_num,
+					 int *tx_comp_ipa_ring_sz,
+				       struct wlan_cfg_dp_soc_ctxt *soc_cfg_ctx)
+{
+	if (!soc_cfg_ctx->ipa_enabled)
+		return;
+
+	if (tx_comp_ring_num == IPA_TCL_DATA_RING_IDX)
+		*tx_comp_ipa_ring_sz =
+				wlan_cfg_ipa_tx_comp_ring_size(soc_cfg_ctx);
+	else if (dp_ipa_is_alt_tx_comp_ring(tx_comp_ring_num))
+		*tx_comp_ipa_ring_sz =
+				wlan_cfg_ipa_tx_alt_comp_ring_size(soc_cfg_ctx);
+}
+#else
 bool dp_reo_remap_config(struct dp_soc *soc,
 			 uint32_t *remap0,
 			 uint32_t *remap1,
@@ -2645,6 +2657,7 @@ static inline bool dp_is_vdev_subtype_p2p(struct dp_vdev *vdev)
 	return false;
 }
 
+#define DEFAULT_LMAC_PEER_ID 2
 /**
  * dp_peer_setup_get_reo_hash() - get reo dest ring and hash values for a peer
  * @vdev: Datapath VDEV handle
@@ -2695,6 +2708,8 @@ static void dp_peer_setup_get_reo_hash(struct dp_vdev *vdev,
 		} else {
 			dp_debug("opt_dp: default HOST reo ring is set");
 		}
+	} else {
+		*lmac_peer_id_msb = DEFAULT_LMAC_PEER_ID;
 	}
 }
 
