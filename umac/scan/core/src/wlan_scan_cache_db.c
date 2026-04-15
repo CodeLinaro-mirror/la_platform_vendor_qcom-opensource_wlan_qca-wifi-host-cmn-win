@@ -470,7 +470,6 @@ scm_get_next_valid_node(qdf_list_t *list,
 	qdf_list_node_t *next_node = NULL;
 	qdf_list_node_t *temp_node = NULL;
 	struct scan_cache_node *scan_node;
-	QDF_STATUS status;
 
 	if (cur_node)
 		qdf_list_peek_next(list, cur_node, &next_node);
@@ -486,11 +485,7 @@ scm_get_next_valid_node(qdf_list_t *list,
 		 * If node is not valid check for next entry
 		 * to get next valid node.
 		 */
-		status = qdf_list_peek_next(list, next_node, &temp_node);
-		if (QDF_IS_STATUS_ERROR(status)) {
-			qdf_print("Warning!! Node is not valid break the loop!!!");
-			break;
-		}
+		qdf_list_peek_next(list, next_node, &temp_node);
 		next_node = temp_node;
 		temp_node = NULL;
 	}
