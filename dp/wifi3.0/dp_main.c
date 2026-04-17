@@ -5673,6 +5673,23 @@ static void dp_txrx_reset_vdev_stats_id(struct cdp_soc_t *soc,
 					uint8_t vdev_stats_id)
 {}
 #endif
+
+static QDF_STATUS dp_vdev_down_wifi3(struct cdp_soc_t *cdp_soc,
+				     uint8_t vdev_id)
+{
+	struct dp_soc *soc = (struct dp_soc *)cdp_soc;
+	struct dp_vdev *vdev = dp_vdev_get_ref_by_id(soc, vdev_id,
+						     DP_MOD_ID_CDP);
+
+	if (!vdev)
+		return QDF_STATUS_E_FAILURE;
+
+	dp_monitor_vdev_down(vdev);
+	dp_vdev_unref_delete(soc, vdev, DP_MOD_ID_CDP);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 /**
  * dp_vdev_detach_wifi3() - Detach txrx vdev
  * @cdp_soc: Datapath soc handle
@@ -13617,6 +13634,7 @@ static struct cdp_cmn_ops dp_ops_cmn = {
 	.txrx_soc_attach_target = dp_soc_attach_target_wifi3,
 	.txrx_vdev_attach = dp_vdev_attach_wifi3,
 	.txrx_vdev_detach = dp_vdev_detach_wifi3,
+	.txrx_vdev_down = dp_vdev_down_wifi3,
 	.txrx_pdev_attach = dp_pdev_attach_wifi3,
 	.txrx_pdev_post_attach = dp_pdev_post_attach_wifi3,
 	.txrx_pdev_detach = dp_pdev_detach_wifi3,

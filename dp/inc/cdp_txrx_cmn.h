@@ -419,6 +419,22 @@ cdp_vdev_detach(ol_txrx_soc_handle soc, uint8_t vdev_id,
 						       callback, cb_context);
 }
 
+static inline QDF_STATUS
+cdp_vdev_down(ol_txrx_soc_handle soc, uint8_t vdev_id)
+{
+	if (!soc || !soc->ops) {
+		dp_cdp_debug("Invalid Instance:");
+		QDF_BUG(0);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (!soc->ops->cmn_drv_ops ||
+	    !soc->ops->cmn_drv_ops->txrx_vdev_down)
+		return QDF_STATUS_E_FAILURE;
+
+	return soc->ops->cmn_drv_ops->txrx_vdev_down(soc, vdev_id);
+}
+
 #if defined(WLAN_FEATURE_11BE_MLO)
 static inline void
 cdp_ppeds_cfg_astidx_cache_mapping(struct cdp_soc_t *soc, uint8_t vdev_id)
