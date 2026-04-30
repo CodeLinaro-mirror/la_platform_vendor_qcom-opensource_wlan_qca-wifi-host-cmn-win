@@ -3978,6 +3978,29 @@ qdf_nbuf_copy_expand_debug(qdf_nbuf_t buf, int headroom, int tailroom,
 qdf_export_symbol(qdf_nbuf_copy_expand_debug);
 
 qdf_nbuf_t
+qdf_nbuf_copy_expand_pskb_debug(qdf_nbuf_t buf, int headroom, int tailroom,
+				const char *func, uint32_t line)
+{
+	qdf_nbuf_t copied_buf =
+		__qdf_nbuf_copy_expand_pskb(buf, headroom, tailroom);
+
+	if (qdf_unlikely(!copied_buf))
+		return NULL;
+
+	if (is_initial_mem_debug_disabled)
+		return copied_buf;
+
+	/* Store SKB in internal QDF tracking table */
+	qdf_net_buf_debug_add_node(copied_buf, 0, func, line);
+	qdf_nbuf_history_add(copied_buf, func, line,
+			     QDF_NBUF_ALLOC_COPY_EXPAND);
+
+	return copied_buf;
+}
+
+qdf_export_symbol(qdf_nbuf_copy_expand_pskb_debug);
+
+qdf_nbuf_t
 qdf_nbuf_unshare_debug(qdf_nbuf_t buf, const char *func_name,
 		       uint32_t line_num)
 {
