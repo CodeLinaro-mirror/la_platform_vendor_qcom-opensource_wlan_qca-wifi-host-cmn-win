@@ -2341,6 +2341,7 @@ static inline void __qdf_nbuf_set_pktlen(struct sk_buff *skb, uint32_t len)
 #else
 				dev_kfree_skb_any(skb);
 #endif
+				return;
 			}
 		}
 		skb_put(skb, (len - skb->len));

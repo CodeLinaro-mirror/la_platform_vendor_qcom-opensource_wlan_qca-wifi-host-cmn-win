@@ -3213,6 +3213,7 @@ struct cdp_per_cpu_packets {
  * @rx.err.pn_in_dest_check_fail: PN check failed for 2K-jump or OOR error
  * @rx.err.msdu_len_err: MSDU len err count
  * @rx.err.rx_flush_count: Rx flush count
+ * @rx.err.rx_invalid_pkt_len_data_path: oversized pkt drop in normal data path
  * @ast:
  * @ast.added: ast entry added count
  * @ast.deleted: ast entry deleted count
@@ -3306,6 +3307,7 @@ struct cdp_soc_stats {
 			uint32_t pn_in_dest_check_fail;
 			uint32_t msdu_len_err;
 			uint32_t rx_flush_count;
+			uint32_t rx_invalid_pkt_len_data_path;
 		} err;
 	} rx;
 

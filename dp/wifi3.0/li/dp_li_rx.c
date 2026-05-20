@@ -748,6 +748,17 @@ done:
 				  msdu_metadata.l3_hdr_pad +
 				  soc->rx_pkt_tlv_size;
 
+			if (qdf_unlikely(pkt_len > buf_size)) {
+				DP_STATS_INC_PKT(soc,
+						 rx.err.rx_invalid_pkt_len,
+						 1, pkt_len);
+				DP_STATS_INC(soc,
+					     rx.err.rx_invalid_pkt_len_data_path,
+					     1);
+				dp_rx_nbuf_free(nbuf);
+				nbuf = next;
+				continue;
+			}
 			qdf_nbuf_set_pktlen(nbuf, pkt_len);
 			dp_rx_skip_tlvs(soc, nbuf, msdu_metadata.l3_hdr_pad);
 		}

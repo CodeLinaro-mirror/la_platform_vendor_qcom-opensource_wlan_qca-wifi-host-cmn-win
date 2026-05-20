@@ -1545,6 +1545,8 @@ struct dp_soc_stats {
 			struct cdp_pkt_info rx_invalid_peer_id;
 			/* Invalid packet length */
 			struct cdp_pkt_info rx_invalid_pkt_len;
+			/* Oversized packet drop in normal data path (BE + LI) */
+			uint32_t rx_invalid_pkt_len_data_path;
 			/* HAL ring access Fail error count */
 			uint32_t hal_ring_access_fail;
 			/* HAL ring access full Fail error count */
