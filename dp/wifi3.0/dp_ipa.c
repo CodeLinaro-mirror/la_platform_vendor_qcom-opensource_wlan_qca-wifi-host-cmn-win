@@ -203,15 +203,6 @@ QDF_STATUS dp_ipa_handle_rx_buf_smmu_mapping(struct dp_soc *soc,
 					     bool create, const char *func,
 					     uint32_t line, uint8_t caller)
 {
-	struct dp_pdev *pdev;
-	int i;
-
-	for (i = 0; i < soc->pdev_count; i++) {
-		pdev = soc->pdev_list[i];
-		if (pdev && dp_monitor_is_configured(pdev))
-			return QDF_STATUS_SUCCESS;
-	}
-
 	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) ||
 	    !qdf_mem_smmu_s1_enabled(soc->osdev))
 		return QDF_STATUS_SUCCESS;
