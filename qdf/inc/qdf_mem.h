@@ -387,7 +387,7 @@ void qdf_mem_free_consistent_debug(qdf_device_t osdev, void *dev,
 #else
 static inline bool qdf_mem_debug_config_get(void)
 {
-	return false;
+	return true;
 }
 
 static inline
