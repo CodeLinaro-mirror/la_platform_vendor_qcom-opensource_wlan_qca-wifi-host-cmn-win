@@ -2233,7 +2233,7 @@ uint16_t wlan_util_get_peer_count_for_mode(struct wlan_objmgr_pdev *pdev,
 	return count.peer_count;
 }
 
-#if defined(CONFIG_QCA_MINIDUMP) || defined(CONFIG_SDX_WAIKIKI)
+#ifdef CONFIG_QCA_MINIDUMP
 static bool wlan_minidump_log_enabled(struct wlan_objmgr_psoc *psoc,
 				      enum wlan_minidump_host_data type)
 {
