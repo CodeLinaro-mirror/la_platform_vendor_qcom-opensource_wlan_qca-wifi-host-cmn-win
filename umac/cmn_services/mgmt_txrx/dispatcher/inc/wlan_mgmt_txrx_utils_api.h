@@ -544,7 +544,6 @@ struct action_frm_hdr {
 
 /**
  * enum mgmt_frame_type - enum of mgmt. frames
- * @MGMT_FRM_UNSPECIFIED:           unspecified
  * @MGMT_ASSOC_REQ:                 association request frame
  * @MGMT_ASSOC_RESP:                association response frame
  * @MGMT_REASSOC_REQ:               reassociation request frame
@@ -680,10 +679,10 @@ struct action_frm_hdr {
  * @MGMT_ACTION_FTM_REQUEST: FTM request frame
  * @MGMT_ACTION_FTM_RESPONSE: FTM response frame
  * @MGMT_ACTION_FILS_DISCOVERY: FILS Discovery frame
+ * @MGMT_FRM_UNSPECIFIED:           unspecified
  * @MGMT_MAX_FRAME_TYPE:         max. mgmt frame types
  */
 enum mgmt_frame_type {
-	MGMT_FRM_UNSPECIFIED = -1,
 	MGMT_ASSOC_REQ,
 	MGMT_ASSOC_RESP,
 	MGMT_REASSOC_REQ,
@@ -818,6 +817,7 @@ enum mgmt_frame_type {
 	MGMT_ACTION_FTM_REQUEST,
 	MGMT_ACTION_FTM_RESPONSE,
 	MGMT_ACTION_FILS_DISCOVERY,
+	MGMT_FRM_UNSPECIFIED,
 	MGMT_MAX_FRAME_TYPE,
 };
 

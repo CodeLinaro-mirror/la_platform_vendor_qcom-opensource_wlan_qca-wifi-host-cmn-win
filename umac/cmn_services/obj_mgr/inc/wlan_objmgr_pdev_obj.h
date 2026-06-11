@@ -557,6 +557,19 @@ struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_vdev(
 #endif
 
 /**
+ * wlan_objmgr_pdev_get_first_active_vdev() - Get first active vdev of pdev
+ * @pdev: PDEV object
+ * @dbg_id:   Object Manager ref debug id
+ *
+ * API to get reference to first active vdev of pdev.
+ *
+ * Return: reference to first active vdev
+ */
+struct wlan_objmgr_vdev *wlan_objmgr_pdev_get_first_active_vdev(
+		struct wlan_objmgr_pdev *pdev,
+		wlan_objmgr_ref_dbgid dbg_id);
+
+/**
  * wlan_objmgr_pdev_get_roam_vdev() - Get roam vdev of pdev
  * @pdev: PDEV object
  * @dbg_id: Object Manager ref debug id

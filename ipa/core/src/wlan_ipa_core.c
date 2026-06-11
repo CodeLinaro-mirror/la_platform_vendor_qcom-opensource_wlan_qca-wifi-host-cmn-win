@@ -2027,10 +2027,11 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		return QDF_STATUS_E_ALREADY;
 	}
 	ipa_ctx->pipes_enable_in_progress = true;
-	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (qdf_atomic_read(&ipa_ctx->waiting_on_pending_tx))
 		wlan_ipa_reset_pending_tx_timer(ipa_ctx);
+
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
 		result = cdp_ipa_enable_pipes(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
@@ -2043,6 +2044,7 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		qdf_atomic_set(&ipa_ctx->pipes_disabled, 0);
 	}
 
+	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
 	qdf_event_reset(&ipa_ctx->ipa_resource_comp);
 
 	if (qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
@@ -2056,7 +2058,6 @@ QDF_STATUS wlan_ipa_uc_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
 		}
 	}
 end:
-	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
 	if (((!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) ||
 	     wlan_ipa_opt_wifi_dp_enabled()) &&
 	    !qdf_atomic_read(&ipa_ctx->pipes_disabled))
@@ -2135,13 +2136,13 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 		return QDF_STATUS_E_ALREADY;
 	}
 	ipa_ctx->pipes_down_in_progress = true;
-	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
-
 
 	if (!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
 		cdp_ipa_disable_autonomy(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		qdf_atomic_set(&ipa_ctx->autonomy_disabled, 1);
 	}
+
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (!qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
 		if (!force_disable) {
@@ -2178,34 +2179,104 @@ end:
 }
 
 /**
+ * wlan_ipa_send_msg() - Allocate and send message to IPA
+ * @net_dev: Interface net device
+ * @type: event enum of type ipa_wlan_event
+ * @mac_addr: MAC address associated with the event
+ *
+ * Return: QDF STATUS
+ */
+static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
+				    qdf_ipa_wlan_event type,
+				    const uint8_t *mac_addr)
+{
+	qdf_ipa_msg_meta_t meta;
+	qdf_ipa_wlan_msg_t *msg;
+
+	QDF_IPA_MSG_META_MSG_LEN(&meta) = sizeof(qdf_ipa_wlan_msg_t);
+
+	msg = qdf_mem_malloc(QDF_IPA_MSG_META_MSG_LEN(&meta));
+	if (!msg)
+		return QDF_STATUS_E_NOMEM;
+
+	QDF_IPA_SET_META_MSG_TYPE(&meta, type);
+	strlcpy(QDF_IPA_WLAN_MSG_NAME(msg), net_dev->name, IPA_RESOURCE_NAME_MAX);
+	qdf_mem_copy(QDF_IPA_WLAN_MSG_MAC_ADDR(msg), mac_addr, QDF_NET_ETH_LEN);
+	QDF_IPA_WLAN_MSG_NETDEV_IF_ID(msg) = net_dev->ifindex;
+
+	ipa_debug("%s: Evt: %d", QDF_IPA_WLAN_MSG_NAME(msg), QDF_IPA_MSG_META_MSG_TYPE(&meta));
+
+	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
+		ipa_err("%s: Evt: %d fail",
+			QDF_IPA_WLAN_MSG_NAME(msg),
+			QDF_IPA_MSG_META_MSG_TYPE(&meta));
+		qdf_mem_free(msg);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
  * wlan_ipa_uc_find_add_assoc_sta() - Find associated station
  * @ipa_ctx: Global IPA IPA context
  * @sta_add: Should station be added
  * @mac_addr: mac address of station being queried
+ * @vdev_id: Vdev Id
+ * @net_dev: Pointer to network device
  *
  * Return: true if the station was found
  */
-static bool wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
+static int wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
 					   bool sta_add,
-					   const uint8_t *mac_addr)
+					   const uint8_t *mac_addr,
+					   uint8_t vdev_id, qdf_netdev_t net_dev)
 {
-	bool sta_found = false;
+	int sta_found = 0;
 	uint16_t idx;
+	uint8_t stas_id = 0xFF;
 
 	for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
 		if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
 		    (qdf_is_macaddr_equal(
 			&ipa_ctx->assoc_stas_map[idx].mac_addr,
 			(struct qdf_mac_addr *)mac_addr))) {
-			sta_found = true;
+			sta_found = 1;
+			stas_id = ipa_ctx->assoc_stas_map[idx].vdev_id;
+			ipa_debug("found sta with stas_id:%d vdev_id:%d",stas_id,vdev_id);
 			break;
 		}
 	}
-	if (sta_add && sta_found) {
+	if (sta_add && sta_found && (vdev_id == stas_id)) {
 		ipa_err("STA already exist, cannot add: " QDF_MAC_ADDR_FMT,
 			QDF_MAC_ADDR_REF(mac_addr));
 		return sta_found;
 	}
+
+	if (sta_add && sta_found && (vdev_id != stas_id)) {
+		ipa_debug("STA already exist, need to delete this as it is roaming case delete/add: " QDF_MAC_ADDR_FMT,
+			QDF_MAC_ADDR_REF(mac_addr));
+		wlan_ipa_set_sap_client_auth(ipa_ctx, mac_addr, false);
+		ipa_ctx->sap_num_connected_sta--;
+		ipa_debug("Roaming disconnect case: sap_num_connected_sta=%d",
+		  ipa_ctx->sap_num_connected_sta);
+		wlan_ipa_send_msg(ipa_ctx->assoc_stas_map[idx].net_dev,
+					   WLAN_CLIENT_DISCONNECT,
+					   mac_addr);
+		if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
+		    (qdf_is_macaddr_equal(
+			&ipa_ctx->assoc_stas_map[idx].mac_addr,
+			(struct qdf_mac_addr *)mac_addr))) {
+			ipa_ctx->assoc_stas_map[idx].is_reserved =
+				false;
+			qdf_mem_zero(
+				&ipa_ctx->assoc_stas_map[idx].mac_addr,
+				QDF_NET_ETH_LEN);
+			ipa_ctx->assoc_stas_map[idx].vdev_id = 0xff;
+			ipa_ctx->assoc_stas_map[idx].net_dev = NULL ;
+		}
+	}
+
 	if (sta_add) {
 		for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
 			if (!ipa_ctx->assoc_stas_map[idx].is_reserved) {
@@ -2213,7 +2284,9 @@ static bool wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
 				qdf_mem_copy(&ipa_ctx->assoc_stas_map[idx].
 					     mac_addr, mac_addr,
 					     QDF_NET_ETH_LEN);
-				return sta_found;
+				ipa_ctx->assoc_stas_map[idx].vdev_id = vdev_id;
+				ipa_ctx->assoc_stas_map[idx].net_dev = net_dev;
+				return 0;
 			}
 		}
 	}
@@ -2222,7 +2295,9 @@ static bool wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
 			 QDF_MAC_ADDR_FMT, QDF_MAC_ADDR_REF(mac_addr));
 		return sta_found;
 	}
-	if (!sta_add) {
+
+	if (!sta_add && (vdev_id == stas_id)) {
+		ipa_debug("Deleting the sta vdev_id:%d",vdev_id);
 		for (idx = 0; idx < WLAN_IPA_MAX_STA_COUNT; idx++) {
 			if ((ipa_ctx->assoc_stas_map[idx].is_reserved) &&
 			    (qdf_is_macaddr_equal(
@@ -2233,9 +2308,13 @@ static bool wlan_ipa_uc_find_add_assoc_sta(struct wlan_ipa_priv *ipa_ctx,
 				qdf_mem_zero(
 					&ipa_ctx->assoc_stas_map[idx].mac_addr,
 					QDF_NET_ETH_LEN);
+				ipa_ctx->assoc_stas_map[idx].vdev_id = 0xff;
+				ipa_ctx->assoc_stas_map[idx].net_dev = NULL ;
 				return sta_found;
 			}
 		}
+	} else if (!sta_add && (vdev_id != stas_id)) {
+		return 0;
 	}
 
 	return sta_found;
@@ -2986,45 +3065,6 @@ void wlan_ipa_uc_bw_monitor(struct wlan_ipa_priv *ipa_ctx, bool stop)
 }
 #endif
 
-/**
- * wlan_ipa_send_msg() - Allocate and send message to IPA
- * @net_dev: Interface net device
- * @type: event enum of type ipa_wlan_event
- * @mac_addr: MAC address associated with the event
- *
- * Return: QDF STATUS
- */
-static QDF_STATUS wlan_ipa_send_msg(qdf_netdev_t net_dev,
-				    qdf_ipa_wlan_event type,
-				    const uint8_t *mac_addr)
-{
-	qdf_ipa_msg_meta_t meta;
-	qdf_ipa_wlan_msg_t *msg;
-
-	QDF_IPA_MSG_META_MSG_LEN(&meta) = sizeof(qdf_ipa_wlan_msg_t);
-
-	msg = qdf_mem_malloc(QDF_IPA_MSG_META_MSG_LEN(&meta));
-	if (!msg)
-		return QDF_STATUS_E_NOMEM;
-
-	QDF_IPA_SET_META_MSG_TYPE(&meta, type);
-	strlcpy(QDF_IPA_WLAN_MSG_NAME(msg), net_dev->name, IPA_RESOURCE_NAME_MAX);
-	qdf_mem_copy(QDF_IPA_WLAN_MSG_MAC_ADDR(msg), mac_addr, QDF_NET_ETH_LEN);
-	QDF_IPA_WLAN_MSG_NETDEV_IF_ID(msg) = net_dev->ifindex;
-
-	ipa_debug("%s: Evt: %d", QDF_IPA_WLAN_MSG_NAME(msg), QDF_IPA_MSG_META_MSG_TYPE(&meta));
-
-	if (qdf_ipa_send_msg(&meta, msg, wlan_ipa_msg_free_fn)) {
-		ipa_err("%s: Evt: %d fail",
-			QDF_IPA_WLAN_MSG_NAME(msg),
-			QDF_IPA_MSG_META_MSG_TYPE(&meta));
-		qdf_mem_free(msg);
-		return QDF_STATUS_E_FAILURE;
-	}
-
-	return QDF_STATUS_SUCCESS;
-}
-
 #if defined(QCA_CONFIG_RPS) && !defined(MDM_PLATFORM)
 /**
  * wlan_ipa_handle_multiple_sap_evt() - Handle multiple SAP connect/disconnect
@@ -3709,8 +3749,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 		}
 
 		qdf_mutex_acquire(&ipa_ctx->event_lock);
-		if (wlan_ipa_uc_find_add_assoc_sta(ipa_ctx, true,
-						   mac_addr)) {
+		if (wlan_ipa_uc_find_add_assoc_sta(ipa_ctx, true, mac_addr, session_id, net_dev)) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			ipa_err("%s: STA found, addr: " QDF_MAC_ADDR_FMT,
 				net_dev->name,
@@ -3851,7 +3890,7 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 			return QDF_STATUS_SUCCESS;
 		}
 		if (!wlan_ipa_uc_find_add_assoc_sta(ipa_ctx, false,
-						    mac_addr)) {
+						    mac_addr, session_id, net_dev)) {
 			qdf_mutex_release(&ipa_ctx->event_lock);
 			ipa_debug("%s: STA NOT found, not valid: "
 				QDF_MAC_ADDR_FMT,
