@@ -486,11 +486,15 @@ struct wlan_ipa_stats {
  * @is_reserved: STA reserved flag
  * @is_authenticated: is peer authenticated
  * @mac_addr: Station mac address
+ * @vdev_id: Vdev Id
+ * @net_dev: Pointer to network device
  */
 struct ipa_uc_stas_map {
 	bool is_reserved;
 	struct qdf_mac_addr mac_addr;
 	uint8_t is_authenticated;
+	uint8_t vdev_id;
+	qdf_netdev_t net_dev;
 };
 
 /**
@@ -870,7 +874,7 @@ struct wlan_ipa_priv {
 
 	uint8_t activated_fw_pipe;
 	uint8_t num_sap_connected;
-	uint16_t sap_num_connected_sta;
+	qdf_atomic_t sap_num_connected_sta;
 	uint16_t sap_num_mlo_connected_sta;
 	uint8_t sta_connected;
 	uint32_t tx_pipe_handle;

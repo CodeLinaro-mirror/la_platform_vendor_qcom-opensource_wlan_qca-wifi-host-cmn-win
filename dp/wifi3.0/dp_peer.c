@@ -1441,11 +1441,23 @@ static inline
 void dp_peer_unmap_ipa_evt(struct dp_soc *soc, uint16_t peer_id,
 			   uint8_t vdev_id, uint8_t *mac_addr)
 {
-	if (soc->cdp_soc.ol_ops->peer_unmap_event) {
-		soc->cdp_soc.ol_ops->peer_unmap_event(soc->ctrl_psoc,
-						      peer_id, vdev_id,
-						      mac_addr);
+	struct dp_peer *peer;
+
+	peer = dp_peer_get_ref_by_id(soc, peer_id, DP_MOD_ID_IPA);
+
+	if (!peer) {
+		qdf_err("dp_peer is NULL (soc=%pK peer_id=%d)", soc, peer_id);
+		return;
 	}
+
+	if (IS_DP_LEGACY_PEER(peer) || (peer->primary_link == 1)) {
+		if (soc->cdp_soc.ol_ops->peer_unmap_event) {
+			soc->cdp_soc.ol_ops->peer_unmap_event(soc->ctrl_psoc,
+							      peer_id, vdev_id,
+							      mac_addr);
+		}
+	}
+	dp_peer_unref_delete(peer, DP_MOD_ID_IPA);
 }
 #else
 static inline
