@@ -376,6 +376,7 @@ struct wlan_lmac_if_mgmt_rx_reo_tx_ops {
  * @host_drop_handler: Handler for the frames that gets dropped in Host before
  * entering REO algorithm
  * @release_frames: Release management frames
+ * @flush_list: Flush all frames for given pdev
  */
 struct wlan_lmac_if_mgmt_rx_reo_rx_ops {
 	QDF_STATUS (*fw_consumed_event_handler)(
@@ -385,6 +386,7 @@ struct wlan_lmac_if_mgmt_rx_reo_rx_ops {
 			struct wlan_objmgr_pdev *pdev,
 			struct mgmt_rx_reo_params *params);
 	QDF_STATUS (*release_frames)(struct wlan_objmgr_psoc *psoc);
+	QDF_STATUS (*flush_list)(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev);
 };
 #endif
 

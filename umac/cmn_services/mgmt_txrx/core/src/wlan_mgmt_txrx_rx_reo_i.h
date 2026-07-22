@@ -125,6 +125,17 @@ struct mgmt_rx_reo_pdev_info {
 };
 
 /**
+ * mgmt_rx_reo_flush_list_per_pdev: API to flush list per pdev
+ * @mlo_grp_id: MLO group id
+ * @pdev: Pointer to Pdev object
+ *
+ * Return: QDF_STATUS
+ *
+ */
+QDF_STATUS
+mgmt_rx_reo_flush_list_per_pdev(uint8_t ml_grp_id, struct wlan_objmgr_pdev *pdev);
+
+/**
  * mgmt_rx_reo_pdev_attach() - Initializes the per pdev data structures related
  * to management rx-reorder module
  * @pdev: pointer to pdev object

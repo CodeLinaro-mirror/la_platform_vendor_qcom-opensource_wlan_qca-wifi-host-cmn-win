@@ -201,6 +201,16 @@ tgt_mgmt_rx_reo_release_frames(struct wlan_objmgr_psoc *psoc);
  */
 QDF_STATUS
 tgt_mgmt_rx_reo_schedule_delivery(struct wlan_objmgr_psoc *psoc);
+
+/**
+ * tgt_mgmt_rx_reo_flush_list() - Helper API to flush list per pdev
+ * @mlo_grp_id: MLO group id of which pdev belongs to
+ * @pdev: Pointer to Pdev, to be flushed
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS
+tgt_mgmt_rx_reo_flush_list(uint8_t mlo_grp_id, struct wlan_objmgr_pdev *pdev);
 #else
 /**
  * tgt_mgmt_rx_reo_frame_handler() - REO handler for management Rx frames.
