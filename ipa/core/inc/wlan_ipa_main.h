@@ -189,6 +189,13 @@ bool ipa_config_is_opt_wifi_dp_enabled(void);
 bool ipa_config_is_vlan_enabled(void);
 
 /**
+ * ipa_config_is_sta_enabled() - Is IPA STA TX pipe enabled?
+ *
+ * Return: true if IPA STA TX pipe is enabled in IPA config
+ */
+bool ipa_config_is_sta_enabled(void);
+
+/**
  * ipa_config_is_two_tx_pipes_enabled - Is IPA two tx pipes feature enabled
  *
  * Return: true if two tx pipes feature is enabled. Otherwise false.

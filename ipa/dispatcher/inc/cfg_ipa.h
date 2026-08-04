@@ -242,6 +242,27 @@
 		CFG_INI_BOOL("gIPAVlanEnable", \
 		false, "Ctrl to enable vlan support with IPA Offload")
 
+/*
+ * <ini>
+ * gIPASTAEnable - IPA STA TX pipe enable
+ * @Default: false
+ *
+ * This ini enables the IPA STA TX pipe for FWA STA in Bridge mode
+ * uplink offload. When set, the STA (STA Bridge) pipe is set up
+ * and used to offload uplink traffic from a bridged STA to IPA.
+ *
+ * Related: gIPAConfig
+ *
+ * Supported Feature: IPA
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+#define CFG_DP_IPA_STA_ENABLE \
+		CFG_INI_BOOL("gIPASTAEnable", \
+		false, "Enable IPA STA TX pipe for FWA STA bridge mode")
+
 #define CFG_IPA \
 	CFG(CFG_DP_IPA_OFFLOAD_CONFIG) \
 	CFG(CFG_DP_IPA_DESC_SIZE) \
@@ -251,5 +272,6 @@
 	CFG(CFG_DP_IPA_ENABLE_FORCE_VOTING) \
 	CFG(CFG_DP_IPA_UC_TX_BUF_COUNT) \
 	CFG(CFG_DP_IPA_WDS_STATUS) \
-	CFG(CFG_DP_IPA_ENABLE_VLAN_SUPPORT)
+	CFG(CFG_DP_IPA_ENABLE_VLAN_SUPPORT) \
+	CFG(CFG_DP_IPA_STA_ENABLE)
 #endif /* _CFG_IPA_H_ */

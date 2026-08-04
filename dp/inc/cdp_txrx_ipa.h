@@ -624,6 +624,90 @@ cdp_ipa_disable_pipes(ol_txrx_soc_handle soc, uint8_t pdev_id,
 	return QDF_STATUS_SUCCESS;
 }
 
+static inline QDF_STATUS
+cdp_ipa_sta_setup(ol_txrx_soc_handle soc, uint8_t pdev_id,
+		  void *ipa_i2w_cb, void *ipa_w2i_cb,
+		  void *ipa_priv, uint32_t *tx_pipe_handle,
+		  uint32_t *rx_pipe_handle, bool is_smmu_enabled,
+		  bool over_gsi, qdf_ipa_wdi_hdl_t hdl,
+		  qdf_ipa_wdi_hdl_t id, void *ipa_ast_notify_cb,
+		  uint8_t *peer_mac_addr)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			"%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+	if (soc->ops->ipa_ops->ipa_sta_setup)
+		return soc->ops->ipa_ops->ipa_sta_setup(soc, pdev_id,
+							ipa_i2w_cb, ipa_w2i_cb,
+							ipa_priv, tx_pipe_handle,
+							rx_pipe_handle,
+							is_smmu_enabled,
+							over_gsi, hdl, id,
+							ipa_ast_notify_cb,
+							peer_mac_addr);
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS
+cdp_ipa_sta_cleanup(ol_txrx_soc_handle soc, uint8_t pdev_id,
+		    uint32_t tx_pipe_handle, uint32_t rx_pipe_handle,
+		    qdf_ipa_wdi_hdl_t hdl)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			"%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+	if (soc->ops->ipa_ops->ipa_sta_cleanup)
+		return soc->ops->ipa_ops->ipa_sta_cleanup(soc, pdev_id,
+							  tx_pipe_handle,
+							  rx_pipe_handle, hdl);
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS
+cdp_ipa_sta_enable_pipes(ol_txrx_soc_handle soc, uint8_t pdev_id,
+			 qdf_ipa_wdi_hdl_t hdl)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			"%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+	if (soc->ops->ipa_ops->ipa_sta_enable_pipes)
+		return soc->ops->ipa_ops->ipa_sta_enable_pipes(soc, pdev_id, hdl);
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS
+cdp_ipa_sta_disable_pipes(ol_txrx_soc_handle soc, uint8_t pdev_id,
+			  qdf_ipa_wdi_hdl_t hdl)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			"%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+	if (soc->ops->ipa_ops->ipa_sta_disable_pipes)
+		return soc->ops->ipa_ops->ipa_sta_disable_pipes(soc, pdev_id, hdl);
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline QDF_STATUS
+cdp_ipa_sta_set_doorbell_paddr(ol_txrx_soc_handle soc, uint8_t pdev_id)
+{
+	if (!soc || !soc->ops || !soc->ops->ipa_ops) {
+		QDF_TRACE(QDF_MODULE_ID_DP, QDF_TRACE_LEVEL_FATAL,
+			"%s invalid instance", __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+	if (soc->ops->ipa_ops->ipa_sta_set_doorbell_paddr)
+		return soc->ops->ipa_ops->ipa_sta_set_doorbell_paddr(soc, pdev_id);
+	return QDF_STATUS_SUCCESS;
+}
+
 /**
  * cdp_ipa_set_perf_level() - Set IPA clock bandwidth based on data rates
  * @soc: data path soc handle

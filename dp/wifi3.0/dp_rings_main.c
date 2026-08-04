@@ -1370,6 +1370,38 @@ void dp_ipa_hal_tx_init_alt_data_ring(struct dp_soc *soc)
 
 #endif /* IPA_WDI3_TX_TWO_PIPES */
 
+static int dp_ipa_init_sta_tx_ring(struct dp_soc *soc)
+{
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) ||
+	    !wlan_cfg_is_ipa_sta_enabled(soc->wlan_cfg_ctx))
+		return 0;
+
+	return dp_init_tx_ring_pair_by_index(soc, IPA_TX_STA_DATA_RING_IDX);
+}
+
+static void dp_ipa_deinit_sta_tx_ring(struct dp_soc *soc)
+{
+	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) &&
+	    wlan_cfg_is_ipa_sta_enabled(soc->wlan_cfg_ctx))
+		dp_deinit_tx_pair_by_index(soc, IPA_TX_STA_DATA_RING_IDX);
+}
+
+static int dp_ipa_alloc_sta_tx_ring(struct dp_soc *soc)
+{
+	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) ||
+	    !wlan_cfg_is_ipa_sta_enabled(soc->wlan_cfg_ctx))
+		return 0;
+
+	return dp_alloc_tx_ring_pair_by_index(soc, IPA_TX_STA_DATA_RING_IDX);
+}
+
+static void dp_ipa_free_sta_tx_ring(struct dp_soc *soc)
+{
+	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx) &&
+	    wlan_cfg_is_ipa_sta_enabled(soc->wlan_cfg_ctx))
+		dp_free_tx_ring_pair_by_index(soc, IPA_TX_STA_DATA_RING_IDX);
+}
+
 #else
 
 #define REO_DST_RING_SIZE_QCA6290 1024
@@ -1393,6 +1425,24 @@ static void dp_ipa_free_alt_tx_ring(struct dp_soc *soc)
 }
 
 void dp_ipa_hal_tx_init_alt_data_ring(struct dp_soc *soc)
+{
+}
+
+static int dp_ipa_init_sta_tx_ring(struct dp_soc *soc)
+{
+	return 0;
+}
+
+static void dp_ipa_deinit_sta_tx_ring(struct dp_soc *soc)
+{
+}
+
+static int dp_ipa_alloc_sta_tx_ring(struct dp_soc *soc)
+{
+	return 0;
+}
+
+static void dp_ipa_free_sta_tx_ring(struct dp_soc *soc)
 {
 }
 
@@ -1500,6 +1550,43 @@ static void dp_soc_disable_unused_mac_intr_mask(struct dp_soc *soc,
 }
 
 #ifdef IPA_OFFLOAD
+
+/**
+ * dp_soc_reset_ipa_sta_intr_mask() - reset interrupt mask for the STA TX
+ *                                    ring when STA in bridge mode is enabled
+ * @soc: DP Soc handle
+ *
+ * Return: Return void
+ */
+void dp_soc_reset_ipa_sta_intr_mask(struct dp_soc *soc)
+{
+	uint8_t *grp_mask = NULL;
+	int group_number, mask;
+
+	if (!wlan_cfg_is_ipa_sta_enabled(soc->wlan_cfg_ctx))
+		return;
+
+	grp_mask = &soc->wlan_cfg_ctx->int_tx_ring_mask[0];
+
+	group_number = dp_srng_find_ring_in_mask(IPA_TX_STA_DATA_RING_IDX,
+						 grp_mask);
+	if (group_number < 0) {
+		dp_init_debug("%pK: ring not part of any group; ring_type: %d,ring_num %d",
+			      soc, TCL_DATA, IPA_TX_STA_DATA_RING_IDX);
+		return;
+	}
+
+	mask = wlan_cfg_get_tx_ring_mask(soc->wlan_cfg_ctx, group_number);
+
+	/* reset the interrupt mask for offloaded ring */
+	mask &= (~(1 << IPA_TX_STA_DATA_RING_IDX));
+
+	/*
+	 * set the interrupt mask to zero for the sta TX ring.
+	 */
+	wlan_cfg_set_tx_ring_mask(soc->wlan_cfg_ctx, group_number, mask);
+}
+
 #ifdef IPA_WDI3_VLAN_SUPPORT
 
 #if defined(WLAN_FEATURE_NEAR_FULL_IRQ) && !defined(WLAN_SOFTUMAC_SUPPORT)
@@ -1586,6 +1673,9 @@ inline void dp_soc_reset_ipa_vlan_intr_mask(struct dp_soc *soc)
 #endif /* IPA_WDI3_VLAN_SUPPORT */
 #else /* !IPA_OFFLOAD */
 inline void dp_soc_reset_ipa_vlan_intr_mask(struct dp_soc *soc)
+{
+}
+inline void dp_soc_reset_ipa_sta_intr_mask(struct dp_soc *soc)
 {
 }
 #endif /* IPA_OFFLOAD */
@@ -1814,6 +1904,9 @@ static void dp_ipa_get_tx_ring_size(int tx_ring_num, int *tx_ipa_ring_sz,
 		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_ring_size(soc_cfg_ctx);
 	else if (dp_ipa_is_alt_tx_ring(tx_ring_num))
 		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_alt_ring_size(soc_cfg_ctx);
+	else if (wlan_cfg_is_ipa_sta_enabled(soc_cfg_ctx) &&
+		 tx_ring_num == IPA_TX_STA_DATA_RING_IDX)
+		*tx_ipa_ring_sz = wlan_cfg_ipa_tx_alt_ring_size(soc_cfg_ctx);
 }
 
 /**
@@ -1836,6 +1929,10 @@ static void dp_ipa_get_tx_comp_ring_size(int tx_comp_ring_num,
 		*tx_comp_ipa_ring_sz =
 				wlan_cfg_ipa_tx_comp_ring_size(soc_cfg_ctx);
 	else if (dp_ipa_is_alt_tx_comp_ring(tx_comp_ring_num))
+		*tx_comp_ipa_ring_sz =
+				wlan_cfg_ipa_tx_alt_comp_ring_size(soc_cfg_ctx);
+	else if (wlan_cfg_is_ipa_sta_enabled(soc_cfg_ctx) &&
+		 tx_comp_ring_num == IPA_TX_STA_DATA_RING_IDX)
 		*tx_comp_ipa_ring_sz =
 				wlan_cfg_ipa_tx_alt_comp_ring_size(soc_cfg_ctx);
 }
@@ -3729,6 +3826,9 @@ void *dp_soc_init(struct dp_soc *soc, HTC_HANDLE htc_handle,
 	/* Reset the cpu ring map if radio is NSS/IPA offloaded */
 	dp_soc_reset_ipa_vlan_intr_mask(soc);
 
+	/* Reset the TX ring interrupt mask for the STA TX ring if enabled */
+	dp_soc_reset_ipa_sta_intr_mask(soc);
+
 	/* initialize WBM_IDLE_LINK ring */
 	if (dp_hw_link_desc_ring_init(soc)) {
 		dp_init_err("%pK: dp_hw_link_desc_ring_init failed", soc);
@@ -4068,6 +4168,7 @@ void dp_soc_srng_deinit(struct dp_soc *soc)
 
 	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx)) {
 		dp_deinit_tx_pair_by_index(soc, IPA_TCL_DATA_RING_IDX);
+		dp_ipa_deinit_sta_tx_ring(soc);
 		dp_ipa_deinit_alt_tx_ring(soc);
 	}
 
@@ -4253,8 +4354,12 @@ QDF_STATUS dp_soc_srng_init(struct dp_soc *soc)
 		if (dp_init_tx_ring_pair_by_index(soc, IPA_TCL_DATA_RING_IDX))
 			goto fail1;
 
+		if (dp_ipa_init_sta_tx_ring(soc))
+			goto fail1;
+
 		if (dp_ipa_init_alt_tx_ring(soc))
 			goto fail1;
+
 	}
 
 	dp_create_ext_stats_event(soc);
@@ -4313,6 +4418,7 @@ void dp_soc_srng_free(struct dp_soc *soc)
 	/* Free IPA rings for TCL_TX and TCL_COMPL ring */
 	if (wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx)) {
 		dp_free_tx_ring_pair_by_index(soc, IPA_TCL_DATA_RING_IDX);
+		dp_ipa_free_sta_tx_ring(soc);
 		dp_ipa_free_alt_tx_ring(soc);
 	}
 
@@ -4421,6 +4527,9 @@ QDF_STATUS dp_soc_srng_alloc(struct dp_soc *soc)
 		if (dp_alloc_tx_ring_pair_by_index(soc, IPA_TCL_DATA_RING_IDX))
 			goto fail1;
 
+		if (dp_ipa_alloc_sta_tx_ring(soc))
+			goto fail1;
+		
 		if (dp_ipa_alloc_alt_tx_ring(soc))
 			goto fail1;
 	}

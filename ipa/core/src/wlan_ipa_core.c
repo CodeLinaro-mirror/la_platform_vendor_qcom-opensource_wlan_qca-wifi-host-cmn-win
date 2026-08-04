@@ -707,6 +707,32 @@ wlan_ipa_wdi_setup(struct wlan_ipa_priv *ipa_ctx,
 	return qdf_status;
 }
 
+static inline QDF_STATUS
+wlan_ipa_wdi_sta_setup(struct wlan_ipa_priv *ipa_ctx,
+		       qdf_device_t osdev, uint8_t *peer_mac_addr)
+{
+	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
+
+	ipa_info("STA pipe setup hdl=%u instance_id=%u",
+		 ipa_ctx->hdl, ipa_ctx->instance_id);
+
+	qdf_status = cdp_ipa_sta_setup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+				       wlan_ipa_i2w_cb, wlan_ipa_w2i_cb,
+				       ipa_ctx,
+				       &ipa_ctx->tx_pipe_handle,
+				       &ipa_ctx->rx_pipe_handle,
+				       wlan_ipa_wdi_is_smmu_enabled(ipa_ctx, osdev),
+				       ipa_ctx->over_gsi, ipa_ctx->hdl,
+				       (qdf_ipa_wdi_hdl_t)ipa_ctx->instance_id,
+				       wlan_ipa_ast_notify_cb,
+				       peer_mac_addr);
+
+	if (QDF_IS_STATUS_SUCCESS(qdf_status))
+		qdf_atomic_set(&ipa_ctx->sta_pipe_connected, 1);
+
+	return qdf_status;
+}
+
 #ifdef FEATURE_METERING
 /**
  * wlan_ipa_wdi_init_metering() - IPA WDI metering init
@@ -2107,6 +2133,51 @@ end:
 	return qdf_status;
 }
 
+QDF_STATUS wlan_ipa_uc_sta_enable_pipes(struct wlan_ipa_priv *ipa_ctx)
+{
+	int result;
+	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
+
+	ipa_debug("enter");
+
+	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
+	if (ipa_ctx->pipes_enable_in_progress) {
+		ipa_warn("IPA Pipes Enable in progress");
+		qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
+		return QDF_STATUS_E_ALREADY;
+	}
+	ipa_ctx->pipes_enable_in_progress = true;
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
+
+	if (qdf_atomic_read(&ipa_ctx->waiting_on_pending_tx))
+		wlan_ipa_reset_pending_tx_timer(ipa_ctx);
+
+	if (qdf_atomic_read(&ipa_ctx->sta_pipes_disabled)) {
+		result = cdp_ipa_sta_enable_pipes(ipa_ctx->dp_soc,
+						  IPA_DEF_PDEV_ID,
+						  ipa_ctx->hdl);
+		if (result) {
+			ipa_err("Enable IPA STA in bridge mode PIPE failed: ret=%d", result);
+			qdf_status = QDF_STATUS_E_FAILURE;
+			goto end;
+		}
+		qdf_atomic_set(&ipa_ctx->sta_pipes_disabled, 0);
+	} else {
+		ipa_debug("STA in bridge mode pipes already enabled, skip");
+	}
+
+end:
+	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
+	if (!qdf_atomic_read(&ipa_ctx->sta_pipes_disabled))
+		ipa_ctx->ipa_pipes_down = false;
+
+	ipa_ctx->pipes_enable_in_progress = false;
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
+
+	ipa_debug("exit: ret=%d", qdf_status);
+	return qdf_status;
+}
+
 #ifndef IPA_OPT_WIFI_DP_CTRL
 static inline
 int wlan_ipa_wdi_opt_dpath_ctrl_flt_rem_cb(
@@ -2162,7 +2233,6 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 		}
 		ipa_info("opt_dp filt rel done in disable pipe");
 	}
-
 	qdf_spin_lock_bh(&ipa_ctx->enable_disable_lock);
 	if (ipa_ctx->ipa_pipes_down || ipa_ctx->pipes_down_in_progress) {
 		qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
@@ -2173,13 +2243,40 @@ wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx, bool force_disable)
 		return QDF_STATUS_E_ALREADY;
 	}
 	ipa_ctx->pipes_down_in_progress = true;
+	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
 	if (!qdf_atomic_read(&ipa_ctx->autonomy_disabled)) {
 		cdp_ipa_disable_autonomy(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID);
 		qdf_atomic_set(&ipa_ctx->autonomy_disabled, 1);
 	}
 
-	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
+	if (ipa_config_is_sta_enabled() && !qdf_atomic_read(&ipa_ctx->sta_pipes_disabled)) {
+		qdf_status = cdp_ipa_sta_disable_pipes(ipa_ctx->dp_soc,
+						       IPA_DEF_PDEV_ID,
+						       ipa_ctx->hdl);
+		if (QDF_IS_STATUS_ERROR(qdf_status)) {
+			ipa_err("Disable IPA WDI STA PIPE failed: ret=%u",
+				qdf_status);
+			qdf_status = QDF_STATUS_E_FAILURE;
+			goto end;
+		}
+		qdf_atomic_set(&ipa_ctx->sta_pipes_disabled, 1);
+	}
+
+	if (qdf_atomic_read(&ipa_ctx->sta_pipe_connected)) {
+		qdf_status = cdp_ipa_sta_cleanup(ipa_ctx->dp_soc,
+						 IPA_DEF_PDEV_ID,
+						 ipa_ctx->tx_pipe_handle,
+						 ipa_ctx->rx_pipe_handle,
+						 ipa_ctx->hdl);
+		if (QDF_IS_STATUS_ERROR(qdf_status)) {
+			ipa_err("Cleanup IPA WDI STA PIPE failed: ret=%u",
+				qdf_status);
+			qdf_status = QDF_STATUS_E_FAILURE;
+			goto end;
+		}
+		qdf_atomic_set(&ipa_ctx->sta_pipe_connected, 0);
+	}
 
 	if (!qdf_atomic_read(&ipa_ctx->pipes_disabled)) {
 		if (!force_disable) {
@@ -2208,11 +2305,45 @@ end:
 	ipa_ctx->pipes_down_in_progress = false;
 	qdf_spin_unlock_bh(&ipa_ctx->enable_disable_lock);
 
-	ipa_debug("exit: ipa_pipes_down %u autonomy_disabled %u pipes_disabled %u",
+	ipa_debug("exit: ipa_pipes_down %u autonomy_disabled %u pipes_disabled %u"
+		  "sta_pipes_disabled %u sta_pipe_connected %u",
 		  ipa_ctx->ipa_pipes_down,
 		  qdf_atomic_read(&ipa_ctx->autonomy_disabled),
-		  qdf_atomic_read(&ipa_ctx->pipes_disabled));
+		  qdf_atomic_read(&ipa_ctx->pipes_disabled),
+		  qdf_atomic_read(&ipa_ctx->sta_pipes_disabled),
+		  qdf_atomic_read(&ipa_ctx->sta_pipe_connected));
 	return qdf_status;
+}
+
+/**
+ * wlan_ipa_sta_teardown() - Disable and cleanup STA pipe
+ * @ipa_ctx: IPA context
+ * On STA_DISCONNECT , handles teardown of sta (in bridge mode) pipes
+ */
+static void wlan_ipa_sta_teardown(struct wlan_ipa_priv *ipa_ctx)
+{
+	QDF_STATUS status;
+
+	if (!qdf_atomic_read(&ipa_ctx->sta_pipes_disabled)) {
+		status = cdp_ipa_sta_disable_pipes(ipa_ctx->dp_soc,
+						   IPA_DEF_PDEV_ID,
+						   ipa_ctx->hdl);
+		if (QDF_IS_STATUS_SUCCESS(status))
+			qdf_atomic_set(&ipa_ctx->sta_pipes_disabled, 1);
+		else
+			ipa_err("STA disable failed: %d", status);
+	}
+
+	if (qdf_atomic_read(&ipa_ctx->sta_pipe_connected)) {
+		status = cdp_ipa_sta_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+					     ipa_ctx->tx_pipe_handle,
+					     ipa_ctx->rx_pipe_handle,
+					     ipa_ctx->hdl);
+		if (QDF_IS_STATUS_SUCCESS(status))
+			qdf_atomic_set(&ipa_ctx->sta_pipe_connected, 0);
+		else
+			ipa_err("STA cleanup failed: %d", status);
+	}
 }
 
 /**
@@ -3538,31 +3669,36 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 				qdf_mutex_release(&ipa_ctx->event_lock);
 				goto end;
 			}
+
+			if(ipa_config_is_sta_enabled())
+				wlan_ipa_sta_teardown(ipa_ctx);
 		}
 
 		/* Connect STA pipe */
-		qdf_dev = wlan_psoc_get_qdf_dev(psoc);
+		if (ipa_config_is_sta_enabled()){
+			qdf_dev = wlan_psoc_get_qdf_dev(psoc);
 
-		status = wlan_ipa_wdi_sta_setup(ipa_ctx, qdf_dev,
-						(uint8_t *)mac_addr);
-		if (status) {
-			ipa_err("Failure to setup IPA STA pipes (status=%d)",
-				status);
-			goto end;
-		}
+			status = wlan_ipa_wdi_sta_setup(ipa_ctx, qdf_dev,
+							(uint8_t *)mac_addr);
+			if (status) {
+				ipa_err("Failure to setup IPA STA pipes (status=%d)",
+					status);
+				goto end;
+			}
 
-		status = cdp_ipa_sta_set_doorbell_paddr(ipa_ctx->dp_soc,
-							IPA_DEF_PDEV_ID);
-		ipa_debug("cdp_ipa_sta_set_doorbell_paddr ret=%d", status);
+			status = cdp_ipa_sta_set_doorbell_paddr(ipa_ctx->dp_soc,
+								IPA_DEF_PDEV_ID);
+			ipa_debug("cdp_ipa_sta_set_doorbell_paddr ret=%d", status);
 
-		/* Enable STA pipe */
-		status = wlan_ipa_uc_sta_enable_pipes(ipa_ctx);
-		if (status) {
-			ipa_err("Enable IPA STA PIPE failed: ret=%d", status);
-			QDF_BUG(0);
-			wlan_ipa_sta_teardown(ipa_ctx);
-			status = QDF_STATUS_SUCCESS;
-			goto end;
+			/* Enable STA pipe */
+			status = wlan_ipa_uc_sta_enable_pipes(ipa_ctx);
+			if (status) {
+				ipa_err("Enable IPA STA PIPE failed: ret=%d", status);
+				QDF_BUG(0);
+				wlan_ipa_sta_teardown(ipa_ctx);
+				status = QDF_STATUS_SUCCESS;
+				goto end;
+			}
 		}
 
 		status = wlan_ipa_setup_iface(ipa_ctx, net_dev, device_mode,
@@ -3728,6 +3864,14 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 				}
 			}
 		}
+
+		/*
+		 * Irrespective of ipa pipes are disabled on last sta-disconnect,
+		 * sta pipe needs to be torn down on each STA_DISCONNECT , maintaining Idempotentcy 
+		 * to avoid double cleansing
+		 */
+		if(ipa_config_is_sta_enabled())
+			wlan_ipa_sta_teardown(ipa_ctx);
 
 		if (wlan_ipa_uc_sta_is_enabled(ipa_ctx->config) &&
 		    (qdf_atomic_read(&ipa_ctx->sap_num_connected_sta) > 0 ||
@@ -5050,6 +5194,8 @@ QDF_STATUS wlan_ipa_setup(struct wlan_ipa_priv *ipa_ctx,
 		ipa_ctx->ipa_pipes_down = true;
 		qdf_atomic_set(&ipa_ctx->pipes_disabled, 1);
 		qdf_atomic_set(&ipa_ctx->autonomy_disabled, 1);
+		qdf_atomic_set(&ipa_ctx->sta_pipes_disabled, 1);
+		qdf_atomic_set(&ipa_ctx->sta_pipe_connected, 0);
 		ipa_ctx->wdi_enabled = false;
 
 		status = wlan_ipa_wdi_init(ipa_ctx);
@@ -5340,7 +5486,6 @@ static void wlan_ipa_uc_loaded_handler(struct wlan_ipa_priv *ipa_ctx)
 	wlan_ipa_add_rem_flt_cb_event(ipa_ctx);
 	if (QDF_IS_STATUS_ERROR(wlan_ipa_init_perf_level(ipa_ctx)))
 		ipa_err("Failed to init perf level");
-
 	/*
 	 * Enable IPA/FW PIPEs if
 	 * 1. any clients connected to SAP or
@@ -5920,6 +6065,21 @@ QDF_STATUS wlan_ipa_uc_ol_deinit(struct wlan_ipa_priv *ipa_ctx)
 
 		cdp_ipa_rx_buf_smmu_unmapping(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					      __func__, __LINE__);
+
+		/*
+		 * sta pipe cleanup if GSI channel is still allocated in IPA kernel
+		 */
+		if (ipa_config_is_sta_enabled() && qdf_atomic_read(&ipa_ctx->sta_pipe_connected)) {
+			ipa_info("STA pipe cleanup hdl=%u instance_id=%u",
+				 ipa_ctx->hdl, ipa_ctx->instance_id);
+			status = cdp_ipa_sta_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
+						 ipa_ctx->tx_pipe_handle,
+						 ipa_ctx->rx_pipe_handle, ipa_ctx->hdl);
+			if (status)
+				ipa_err("Failure to cleanup sta IPA pipes (status=%d)",
+					status);
+			qdf_atomic_set(&ipa_ctx->sta_pipe_connected, 0);
+		}
 
 		status = cdp_ipa_cleanup(ipa_ctx->dp_soc, IPA_DEF_PDEV_ID,
 					 ipa_ctx->tx_pipe_handle,
