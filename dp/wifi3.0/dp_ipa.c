@@ -4586,7 +4586,7 @@ QDF_STATUS dp_ipa_sta_setup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 	ipa_res->is_db_ddr_mapped =
 		QDF_IPA_WDI_CONN_OUT_PARAMS_IS_DB_DDR_MAPPED(&pipe_out);
 
-	soc->ipa_first_tx_db_access = true;
+	qdf_atomic_set(&soc->ipa_sta_first_tx_db_access, 1);
 	qdf_mem_free(pipe_in);
 
 	return QDF_STATUS_SUCCESS;
@@ -4643,9 +4643,9 @@ QDF_STATUS dp_ipa_sta_enable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
 		return QDF_STATUS_E_FAILURE;
 	}
 
-	if (soc->ipa_first_tx_db_access) {
+	if (qdf_atomic_read(&soc->ipa_sta_first_tx_db_access)) {
 		dp_ipa_tx_sta_comp_ring_init_hp(soc, ipa_res);
-		soc->ipa_first_tx_db_access = false;
+		qdf_atomic_set(&soc->ipa_sta_first_tx_db_access, 0);
 	} else {
 		dp_ipa_tx_sta_comp_ring_update_hp_addr(soc, ipa_res);
 	}
