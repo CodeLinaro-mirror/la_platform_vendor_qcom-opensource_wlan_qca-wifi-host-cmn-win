@@ -401,6 +401,15 @@ void dp_soc_reset_cpu_ring_map(struct dp_soc *soc);
 void dp_soc_reset_ipa_vlan_intr_mask(struct dp_soc *soc);
 
 /*
+ * dp_soc_reset_ipa_sta_intr_mask() - reset interrupt mask for the STA TX
+ * ring when STAin bridge mode support is enabled
+ * @dp_soc - DP Soc handle
+ *
+ * Return: Return void
+ */
+void dp_soc_reset_ipa_sta_intr_mask(struct dp_soc *soc);
+
+/*
  * dp_soc_reset_intr_mask() - reset interrupt mask
  * @dp_soc - DP Soc handle
  *
@@ -691,6 +700,10 @@ static inline void dp_soc_reset_cpu_ring_map(struct dp_soc *soc)
 }
 
 static inline void dp_soc_reset_ipa_vlan_intr_mask(struct dp_soc *soc)
+{
+}
+
+static inline void dp_soc_reset_ipa_sta_intr_mask(struct dp_soc *soc)
 {
 }
 

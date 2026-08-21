@@ -74,6 +74,13 @@ bool ucfg_ipa_is_vlan_enabled(void)
 
 qdf_export_symbol(ucfg_ipa_is_vlan_enabled);
 
+bool ucfg_ipa_is_sta_enabled(void)
+{
+	return ipa_config_is_sta_enabled();
+}
+
+qdf_export_symbol(ucfg_ipa_is_sta_enabled);
+
 void ucfg_ipa_set_dp_handle(struct wlan_objmgr_psoc *psoc,
 				     void *dp_soc)
 {

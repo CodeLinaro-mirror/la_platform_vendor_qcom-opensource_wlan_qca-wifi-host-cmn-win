@@ -134,6 +134,8 @@ typedef __qdf_ipa_wdi_pipe_setup_info_smmu_t qdf_ipa_wdi_pipe_setup_info_smmu_t;
 	__QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(txrx, pmac_id)
 #define QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)	\
 	__QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)
+#define QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)	\
+	__QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)
 
 typedef __qdf_ipa_ep_cfg_t qdf_ipa_ep_cfg_t;
 
@@ -284,6 +286,8 @@ typedef __qdf_ipa_wdi_pipe_setup_info_t qdf_ipa_wdi_pipe_setup_info_t;
 	__QDF_IPA_WDI_SETUP_INFO_RX_PMAC_ID(txrx, pmac_id)
 #define QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)	\
 	__QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)
+#define QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)	\
+	__QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)
 
 /**
  * qdf_ipa_wdi_conn_in_params_t - information provided by
@@ -327,6 +331,12 @@ typedef __qdf_ipa_wdi_conn_in_params_t qdf_ipa_wdi_conn_in_params_t;
 #define QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_ALT_DB_PA(pipe_out)	\
 	__QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_ALT_DB_PA(pipe_out)
 #endif
+#define QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE(pipe_in)	\
+	__QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE(pipe_in)
+#define QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE_SMMU(pipe_in)	\
+	__QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE_SMMU(pipe_in)
+#define QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_CPE_DB_PA(pipe_out)	\
+	__QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_CPE_DB_PA(pipe_out)
 #ifdef IPA_WDI3_VLAN_SUPPORT
 #define QDF_IPA_WDI_CONN_IN_PARAMS_IS_RX1_USED(pipe_in)	\
 	__QDF_IPA_WDI_CONN_IN_PARAMS_IS_RX1_USED(pipe_in)
@@ -450,6 +460,27 @@ static inline int qdf_ipa_wdi_enable_pipes(qdf_ipa_wdi_hdl_t hdl)
 static inline int qdf_ipa_wdi_disable_pipes(qdf_ipa_wdi_hdl_t hdl)
 {
 	return __qdf_ipa_wdi_disable_pipes(hdl);
+}
+
+static inline int qdf_ipa_wdi_sta_conn_pipes(qdf_ipa_wdi_conn_in_params_t *in,
+					     qdf_ipa_wdi_conn_out_params_t *out)
+{
+	return __qdf_ipa_wdi_sta_conn_pipes(in, out);
+}
+
+static inline int qdf_ipa_wdi_sta_disconn_pipes(qdf_ipa_wdi_hdl_t hdl)
+{
+	return __qdf_ipa_wdi_sta_disconn_pipes(hdl);
+}
+
+static inline int qdf_ipa_wdi_sta_enable_pipes(qdf_ipa_wdi_hdl_t hdl)
+{
+	return __qdf_ipa_wdi_sta_enable_pipes(hdl);
+}
+
+static inline int qdf_ipa_wdi_sta_disable_pipes(qdf_ipa_wdi_hdl_t hdl)
+{
+	return __qdf_ipa_wdi_sta_disable_pipes(hdl);
 }
 
 /**

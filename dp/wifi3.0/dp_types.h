@@ -2505,6 +2505,7 @@ enum dp_context_type {
  * @dp_partner_chips_map:
  * @dp_partner_chips_unmap:
  * @ipa_get_bank_id: Get TCL bank id used by IPA
+ * @dp_ipa_get_sta_bank_id_be: Get TCL sta bank id used by IPA
  * @ipa_get_wdi_ver: Get WDI version
  * @dp_tx_ipa_opt_dp_ctrl: Handle opt_dp_ctrl tx pkt
  * @dp_txrx_ppeds_rings_status:
@@ -2769,6 +2770,7 @@ struct dp_arch_ops {
 				 struct dp_be_intrabss_params *params_out);
 #ifdef IPA_OFFLOAD
 	int8_t (*ipa_get_bank_id)(struct dp_soc *soc);
+	int8_t (*ipa_get_sta_bank_id)(struct dp_soc *soc);
 	void (*ipa_get_wdi_ver)(uint8_t *wdi_ver);
 #endif
 #ifdef IPA_OPT_WIFI_DP_CTRL
@@ -3036,6 +3038,13 @@ struct dp_ipa_resources {
 	qdf_shared_mem_t rx_alt_refill_ring;
 	qdf_dma_addr_t rx_alt_ready_doorbell_paddr;
 #endif
+	qdf_shared_mem_t tx_sta_ring;
+	uint32_t tx_sta_ring_num_alloc_buffer;
+	qdf_shared_mem_t tx_sta_comp_ring;
+
+	/* IPA UC doorbell registers paddr */
+	qdf_dma_addr_t tx_sta_comp_doorbell_paddr;
+	uint32_t *tx_sta_comp_doorbell_vaddr;
 };
 #endif
 
@@ -3394,6 +3403,8 @@ struct dp_soc {
 	/* Resources for the alternative IPA TX pipe */
 	struct ipa_dp_tx_rsc ipa_uc_tx_rsc_alt;
 #endif
+	/* Resources for the STA IPA TX pipe */
+	struct ipa_dp_tx_rsc ipa_uc_tx_rsc_sta;
 
 	struct ipa_dp_rx_rsc ipa_uc_rx_rsc;
 #ifdef IPA_WDI3_VLAN_SUPPORT
@@ -3403,6 +3414,7 @@ struct dp_soc {
 #endif
 	qdf_atomic_t ipa_pipes_enabled;
 	bool ipa_first_tx_db_access;
+	qdf_atomic_t ipa_sta_first_tx_db_access;
 	qdf_spinlock_t rx_buf_map_lock;
 	uint8_t reo_ctx_lock_required[MAX_REO_DEST_RINGS];
 

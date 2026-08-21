@@ -238,6 +238,7 @@ struct wlan_srng_cfg {
  * @tc_based_dynamic_gro: enable/disable tc based dynamic gro
  * @tc_ingress_prio: ingress prio to be checked for dynamic gro
  * @ipa_enabled: Flag indicating if IPA is enabled
+ * @ipa_sta_enable: Flag indicating if IPA STA TX pipe is enabled
  * @ol_tx_csum_enabled: Flag indicating if TX csum is enabled
  * @ol_rx_csum_enabled: Flag indicating if Rx csum is enabled
  * @rawmode_enabled: Flag indicating if RAW mode is enabled
@@ -468,6 +469,7 @@ struct wlan_cfg_dp_soc_ctxt {
 	bool tc_based_dynamic_gro;
 	uint32_t tc_ingress_prio;
 	bool ipa_enabled;
+	bool ipa_sta_enable;
 	bool ol_tx_csum_enabled;
 	bool ol_rx_csum_enabled;
 	bool rawmode_enabled;
@@ -1515,6 +1517,14 @@ bool wlan_cfg_is_rx_hash_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
  * Return: true - enabled false - disabled
  */
 bool wlan_cfg_is_ipa_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
+
+/**
+ * wlan_cfg_is_ipa_sta_enabled - Return IPA STA TX pipe enabled/disabled
+ * @cfg: soc configuration context
+ *
+ * Return: true - enabled false - disabled
+ */
+bool wlan_cfg_is_ipa_sta_enabled(struct wlan_cfg_dp_soc_ctxt *cfg);
 
 /**
  * wlan_cfg_set_rx_hash - set rx hash enabled/disabled
