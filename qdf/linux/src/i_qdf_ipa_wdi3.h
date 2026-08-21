@@ -321,11 +321,19 @@ typedef struct ipa_wdi_pipe_setup_info_smmu __qdf_ipa_wdi_pipe_setup_info_smmu_t
 
 #define __QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)	\
 	((((struct ipa_wdi_pipe_setup_info_smmu *)(txrx))->mlo_chip_id) = (chip_id))
+
+#define __QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)	\
+	((((struct ipa_wdi_pipe_setup_info *)(txrx))->ast_index) = (ast_index))
+
+#define __QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)	\
+	((((struct ipa_wdi_pipe_setup_info_smmu *)(txrx))->ast_index) = (ast_index))
 #else
 #define __QDF_IPA_WDI_SETUP_INFO_RX_PMAC_ID(txrx, pmac_id)
 #define __QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(txrx, pmac_id)
 #define __QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)
 #define __QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)
+#define __QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)
+#define __QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)
 #endif
 #else
 #define __QDF_IPA_WDI_SETUP_INFO_RX_BANK_ID(txrx, bid)
@@ -334,6 +342,8 @@ typedef struct ipa_wdi_pipe_setup_info_smmu __qdf_ipa_wdi_pipe_setup_info_smmu_t
 #define __QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(txrx, pmac_id)
 #define __QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)
 #define __QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)
+#define __QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)
+#define __QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)
 #endif
 
 /**

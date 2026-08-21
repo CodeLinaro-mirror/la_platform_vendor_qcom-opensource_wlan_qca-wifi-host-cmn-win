@@ -134,6 +134,8 @@ typedef __qdf_ipa_wdi_pipe_setup_info_smmu_t qdf_ipa_wdi_pipe_setup_info_smmu_t;
 	__QDF_IPA_WDI_SETUP_INFO_SMMU_RX_PMAC_ID(txrx, pmac_id)
 #define QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)	\
 	__QDF_IPA_WDI_SETUP_INFO_SMMU_CHIP_ID(txrx, chip_id)
+#define QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)	\
+	__QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(txrx, ast_index)
 
 typedef __qdf_ipa_ep_cfg_t qdf_ipa_ep_cfg_t;
 
@@ -284,6 +286,8 @@ typedef __qdf_ipa_wdi_pipe_setup_info_t qdf_ipa_wdi_pipe_setup_info_t;
 	__QDF_IPA_WDI_SETUP_INFO_RX_PMAC_ID(txrx, pmac_id)
 #define QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)	\
 	__QDF_IPA_WDI_SETUP_INFO_CHIP_ID(txrx, chip_id)
+#define QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)	\
+	__QDF_IPA_WDI_SETUP_INFO_AST_INDEX(txrx, ast_index)
 
 /**
  * qdf_ipa_wdi_conn_in_params_t - information provided by
