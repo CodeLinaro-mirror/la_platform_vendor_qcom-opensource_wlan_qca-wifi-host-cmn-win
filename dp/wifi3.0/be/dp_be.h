@@ -413,7 +413,6 @@ struct dp_soc_be {
 #endif
 #ifdef IPA_OFFLOAD
 	int8_t ipa_bank_id;
-	int8_t ipa_sta_bank_id;
 #endif
 };
 

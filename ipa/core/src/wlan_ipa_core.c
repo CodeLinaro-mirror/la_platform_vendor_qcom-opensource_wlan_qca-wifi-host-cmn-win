@@ -3365,7 +3365,6 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_objmgr_vdev *vdev;
 	bool ipa_wds = false;
-	qdf_device_t qdf_dev;
 
 	ipa_debug("%s: EVT: %d, MAC: "QDF_MAC_ADDR_FMT", session_id: %u is_2g_iface %u",
 		  net_dev->name, type, QDF_MAC_ADDR_REF(mac_addr), session_id,
@@ -3538,31 +3537,6 @@ static QDF_STATUS __wlan_ipa_wlan_evt(qdf_netdev_t net_dev, uint8_t device_mode,
 				qdf_mutex_release(&ipa_ctx->event_lock);
 				goto end;
 			}
-		}
-
-		/* Connect STA pipe */
-		qdf_dev = wlan_psoc_get_qdf_dev(psoc);
-
-		status = wlan_ipa_wdi_sta_setup(ipa_ctx, qdf_dev,
-						(uint8_t *)mac_addr);
-		if (status) {
-			ipa_err("Failure to setup IPA STA pipes (status=%d)",
-				status);
-			goto end;
-		}
-
-		status = cdp_ipa_sta_set_doorbell_paddr(ipa_ctx->dp_soc,
-							IPA_DEF_PDEV_ID);
-		ipa_debug("cdp_ipa_sta_set_doorbell_paddr ret=%d", status);
-
-		/* Enable STA pipe */
-		status = wlan_ipa_uc_sta_enable_pipes(ipa_ctx);
-		if (status) {
-			ipa_err("Enable IPA STA PIPE failed: ret=%d", status);
-			QDF_BUG(0);
-			wlan_ipa_sta_teardown(ipa_ctx);
-			status = QDF_STATUS_SUCCESS;
-			goto end;
 		}
 
 		status = wlan_ipa_setup_iface(ipa_ctx, net_dev, device_mode,

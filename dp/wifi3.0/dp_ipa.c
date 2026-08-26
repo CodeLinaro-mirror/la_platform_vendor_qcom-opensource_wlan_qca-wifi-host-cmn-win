@@ -565,58 +565,6 @@ dp_ipa_setup_tx_smmu_params_pmac_id(struct dp_soc *soc,
 }
 
 static void
-dp_ipa_setup_tx_params_ast_index(struct dp_soc *soc,
-				 qdf_ipa_wdi_pipe_setup_info_t *tx, uint8_t *peer_mac_addr)
-{
-	uint16_t ast_index = DP_INVALID_AST_IDX;
-	struct dp_ast_entry *ast_entry;
-
-	qdf_spin_lock_bh(&soc->ast_lock);
-
-	if (peer_mac_addr == NULL) {
-		dp_err("dp_ipa_setup_tx_params_ast_index: got NULL peer_mac_addr");
-	} else {
-		ast_entry = dp_peer_ast_hash_find_soc(soc, peer_mac_addr);
-		if ((!ast_entry) || (ast_entry->delete_in_progress && !ast_entry->callback)) {
-			dp_err("dp_ipa_setup_tx_params_ast_index: failed to get ast_entry");
-		} else {
-			ast_index = ast_entry->ast_idx;
-			dp_info("IPA TX AST index resolved ast_index=%u mac=%pM",
-				ast_index, peer_mac_addr);
-			QDF_IPA_WDI_SETUP_INFO_AST_INDEX(tx, ast_index);
-		}
-	}
-
-	qdf_spin_unlock_bh(&soc->ast_lock);
-}
-
-static void
-dp_ipa_setup_tx_smmu_params_ast_index(struct dp_soc *soc,
-				      qdf_ipa_wdi_pipe_setup_info_smmu_t *tx_smmu, uint8_t *peer_mac_addr)
-{
-	uint16_t ast_index = DP_INVALID_AST_IDX;
-	struct dp_ast_entry *ast_entry;
-
-	qdf_spin_lock_bh(&soc->ast_lock);
-
-	if (peer_mac_addr == NULL) {
-		dp_err("dp_ipa_setup_tx_smmu_params_ast_index: got NULL peer_mac_addr");
-	} else {
-		ast_entry = dp_peer_ast_hash_find_soc(soc, peer_mac_addr);
-		if ((!ast_entry) || (ast_entry->delete_in_progress && !ast_entry->callback)) {
-			dp_err("dp_ipa_setup_tx_smmu_params_ast_index: failed to get ast_entry");
-		} else {
-			ast_index = ast_entry->ast_idx;
-			dp_info("IPA TX SMMU AST index resolved ast_index=%u mac=%pM",
-				ast_index, peer_mac_addr);
-			QDF_IPA_WDI_SETUP_INFO_SMMU_AST_INDEX(tx_smmu, ast_index);
-		}
-	}
-
-	qdf_spin_unlock_bh(&soc->ast_lock);
-}
-
-static void
 dp_ipa_set_rx_chip_id(struct dp_soc *soc,
 		      qdf_ipa_wdi_pipe_setup_info_t *rx)
 {

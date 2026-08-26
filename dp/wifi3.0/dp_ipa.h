@@ -65,7 +65,7 @@
 #define IPA_SESSION_ID_SHIFT 1
 #endif /* IPA_WDI3_TX_TWO_PIPES */
 #define MAX_IPA_RX_FREE_DESC 32
-#define DP_INVALID_AST_IDX 0xFFFF
+
 /**
  * struct dp_ipa_uc_tx_hdr - full tx header registered to IPA hardware
  * @eth:     ether II header
