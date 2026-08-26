@@ -62,17 +62,10 @@
 #define IPA_TX_ALT_COMP_RING_IDX 1
 #endif /* KIWI */
 
-/* Index into soc->tcl_data_ring[] and soc->tx_comp_ring[]
- * must be same as IPA_TX_STA_DATA_RING_IDX as tcl and wbm ring
- * are initialized with same index as a pair.
- */
-#define IPA_TX_STA_DATA_RING_IDX 1
-#define IPA_TX_STA_COMP_RING_IDX IPA_TX_STA_DATA_RING_IDX
-
 #define IPA_SESSION_ID_SHIFT 1
 #endif /* IPA_WDI3_TX_TWO_PIPES */
 #define MAX_IPA_RX_FREE_DESC 32
-#define DP_IPA_INVALID_AST_IDX 0xFFFF
+#define DP_INVALID_AST_IDX 0xFFFF
 /**
  * struct dp_ipa_uc_tx_hdr - full tx header registered to IPA hardware
  * @eth:     ether II header
@@ -748,27 +741,6 @@ bool dp_ipa_is_ring_ipa_tx(struct dp_soc *soc, uint8_t ring_id);
  * Return: true if ring is used by IPA, else return false
  */
 bool dp_ipa_is_ring_ipa_rx(struct cdp_soc_t *soc_hdl, uint8_t ring_id);
-
-QDF_STATUS dp_ipa_sta_setup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
-			    void *ipa_i2w_cb, void *ipa_w2i_cb,
-			    void *ipa_priv, uint32_t *tx_pipe_handle,
-			    uint32_t *rx_pipe_handle, bool is_smmu_enabled,
-			    bool over_gsi, qdf_ipa_wdi_hdl_t hdl,
-			    qdf_ipa_wdi_hdl_t id, void *ipa_ast_notify_cb,
-			    uint8_t *peer_mac_addr);
-
-QDF_STATUS dp_ipa_sta_cleanup(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
-			      uint32_t tx_pipe_handle, uint32_t rx_pipe_handle,
-			      qdf_ipa_wdi_hdl_t hdl);
-
-QDF_STATUS dp_ipa_sta_enable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
-				   qdf_ipa_wdi_hdl_t hdl);
-
-QDF_STATUS dp_ipa_sta_disable_pipes(struct cdp_soc_t *soc_hdl, uint8_t pdev_id,
-				    qdf_ipa_wdi_hdl_t hdl);
-
-QDF_STATUS dp_ipa_sta_set_doorbell_paddr(struct cdp_soc_t *soc_hdl,
-					 uint8_t pdev_id);
 #else
 static inline int dp_ipa_uc_detach(struct dp_pdev *pdev)
 {

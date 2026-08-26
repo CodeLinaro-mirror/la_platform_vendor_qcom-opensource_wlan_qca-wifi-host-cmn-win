@@ -431,13 +431,6 @@ bool wlan_ipa_is_vlan_enabled(void)
 
 qdf_export_symbol(wlan_ipa_is_vlan_enabled);
 
-bool wlan_ipa_is_sta_enabled(void)
-{
-	return ipa_config_is_sta_enabled();
-}
-
-qdf_export_symbol(wlan_ipa_is_sta_enabled);
-
 bool wlan_ipa_config_is_opt_wifi_dp_enabled(void)
 {
 	return ipa_config_is_opt_wifi_dp_enabled();

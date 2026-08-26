@@ -3038,13 +3038,6 @@ struct dp_ipa_resources {
 	qdf_shared_mem_t rx_alt_refill_ring;
 	qdf_dma_addr_t rx_alt_ready_doorbell_paddr;
 #endif
-	qdf_shared_mem_t tx_sta_ring;
-	uint32_t tx_sta_ring_num_alloc_buffer;
-	qdf_shared_mem_t tx_sta_comp_ring;
-
-	/* IPA UC doorbell registers paddr */
-	qdf_dma_addr_t tx_sta_comp_doorbell_paddr;
-	uint32_t *tx_sta_comp_doorbell_vaddr;
 };
 #endif
 
@@ -3403,8 +3396,6 @@ struct dp_soc {
 	/* Resources for the alternative IPA TX pipe */
 	struct ipa_dp_tx_rsc ipa_uc_tx_rsc_alt;
 #endif
-	/* Resources for the STA IPA TX pipe */
-	struct ipa_dp_tx_rsc ipa_uc_tx_rsc_sta;
 
 	struct ipa_dp_rx_rsc ipa_uc_rx_rsc;
 #ifdef IPA_WDI3_VLAN_SUPPORT

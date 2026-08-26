@@ -854,10 +854,6 @@ struct wlan_ipa_priv {
 	qdf_atomic_t autonomy_disabled;
 	/* Indicates if cdp_disable_ipa_pipes has been called for IPA pipes */
 	qdf_atomic_t pipes_disabled;
-	/* Indicates if STA pipes have been disabled */
-	qdf_atomic_t sta_pipes_disabled;
-	/* Indicates if STA (in bridge mode) GSI channel is currently allocated in IPA Kernel */
-	qdf_atomic_t sta_pipe_connected;
 	/*
 	 * IPA pipes are considered "down" when both autonomy_disabled and
 	 * ipa_pipes_disabled are set

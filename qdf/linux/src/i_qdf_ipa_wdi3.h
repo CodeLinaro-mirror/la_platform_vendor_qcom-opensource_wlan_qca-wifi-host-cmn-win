@@ -374,10 +374,6 @@ typedef struct ipa_wdi_conn_in_params  __qdf_ipa_wdi_conn_in_params_t;
 #define __QDF_IPA_WDI_CONN_IN_PARAMS_TX_ALT_PIPE_SMMU(pipe_in)	\
 	(((struct ipa_wdi_conn_in_params *)(pipe_in))->u_tx1.tx_smmu)
 #endif
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE(pipe_in)	\
-	(((struct ipa_wdi_conn_in_params *)(pipe_in))->u_tx.tx)
-#define __QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE_SMMU(pipe_in)	\
-	(((struct ipa_wdi_conn_in_params *)(pipe_in))->u_tx.tx_smmu)
 #define __QDF_IPA_WDI_CONN_IN_PARAMS_RX(pipe_in)	\
 	(((struct ipa_wdi_conn_in_params *)(pipe_in))->u_rx.rx)
 #define __QDF_IPA_WDI_CONN_IN_PARAMS_RX_SMMU(pipe_in)	\
@@ -410,8 +406,6 @@ typedef struct ipa_wdi_conn_out_params  __qdf_ipa_wdi_conn_out_params_t;
 #define __QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_ALT_DB_PA(pipe_out)	\
 	(((struct ipa_wdi_conn_out_params *)(pipe_out))->tx1_uc_db_pa)
 #endif
-#define __QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_CPE_DB_PA(pipe_out)	\
-	(((struct ipa_wdi_conn_out_params *)(pipe_out))->tx_uc_db_pa)
 #define __QDF_IPA_WDI_CONN_OUT_PARAMS_RX_UC_DB_PA(pipe_out)	\
 	(((struct ipa_wdi_conn_out_params *)(pipe_out))->rx_uc_db_pa)
 #ifdef IPA_WDI3_VLAN_SUPPORT
@@ -708,27 +702,6 @@ static inline int __qdf_ipa_wdi_enable_pipes(__qdf_ipa_wdi_hdl_t hdl)
 static inline int __qdf_ipa_wdi_disable_pipes(__qdf_ipa_wdi_hdl_t hdl)
 {
 	return ipa_wdi_disable_pipes_per_inst(hdl);
-}
-
-static inline int __qdf_ipa_wdi_sta_conn_pipes(struct ipa_wdi_conn_in_params *in,
-					       struct ipa_wdi_conn_out_params *out)
-{
-	return ipa_wdi_sbr_connect(in, out);
-}
-
-static inline int __qdf_ipa_wdi_sta_disconn_pipes(__qdf_ipa_wdi_hdl_t hdl)
-{
-	return ipa_wdi_sbr_disconnect(hdl);
-}
-
-static inline int __qdf_ipa_wdi_sta_enable_pipes(__qdf_ipa_wdi_hdl_t hdl)
-{
-	return ipa_wdi_sbr_enable_pipe(hdl);
-}
-
-static inline int __qdf_ipa_wdi_sta_disable_pipes(__qdf_ipa_wdi_hdl_t hdl)
-{
-	return ipa_wdi_sbr_disable_pipe(hdl);
 }
 
 /**

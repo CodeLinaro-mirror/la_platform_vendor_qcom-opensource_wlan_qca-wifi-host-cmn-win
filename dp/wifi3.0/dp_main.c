@@ -13869,11 +13869,6 @@ static struct cdp_ipa_ops dp_ops_ipa = {
 #endif
 	.ipa_get_wdi_version = dp_ipa_get_wdi_version,
 	.ipa_is_ring_ipa_rx = dp_ipa_is_ring_ipa_rx,
-	.ipa_sta_setup = dp_ipa_sta_setup,
-	.ipa_sta_cleanup = dp_ipa_sta_cleanup,
-	.ipa_sta_enable_pipes = dp_ipa_sta_enable_pipes,
-	.ipa_sta_disable_pipes = dp_ipa_sta_disable_pipes,
-	.ipa_sta_set_doorbell_paddr = dp_ipa_sta_set_doorbell_paddr,
 };
 #endif
 

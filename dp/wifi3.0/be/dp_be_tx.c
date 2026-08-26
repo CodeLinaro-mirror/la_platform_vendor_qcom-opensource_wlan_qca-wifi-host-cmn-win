@@ -1885,8 +1885,7 @@ QDF_STATUS dp_tx_init_bank_profiles(struct dp_soc_be *be_soc)
 	dp_info("initialized %u bank profiles", be_soc->num_bank_profiles);
 
 	dp_tx_init_ipa_bank_profile(be_soc);
-	if (wlan_cfg_is_ipa_sta_enabled(be_soc->soc.wlan_cfg_ctx))
-		dp_tx_init_ipa_sta_bank_profile(be_soc);
+	dp_tx_init_ipa_sta_bank_profile(be_soc);
 
 	return QDF_STATUS_SUCCESS;
 }

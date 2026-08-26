@@ -331,12 +331,6 @@ typedef __qdf_ipa_wdi_conn_in_params_t qdf_ipa_wdi_conn_in_params_t;
 #define QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_ALT_DB_PA(pipe_out)	\
 	__QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_ALT_DB_PA(pipe_out)
 #endif
-#define QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE(pipe_in)	\
-	__QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE(pipe_in)
-#define QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE_SMMU(pipe_in)	\
-	__QDF_IPA_WDI_CONN_IN_PARAMS_TX_CPE_PIPE_SMMU(pipe_in)
-#define QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_CPE_DB_PA(pipe_out)	\
-	__QDF_IPA_WDI_CONN_OUT_PARAMS_TX_UC_CPE_DB_PA(pipe_out)
 #ifdef IPA_WDI3_VLAN_SUPPORT
 #define QDF_IPA_WDI_CONN_IN_PARAMS_IS_RX1_USED(pipe_in)	\
 	__QDF_IPA_WDI_CONN_IN_PARAMS_IS_RX1_USED(pipe_in)
@@ -460,27 +454,6 @@ static inline int qdf_ipa_wdi_enable_pipes(qdf_ipa_wdi_hdl_t hdl)
 static inline int qdf_ipa_wdi_disable_pipes(qdf_ipa_wdi_hdl_t hdl)
 {
 	return __qdf_ipa_wdi_disable_pipes(hdl);
-}
-
-static inline int qdf_ipa_wdi_sta_conn_pipes(qdf_ipa_wdi_conn_in_params_t *in,
-					     qdf_ipa_wdi_conn_out_params_t *out)
-{
-	return __qdf_ipa_wdi_sta_conn_pipes(in, out);
-}
-
-static inline int qdf_ipa_wdi_sta_disconn_pipes(qdf_ipa_wdi_hdl_t hdl)
-{
-	return __qdf_ipa_wdi_sta_disconn_pipes(hdl);
-}
-
-static inline int qdf_ipa_wdi_sta_enable_pipes(qdf_ipa_wdi_hdl_t hdl)
-{
-	return __qdf_ipa_wdi_sta_enable_pipes(hdl);
-}
-
-static inline int qdf_ipa_wdi_sta_disable_pipes(qdf_ipa_wdi_hdl_t hdl)
-{
-	return __qdf_ipa_wdi_sta_disable_pipes(hdl);
 }
 
 /**

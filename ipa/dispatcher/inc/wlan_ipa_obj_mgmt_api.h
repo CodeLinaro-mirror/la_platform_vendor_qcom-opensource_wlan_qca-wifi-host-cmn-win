@@ -124,14 +124,6 @@ qdf_ipa_wdi_hdl_t wlan_ipa_get_hdl(void *soc, uint8_t pdev_id);
 bool wlan_ipa_is_vlan_enabled(void);
 
 /**
- * wlan_ipa_is_sta_enabled() - get IPA STA TX pipe enable status
- *
- * Return: true - ipa STA TX pipe is enabled
- *         false - ipa STA TX pipe is not enabled
- */
-bool wlan_ipa_is_sta_enabled(void);
-
-/**
  * wlan_ipa_config_is_opt_wifi_dp_enabled() - Is IPA optional wifi dp enabled?
  *
  * Return: true if IPA opt wifi dp is enabled in IPA config
@@ -178,11 +170,6 @@ static inline bool wlan_ipa_config_is_enabled(void)
 }
 
 static inline bool wlan_ipa_is_vlan_enabled(void)
-{
-	return false;
-}
-
-static inline bool wlan_ipa_is_sta_enabled(void)
 {
 	return false;
 }
