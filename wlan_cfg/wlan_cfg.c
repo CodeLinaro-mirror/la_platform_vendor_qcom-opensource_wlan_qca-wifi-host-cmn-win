@@ -3761,8 +3761,6 @@ wlan_soc_ipa_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
 			cfg_get(psoc, CFG_DP_IPA_TX_ALT_RING_SIZE);
 	wlan_cfg_ctx->ipa_tx_alt_comp_ring_size =
 			cfg_get(psoc, CFG_DP_IPA_TX_ALT_COMP_RING_SIZE);
-	wlan_cfg_ctx->ipa_sta_enable =
-			cfg_get(psoc, CFG_DP_IPA_STA_ENABLE);
 }
 #else /* !IPA_WDI3_TX_TWO_PIPES */
 /**
@@ -3791,8 +3789,6 @@ wlan_soc_ipa_cfg_attach(struct cdp_ctrl_objmgr_psoc *psoc,
 			cfg_get(psoc, CFG_DP_IPA_TX_RING_SIZE);
 	wlan_cfg_ctx->ipa_tx_comp_ring_size =
 			cfg_get(psoc, CFG_DP_IPA_TX_COMP_RING_SIZE);
-	wlan_cfg_ctx->ipa_sta_enable =
-			cfg_get(psoc, CFG_DP_IPA_STA_ENABLE);
 }
 #endif /* IPA_WDI3_TX_TWO_PIPES */
 #else /* !IPA_OFFLOAD */
@@ -5463,11 +5459,6 @@ bool wlan_cfg_is_lro_enabled(struct wlan_cfg_dp_soc_ctxt *cfg)
 bool wlan_cfg_is_ipa_enabled(struct wlan_cfg_dp_soc_ctxt *cfg)
 {
 	return  cfg->ipa_enabled;
-}
-
-bool wlan_cfg_is_ipa_sta_enabled(struct wlan_cfg_dp_soc_ctxt *cfg)
-{
-	return cfg->ipa_sta_enable;
 }
 
 void wlan_cfg_set_rx_hash(struct wlan_cfg_dp_soc_ctxt *cfg, bool val)

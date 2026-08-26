@@ -135,14 +135,6 @@ QDF_STATUS wlan_ipa_uc_disable_pipes(struct wlan_ipa_priv *ipa_ctx,
 				     bool force_disable);
 
 /**
- * wlan_ipa_uc_sta_enable_pipes() - Enable IPA STA in bridge mode uC pipes
- * @ipa_ctx: IPA context
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS wlan_ipa_uc_sta_enable_pipes(struct wlan_ipa_priv *ipa_ctx);
-
-/**
  * wlan_ipa_is_tx_pending() - Check if IPA TX Completions are pending
  * @ipa_ctx: IPA context
  *

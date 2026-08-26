@@ -2436,29 +2436,6 @@ struct cdp_ipa_ops {
 	void (*ipa_get_wdi_version)(struct cdp_soc_t *soc_hdl,
 				    uint8_t *wdi_ver);
 	bool (*ipa_is_ring_ipa_rx)(struct cdp_soc_t *soc_hdl, uint8_t ring_id);
-	QDF_STATUS (*ipa_sta_setup)(struct cdp_soc_t *soc_hdl,
-				    uint8_t pdev_id, void *ipa_i2w_cb,
-				    void *ipa_w2i_cb, void *ipa_priv,
-				    uint32_t *tx_pipe_handle,
-				    uint32_t *rx_pipe_handle,
-				    bool is_smmu_enabled, bool over_gsi,
-				    qdf_ipa_wdi_hdl_t hdl,
-				    qdf_ipa_wdi_hdl_t id,
-				    void *ipa_ast_notify_cb,
-				    uint8_t *peer_mac_addr);
-	QDF_STATUS (*ipa_sta_cleanup)(struct cdp_soc_t *soc_hdl,
-				      uint8_t pdev_id,
-				      uint32_t tx_pipe_handle,
-				      uint32_t rx_pipe_handle,
-				      qdf_ipa_wdi_hdl_t hdl);
-	QDF_STATUS (*ipa_sta_enable_pipes)(struct cdp_soc_t *soc_hdl,
-					   uint8_t pdev_id,
-					   qdf_ipa_wdi_hdl_t hdl);
-	QDF_STATUS (*ipa_sta_disable_pipes)(struct cdp_soc_t *soc_hdl,
-					    uint8_t pdev_id,
-					    qdf_ipa_wdi_hdl_t hdl);
-	QDF_STATUS (*ipa_sta_set_doorbell_paddr)(struct cdp_soc_t *soc_hdl,
-						 uint8_t pdev_id);
 };
 #endif
 

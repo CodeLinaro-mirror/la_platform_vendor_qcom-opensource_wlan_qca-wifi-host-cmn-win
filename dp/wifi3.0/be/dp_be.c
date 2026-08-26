@@ -3879,13 +3879,6 @@ static int8_t dp_ipa_get_bank_id_be(struct dp_soc *soc)
 	return be_soc->ipa_bank_id;
 }
 
-static int8_t dp_ipa_get_sta_bank_id_be(struct dp_soc *soc)
-{
-	struct dp_soc_be *be_soc = dp_get_be_soc_from_dp_soc(soc);
-
-	return be_soc->ipa_sta_bank_id;
-}
-
 #ifdef QCA_IPA_LL_TX_FLOW_CONTROL
 static void dp_ipa_get_wdi_version_be(uint8_t *wdi_ver)
 {
@@ -3900,7 +3893,6 @@ static inline void dp_ipa_get_wdi_version_be(uint8_t *wdi_ver)
 static inline void dp_initialize_arch_ops_be_ipa(struct dp_arch_ops *arch_ops)
 {
 	arch_ops->ipa_get_bank_id = dp_ipa_get_bank_id_be;
-	arch_ops->ipa_get_sta_bank_id = dp_ipa_get_sta_bank_id_be;
 	arch_ops->ipa_get_wdi_ver = dp_ipa_get_wdi_version_be;
 }
 #else /* !IPA_OFFLOAD */

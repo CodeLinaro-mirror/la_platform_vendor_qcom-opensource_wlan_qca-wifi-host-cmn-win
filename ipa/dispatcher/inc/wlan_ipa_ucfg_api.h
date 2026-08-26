@@ -96,14 +96,6 @@ bool ucfg_ipa_uc_is_enabled(void);
 bool ucfg_ipa_is_vlan_enabled(void);
 
 /**
- * ucfg_ipa_is_sta_enabled() - get IPA STA TX pipe enable status
- *
- * Return: true - ipa STA TX pipe is enabled
- *         false - ipa STA TX pipe is not enabled
- */
-bool ucfg_ipa_is_sta_enabled(void);
-
-/**
  * ucfg_ipa_set_dp_handle() - register DP handle
  * @psoc: psoc handle
  * @dp_soc: data path soc handle
@@ -576,11 +568,6 @@ static inline bool ucfg_ipa_uc_is_enabled(void)
 }
 
 static inline bool ucfg_ipa_is_vlan_enabled(void)
-{
-	return false;
-}
-
-static inline bool ucfg_ipa_is_sta_enabled(void)
 {
 	return false;
 }
