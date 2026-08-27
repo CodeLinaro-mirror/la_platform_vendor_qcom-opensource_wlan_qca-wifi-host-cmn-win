@@ -6654,6 +6654,20 @@ QDF_STATUS dp_mon_vdev_attach(struct dp_vdev *vdev)
 	return QDF_STATUS_SUCCESS;
 }
 
+QDF_STATUS dp_mon_vdev_down(struct dp_vdev *vdev)
+{
+	struct dp_pdev *pdev = vdev->pdev;
+	struct dp_mon_ops *mon_ops = dp_mon_ops_get(pdev->soc);
+
+	if (!mon_ops)
+		return QDF_STATUS_E_FAILURE;
+
+	if (mon_ops->mon_lite_mon_vdev_delete)
+		mon_ops->mon_lite_mon_vdev_delete(pdev, vdev);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 QDF_STATUS dp_mon_vdev_detach(struct dp_vdev *vdev)
 {
 	struct dp_mon_vdev *mon_vdev = vdev->monitor_vdev;
@@ -6686,9 +6700,6 @@ QDF_STATUS dp_mon_vdev_detach(struct dp_vdev *vdev)
 		if (mon_mac->mvdev == vdev)
 			mon_mac->mvdev = NULL;
 	}
-
-	if (mon_ops->mon_lite_mon_vdev_delete)
-		mon_ops->mon_lite_mon_vdev_delete(pdev, vdev);
 
 	return QDF_STATUS_SUCCESS;
 }
