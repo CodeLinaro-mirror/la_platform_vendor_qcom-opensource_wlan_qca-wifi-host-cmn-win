@@ -798,17 +798,37 @@ void dp_txrx_peer_attach_add(struct dp_soc *soc,
 	qdf_spin_unlock_bh(&soc->peer_map_lock);
 }
 
+#ifdef WLAN_FEATURE_11BE_MLO
+static inline
+enum dp_mod_id dp_peer_find_htt_mod_id(struct dp_peer *peer)
+{
+	if (peer->peer_type == CDP_MLD_PEER_TYPE)
+		return DP_MOD_ID_ML_PEER_HTT_MAP;
+	return DP_MOD_ID_CONFIG;
+}
+#else
+static inline
+enum dp_mod_id dp_peer_find_htt_mod_id(struct dp_peer *peer)
+{
+	return DP_MOD_ID_CONFIG;
+}
+#endif
+
 void dp_peer_find_id_to_obj_add(struct dp_soc *soc,
 				struct dp_peer *peer,
 				uint16_t peer_id)
 {
+	enum dp_mod_id mod_id = DP_MOD_ID_CONFIG;
+
+	mod_id = dp_peer_find_htt_mod_id(peer);
+
 	QDF_ASSERT(peer_id <= soc->max_peer_id);
 
 	qdf_spin_lock_bh(&soc->peer_map_lock);
 
 	peer->peer_id = peer_id;
 
-	if (QDF_IS_STATUS_ERROR(dp_peer_get_ref(soc, peer, DP_MOD_ID_CONFIG))) {
+	if (QDF_IS_STATUS_ERROR(dp_peer_get_ref(soc, peer, mod_id))) {
 		dp_err("unable to get peer ref at MAP mac: "QDF_MAC_ADDR_FMT" peer_id %u",
 		       QDF_MAC_ADDR_REF(peer->mac_addr.raw), peer_id);
 		qdf_spin_unlock_bh(&soc->peer_map_lock);
@@ -834,7 +854,7 @@ void dp_peer_find_id_to_obj_add(struct dp_soc *soc,
 		       soc->stats.t2h_msg_stats.invalid_peer_unmap,
 		       soc->stats.t2h_msg_stats.ml_peer_map,
 		       soc->stats.t2h_msg_stats.ml_peer_unmap);
-		dp_peer_unref_delete(peer, DP_MOD_ID_CONFIG);
+		dp_peer_unref_delete(peer, mod_id);
 		qdf_assert_always(0);
 	}
 	qdf_spin_unlock_bh(&soc->peer_map_lock);
@@ -844,6 +864,8 @@ void dp_peer_find_id_to_obj_remove(struct dp_soc *soc,
 				   uint16_t peer_id)
 {
 	struct dp_peer *peer = NULL;
+	enum dp_mod_id mod_id = DP_MOD_ID_CONFIG;
+
 	QDF_ASSERT(peer_id <= soc->max_peer_id);
 
 	qdf_spin_lock_bh(&soc->peer_map_lock);
@@ -857,7 +879,10 @@ void dp_peer_find_id_to_obj_remove(struct dp_soc *soc,
 	if (peer->txrx_peer)
 		peer->txrx_peer->peer_id = HTT_INVALID_PEER;
 	soc->peer_id_to_obj_map[peer_id] = NULL;
-	dp_peer_unref_delete(peer, DP_MOD_ID_CONFIG);
+
+	mod_id = dp_peer_find_htt_mod_id(peer);
+
+	dp_peer_unref_delete(peer, mod_id);
 	qdf_spin_unlock_bh(&soc->peer_map_lock);
 }
 
@@ -2971,12 +2996,17 @@ static inline struct dp_peer *dp_peer_find_add_id(struct dp_soc *soc,
 {
 	struct dp_peer *peer;
 	struct cdp_peer_info peer_info = { 0 };
+	enum dp_mod_id mod_id = DP_MOD_ID_CONFIG;
 
 	QDF_ASSERT(peer_id <= soc->max_peer_id);
 	/* check if there's already a peer object with this MAC address */
 	DP_PEER_INFO_PARAMS_INIT(&peer_info, vdev_id, peer_mac_addr,
 				 false, peer_type);
-	peer = dp_peer_hash_find_wrapper(soc, &peer_info, DP_MOD_ID_CONFIG);
+
+	if (peer_type == CDP_MLD_PEER_TYPE)
+		mod_id = DP_MOD_ID_ML_PEER_HTT_MAP;
+
+	peer = dp_peer_hash_find_wrapper(soc, &peer_info, mod_id);
 	dp_peer_debug("%pK: peer %pK ID %d vid %d mac " QDF_MAC_ADDR_FMT,
 		      soc, peer, peer_id, vdev_id,
 		      QDF_MAC_ADDR_REF(peer_mac_addr));
@@ -2993,7 +3023,7 @@ static inline struct dp_peer *dp_peer_find_add_id(struct dp_soc *soc,
 		 * is received ignore this event
 		 */
 		if (dp_peer_state_cmp(peer, DP_PEER_STATE_LOGICAL_DELETE)) {
-			dp_peer_unref_delete(peer, DP_MOD_ID_CONFIG);
+			dp_peer_unref_delete(peer, mod_id);
 			dp_alert("Peer %pK["QDF_MAC_ADDR_FMT"] logical delete state vid %d",
 				 peer, QDF_MAC_ADDR_REF(peer_mac_addr),
 				 vdev_id);
@@ -3005,7 +3035,7 @@ static inline struct dp_peer *dp_peer_find_add_id(struct dp_soc *soc,
 				dp_monitor_peer_tid_peer_id_update(soc, peer,
 								   peer_id);
 		} else {
-			dp_peer_unref_delete(peer, DP_MOD_ID_CONFIG);
+			dp_peer_unref_delete(peer, mod_id);
 			QDF_ASSERT(0);
 			return NULL;
 		}
@@ -3296,6 +3326,9 @@ dp_rx_peer_map_handler(struct dp_soc *soc, uint16_t peer_id,
 			peer->ast_hash = ast_hash;
 			peer->ast_idx = hw_peer_id;
 			vdev = peer->vdev;
+
+			peer->htt_link_map_ts = qdf_get_log_timestamp();
+
 			/* Only check for STA Vdev and peer is not for TDLS */
 			if (wlan_op_mode_sta == vdev->opmode &&
 			    !peer->is_tdls_peer) {
@@ -3396,6 +3429,7 @@ dp_rx_peer_unmap_handler(struct dp_soc *soc, uint16_t peer_id,
 {
 	struct dp_peer *peer;
 	struct dp_vdev *vdev = NULL;
+	enum dp_mod_id mod_id = DP_MOD_ID_CONFIG;
 
 	DP_STATS_INC(soc, t2h_msg_stats.peer_unmap, 1);
 
@@ -3421,6 +3455,8 @@ dp_rx_peer_unmap_handler(struct dp_soc *soc, uint16_t peer_id,
 		DP_STATS_INC(soc, t2h_msg_stats.invalid_peer_unmap, 1);
 		return;
 	}
+
+	peer->htt_link_unmap_ts = qdf_get_log_timestamp();
 
 	vdev = peer->vdev;
 
@@ -3520,11 +3556,14 @@ dp_rx_peer_unmap_handler(struct dp_soc *soc, uint16_t peer_id,
 			       peer->vdev->vdev_id, peer->mac_addr.raw);
 	dp_peer_update_state(soc, peer, DP_PEER_STATE_INACTIVE);
 	dp_peer_unref_delete(peer, DP_MOD_ID_HTT);
+
+	mod_id = dp_peer_find_htt_mod_id(peer);
+
 	/*
 	 * Remove a reference to the peer.
 	 * If there are no more references, delete the peer object.
 	 */
-	dp_peer_unref_delete(peer, DP_MOD_ID_CONFIG);
+	dp_peer_unref_delete(peer, mod_id);
 }
 
 #if defined(WLAN_FEATURE_11BE_MLO) && defined(DP_MLO_LINK_STATS_SUPPORT)
@@ -3735,6 +3774,7 @@ void dp_peer_cleanup(struct dp_vdev *vdev, struct dp_peer *peer)
 
 	if (IS_MLO_DP_LINK_PEER(peer))
 		dp_link_peer_del_mld_peer(peer);
+
 	if (IS_MLO_DP_MLD_PEER(peer))
 		dp_mld_peer_deinit_link_peers_info(peer);
 

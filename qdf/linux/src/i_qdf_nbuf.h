@@ -2341,6 +2341,7 @@ static inline void __qdf_nbuf_set_pktlen(struct sk_buff *skb, uint32_t len)
 #else
 				dev_kfree_skb_any(skb);
 #endif
+				return;
 			}
 		}
 		skb_put(skb, (len - skb->len));
@@ -2934,6 +2935,38 @@ __qdf_nbuf_copy_expand(struct sk_buff *buf, int headroom, int tailroom)
 	copy = skb_copy_expand(buf, headroom, tailroom, GFP_ATOMIC);
 	if (copy)
 		__qdf_nbuf_count_inc(copy);
+
+	return copy;
+}
+
+/**
+ * __qdf_nbuf_copy_expand_pskb() - copy and expand nbuf preserving fraglist
+ * @buf: Network buf instance
+ * @headroom: Additional headroom to be added
+ * @tailroom: Additional tailroom to be added
+ *
+ * Return: New nbuf that preserves the shared frag/frag_list backing while
+ *	creating private headroom/tailroom, or NULL if there is no memory
+ */
+static inline struct sk_buff *
+__qdf_nbuf_copy_expand_pskb(struct sk_buff *buf, int headroom, int tailroom)
+{
+	struct sk_buff *copy;
+
+	copy = skb_clone(buf, GFP_ATOMIC);
+	if (!copy)
+		return NULL;
+
+	if (pskb_expand_head(copy, headroom, tailroom, GFP_ATOMIC)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+		dev_consume_skb_any(copy);
+#else
+		dev_kfree_skb_any(copy);
+#endif
+		return NULL;
+	}
+
+	__qdf_nbuf_count_inc(copy);
 
 	return copy;
 }

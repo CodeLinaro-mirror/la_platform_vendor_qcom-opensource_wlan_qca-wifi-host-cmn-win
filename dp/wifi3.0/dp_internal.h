@@ -511,6 +511,11 @@ static inline QDF_STATUS dp_monitor_vdev_detach(struct dp_vdev *vdev)
 	return QDF_STATUS_E_FAILURE;
 }
 
+static inline QDF_STATUS dp_monitor_vdev_down(struct dp_vdev *vdev)
+{
+	return QDF_STATUS_E_FAILURE;
+}
+
 static inline QDF_STATUS dp_monitor_peer_attach(struct dp_soc *soc,
 						struct dp_peer *peer)
 {

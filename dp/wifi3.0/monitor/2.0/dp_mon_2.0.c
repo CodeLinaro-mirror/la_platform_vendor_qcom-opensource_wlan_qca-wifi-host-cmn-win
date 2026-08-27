@@ -1461,6 +1461,7 @@ struct dp_mon_ops monitor_ops_2_0 = {
 	.mon_pdev_deinit = dp_mon_pdev_deinit,
 	.mon_vdev_attach = dp_mon_vdev_attach,
 	.mon_vdev_detach = dp_mon_vdev_detach,
+	.mon_vdev_down = dp_mon_vdev_down,
 	.mon_peer_attach = dp_mon_peer_attach,
 	.mon_peer_detach = dp_mon_peer_detach,
 	.mon_peer_get_peerstats_ctx = dp_mon_peer_get_peerstats_ctx,

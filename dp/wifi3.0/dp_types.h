@@ -428,6 +428,7 @@ enum dp_mod_id {
 	DP_MOD_ID_TX_MCAST,
 	DP_MOD_ID_DS,
 	DP_MOD_ID_MLO_DEV,
+	DP_MOD_ID_ML_PEER_HTT_MAP,
 	DP_MOD_ID_MAX,
 };
 
@@ -1545,6 +1546,8 @@ struct dp_soc_stats {
 			struct cdp_pkt_info rx_invalid_peer_id;
 			/* Invalid packet length */
 			struct cdp_pkt_info rx_invalid_pkt_len;
+			/* Oversized packet drop in normal data path (BE + LI) */
+			uint32_t rx_invalid_pkt_len_data_path;
 			/* HAL ring access Fail error count */
 			uint32_t hal_ring_access_fail;
 			/* HAL ring access full Fail error count */
@@ -5025,6 +5028,8 @@ struct dp_peer_link_info {
 	uint8_t is_valid;
 	uint8_t chip_id;
 	uint8_t is_bridge_peer;
+	uint64_t htt_map_ts;
+	uint64_t htt_unmap_ts;
 };
 
 /**
@@ -5762,6 +5767,9 @@ struct dp_peer {
 
 	/* peer setup info */
 	struct dp_peer_setup_info setup_info;
+
+	uint64_t htt_link_map_ts;
+	uint64_t htt_link_unmap_ts;
 };
 
 /**

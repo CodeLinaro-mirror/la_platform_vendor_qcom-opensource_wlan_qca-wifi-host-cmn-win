@@ -267,6 +267,15 @@ QDF_STATUS dp_mon_vdev_attach(struct dp_vdev *vdev);
 QDF_STATUS dp_mon_vdev_detach(struct dp_vdev *vdev);
 
 /**
+ * dp_mon_vdev_down() - DP monitor vdev down handler
+ * @vdev: Datapath vdev handle
+ *
+ * Return: QDF_STATUS_SUCCESS: Success
+ *         QDF_STATUS_E_FAILURE: Error
+ */
+QDF_STATUS dp_mon_vdev_down(struct dp_vdev *vdev);
+
+/**
  * dp_mon_peer_attach() - DP monitor peer attach
  * @peer: Datapath peer handle
  *
@@ -735,6 +744,7 @@ struct dp_mon_ops {
 	QDF_STATUS (*mon_pdev_deinit)(struct dp_pdev *pdev);
 	QDF_STATUS (*mon_vdev_attach)(struct dp_vdev *vdev);
 	QDF_STATUS (*mon_vdev_detach)(struct dp_vdev *vdev);
+	QDF_STATUS (*mon_vdev_down)(struct dp_vdev *vdev);
 	QDF_STATUS (*mon_peer_attach)(struct dp_peer *peer);
 	QDF_STATUS (*mon_peer_detach)(struct dp_peer *peer);
 	struct cdp_peer_rate_stats_ctx *(*mon_peer_get_peerstats_ctx)(struct
@@ -2280,6 +2290,29 @@ static inline QDF_STATUS dp_monitor_vdev_detach(struct dp_vdev *vdev)
 	}
 
 	return monitor_ops->mon_vdev_detach(vdev);
+}
+
+/**
+ * dp_monitor_vdev_down() - Monitor vdev down handler
+ * @vdev: point to vdev
+ *
+ * Return: return QDF_STATUS
+ */
+static inline QDF_STATUS dp_monitor_vdev_down(struct dp_vdev *vdev)
+{
+	struct dp_mon_ops *monitor_ops;
+	struct dp_mon_soc *mon_soc = vdev->pdev->soc->monitor_soc;
+
+	if (!mon_soc)
+		return QDF_STATUS_E_FAILURE;
+
+	monitor_ops = mon_soc->mon_ops;
+	if (!monitor_ops || !monitor_ops->mon_vdev_down) {
+		dp_mon_debug("callback not registered");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	return monitor_ops->mon_vdev_down(vdev);
 }
 
 /**

@@ -225,6 +225,9 @@ struct cdp_cmn_ops {
 			    ol_txrx_vdev_delete_cb callback,
 			    void *cb_context);
 
+	QDF_STATUS
+	(*txrx_vdev_down)(struct cdp_soc_t *cdp_soc, uint8_t vdev_id);
+
 	QDF_STATUS (*txrx_pdev_attach)
 		(ol_txrx_soc_handle soc,
 		 struct cdp_pdev_attach_params *params);

@@ -6636,6 +6636,8 @@ dp_print_rx_err_stats(struct dp_soc *soc, struct dp_pdev *pdev)
 		       pdev->soc->stats.rx.err.ipa_unmap_no_pipe);
 	DP_PRINT_STATS("PN-in-Dest error frame pn-check fail: %d",
 		       soc->stats.rx.err.pn_in_dest_check_fail);
+	DP_PRINT_STATS("Rx oversized pkt drop in data path: %u",
+		       soc->stats.rx.err.rx_invalid_pkt_len_data_path);
 
 	DP_PRINT_STATS("Reo Statistics");
 	DP_PRINT_STATS("near_full: %u ", soc->stats.rx.near_full);
@@ -6916,6 +6918,8 @@ dp_print_rx_err_stats(struct dp_soc *soc, struct dp_pdev *pdev)
 		       pdev->soc->stats.rx.err.nbuf_sanity_fail);
 	DP_PRINT_STATS("PN-in-Dest error frame pn-check fail: %d",
 		       soc->stats.rx.err.pn_in_dest_check_fail);
+	DP_PRINT_STATS("Rx oversized pkt drop in data path: %u",
+		       soc->stats.rx.err.rx_invalid_pkt_len_data_path);
 }
 
 void dp_print_soc_tx_stats(struct dp_soc *soc)
@@ -10530,6 +10534,8 @@ QDF_STATUS dp_txrx_get_soc_stats(struct cdp_soc_t *soc_hdl,
 					soc->stats.rx.err.rx_invalid_peer_id;
 	soc_stats->rx.err.rx_invalid_pkt_len =
 					soc->stats.rx.err.rx_invalid_pkt_len;
+	soc_stats->rx.err.rx_invalid_pkt_len_data_path =
+				soc->stats.rx.err.rx_invalid_pkt_len_data_path;
 	for (inx = 0; inx < qdf_min((uint32_t)CDP_WIFI_ERR_MAX,
 				    (uint32_t)HAL_RXDMA_ERR_MAX); inx++)
 		soc_stats->rx.err.rx_sw_error[inx] =

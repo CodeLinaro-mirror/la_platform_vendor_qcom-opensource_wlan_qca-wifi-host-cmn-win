@@ -372,6 +372,8 @@ QDF_STATUS tgt_vdev_mgr_down_send(
 	struct wlan_lmac_if_mlme_tx_ops *txops;
 	struct wlan_objmgr_pdev *pdev;
 	struct wlan_objmgr_vdev *vdev;
+	struct wlan_objmgr_psoc *psoc;
+	ol_txrx_soc_handle soc_txrx_handle;
 	enum QDF_OPMODE opmode;
 	uint8_t vdev_id;
 
@@ -404,6 +406,11 @@ QDF_STATUS tgt_vdev_mgr_down_send(
 						       DFS_AGILE_SM_EV_AGILE_STOP);
 		}
 	}
+
+	psoc = wlan_vdev_get_psoc(vdev);
+	soc_txrx_handle = wlan_psoc_get_dp_handle(psoc);
+	if (soc_txrx_handle)
+		cdp_vdev_down(soc_txrx_handle, wlan_vdev_get_id(vdev));
 
 	status = txops->vdev_down_send(vdev, param);
 	if (QDF_IS_STATUS_ERROR(status))
