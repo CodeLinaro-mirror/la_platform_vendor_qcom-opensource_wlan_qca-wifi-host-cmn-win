@@ -23637,6 +23637,229 @@ extract_mgmt_srng_reap_event_tlv(wmi_unified_t wmi_handle, uint8_t *evt_buf,
 }
 #endif
 
+<<<<<<< HEAD   (fa506d Merge "qcacmn: Route vdev down via CDP and clean up monitor )
+=======
+#ifdef FEATURE_WLAN_ZERO_POWER_SCAN
+static QDF_STATUS send_get_cached_scan_report_cmd_tlv(wmi_unified_t wmi_handle)
+{
+	wmi_buf_t wmi_buf;
+	QDF_STATUS status;
+	wmi_get_scan_cache_result_cmd_fixed_param *cmd;
+
+	/* Allocate the memory */
+	wmi_buf = wmi_buf_alloc(wmi_handle, sizeof(*cmd));
+	if (!wmi_buf)
+		return QDF_STATUS_E_NOMEM;
+
+	cmd = (wmi_get_scan_cache_result_cmd_fixed_param *)wmi_buf_data(wmi_buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_get_scan_cache_result_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_get_scan_cache_result_cmd_fixed_param));
+
+	wmi_mtrace(WMI_GET_SCAN_CACHE_RESULT_CMDID, NO_SESSION, 0);
+	status = wmi_unified_cmd_send(wmi_handle, wmi_buf, sizeof(*cmd),
+				      WMI_GET_SCAN_CACHE_RESULT_CMDID);
+	if (QDF_IS_STATUS_ERROR(status)) {
+		wmi_err("Failed to send get cached scan report %d", status);
+		wmi_buf_free(wmi_buf);
+	}
+
+	return status;
+}
+
+static void *
+extract_cached_scan_report_ev_params_tlv(wmi_unified_t wmi_handle,
+					 void *ev_data, uint32_t data_len)
+{
+	uint32_t malloc_len, idx;
+	wmi_scan_cache_info *ev_bss_data;
+	struct wlan_scan_cache_bss *bss_info;
+	struct wlan_scan_cache_scan_report *scan_report;
+	WMI_SCAN_CACHE_RESULT_EVENTID_param_tlvs *ev_buf;
+
+	ev_buf = (WMI_SCAN_CACHE_RESULT_EVENTID_param_tlvs *)ev_data;
+
+	scan_report = qdf_mem_malloc(sizeof(*scan_report));
+	if (!scan_report)
+		return NULL;
+
+	if (ev_buf->num_scan_freq_list) {
+		malloc_len = ev_buf->num_scan_freq_list * sizeof(uint32_t);
+		scan_report->freq_list = qdf_mem_malloc(malloc_len);
+		if (!scan_report->freq_list)
+			goto mem_free;
+
+		qdf_mem_copy(scan_report->freq_list, ev_buf->scan_freq_list,
+			     ev_buf->num_scan_freq_list * sizeof(uint32_t));
+	} else {
+		scan_report->freq_list = NULL;
+	}
+	scan_report->num_freq = ev_buf->num_scan_freq_list;
+	wmi_debug("Freq list %d, bss list %d",
+		  scan_report->num_freq, ev_buf->num_scan_cache_info);
+
+	if (!ev_buf->num_scan_cache_info) {
+		scan_report->bss_list = NULL;
+		scan_report->num_bss = 0;
+		return scan_report;
+	}
+
+	malloc_len =
+		ev_buf->num_scan_cache_info * sizeof(*scan_report->bss_list);
+	scan_report->bss_list =	qdf_mem_malloc(malloc_len);
+	if (!scan_report->bss_list)
+		goto mem_free;
+
+	ev_bss_data = ev_buf->scan_cache_info;
+	bss_info = scan_report->bss_list;
+	for (idx = 0; idx < ev_buf->num_scan_cache_info; idx++) {
+		bss_info = &scan_report->bss_list[idx];
+		bss_info->age_ms = ev_bss_data[idx].age_ms;
+		bss_info->cap_info = ev_bss_data[idx].capability;
+		bss_info->flags = ev_bss_data[idx].flags;
+		bss_info->rssi = ev_bss_data[idx].rssi;
+		bss_info->primary_freq =
+			ev_bss_data[idx].chanspec.primary_frequency;
+		bss_info->ccfs0_mhz =
+			ev_bss_data[idx].chanspec.center_frequency0;
+		bss_info->ccfs1_mhz =
+			ev_bss_data[idx].chanspec.center_frequency1;
+		bss_info->ch_width =
+			wmi_map_ch_width(ev_bss_data[idx].chanspec.width);
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&ev_bss_data[idx].bssid,
+					   &bss_info->bssid.bytes[0]);
+		if (ev_bss_data[idx].ssid.ssid_len > WLAN_SSID_MAX_LEN)
+			ev_bss_data[idx].ssid.ssid_len = WLAN_SSID_MAX_LEN;
+		qdf_mem_copy(bss_info->ssid.ssid, ev_bss_data[idx].ssid.ssid,
+			     ev_bss_data[idx].ssid.ssid_len);
+		bss_info->ssid.length = ev_bss_data[idx].ssid.ssid_len;
+		wmi_debug("age %d, cap 0x%x, flags 0x%x, rssi %d, freq %d, ccfs0 %d, ccfs1 %d, bw %d, BSSID: " QDF_MAC_ADDR_FMT ", SSID: " QDF_SSID_FMT,
+			  bss_info->age_ms, bss_info->cap_info,
+			  bss_info->flags, bss_info->rssi,
+			  bss_info->primary_freq, bss_info->ccfs0_mhz,
+			  bss_info->ccfs1_mhz, bss_info->ch_width,
+			  QDF_MAC_ADDR_REF(bss_info->bssid.bytes),
+			  QDF_SSID_REF(bss_info->ssid.length,
+				       bss_info->ssid.ssid));
+	}
+	scan_report->num_bss = ev_buf->num_scan_cache_info;
+
+	return scan_report;
+
+mem_free:
+	qdf_mem_free(scan_report->freq_list);
+	qdf_mem_free(scan_report);
+
+	return NULL;
+}
+#endif
+
+static QDF_STATUS
+extract_vdev_current_operating_param_event_tlv(wmi_unified_t wmi_handle,
+					       void *evt_buf,
+					       struct wlan_vdev_bss_op_res_params *params)
+{
+	WMI_VDEV_CURRENT_OPERATING_PARAM_EVENTID_param_tlvs *ev_tlvs = evt_buf;
+	wmi_vdev_current_operating_param_event_fixed_param *ev_vdev_op_params;
+
+	ev_vdev_op_params =
+		(wmi_vdev_current_operating_param_event_fixed_param *)ev_tlvs->fixed_param;
+
+	params->vdev_id = ev_vdev_op_params->vdev_id;
+
+	params->bss_op_res.ch_width = CH_WIDTH_INVALID;
+	params->bss_op_res.ch_width_valid = false;
+
+	params->bss_op_res.tx_nss = 0xFF;
+	params->bss_op_res.rx_nss = 0xFF;
+	params->bss_op_res.nss_valid = false;
+
+	params->bss_op_res.tx_chains = 0xFF;
+	params->bss_op_res.rx_chains = 0xFF;
+	params->bss_op_res.chains_valid = false;
+
+	if (ev_vdev_op_params->operating_param_flags &
+	    WMI_VDEV_OPERATING_PARAM_SET_UPDATED_BW) {
+		params->bss_op_res.ch_width =
+			wmi_map_ch_width(ev_vdev_op_params->bw);
+		params->bss_op_res.ch_width_valid = true;
+	}
+
+	if (ev_vdev_op_params->operating_param_flags &
+	    WMI_VDEV_OPERATING_PARAM_SET_UPDATED_NSS) {
+		params->bss_op_res.tx_nss = ev_vdev_op_params->tx_nss;
+		params->bss_op_res.rx_nss = ev_vdev_op_params->rx_nss;
+		params->bss_op_res.nss_valid = true;
+	}
+
+	if (ev_vdev_op_params->operating_param_flags &
+	    WMI_VDEV_OPERATING_PARAM_SET_UPDATED_CHAINS) {
+		params->bss_op_res.tx_chains = ev_vdev_op_params->tx_chains;
+		params->bss_op_res.rx_chains = ev_vdev_op_params->rx_chains;
+		params->bss_op_res.chains_valid = true;
+	}
+
+	wmi_debug("VDEV-%d, Flags 0x%x, Tx/Rx NSS: %dx%d, Tx/Rx Chains: %dx%d, BW: %d",
+		  ev_vdev_op_params->vdev_id,
+		  ev_vdev_op_params->operating_param_flags,
+		  ev_vdev_op_params->tx_nss, ev_vdev_op_params->rx_nss,
+		  ev_vdev_op_params->tx_chains, ev_vdev_op_params->rx_chains,
+		  ev_vdev_op_params->bw);
+
+	return QDF_STATUS_SUCCESS;
+}
+
+#ifdef FEATURE_WLAN_TX_POWERBOOST
+static QDF_STATUS
+extract_power_boost_cap_tlv(wmi_unified_t wmi_handle,
+			    void *evt_buf, uint8_t phy_idx, bool *pb_cap)
+{
+	WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *param_buf;
+	WMI_POWER_BOOST_CAPABILITIES *ev_pb_cap;
+
+	if (!evt_buf) {
+		wmi_err("TPB: Event buffer is empty");
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	param_buf = (WMI_SERVICE_READY_EXT2_EVENTID_param_tlvs *)evt_buf;
+
+	/* If number of PHY is reported as 0, return */
+	if (!param_buf->num_hal_reg_caps)
+		return QDF_STATUS_SUCCESS;
+
+	if (phy_idx >= param_buf->num_hal_reg_caps) {
+		wmi_err("TPB: phy_idx: %d >= num_hal_reg_caps: %d",
+			phy_idx, param_buf->num_hal_reg_caps);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	if (!param_buf->power_boost_capabilities) {
+		wmi_debug("TPB: Power Boost capabilities is NULL");
+		*pb_cap = false;
+		/* Power Boost is optional, return success */
+		return QDF_STATUS_SUCCESS;
+	}
+
+	if (phy_idx >= param_buf->num_power_boost_capabilities) {
+		wmi_err("TPB: phy_idx: %d >= num_power_boost_capabilities: %d",
+			phy_idx, param_buf->num_power_boost_capabilities);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	ev_pb_cap = &param_buf->power_boost_capabilities[phy_idx];
+
+	*pb_cap =
+		WMI_POWER_BOOST_CAPABILITIES_POWER_BOOST_ENABLE_GET(
+				ev_pb_cap->phy_id__power_boost_enable__word32);
+
+	wmi_debug("TPB: phy_id: %u, enabled: %s", phy_idx,
+		  *pb_cap ? "true" : "false");
+
+	return QDF_STATUS_SUCCESS;
+}
+
+>>>>>>> CHANGE (38f8b4 qcacmn: Add phy_idx bounds check before accessing power boos)
 static QDF_STATUS
 send_pdev_power_boost_mem_ind_cmd_tlv(wmi_unified_t wmi_handle,
 				      struct wmi_host_pdev_pb_dma_buf *param,
