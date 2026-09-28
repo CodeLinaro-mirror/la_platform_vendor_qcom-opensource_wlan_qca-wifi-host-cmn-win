@@ -22,6 +22,7 @@
 #include <qdf_ipa_wdi3.h>
 #include <qdf_types.h>
 #include <qdf_lock.h>
+#include <qdf_platform.h>
 #include <hal_hw_headers.h>
 #include <hal_api.h>
 #include <hal_reo.h>
@@ -2559,6 +2560,9 @@ QDF_STATUS dp_ipa_disable_autonomy(struct cdp_soc_t *soc_hdl, uint8_t pdev_id)
 	uint32_t ix3;
 
 	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
+		return QDF_STATUS_SUCCESS;
+
+	if (qdf_is_recovering() || qdf_is_fw_down())
 		return QDF_STATUS_SUCCESS;
 
 	if (!hif_is_target_ready(HIF_GET_SOFTC(soc->hif_handle)))
