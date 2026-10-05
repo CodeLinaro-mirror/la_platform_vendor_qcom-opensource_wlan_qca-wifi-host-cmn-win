@@ -330,8 +330,8 @@ util_scan_get_phymode_11be(struct wlan_objmgr_pdev *pdev,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_IDX,
 			 EHTOP_PARAM_DISABLED_SC_BITMAP_PRESENT_BITS)) {
 		if (eht_ops->elem_len < sizeof(struct wlan_ie_ehtops) - 2) {
-			scm_err("Invalid EHT OP IE len %d with dis_sc_bitmap",
-				eht_ops->elem_len);
+			scm_debug_rl("Invalid EHT OP IE len %d with "
+				     "dis_sc_bitmap", eht_ops->elem_len);
 			return phymode;
 		}
 		scan_params->channel.puncture_bitmap =

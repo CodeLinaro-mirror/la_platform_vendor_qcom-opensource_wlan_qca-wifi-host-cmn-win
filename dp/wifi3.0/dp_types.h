@@ -684,6 +684,18 @@ struct rx_desc_pool {
 	qdf_frag_cache_t pf_cache;
 	enum qdf_dp_desc_type desc_type;
 };
+#ifdef WLAN_FEATURE_11BE_MLO
+/**
+ * struct dp_validate_eth_addr
+ * @eh: Eapol packet header
+ * @valid_addr: To validate whether A3 addr of EAP/EAPOL frame
+ *		is matches with link addr of AP or not
+ */
+struct dp_validate_eth_addr {
+	qdf_ether_header_t *eh;
+	bool valid_addr;
+};
+#endif /* WLAN_FEATURE_11BE_MLO */
 
 /**
  * struct dp_tx_ext_desc_elem_s
@@ -2465,6 +2477,8 @@ enum dp_context_type {
  * @dp_tx_is_mcast_primary:
  * @dp_soc_get_by_idle_bm_id:
  * @mlo_peer_find_hash_detach:
+ * @check_for_valid_link_addr: To validate whether A3 addr of EAP/EAPOL frame
+ *			       is matches with link addr of AP or not
  * @mlo_peer_find_hash_attach:
  * @mlo_peer_find_hash_add:
  * @mlo_peer_find_hash_remove:
@@ -2678,6 +2692,8 @@ struct dp_arch_ops {
 						    uint8_t bm_id);
 
 	void (*mlo_peer_find_hash_detach)(struct dp_soc *soc);
+	void (*check_for_valid_link_addr)(struct dp_vdev *vdev,
+					  struct dp_validate_eth_addr *check_valid_addr);
 	QDF_STATUS (*mlo_peer_find_hash_attach)(struct dp_soc *soc);
 	void (*mlo_peer_find_hash_add)(struct dp_soc *soc,
 				       struct dp_peer *peer);

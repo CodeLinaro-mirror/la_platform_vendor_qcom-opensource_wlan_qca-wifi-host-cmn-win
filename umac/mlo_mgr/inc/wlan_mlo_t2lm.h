@@ -725,6 +725,14 @@ typedef QDF_STATUS (*wlan_mlo_t2lm_link_update_handler)(
  *                              invoked as part of mapping switch time and
  *                              expected duration expiry.
  * @mlo_dev_ctx: Pointer to mlo_dev context
+ * @established_t2lm_ed_modified_in_case_of_cac: When advertised
+ *                                               t2lm is there with 5GHz only
+ *                                               mapping and after 5GHz CSA
+ *                                               new channel
+ *                                               require CAC, then this
+ *                                               variable indicates that
+ *                                               esatblished t2lm ED is
+ *                                               modified or not.
  */
 struct wlan_t2lm_context {
 	struct wlan_mlo_t2lm_ie established_t2lm;
@@ -745,6 +753,7 @@ struct wlan_t2lm_context {
 #endif
 	int link_update_callback_index;
 	struct wlan_mlo_dev_context *mlo_dev_ctx;
+	bool established_t2lm_ed_modified_in_case_of_cac;
 };
 
 #ifdef WLAN_FEATURE_11BE
@@ -1116,6 +1125,28 @@ wlan_send_peer_level_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
  */
 void wlan_t2lm_timer_stop(struct wlan_t2lm_timer *t2lm_timer);
 
+/**
+ * wlan_mlo_t2lm_is_link_disabled() - Check if vdev link is disabled using
+ * advertised T2LM disabled link bitmap.
+ * @vdev: VDEV objmgr pointer
+ *
+ * Return: true if disabled per established T2LM; false otherwise
+ */
+bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev);
+
+/**
+ * wlan_mlo_t2lm_update_peer_to_peer_negotiation() - API to update peer-to-peer
+ * level T2LM negotiation data structure on mapping switch time expiry and
+ * expected duration expiry.
+ * @ml_dev: Pointer to ML dev structure
+ * @ml_peer: Pointer to ML peer
+ * @arg: Pointer to advertised T2LM structure
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
+		struct wlan_mlo_dev_context *ml_dev,
+		void *ml_peer, void *arg);
 #else
 static inline QDF_STATUS wlan_mlo_parse_t2lm_ie(
 	struct wlan_t2lm_onging_negotiation_info *t2lm, uint8_t *ie,
@@ -1253,6 +1284,18 @@ QDF_STATUS wlan_send_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
 static inline QDF_STATUS
 wlan_send_peer_level_tid_to_link_mapping(struct wlan_objmgr_vdev *vdev,
 					 struct wlan_objmgr_peer *peer)
+{
+	return QDF_STATUS_SUCCESS;
+}
+
+static inline bool wlan_mlo_t2lm_is_link_disabled(struct wlan_objmgr_vdev *vdev)
+{
+	return false;
+}
+
+static inline QDF_STATUS wlan_mlo_t2lm_update_peer_to_peer_negotiation(
+		struct wlan_mlo_dev_context *ml_dev,
+		void *ml_peer, void *arg)
 {
 	return QDF_STATUS_SUCCESS;
 }

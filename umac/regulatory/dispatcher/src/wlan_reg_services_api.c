@@ -1966,6 +1966,16 @@ wlan_reg_validate_freq_in_afc_chan_obj(struct wlan_objmgr_pdev *pdev,
 						 bw);
 }
 
+bool
+wlan_reg_validate_freq_in_afc_payload(struct wlan_objmgr_pdev *pdev,
+				      qdf_freq_t primary_freq,
+				      qdf_freq_t center_320, uint16_t bw,
+				      uint16_t pp)
+{
+	return reg_validate_freq_in_afc_payload(pdev, primary_freq, center_320,
+						bw, pp);
+}
+
 QDF_STATUS wlan_reg_set_afc_power_event_received(struct wlan_objmgr_pdev *pdev,
 						 bool val)
 {

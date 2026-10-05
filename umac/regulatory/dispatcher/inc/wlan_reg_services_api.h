@@ -2912,6 +2912,12 @@ wlan_reg_validate_freq_in_afc_chan_obj(struct wlan_objmgr_pdev *pdev,
 				       qdf_freq_t center_320,
 				       uint16_t bw);
 
+bool
+wlan_reg_validate_freq_in_afc_payload(struct wlan_objmgr_pdev *pdev,
+				      qdf_freq_t primary_freq,
+				      qdf_freq_t center_320, uint16_t bw,
+				      uint16_t pp);
+
 /**
  * wlan_reg_set_afc_power_event_received() - Set power event received flag with
  * given val.

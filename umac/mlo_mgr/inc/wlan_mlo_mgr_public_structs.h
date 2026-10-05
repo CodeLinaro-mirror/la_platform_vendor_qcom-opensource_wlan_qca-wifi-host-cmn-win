@@ -1702,11 +1702,15 @@ enum mlo_chip_recovery_type {
  * been applied, Update the required data structures and other modules.
  * @WLAN_EXPECTED_DUR_EXPIRED: Indication that the proposed T2LM ineffective
  * after this duration and all TIDs fall back to default mode.
+ * @WLAN_EXPECTED_DUR_NEAR_TO_EXPIRY: Expected duration about to end. To
+ * continue link disablement, host can send another T2LM WMI command to
+ * firmware.
  */
 enum wlan_t2lm_status {
 	WLAN_MAP_SWITCH_TIMER_TSF,
 	WLAN_MAP_SWITCH_TIMER_EXPIRED,
 	WLAN_EXPECTED_DUR_EXPIRED,
+	WLAN_EXPECTED_DUR_NEAR_TO_EXPIRY,
 };
 
 /**

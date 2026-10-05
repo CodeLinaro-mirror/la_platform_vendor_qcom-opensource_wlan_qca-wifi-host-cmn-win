@@ -22,6 +22,7 @@
 #include <qdf_ipa_wdi3.h>
 #include <qdf_types.h>
 #include <qdf_lock.h>
+#include <qdf_platform.h>
 #include <hal_hw_headers.h>
 #include <hal_api.h>
 #include <hal_reo.h>
@@ -71,8 +72,8 @@ struct dp_ipa_reo_remap_record {
 	uint32_t ix3_reg;
 };
 
-#define WLAN_IPA_AST_META_DATA_MASK htonl(0x000000FF)
-#define WLAN_IPA_META_DATA_MASK htonl(0x00FF0000)
+#define WLAN_IPA_AST_META_DATA_MASK htonl(0x0000001F)
+#define WLAN_IPA_META_DATA_MASK htonl(0x001F0000)
 
 #define REO_REMAP_HISTORY_SIZE 32
 
@@ -2561,6 +2562,9 @@ QDF_STATUS dp_ipa_disable_autonomy(struct cdp_soc_t *soc_hdl, uint8_t pdev_id)
 	if (!wlan_cfg_is_ipa_enabled(soc->wlan_cfg_ctx))
 		return QDF_STATUS_SUCCESS;
 
+	if (qdf_is_recovering() || qdf_is_fw_down())
+		return QDF_STATUS_SUCCESS;
+
 	if (!hif_is_target_ready(HIF_GET_SOFTC(soc->hif_handle)))
 		return QDF_STATUS_E_AGAIN;
 
@@ -3665,7 +3669,7 @@ QDF_STATUS dp_ipa_setup_iface(struct cdp_soc_t *soc_hdl, char *ifname,
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_IS_META_DATA_VALID(&in) = 1;
 	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA(&in) =
 		htonl(session_id << 16);
-	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(&in) = htonl(0x00FF0000);
+	QDF_IPA_WDI_REG_INTF_IN_PARAMS_META_DATA_MASK(&in) = htonl(0x001F0000);
 
 	/* IPV6 header */
 	if (is_ipv6_enabled) {
