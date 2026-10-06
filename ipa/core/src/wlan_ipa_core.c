@@ -40,6 +40,7 @@
 #include <cdp_txrx_peer_ops.h>
 #endif
 #include <qal_vbus_dev.h>
+#include <cdp_txrx_stats_struct.h>
 
 #define IPA_SPS_DESC_SIZE 8
 #define IPA_DEFAULT_HDL 0
@@ -538,7 +539,7 @@ static inline
 bool wlan_ipa_get_peer_state(struct cdp_soc_t *soc, uint8_t vdev_id,
 			     uint8_t *peer_mac)
 {
-	return cdp_peer_get_authorize(soc, vdev_id, peer_mac);
+	return cdp_peer_get_authorize(soc, CDP_VDEV_ALL, peer_mac);
 }
 #endif
 

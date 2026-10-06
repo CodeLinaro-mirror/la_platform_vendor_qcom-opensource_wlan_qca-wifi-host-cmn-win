@@ -2568,6 +2568,25 @@ qdf_nbuf_t
 qdf_nbuf_copy_expand_debug(qdf_nbuf_t buf, int headroom, int tailroom,
 			   const char *func, uint32_t line);
 
+#define qdf_nbuf_copy_expand_pskb(buf, headroom, tailroom) \
+	qdf_nbuf_copy_expand_pskb_debug(buf, headroom, tailroom, __func__, \
+					 __LINE__)
+
+/**
+ * qdf_nbuf_copy_expand_pskb_debug() - copy and expand nbuf preserving fraglist
+ * @buf: Network buf instance
+ * @headroom: Additional headroom to be added
+ * @tailroom: Additional tailroom to be added
+ * @func: name of the calling function
+ * @line: line number of the callsite
+ *
+ * Return: New nbuf that is a copy of buf, with additional head and tailroom
+ *	or NULL if there is no memory
+ */
+qdf_nbuf_t
+qdf_nbuf_copy_expand_pskb_debug(qdf_nbuf_t buf, int headroom, int tailroom,
+				const char *func, uint32_t line);
+
 /**
  * qdf_nbuf_unshare() - make a copy of the shared nbuf
  * @buf: Network buf instance
@@ -2812,6 +2831,12 @@ static inline qdf_nbuf_t qdf_nbuf_copy_expand(qdf_nbuf_t buf, int headroom,
 	return __qdf_nbuf_copy_expand(buf, headroom, tailroom);
 }
 
+static inline qdf_nbuf_t
+qdf_nbuf_copy_expand_pskb(qdf_nbuf_t buf, int headroom, int tailroom)
+{
+	return __qdf_nbuf_copy_expand_pskb(buf, headroom, tailroom);
+}
+
 static inline qdf_nbuf_t qdf_nbuf_unshare(qdf_nbuf_t buf)
 {
 	return __qdf_nbuf_unshare(buf);
@@ -2930,13 +2955,25 @@ static inline qdf_nbuf_t
 qdf_nbuf_copy_expand_fraglist(qdf_nbuf_t buf, int headroom,
 			      int tailroom)
 {
-	buf = qdf_nbuf_copy_expand(buf, headroom, tailroom);
+	qdf_nbuf_t src = buf;
+	qdf_nbuf_t dst;
+	qdf_nbuf_t src_ext = NULL;
+	qdf_nbuf_t dst_ext = NULL;
 
-	/* get fraglist reference */
-	if (buf)
-		__qdf_nbuf_get_ref_fraglist(buf);
+	dst = qdf_nbuf_copy_expand_pskb(src, headroom, tailroom);
+	if (!dst)
+		return NULL;
 
-	return buf;
+	src_ext = (qdf_nbuf_t)__qdf_nbuf_get_ext_list(src);
+	if (!src_ext)
+		return dst;
+
+	dst_ext = (qdf_nbuf_t)__qdf_nbuf_get_ext_list(dst);
+	if (dst_ext)
+		return dst;
+
+	qdf_nbuf_free(dst);
+	return NULL;
 }
 
 #ifdef WLAN_FEATURE_FASTPATH

@@ -805,7 +805,8 @@ static void dp_lite_mon_free_tx_peers(struct dp_pdev *pdev)
 
 	lite_mon_tx_config = mon_pdev_be->lite_mon_tx_config;
 	qdf_spin_lock_bh(&lite_mon_tx_config->lite_mon_tx_lock);
-	dp_lite_mon_free_peers(pdev, &lite_mon_tx_config->tx_config);
+	dp_lite_mon_free_peers(pdev, &lite_mon_tx_config->tx_config,
+			       CDP_LITE_MON_DIRECTION_TX);
 	qdf_spin_unlock_bh(&lite_mon_tx_config->lite_mon_tx_lock);
 }
 #else
